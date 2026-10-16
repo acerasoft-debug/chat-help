@@ -17,6 +17,7 @@
  */
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
+require_once __DIR__.'/appt-lib.php';
 header('Access-Control-Allow-Origin: *'); header('Access-Control-Allow-Headers: Authorization, Content-Type'); header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 if($_SERVER['REQUEST_METHOD']==='OPTIONS'){ http_response_code(204); exit; }
 th_bootstrap();
@@ -89,6 +90,25 @@ switch(true){
   case $r==='phone/calls' && $m==='GET':
     th_json(200,['calls'=>th_calls($aid,$planId,60)]);
 
+  /* ---- Terminbuchung (Kalender des Kontos) ---- */
+  case $r==='appt/settings' && $m==='GET':
+    th_json(200,['settings'=>appt_settings($aid),'services'=>appt_services($aid,false),'booking_url'=>appt_booking_url($aid)]);
+  case $r==='appt/settings' && $m==='POST':
+    $st=appt_settings_save($aid,$b); th_json(200,['ok'=>true,'settings'=>$st,'services'=>appt_services($aid,false),'booking_url'=>appt_booking_url($aid)]);
+  case $r==='appt/slots' && $m==='GET':
+    th_json(200,appt_slots($aid,(string)($_GET['date'] ?? date('Y-m-d')),isset($_GET['service'])?(int)$_GET['service']:null));
+  case $r==='appt/bookings' && $m==='GET':
+    appt_reminders_lazy();
+    $from=preg_match('/^\d{4}-\d{2}-\d{2}$/',(string)($_GET['from']??''))?$_GET['from']:date('Y-m-d'); $to=preg_match('/^\d{4}-\d{2}-\d{2}$/',(string)($_GET['to']??''))?$_GET['to']:date('Y-m-d',strtotime('+30 days'));
+    th_json(200,['from'=>$from,'to'=>$to,'bookings'=>appt_bookings($aid,$from,$to)]);
+  case $r==='appt/book' && $m==='POST':
+    $res=appt_book($aid,isset($b['service_id'])?(int)$b['service_id']:null,(string)($b['start']??''),(string)($b['name']??''),(string)($b['phone']??''),(string)($b['email']??''),(string)($b['note']??''),'studio');
+    th_json(isset($res['error'])?422:200,$res);
+  case $r==='appt/cancel' && $m==='POST':
+    $res=appt_cancel((string)($b['code']??''),$aid); th_json(isset($res['error'])?404:200,$res);
+  case $r==='appt/status' && $m==='POST':
+    th_json(appt_set_status($aid,(int)($b['id']??0),(string)($b['status']??''))?200:400,['ok'=>true]);
+
   case $r==='balance' && $m==='GET':
     $u=th_db()->prepare("SELECT task,sector,tokens,created_at FROM api_usage WHERE account_id=? ORDER BY id DESC LIMIT 20"); $u->execute([$aid]);
     th_json(200,['email'=>$acc['email'],'balance'=>th_balance($aid),'recent'=>$u->fetchAll(PDO::FETCH_ASSOC)]);
@@ -125,6 +145,16 @@ switch(true){
     $cost=($phone?PRICING['phone_turn']:PRICING['agent_turn']) + (int)ceil($chars/2000);   // 6 (8 Telefon) Token/Antwort + 1 je 2.000 Zeichen Kontext
     if(!$active && th_balance($aid) < $cost) th_json(402,['error'=>'insufficient_tokens','need'=>$cost,'balance'=>th_balance($aid),'message'=>'Kein Guthaben: Agent mieten oder Tokens kaufen.','rent'=>'https://chat-help.com/chat/tokens-checkout.php?plan='.$planId,'buy'=>'https://chat-help.com/#tokens']);
     $sys=ch_agent_system($pl,$cfg,$lang).($phone?CH_PHONE_RULES:'');
+    /* Terminbuchung aktiv → Agent bekommt Werkzeuge (freie Zeiten, buchen, absagen); je Werkzeugaufruf +2 Tokens */
+    $apptOn = appt_settings($aid)['appt_on'] === 1;
+    if($apptOn){
+        $sys .= appt_system_hint($aid,$lang);
+        $work = function() use($sys,$msgs,$phone,$aid){ $out=th_ai_tools($sys,$msgs,appt_tools(),fn($n,$i)=>appt_exec($aid,$n,$i,$phone?'phone-test':'studio'),$phone?400:1800,90); if($out===null) th_json(503,['error'=>'ai_unavailable','detail'=>th_ai_info()['errors'] ?? []]); return $out; };
+        $t0=microtime(true); if(th_balance($aid) < $cost) th_json(402,['error'=>'insufficient_tokens','need'=>$cost,'balance'=>th_balance($aid),'buy'=>'https://chat-help.com/#preise']);
+        $result=$work(); $calls=th_ai_info()['tool_calls'] ?? []; $cost += 2*count($calls);
+        th_debit($aid,$cost,($phone?'phone-test:':'agent:').$planId); th_log_usage($aid,'agent:'.$planId,$pl['sector'],$cost,(int)((microtime(true)-$t0)*1000));
+        th_json(200,['result'=>$result,'tokens_used'=>$cost,'balance'=>th_balance($aid),'plan'=>$planId,'access'=>$active?'plan':'tokens','tools'=>array_map(fn($c)=>['name'=>$c['name'],'ok'=>$c['ok']],$calls)]);
+    }
     charged($acc,$cost,($phone?'phone-test:':'agent:').$planId,$pl['sector'],fn()=>ai_chat($sys,$msgs,$phone?400:2200),['plan'=>$planId,'access'=>$active?'plan':'tokens']);
 
   /* ---- Sektör ajanı tek tur (plan gerekmez) ---- */

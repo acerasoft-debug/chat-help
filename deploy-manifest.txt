@@ -14,6 +14,10 @@ chat/widget.js               chat/widget.js
 chat/widget-api.php          chat/widget-api.php
 chat/concierge.php           chat/concierge.php
 chat/phone-webhook.php       chat/phone-webhook.php
+chat/appt-lib.php            chat/appt-lib.php
+chat/appt-api.php            chat/appt-api.php
+chat/appt.php                chat/appt.php
+chat/book.php                chat/book.php
 chat/skin.css                chat/skin.css
 chat/skin.js                 chat/skin.js
 # Ana sayfa videosu (hero): site/media-src ile üretildi

@@ -58,7 +58,11 @@ if($demo!==''){
     $pl=ch_plan($demo); $d=ch_demo_cfg($demo); $phone=(($in['channel']??'')==='phone') || $demo==='agent-phone';
     $sys=ch_agent_system($pl,$d,'de').($phone?CH_PHONE_RULES:'')
         ."\n\nDEMO-HINWEIS (nur intern): Dies ist eine öffentliche Live-Demo auf chat-help.com mit der Beispiel-Firma „".$d['company']."“. Bleibe vollständig in der Rolle. Wenn jemand fragt, wie er so einen Agenten bekommt oder etwas über ChatHelp wissen will: Ein Satz – Studio auf chat-help.com, eigene Wissensbasis einfügen, in 10 Minuten startklar – dann zurück in die Rolle.";
-    $answer=th_ai($sys,$msgs,$phone?300:700,45);
+    /* Termin-Demos buchen in den Demo-Kalender (Konto 0, Salon Luna) – echte Slot-Prüfung, echte Buchung, keine Mails */
+    if(in_array($demo,['agent-termine','praxis-agent','agent-phone'],true)){
+        require_once __DIR__.'/appt-lib.php'; $sys.=appt_system_hint(0,'de')."\nDEMO: Kundendaten dürfen Platzhalter sein; keine E-Mail-Bestätigung – sage stattdessen, dass im echten Betrieb eine Bestätigung per E-Mail/SMS kommt.";
+        $answer=th_ai_tools($sys,$msgs,appt_tools(),fn($n,$i)=>appt_exec(0,$n,$i,'demo'),$phone?320:800,60);
+    } else $answer=th_ai($sys,$msgs,$phone?300:700,45);
     if($answer===null) th_json(200,['error'=>'ai_unavailable','reply'=>'Die Demo ist gerade nicht erreichbar – bitte gleich noch einmal versuchen.','demo'=>$demo,'detail'=>th_ai_info()['errors'] ?? []]);   // 200: Cloudflare würde 502 durch eigene Fehlerseite ersetzen
     $forward=str_contains($answer,'[WEITERLEITEN]'); $end=str_contains($answer,'[ENDE]');
     $answer=trim(str_replace(['[WEITERLEITEN]','[ENDE]'],'',$answer));

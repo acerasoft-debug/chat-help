@@ -66,6 +66,32 @@ if ($ai) {
         ['agent'=>'agent-inkasso','messages'=>[['role'=>'user','content'=>'Forderungsaufstellung: Rechnung 2026-118 über 2.450 € brutto, fällig seit 2. Juli, B2B. Nur die Gesamtsumme in einem Satz.']],'lang'=>'de'], 90, 400);
     $j = json_decode($r['body'], true); echo "  → ".(isset($j['reply']) ? "demo reply ✓ source=".($j['source'] ?? '?') : "✗ ".mb_substr($r['body'],0,200))."\n\n";
 }
+/* Terminbuchung: Demo-Kalender (Konto 0) über die öffentliche API + Agent mit Werkzeugen */
+$r = req('appt-api — info (demo)', "$base/chat/appt-api.php?k=demo&a=info", null, 20, 260);
+$j = json_decode($r['body'], true); echo "  → ".(isset($j['services']) ? "info ✓ ".count($j['services'])." Leistungen · ".$j['company'] : "✗")."\n\n";
+$r = req('appt-api — days (demo)', "$base/chat/appt-api.php?k=demo&a=days&service=2", null, 30, 260);
+$j = json_decode($r['body'], true); $firstDay = $j['days'][0] ?? null; echo "  → ".($firstDay ? "nächster freier Tag ".$firstDay['date']." · ".count($firstDay['slots'])." Slots" : "keine Tage ✗")."\n\n";
+if ($firstDay) {
+    $start = $firstDay['date'].' '.$firstDay['slots'][0];
+    $r = req('appt-api — book (demo)', "$base/chat/appt-api.php?k=demo&a=book", ['service_id'=>2,'start'=>$start,'name'=>'Live-Check Test','phone'=>'+49 170 0000000','note'=>'automatischer Test'], 30, 320);
+    $j = json_decode($r['body'], true); $code = $j['booking']['code'] ?? '';
+    echo "  → ".($code ? "gebucht ✓ Code $code · ".$j['booking']['human'] : "✗ ".mb_substr($r['body'],0,200))."\n\n";
+    if ($code) {
+        $r2 = req('appt-api — book gleicher Slot (muss slot_unavailable sein)', "$base/chat/appt-api.php?k=demo&a=book", ['service_id'=>2,'start'=>$start,'name'=>'Doppelt','phone'=>'+49 170 1111111'], 30, 160);
+        echo "  → ".(str_contains($r2['body'],'slot_unavailable') ? "Doppelbuchung verhindert ✓" : "✗ Doppelbuchung NICHT verhindert")."\n\n";
+        req('appt.php — Verwaltungsseite', "$base/chat/appt.php?c=$code", null, 20, 160);
+        req('appt.php — ICS', "$base/chat/appt.php?c=$code&ics=1", null, 20, 160);
+        $r3 = req('appt-api — cancel', "$base/chat/appt-api.php?a=cancel", ['code'=>$code], 20, 160);
+        echo "  → ".(str_contains($r3['body'],'cancelled') ? "abgesagt ✓" : "✗")."\n\n";
+    }
+}
+if ($ai) {
+    $r = req('concierge — Termin-Agent demo mit Werkzeugen (echte Slot-Abfrage)', "$base/chat/concierge.php",
+        ['agent'=>'agent-termine','messages'=>[['role'=>'user','content'=>'Ich hätte gern einen Herrenschnitt, wann habt ihr als nächstes frei? Nenne mir 3 Zeiten.']],'lang'=>'de'], 120, 500);
+    $j = json_decode($r['body'], true); echo "  → ".(isset($j['reply']) ? "reply ✓ source=".($j['source'] ?? '?') : "✗")."\n\n";
+}
+req('book.php (demo Buchungsseite)', "$base/chat/book.php?k=demo", null, 20, 120);
+
 /* Telefon-Webhook (Twilio) */
 req('phone-webhook — GET (Hinweistext)', "$base/chat/phone-webhook.php?key=wk_test", null, 20, 160);
 $r = req('phone-webhook — POST ungültiger Schlüssel (TwiML „nicht aktiv“ erwartet)', "$base/chat/phone-webhook.php?key=wk_".str_repeat('0',36), ['CallSid'=>'CAtest','From'=>'+491700000000'], 20, 220);

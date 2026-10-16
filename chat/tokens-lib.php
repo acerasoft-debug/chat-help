@@ -268,6 +268,53 @@ function th_ai(string $system, array $messages, int $maxTokens=1200, int $timeou
     return null;
 }
 
+/**
+ * KI mit Werkzeugen (Anthropic tool use): Modell darf Funktionen aufrufen (z. B. freie Termine lesen, Termin buchen).
+ * $tools = [['name','description','input_schema'],…]  $exec(name, input) → array (wird als JSON zurückgegeben).
+ * Gibt den finalen Text zurück (null bei Fehler). Infos: th_ai_info() → provider, model, tool_calls[].
+ */
+function th_ai_tools(string $system, array $messages, array $tools, callable $exec, int $maxTokens=900, int $timeout=60, int $maxRounds=5): ?string {
+    if(!(defined('CLAUDE_KEY') && CLAUDE_KEY) || !$tools) return th_ai($system,$messages,$maxTokens,$timeout);
+    $msgs=[]; foreach($messages as $m){ $role=($m['role']??'user')==='assistant'?'assistant':'user'; $c=$m['content']??''; if(is_string($c)){ $c=trim($c); if($c==='') continue; } $msgs[]=['role'=>$role,'content'=>$c]; }
+    if(!$msgs || $msgs[0]['role']!=='user') return null;
+    $info=['provider'=>null,'model'=>null,'errors'=>[],'tool_calls'=>[]];
+    $cacheF = is_writable(__DIR__) ? __DIR__.'/.ai_model.json' : sys_get_temp_dir().'/ch_ai_model.json';
+    $models = th_ai_models(); $cached=@json_decode((string)@file_get_contents($cacheF),true);
+    if(!empty($cached['model']) && (time()-(int)($cached['t']??0))<21600 && in_array($cached['model'],$models,true)) $models=array_values(array_unique(array_merge([$cached['model']],$models)));
+    $model=null; $text='';
+    for($round=0;$round<$maxRounds;$round++){
+        $resp=null;
+        foreach($model ? [$model] : $models as $m){
+            $ch=curl_init('https://api.anthropic.com/v1/messages');
+            curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>$timeout,
+                CURLOPT_POSTFIELDS=>json_encode(['model'=>$m,'max_tokens'=>$maxTokens,'system'=>$system,'messages'=>$msgs,'tools'=>$tools],JSON_UNESCAPED_UNICODE),
+                CURLOPT_HTTPHEADER=>['x-api-key: '.CLAUDE_KEY,'anthropic-version: 2023-06-01','content-type: application/json']]);
+            $raw=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $cerr=curl_error($ch); curl_close($ch);
+            $r=json_decode((string)$raw,true);
+            if($code===200 && !empty($r['content'])){ $resp=$r; if($model!==$m){ $model=$m; if(($cached['model']??null)!==$m) @file_put_contents($cacheF,json_encode(['model'=>$m,'t'=>time()])); } break; }
+            $info['errors'][]=$m.': '.($code?:'curl').' '.($r['error']['type']??'').' '.mb_substr((string)($r['error']['message']??$cerr),0,120);
+            if($code===401 || ($r['error']['type']??'')==='authentication_error') break 2;
+            if($model) break; // bekannter Modell-Fehler mitten im Gespräch: nicht wechseln
+        }
+        if(!$resp) break;
+        $info['provider']='claude'; $info['model']=$model;
+        $toolUses=[]; $t='';
+        foreach((array)$resp['content'] as $blk){ if(($blk['type']??'')==='text') $t.=(string)($blk['text']??''); elseif(($blk['type']??'')==='tool_use') $toolUses[]=$blk; }
+        if(trim($t)!=='') $text=$t;
+        if(($resp['stop_reason']??'')!=='tool_use' || !$toolUses){ $GLOBALS['__th_ai_info']=$info; return trim($text)!=='' ? $text : null; }
+        $results=[];
+        foreach($toolUses as $tu){
+            $in=is_array($tu['input']??null)?$tu['input']:[];
+            try{ $out=$exec((string)$tu['name'],$in); }catch(Throwable $e){ $out=['error'=>$e->getMessage()]; }
+            $info['tool_calls'][]=['name'=>$tu['name'],'input'=>$in,'ok'=>empty($out['error'])];
+            $results[]=['type'=>'tool_result','tool_use_id'=>$tu['id'],'content'=>json_encode($out,JSON_UNESCAPED_UNICODE)];
+        }
+        $msgs[]=['role'=>'assistant','content'=>$resp['content']]; $msgs[]=['role'=>'user','content'=>$results];
+    }
+    $GLOBALS['__th_ai_info']=$info;
+    return trim($text)!=='' ? $text : null;
+}
+
 /** E-posta: Brevo HTTPS API varsa onunla, yoksa mail(). */
 function th_mail(string $to, string $subject, string $html): bool {
     /* Absender: MAIL_FROM, sonst support@chat-help.com (Domain mit MX/SPF; SMTP_FROM zeigt ggf. auf .de) */

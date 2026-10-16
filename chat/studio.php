@@ -51,7 +51,7 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
 <body>
 <div class="top">
   <a class="logo" href="/"><span class="em"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp <span class="s">Studio</span></a>
-  <div class="tabs hidden" id="tabs"><button class="tab on" data-v="home">Übersicht</button><button class="tab" data-v="agents">Agenten</button><button class="tab" data-v="phone">Telefon</button><button class="tab" data-v="tokens">Tokens &amp; API</button></div>
+  <div class="tabs hidden" id="tabs"><button class="tab on" data-v="home">Übersicht</button><button class="tab" data-v="agents">Agenten</button><button class="tab" data-v="phone">Telefon</button><button class="tab" data-v="termine">Termine</button><button class="tab" data-v="tokens">Tokens &amp; API</button></div>
   <div class="row hidden" id="acct"><span class="pill">Guthaben <b id="bal">–</b> Tokens</span><a class="btn s gold" href="/#preise" target="_blank">Tokens kaufen</a><span class="pill small" id="who"></span><button class="btn s" id="logout">Abmelden</button></div>
 </div>
 
@@ -87,7 +87,7 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
       <div class="card"><span class="tag">Guthaben</span><div class="num" style="margin-top:10px" id="hBal">–</div><div class="mute small">Tokens · verfallen nicht</div><a class="btn s gold" href="/#preise" target="_blank" style="margin-top:12px">Tokens kaufen</a></div>
       <div class="card"><span class="tag indigo">Aktive Agenten</span><div class="num" style="margin-top:10px" id="hPlans">0</div><div class="mute small">gemietet oder gekauft</div><button class="btn s" style="margin-top:12px" onclick="go('agents')">Agenten ansehen</button></div>
       <div class="card"><span class="tag teal">Gespräche (30 Tage)</span><div class="num" style="margin-top:10px" id="hConv">–</div><div class="mute small">Studio · Widget · Telefon</div></div>
-      <div class="card"><span class="tag gold">Telefon</span><div class="num" style="margin-top:10px;font-size:22px" id="hPhone">–</div><div class="mute small">Telefon-Agent Status</div><button class="btn s" style="margin-top:12px" onclick="go('phone')">Telefon einrichten</button></div>
+      <div class="card"><span class="tag gold">Telefon &amp; Termine</span><div class="num" style="margin-top:10px;font-size:22px" id="hPhone">–</div><div class="mute small">Telefon-Agent Status</div><div class="row" style="margin-top:12px"><button class="btn s" onclick="go('phone')">Telefon</button><button class="btn s" onclick="go('termine')">Termine</button></div></div>
     </div>
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><h3 style="font-size:19px">Schnellstart</h3>
@@ -150,6 +150,36 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
         <div class="sec"><h3>Im Browser testen</h3><p class="mute small" style="margin:4px 0 8px">Sprich mit dem Agenten wie am Telefon – Antwort wird vorgelesen (Chrome/Edge/Safari). Kostet 8 Tokens je Antwort.</p><button class="btn" id="phTest">🎙️ Telefon-Test starten</button></div>
       </div>
       <div class="card"><h3 style="font-size:17px">Anrufe &amp; Transkripte</h3><p class="mute small" style="margin:4px 0 0">Letzte 60 Anrufe dieses Agenten. Klick öffnet das Transkript.</p><div id="phCalls" style="margin-top:8px"><div class="mute small">Noch keine Anrufe.</div></div></div>
+    </div>
+  </div>
+
+  <!-- Termine -->
+  <div id="pTermine" class="hidden">
+    <div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h2 style="font-size:26px">Terminbuchung</h2><p class="mute" style="margin:4px 0 0">Dein Kalender für Praxis, Salon, Studio oder Werkstatt. Der Agent bucht im Chat, am Telefon und über deine Buchungsseite – ohne Doppelbuchung, mit Bestätigung und Erinnerung.</p></div><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-termine" target="_blank">Termin-Agent mieten · 99 €/Monat</a></div>
+    <div class="ws" style="grid-template-columns:1fr 1fr">
+      <div>
+        <div class="card">
+          <div class="sw"><input type="checkbox" id="apOn"><div><b>Online-Terminbuchung aktiv</b><div class="mute small">Agenten erhalten die Werkzeuge „freie Zeiten“, „buchen“, „absagen“; Buchungsseite wird freigeschaltet</div></div></div>
+          <label>Betrieb / Praxis / Salon</label><input type="text" id="apCompany" placeholder="z. B. Salon Luna · Friseur & Kosmetik">
+          <label>Adresse (für Bestätigung &amp; Kalenderdatei)</label><input type="text" id="apAddress" placeholder="Straße, PLZ Ort">
+          <div class="grid g2" style="gap:10px"><div><label>Benachrichtigung an</label><input type="email" id="apNotify" placeholder="termine@deinbetrieb.de (leer = Konto-E-Mail)"></div><div><label>Zeitzone</label><select id="apTz"><option>Europe/Berlin</option><option>Europe/Vienna</option><option>Europe/Zurich</option><option>Europe/Istanbul</option><option>Europe/Paris</option><option>Europe/London</option></select></div></div>
+          <label>Zusatz in der Bestätigung (optional)</label><input type="text" id="apConfirm" placeholder="z. B. Bitte 5 Minuten früher da sein. Absage bis 24 h vorher kostenlos.">
+          <div class="grid g4" style="gap:10px"><div><label>Taktung (Min)</label><input type="text" id="apSlot" value="30"></div><div><label>Puffer (Min)</label><input type="text" id="apBuffer" value="0"></div><div><label>Vorlauf (Min)</label><input type="text" id="apLead" value="120"></div><div><label>Horizont (Tage)</label><input type="text" id="apMax" value="60"></div></div>
+          <div class="sec"><h3>Öffnungszeiten</h3><div id="apHours"></div></div>
+          <div class="sec"><h3>Leistungen</h3><p class="mute small" style="margin:4px 0 8px">Name, Dauer in Minuten, Preis in Euro. Dauer bestimmt die Slot-Länge.</p><div id="apSvcs"></div><button class="btn s" id="apAddSvc" style="margin-top:8px">+ Leistung</button></div>
+          <div class="row" style="justify-content:space-between;margin-top:16px"><span class="mute small">Änderungen wirken sofort für Agent &amp; Buchungsseite.</span><button class="btn p" id="apSave">Speichern</button></div><div id="apMsg"></div>
+          <div class="sec"><h3>Deine Buchungsseite</h3><div class="snip" id="apUrl">–</div><div class="row" style="margin-top:8px"><a class="btn s" id="apOpen" href="#" target="_blank">Seite öffnen</a><button class="btn s" id="apCopy">Link kopieren</button><span class="mute small">Verlinke sie auf deiner Website, in Google Business, Instagram oder im E-Mail-Footer.</span></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="card"><div class="row" style="justify-content:space-between"><h3 style="font-size:17px">Termine (nächste 30 Tage)</h3><button class="btn s" id="apReload">↻</button></div><div id="apList" class="mute small" style="margin-top:8px">–</div></div>
+        <div class="card" style="margin-top:16px"><h3 style="font-size:17px">Termin manuell eintragen</h3>
+          <div class="grid g2" style="gap:10px"><div><label>Leistung</label><select id="mbSvc"></select></div><div><label>Datum</label><input type="date" id="mbDate"></div></div>
+          <label>Uhrzeit</label><select id="mbTime"><option value="">— Datum wählen —</option></select>
+          <div class="grid g2" style="gap:10px"><div><label>Name</label><input type="text" id="mbName"></div><div><label>Telefon</label><input type="tel" id="mbPhone"></div></div>
+          <label>E-Mail (Bestätigung)</label><input type="email" id="mbEmail"><label>Notiz</label><input type="text" id="mbNote">
+          <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn p" id="mbBook">Eintragen</button></div><div id="mbMsg"></div></div>
+      </div>
     </div>
   </div>
 
@@ -219,7 +249,7 @@ async function boot(){if(!KEY){show('login');return;}
   const q=new URLSearchParams(location.search);const w=q.get('welcome');if(w&&PLANS.find(p=>p.id===w)){go('agents');openAgent(w);}
   if(sessionStorage.getItem('ch_trial')){$('#trialBanner').classList.remove('hidden');sessionStorage.removeItem('ch_trial');}}
 function show(v){$('#vLogin').classList.toggle('hidden',v!=='login');$('#vApp').classList.toggle('hidden',v!=='app');$('#tabs').classList.toggle('hidden',v!=='app');$('#acct').classList.toggle('hidden',v!=='app');}
-function go(v){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));['Home','Agents','Phone','Tokens'].forEach(p=>$('#p'+p).classList.toggle('hidden',p.toLowerCase()!==v));window.scrollTo({top:0,behavior:'smooth'});}
+function go(v){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));['Home','Agents','Phone','Termine','Tokens'].forEach(p=>$('#p'+p).classList.toggle('hidden',p.toLowerCase()!==v));if(v==='termine'&&!AP)loadAppt();window.scrollTo({top:0,behavior:'smooth'});}
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(t.dataset.v));
 async function refreshMe(){try{ME=await api('/me');$('#bal').textContent=de(ME.balance);$('#hBal').textContent=de(ME.balance);$('#tBal').textContent=de(ME.balance);}catch(e){}}
 const active=id=>!!(ME.plans||[]).find(p=>p.id===id&&p.active);
@@ -285,6 +315,31 @@ $('#phSave').onclick=async()=>{const id=$('#phPlan').value;$('#phSave').disabled
 async function loadCalls(id){try{const j=await api('/phone/calls?plan='+id);const el=$('#phCalls');if(!j.calls.length){el.innerHTML='<div class="mute small">Noch keine Anrufe für diesen Agenten.</div>';return;}
   el.innerHTML=j.calls.map(c=>`<div class="call" onclick="this.classList.toggle('open')"><div class="hd"><span><b>${esc(c.from_number||'unbekannt')}</b> · ${new Date(c.started_at).toLocaleString('de-DE')}</span><span>${c.turns} Antworten · ${c.tokens} Tokens · ${esc(c.outcome||c.status)}</span></div><div class="tr">${(c.transcript||[]).map(m=>`<div class="${m.role==='user'?'u':'a'}">${esc(m.content)}</div>`).join('')}</div></div>`).join('');}catch(e){}}
 $('#phTest').onclick=()=>{const id=$('#phPlan').value;openAgent(id).then(()=>{if(!phoneMode)$('#wVoice').click();if(SR)setTimeout(listen,800);});};
+
+/* ===== Termine ===== */
+let AP=null,APSVC=[];const WDN=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+const eurS=c=>(c/100).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
+async function loadAppt(){try{const j=await api('/appt/settings');AP=j.settings;APSVC=j.services||[];renderAppt(j.booking_url);loadBookings();}catch(e){msg($('#apMsg'),e.message,'err');}}
+function renderAppt(url){const s=AP;$('#apOn').checked=!!s.appt_on;$('#apCompany').value=s.company||'';$('#apAddress').value=s.address||'';$('#apNotify').value=s.notify_email||'';$('#apTz').value=s.tz||'Europe/Berlin';$('#apConfirm').value=s.confirm_text||'';$('#apSlot').value=s.slot_min;$('#apBuffer').value=s.buffer_min;$('#apLead').value=s.lead_min;$('#apMax').value=s.max_days;
+  $('#apHours').innerHTML=[1,2,3,4,5,6,0].map(w=>{const r=(s.hours&&s.hours[String(w)]&&s.hours[String(w)][0])||null;return `<div class="row" style="gap:8px;padding:6px 0;border-bottom:1px solid var(--line)"><span style="width:92px;font-weight:600">${WDN[w]}</span><input type="checkbox" class="hOn" data-w="${w}" ${r?'checked':''} title="geöffnet"><input type="time" class="hFrom" data-w="${w}" value="${r?r[0]:'09:00'}" style="width:120px"><span class="mute">–</span><input type="time" class="hTo" data-w="${w}" value="${r?r[1]:'18:00'}" style="width:120px"></div>`;}).join('');
+  $('#apSvcs').innerHTML='';APSVC.filter(x=>x.active!==0).forEach(addSvcRow);if(!APSVC.length)addSvcRow({name:'',duration_min:30,price_cents:0});
+  $('#apUrl').textContent=url||'–';$('#apOpen').href=url||'#';
+  const sel=$('#mbSvc');sel.innerHTML=APSVC.filter(x=>x.active!==0).map(x=>`<option value="${x.id}">${esc(x.name)} · ${x.duration_min} Min</option>`).join('')||'<option value="">(Standard-Taktung)</option>';}
+function addSvcRow(x){const d=document.createElement('div');d.className='row';d.style.cssText='gap:8px;padding:6px 0;border-bottom:1px solid var(--line)';d.innerHTML=`<input type="hidden" class="sId" value="${x.id||0}"><input type="text" class="sName" placeholder="Leistung" value="${esc(x.name||'')}" style="flex:2;min-width:140px"><input type="text" class="sDur" value="${x.duration_min||30}" style="width:70px" title="Minuten"><span class="mute small">Min</span><input type="text" class="sPrice" value="${x.price_cents?(x.price_cents/100).toFixed(2).replace('.',','):''}" placeholder="0,00" style="width:84px"><span class="mute small">€</span><button class="btn s" type="button" title="entfernen">✕</button>`;d.querySelector('button').onclick=()=>d.remove();$('#apSvcs').appendChild(d);}
+$('#apAddSvc').onclick=()=>addSvcRow({});
+$('#apSave').onclick=async()=>{$('#apSave').disabled=true;const hours={};document.querySelectorAll('.hOn').forEach(c=>{const w=c.dataset.w;hours[w]=c.checked?[[document.querySelector(`.hFrom[data-w="${w}"]`).value,document.querySelector(`.hTo[data-w="${w}"]`).value]]:[];});
+  const services=[...document.querySelectorAll('#apSvcs .row')].map(r=>({id:+r.querySelector('.sId').value,name:r.querySelector('.sName').value,duration_min:+r.querySelector('.sDur').value,price:r.querySelector('.sPrice').value})).filter(s=>s.name.trim());
+  try{const j=await api('/appt/settings',{method:'POST',body:JSON.stringify({appt_on:$('#apOn').checked?1:0,company:$('#apCompany').value,address:$('#apAddress').value,notify_email:$('#apNotify').value,tz:$('#apTz').value,confirm_text:$('#apConfirm').value,slot_min:+$('#apSlot').value,buffer_min:+$('#apBuffer').value,lead_min:+$('#apLead').value,max_days:+$('#apMax').value,hours,services})});AP=j.settings;APSVC=j.services||[];renderAppt(j.booking_url);msg($('#apMsg'),'Gespeichert ✓ – Agent und Buchungsseite nutzen die neuen Zeiten sofort.','ok');loadBookings();}catch(e){msg($('#apMsg'),e.message,'err');}$('#apSave').disabled=false;};
+$('#apCopy').onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText($('#apUrl').textContent);msg($('#apMsg'),'Link kopiert.','ok');};
+$('#apReload').onclick=loadBookings;
+async function loadBookings(){try{const j=await api('/appt/bookings');const el=$('#apList');if(!j.bookings.length){el.innerHTML='<div class="mute small">Noch keine Termine. Teile deine Buchungsseite oder lass den Agenten buchen.</div>';return;}
+  let last='';el.innerHTML=j.bookings.map(b=>{const head=b.date!==last?`<div style="font:700 12px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--gold);margin:12px 0 4px">${esc(b.weekday)}, ${b.date.split('-').reverse().join('.')}</div>`:'';last=b.date;const st={booked:'ok',done:'teal',cancelled:'rose',noshow:'rose'}[b.status]||'';
+    return head+`<div class="call" style="margin-top:6px"><div class="row" style="justify-content:space-between"><span><b>${esc(b.time)}–${esc(b.end)}</b> · ${esc(b.service)}<br><span class="mute small">${esc(b.name)} · ${esc(b.phone)} ${b.email?'· '+esc(b.email):''} ${b.note?'· '+esc(b.note):''} · ${esc(b.source)} · Code ${b.code}</span></span><span class="row" style="gap:6px"><span class="tag ${st}">${esc(b.status)}</span>${b.status==='booked'?`<button class="btn s" onclick="apStatus(${b.id},'done')">✓ war da</button><button class="btn s" onclick="apStatus(${b.id},'noshow')">nicht erschienen</button><button class="btn s" onclick="apCancel('${b.code}')">absagen</button>`:''}</span></div></div>`;}).join('');}catch(e){$('#apList').textContent=e.message;}}
+async function apStatus(id,st){try{await api('/appt/status',{method:'POST',body:JSON.stringify({id,status:st})});loadBookings();}catch(e){alert(e.message);}}
+async function apCancel(code){if(!confirm('Termin absagen? Der Kunde wird per E-Mail informiert (falls hinterlegt).'))return;try{await api('/appt/cancel',{method:'POST',body:JSON.stringify({code})});loadBookings();}catch(e){alert(e.message);}}
+$('#mbDate').onchange=async()=>{const d=$('#mbDate').value;if(!d)return;const j=await api('/appt/slots?date='+d+'&service='+($('#mbSvc').value||''));$('#mbTime').innerHTML=(j.slots||[]).map(t=>`<option>${t}</option>`).join('')||'<option value="">keine freie Zeit</option>';};
+$('#mbSvc').onchange=()=>$('#mbDate').onchange();
+$('#mbBook').onclick=async()=>{const d=$('#mbDate').value,t=$('#mbTime').value;if(!d||!t){msg($('#mbMsg'),'Datum und Uhrzeit wählen.','err');return;}try{const j=await api('/appt/book',{method:'POST',body:JSON.stringify({service_id:$('#mbSvc').value||null,start:d+' '+t,name:$('#mbName').value,phone:$('#mbPhone').value,email:$('#mbEmail').value,note:$('#mbNote').value})});msg($('#mbMsg'),'Eingetragen ✓ Code '+j.booking.code,'ok');loadBookings();$('#mbDate').onchange();}catch(e){msg($('#mbMsg'),e.message,'err');}};
 
 /* ===== Tokens ===== */
 function renderTokens(){$('#tBal').textContent=de(ME.balance);$('#tKey').textContent=KEY.slice(0,16)+'…'+KEY.slice(-6)+'   (vollständig: '+KEY+')';const tb=$('#tRecent tbody');tb.innerHTML=(ME.recent||[]).map(r=>`<tr><td>${new Date(r.created_at).toLocaleString('de-DE')}</td><td>${esc(r.task)}</td><td>${esc(r.sector||'')}</td><td>${de(r.tokens)}</td></tr>`).join('')||'<tr><td colspan="4" class="mute">Noch kein Verbrauch.</td></tr>';}

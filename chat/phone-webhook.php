@@ -90,7 +90,9 @@ if(!empty($cfg['phone_hours'])) $sys.="\nTelefonische Erreichbarkeit des Teams (
 $sys.="\nAnrufer-Nummer (für Rückrufe, nicht vorlesen): ".($from ?: 'unbekannt').". Aktuelle Zeit: ".date('d.m.Y H:i').".";
 $msgs=array_slice(array_values(array_filter($tr,fn($m)=>in_array($m['role'],['user','assistant'],true))),-16);
 if($msgs[0]['role']!=='user') array_shift($msgs);   // Claude: erste Nachricht muss vom Nutzer sein
-$reply=th_ai($sys,$msgs,300,25);
+require_once __DIR__.'/appt-lib.php';
+if(appt_settings($aid)['appt_on']===1){ $sys.=appt_system_hint($aid); $sys.="\nAm Telefon: Datum und Uhrzeit immer ausgesprochen wiederholen (z. B. „Donnerstag, den dreiundzwanzigsten Oktober um fünfzehn Uhr“)."; $reply=th_ai_tools($sys,$msgs,appt_tools(),fn($n,$i)=>appt_exec($aid,$n,$i,'phone'),320,40); }
+else $reply=th_ai($sys,$msgs,300,25);
 if($reply===null) $reply='Entschuldigung, das habe ich nicht verstanden. Können Sie das bitte noch einmal sagen?';
 $forward=str_contains($reply,'[WEITERLEITEN]'); $end=str_contains($reply,'[ENDE]');
 $spoken=trim(preg_replace('/\s+/',' ',str_replace(['[WEITERLEITEN]','[ENDE]','*','#','`'],'',$reply)));
