@@ -100,7 +100,7 @@ req('driver.php — ungültiger Token (404 erwartet)', "$base/chat/driver.php?t=
 req('board.php — ungültiger Token (404 erwartet)', "$base/chat/board.php?t=".str_repeat('0',24), null, 20, 120);
 if ($ai) {
     $r = req('concierge — Bestell-Agent demo mit Werkzeugen (Adresse prüfen + Bestellung anlegen)', "$base/chat/concierge.php",
-        ['agent'=>'agent-bestellung','messages'=>[['role'=>'user','content'=>'Eine große Pizza Salami und eine Cola, Lieferung an Severinstraße 12, 50678 Köln, bar, Name Live-Check, Telefon 0170 0000000. Bitte direkt aufgeben, ich bestätige hiermit.']],'lang'=>'de'], 150, 600);
+        ['agent'=>'agent-bestellung','messages'=>[['role'=>'user','content'=>'Zwei große Pizza Salami und eine Cola, Lieferung an Severinstraße 12, 50678 Köln, bar, Name Live-Check, Telefon 0170 0000000. Bitte direkt aufgeben, ich bestätige hiermit.']],'lang'=>'de'], 150, 600);
     $j = json_decode($r['body'], true); $tools = array_map(fn($t)=>$t['name'].($t['ok']?'✓':'✗'), $j['tools'] ?? []);
     echo "  → ".(isset($j['reply']) ? "reply ✓ source=".($j['source'] ?? '?')." · Werkzeuge: ".($tools ? implode(', ', $tools) : 'keine') : "✗")."\n\n";
     if (preg_match('/\b([A-HJ-NP-Z2-9]{6})\b/', (string)($j['reply'] ?? ''), $mm)) echo "  → Bestellcode im Text: {$mm[1]}\n\n";
