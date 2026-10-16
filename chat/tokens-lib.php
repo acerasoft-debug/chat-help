@@ -39,6 +39,85 @@ function th_bootstrap(): void {
         company VARCHAR(120) DEFAULT '', tone VARCHAR(40) DEFAULT 'freundlich-professionell', lang VARCHAR(8) DEFAULT 'de',
         kb MEDIUMTEXT NULL, widget_key CHAR(40) NULL, widget_domain VARCHAR(190) DEFAULT '', widget_on TINYINT(1) DEFAULT 0,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_acc_plan (account_id, plan), UNIQUE KEY uq_widget (widget_key)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    /* Studio-Login per E-Mail-Code */
+    $p->exec("CREATE TABLE IF NOT EXISTS auth_codes (
+        id INT AUTO_INCREMENT PRIMARY KEY, email VARCHAR(190) NOT NULL, code_hash CHAR(64) NOT NULL, ip_hash CHAR(32) NOT NULL,
+        expires_at DATETIME NOT NULL, used TINYINT(1) DEFAULT 0, attempts TINYINT DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX(email, created_at), INDEX(ip_hash, created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    /* Telefon-Agent: Anrufe + Transkripte */
+    $p->exec("CREATE TABLE IF NOT EXISTS phone_calls (
+        id INT AUTO_INCREMENT PRIMARY KEY, account_id INT NOT NULL, plan VARCHAR(40) NOT NULL, call_sid VARCHAR(64) NOT NULL UNIQUE,
+        from_number VARCHAR(32) DEFAULT '', to_number VARCHAR(32) DEFAULT '', status VARCHAR(20) DEFAULT 'in-progress',
+        turns INT DEFAULT 0, silent INT DEFAULT 0, tokens INT DEFAULT 0, transcript MEDIUMTEXT NULL, outcome VARCHAR(20) DEFAULT '',
+        started_at DATETIME DEFAULT CURRENT_TIMESTAMP, ended_at DATETIME NULL, INDEX(account_id, started_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    /* agent_configs: Telefon-Spalten nachrüsten (einmalig) */
+    $cols = $p->query("SHOW COLUMNS FROM agent_configs")->fetchAll(PDO::FETCH_COLUMN);
+    foreach(['phone_on'=>"TINYINT(1) DEFAULT 0",'phone_number'=>"VARCHAR(32) DEFAULT ''",'phone_greeting'=>"VARCHAR(400) DEFAULT ''",
+             'phone_voice'=>"VARCHAR(40) DEFAULT 'de-DE'",'phone_forward'=>"VARCHAR(40) DEFAULT ''",'phone_hours'=>"VARCHAR(160) DEFAULT ''"] as $c=>$def){
+        if(!in_array($c,$cols,true)) $p->exec("ALTER TABLE agent_configs ADD COLUMN $c $def");
+    }
+}
+
+/* ---------- Studio-Login (E-Mail + 6-stelliger Code) ---------- */
+/** Code anfordern. Limits: 5 je E-Mail/Stunde, 15 je IP/Stunde. Gibt ['ok'=>bool,'message'=>..] zurück. */
+function th_login_request(string $email, string $ip, string $lang='de'): array {
+    $email=strtolower(trim($email)); $p=th_db(); $ih=md5('ch|'.$ip);
+    $s=$p->prepare("SELECT COUNT(*) FROM auth_codes WHERE email=? AND created_at > (NOW() - INTERVAL 1 HOUR)"); $s->execute([$email]);
+    if((int)$s->fetchColumn() >= 5) return ['ok'=>false,'error'=>'rate_limited','message'=>'Zu viele Codes angefordert – bitte in einer Stunde erneut.'];
+    $s=$p->prepare("SELECT COUNT(*) FROM auth_codes WHERE ip_hash=? AND created_at > (NOW() - INTERVAL 1 HOUR)"); $s->execute([$ih]);
+    if((int)$s->fetchColumn() >= 15) return ['ok'=>false,'error'=>'rate_limited','message'=>'Zu viele Anfragen – bitte später erneut.'];
+    $code=str_pad((string)random_int(0,999999),6,'0',STR_PAD_LEFT);
+    $p->prepare("UPDATE auth_codes SET used=1 WHERE email=? AND used=0")->execute([$email]);
+    $p->prepare("INSERT INTO auth_codes(email,code_hash,ip_hash,expires_at) VALUES(?,?,?,NOW() + INTERVAL 15 MINUTE)")->execute([$email,hash('sha256',$code.'|'.$email),$ih]);
+    if(random_int(1,30)===1) $p->exec("DELETE FROM auth_codes WHERE created_at < (NOW() - INTERVAL 2 DAY)");
+    $T=['de'=>['s'=>'Dein ChatHelp Studio-Code: '.$code,'h'=>'Anmeldung im ChatHelp Studio','p'=>'Gib diesen Code im Studio ein. Er ist 15 Minuten gültig.','f'=>'Falls du das nicht warst, ignoriere diese E-Mail einfach.'],
+        'en'=>['s'=>'Your ChatHelp Studio code: '.$code,'h'=>'Sign in to ChatHelp Studio','p'=>'Enter this code in the Studio. It is valid for 15 minutes.','f'=>"If this wasn't you, just ignore this email."],
+        'tr'=>['s'=>'ChatHelp Studio kodun: '.$code,'h'=>'ChatHelp Studio girişi','p'=>'Bu kodu Studio\'da gir. 15 dakika geçerlidir.','f'=>'Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin.']][$lang] ?? null;
+    $T = $T ?: ['s'=>'Dein ChatHelp Studio-Code: '.$code,'h'=>'Anmeldung im ChatHelp Studio','p'=>'Gib diesen Code im Studio ein. Er ist 15 Minuten gültig.','f'=>'Falls du das nicht warst, ignoriere diese E-Mail einfach.'];
+    $html='<div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px;border:1px solid #e6e8ef;border-radius:20px;color:#0f1222">'
+         .'<div style="font-size:22px;font-weight:700;margin-bottom:6px">ChatHelp <span style="color:#b8862b">Studio</span></div>'
+         .'<h2 style="font-size:18px;margin:18px 0 8px">'.$T['h'].'</h2><p style="color:#3b4055;margin:0 0 18px">'.$T['p'].'</p>'
+         .'<div style="font:700 36px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.22em;background:#f6ecd3;color:#1a1407;padding:18px 22px;border-radius:14px;text-align:center">'.$code.'</div>'
+         .'<p style="color:#6b7083;font-size:13px;margin-top:22px">'.$T['f'].'<br>ChatHelp · chat-help.com · support@chat-help.com</p></div>';
+    $sent=th_mail($email,$T['s'],$html);
+    return ['ok'=>true,'sent'=>$sent,'message'=>$sent?'Code gesendet.':'Code erzeugt, E-Mail-Versand fehlgeschlagen.'];
+}
+/** Code prüfen → Konto (oder null). Max. 6 Versuche je Code. */
+function th_login_verify(string $email, string $code): ?array {
+    $email=strtolower(trim($email)); $code=preg_replace('/\D/','',$code); if(strlen($code)!==6) return null;
+    $p=th_db(); $s=$p->prepare("SELECT * FROM auth_codes WHERE email=? AND used=0 AND expires_at > NOW() ORDER BY id DESC LIMIT 1"); $s->execute([$email]);
+    $row=$s->fetch(PDO::FETCH_ASSOC); if(!$row) return null;
+    if((int)$row['attempts'] >= 6){ $p->prepare("UPDATE auth_codes SET used=1 WHERE id=?")->execute([$row['id']]); return null; }
+    if(!hash_equals($row['code_hash'],hash('sha256',$code.'|'.$email))){ $p->prepare("UPDATE auth_codes SET attempts=attempts+1 WHERE id=?")->execute([$row['id']]); return null; }
+    $p->prepare("UPDATE auth_codes SET used=1 WHERE id=?")->execute([$row['id']]);
+    return th_account($email);
+}
+/** Deneme tokenları: hesap başına bir kez. Yüklenen miktarı döner (0 = zaten alınmış). */
+function th_trial_credit(int $acc, int $amount): int {
+    return th_credit($acc,$amount,'trial','acc:'.$acc) ? $amount : 0;
+}
+
+/* ---------- Telefon-Agent ---------- */
+/** Telefon-Schlüssel (= widget_key) → Konfiguration mit phone_on=1 + Konto. */
+function th_phone_cfg(string $wk): ?array {
+    if(!preg_match('/^wk_[a-f0-9]{36}$/',$wk)) return null;
+    $s=th_db()->prepare("SELECT c.*, a.email FROM agent_configs c JOIN token_accounts a ON a.id=c.account_id WHERE c.widget_key=? AND c.phone_on=1"); $s->execute([$wk]);
+    return $s->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+function th_call(string $sid): ?array { $s=th_db()->prepare("SELECT * FROM phone_calls WHERE call_sid=?"); $s->execute([$sid]); return $s->fetch(PDO::FETCH_ASSOC) ?: null; }
+function th_call_start(int $acc, string $plan, string $sid, string $from, string $to): array {
+    th_db()->prepare("INSERT IGNORE INTO phone_calls(account_id,plan,call_sid,from_number,to_number,transcript) VALUES(?,?,?,?,?,'[]')")->execute([$acc,$plan,$sid,$from,$to]);
+    return th_call($sid);
+}
+function th_call_update(string $sid, array $f): void {
+    $allowed=['status','turns','silent','tokens','transcript','outcome','ended_at']; $set=[]; $vals=[];
+    foreach($f as $k=>$v){ if(in_array($k,$allowed,true)){ $set[]="$k=?"; $vals[]=$v; } }
+    if(!$set) return; $vals[]=$sid; th_db()->prepare("UPDATE phone_calls SET ".implode(',',$set)." WHERE call_sid=?")->execute($vals);
+}
+function th_calls(int $acc, string $plan='', int $limit=50): array {
+    $q="SELECT id,plan,call_sid,from_number,to_number,status,turns,tokens,outcome,started_at,ended_at,transcript FROM phone_calls WHERE account_id=?".($plan!==''?" AND plan=?":"")." ORDER BY id DESC LIMIT ".(int)$limit;
+    $s=th_db()->prepare($q); $s->execute($plan!==''?[$acc,$plan]:[$acc]); $rows=$s->fetchAll(PDO::FETCH_ASSOC);
+    foreach($rows as &$r){ $r['transcript']=json_decode((string)$r['transcript'],true) ?: []; } return $rows;
 }
 
 /* ---------- Abonelikler ---------- */
@@ -62,16 +141,25 @@ function th_plan_active(int $acc, string $plan): bool {
 /* ---------- Agent ayarları / widget ---------- */
 function th_agent_cfg(int $acc, string $plan): array {
     $s=th_db()->prepare("SELECT * FROM agent_configs WHERE account_id=? AND plan=?"); $s->execute([$acc,$plan]);
-    return $s->fetch(PDO::FETCH_ASSOC) ?: ['account_id'=>$acc,'plan'=>$plan,'company'=>'','tone'=>'freundlich-professionell','lang'=>'de','kb'=>'','widget_key'=>null,'widget_domain'=>'','widget_on'=>0];
+    return $s->fetch(PDO::FETCH_ASSOC) ?: ['account_id'=>$acc,'plan'=>$plan,'company'=>'','tone'=>'freundlich-professionell','lang'=>'de','kb'=>'','widget_key'=>null,'widget_domain'=>'','widget_on'=>0,
+        'phone_on'=>0,'phone_number'=>'','phone_greeting'=>'','phone_voice'=>'de-DE','phone_forward'=>'','phone_hours'=>''];
 }
-function th_agent_cfg_save(int $acc, string $plan, array $d): void {
+/** Kaydet. $canActivate=false → widget_on/phone_on 0'a zorlanır (plan aktif değil). phone_number yalnız yönetici (Twilio) tarafından atanır. */
+function th_agent_cfg_save(int $acc, string $plan, array $d, bool $canActivate=true): void {
     $p=th_db(); $cur=th_agent_cfg($acc,$plan);
     $company=mb_substr(trim($d['company']??$cur['company']),0,120); $tone=mb_substr(trim($d['tone']??$cur['tone']),0,40); $lang=mb_substr(trim($d['lang']??$cur['lang']),0,8);
-    $kb=mb_substr((string)($d['kb']??$cur['kb']),0,60000); $dom=mb_substr(trim($d['widget_domain']??$cur['widget_domain']),0,190); $on=(int)!empty($d['widget_on']);
+    $kb=mb_substr((string)($d['kb']??$cur['kb']),0,60000); $dom=mb_substr(trim($d['widget_domain']??$cur['widget_domain']),0,190);
+    $on=$canActivate ? (int)!empty($d['widget_on'] ?? $cur['widget_on']) : 0;
+    $pon=$canActivate ? (int)!empty($d['phone_on'] ?? $cur['phone_on']) : 0;
+    $pg=mb_substr(trim((string)($d['phone_greeting']??$cur['phone_greeting'])),0,400);
+    $pv=preg_replace('/[^a-zA-Z-]/','',(string)($d['phone_voice']??$cur['phone_voice'])) ?: 'de-DE';
+    $pf=preg_replace('/[^0-9+ ]/','',(string)($d['phone_forward']??$cur['phone_forward'])); $pf=mb_substr(trim($pf),0,40);
+    $ph=mb_substr(trim((string)($d['phone_hours']??$cur['phone_hours'])),0,160);
     $wk=$cur['widget_key'] ?: ('wk_'.bin2hex(random_bytes(18)));
-    $p->prepare("INSERT INTO agent_configs(account_id,plan,company,tone,lang,kb,widget_key,widget_domain,widget_on) VALUES(?,?,?,?,?,?,?,?,?)
-        ON DUPLICATE KEY UPDATE company=VALUES(company),tone=VALUES(tone),lang=VALUES(lang),kb=VALUES(kb),widget_domain=VALUES(widget_domain),widget_on=VALUES(widget_on),updated_at=NOW()")
-      ->execute([$acc,$plan,$company,$tone,$lang,$kb,$wk,$dom,$on]);
+    $p->prepare("INSERT INTO agent_configs(account_id,plan,company,tone,lang,kb,widget_key,widget_domain,widget_on,phone_on,phone_greeting,phone_voice,phone_forward,phone_hours) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ON DUPLICATE KEY UPDATE company=VALUES(company),tone=VALUES(tone),lang=VALUES(lang),kb=VALUES(kb),widget_domain=VALUES(widget_domain),widget_on=VALUES(widget_on),
+        phone_on=VALUES(phone_on),phone_greeting=VALUES(phone_greeting),phone_voice=VALUES(phone_voice),phone_forward=VALUES(phone_forward),phone_hours=VALUES(phone_hours),updated_at=NOW()")
+      ->execute([$acc,$plan,$company,$tone,$lang,$kb,$wk,$dom,$on,$pon,$pg,$pv,$pf,$ph]);
 }
 function th_widget(string $wk): ?array {
     if(!preg_match('/^wk_[a-f0-9]{36}$/',$wk)) return null;
@@ -179,7 +267,8 @@ function th_ai(string $system, array $messages, int $maxTokens=1200, int $timeou
 
 /** E-posta: Brevo HTTPS API varsa onunla, yoksa mail(). */
 function th_mail(string $to, string $subject, string $html): bool {
-    $from = defined('SMTP_FROM') ? SMTP_FROM : 'noreply@chat-help.com'; $name = defined('SMTP_NAME') ? SMTP_NAME : 'ChatHelp';
+    /* Absender: MAIL_FROM, sonst support@chat-help.com (Domain mit MX/SPF; SMTP_FROM zeigt ggf. auf .de) */
+    $from = defined('MAIL_FROM') ? MAIL_FROM : 'support@chat-help.com'; $name = defined('SMTP_NAME') ? SMTP_NAME : 'ChatHelp';
     if(defined('BREVO_KEY') && BREVO_KEY){
         $ch=curl_init('https://api.brevo.com/v3/smtp/email');
         curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>20,
@@ -187,7 +276,7 @@ function th_mail(string $to, string $subject, string $html): bool {
             CURLOPT_HTTPHEADER=>['accept: application/json','api-key: '.BREVO_KEY,'content-type: application/json']]);
         curl_exec($ch); $c=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); if($c>=200&&$c<300) return true;
     }
-    return @mail($to,$subject,$html,"MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: $name <$from>");
+    return @mail($to,'=?UTF-8?B?'.base64_encode($subject).'?=',$html,"MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: $name <$from>\r\nReply-To: $from\r\nX-Mailer: ChatHelp");
 }
 
 /** Dinamik yanıtlar Cloudflare/platform önbelleğine girmesin (platform varsayılanı: public, 31 gün). */

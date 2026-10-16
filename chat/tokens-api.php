@@ -55,9 +55,21 @@ $r = rtrim(route(),'/'); $m=$_SERVER['REQUEST_METHOD'];
 if($r==='sectors' && $m==='GET'){
     th_json(200,['sectors'=>array_map(fn($k,$v)=>['id'=>$k,'name'=>$v['name']],array_keys(SECTORS),SECTORS),'plans'=>plans_public(),'pricing_tokens'=>PRICING,'tasks'=>['generate','translate','subtitles','agent']]);
 }
+/* ---- Studio-Login (öffentlich): E-Mail → 6-stelliger Code → API-Key. Neue Konten erhalten einmalig CH_TRIAL_TOKENS. ---- */
+if(($r==='auth/request' || $r==='auth/verify') && $m==='POST'){
+    $b=body(); $email=strtolower(trim((string)($b['email']??''))); $lang=substr(preg_replace('/[^a-z]/','',strtolower($b['lang']??'de')),0,2) ?: 'de';
+    if(!filter_var($email,FILTER_VALIDATE_EMAIL)) th_json(400,['error'=>'email_invalid','message'=>'Bitte eine gültige E-Mail-Adresse angeben.']);
+    $ip=$_SERVER['HTTP_CF_CONNECTING_IP'] ?? ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($_SERVER['REMOTE_ADDR'] ?? '0')); $ip=trim(explode(',',$ip)[0]);
+    if($r==='auth/request'){ $res=th_login_request($email,$ip,$lang); th_json($res['ok']?200:429,$res); }
+    $acc=th_login_verify($email,(string)($b['code']??''));
+    if(!$acc) th_json(401,['error'=>'invalid_code','message'=>'Code ungültig oder abgelaufen. Bitte neu anfordern.']);
+    $aid=(int)$acc['id']; $trial=th_trial_credit($aid,CH_TRIAL_TOKENS); $key=th_issue_key($aid,'studio');
+    th_json(200,['ok'=>true,'key'=>$key,'email'=>$acc['email'],'trial_credited'=>$trial,'balance'=>th_balance($aid)]);
+}
+
 $hdr = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
 $acc = th_auth(preg_replace('/^Bearer\s+/i','',trim($hdr)));
-if(!$acc) th_json(401,['error'=>'unauthorized','message'=>'Authorization: Bearer ch_live_… fehlt oder ungültig','get_key'=>'https://chat-help.com/#tokens']);
+if(!$acc) th_json(401,['error'=>'unauthorized','message'=>'Authorization: Bearer ch_live_… fehlt oder ungültig','get_key'=>'https://chat-help.com/chat/agent.php']);
 $aid=(int)$acc['id'];
 $b=body(); $lang=substr(preg_replace('/[^a-z]/','',strtolower($b['lang']??($_GET['lang']??'de'))),0,2) ?: 'de';
 $sector=preg_replace('/[^a-z]/','',strtolower($b['sector']??'marketing')); if(!isset(SECTORS[$sector])) $sector='marketing';
@@ -67,7 +79,15 @@ switch(true){
   case $r==='me' && $m==='GET':
     $u=th_db()->prepare("SELECT task,sector,tokens,created_at FROM api_usage WHERE account_id=? ORDER BY id DESC LIMIT 15"); $u->execute([$aid]);
     $plans=[]; foreach(th_plans($aid) as $p){ $pl=ch_plan($p['plan']); if($pl) $plans[]=['id'=>$pl['id'],'name'=>$pl['name'],'kind'=>$pl['kind'],'sector'=>$pl['sector'],'status'=>$p['status'],'period_end'=>$p['period_end'],'tokens_month'=>$pl['tokens'],'active'=>in_array($p['status'],['active','trialing','past_due'],true)]; }
-    th_json(200,['email'=>$acc['email'],'balance'=>th_balance($aid),'plans'=>$plans,'recent'=>$u->fetchAll(PDO::FETCH_ASSOC),'sectors'=>array_map(fn($k,$v)=>['id'=>$k,'name'=>$v['name']],array_keys(SECTORS),SECTORS)]);
+    $cf=th_db()->prepare("SELECT plan,company,widget_on,phone_on,phone_number,updated_at FROM agent_configs WHERE account_id=?"); $cf->execute([$aid]);
+    $tr=th_db()->prepare("SELECT COUNT(*) FROM token_ledger WHERE account_id=? AND reason='trial'"); $tr->execute([$aid]);
+    th_json(200,['email'=>$acc['email'],'balance'=>th_balance($aid),'plans'=>$plans,'configs'=>$cf->fetchAll(PDO::FETCH_ASSOC),'trial'=>(int)$tr->fetchColumn()>0,
+      'pricing'=>['agent_turn'=>PRICING['agent_turn'],'widget_turn'=>PRICING['widget_turn'],'phone_turn'=>PRICING['phone_turn']],
+      'recent'=>$u->fetchAll(PDO::FETCH_ASSOC),'sectors'=>array_map(fn($k,$v)=>['id'=>$k,'name'=>$v['name']],array_keys(SECTORS),SECTORS)]);
+
+  /* ---- Telefon-Agent: Anrufliste mit Transkripten ---- */
+  case $r==='phone/calls' && $m==='GET':
+    th_json(200,['calls'=>th_calls($aid,$planId,60)]);
 
   case $r==='balance' && $m==='GET':
     $u=th_db()->prepare("SELECT task,sector,tokens,created_at FROM api_usage WHERE account_id=? ORDER BY id DESC LIMIT 20"); $u->execute([$aid]);
@@ -95,13 +115,17 @@ switch(true){
 
   /* ---- Kiralanan AGENT / Paket: çok turlu, bilgi tabanlı ---- */
   case $r==='agent' && $m==='POST' && $planId!=='':
+    /* Zugang: aktiver Plan (inkl. Monats-Tokens) ODER Guthaben (Studio-Test / Pay-as-you-go). Widget & Telefon erfordern einen aktiven Plan. */
     $pl=ch_plan($planId); if(!$pl) th_json(404,['error'=>'unknown_plan','plans'=>array_keys(CH_PLANS)]);
-    if(!th_plan_active($aid,$planId)) th_json(403,['error'=>'plan_not_active','message'=>'Dieses Paket/dieser Agent ist für dein Konto nicht aktiv.','buy'=>'https://chat-help.com/chat/tokens-checkout.php?plan='.$planId]);
+    $active=th_plan_active($aid,$planId);
     $msgs=is_array($b['messages']??null)?$b['messages']:[]; if(!$msgs && !empty($b['goal'])) $msgs=[['role'=>'user','content'=>(string)$b['goal']]];
     $cfg=th_agent_cfg($aid,$planId);
+    $phone=(($b['channel']??'')==='phone');
     $chars=array_sum(array_map(fn($x)=>mb_strlen((string)($x['content']??'')),$msgs));
-    $cost=PRICING['agent_turn'] + (int)ceil($chars/2000);          // 6 Token/Antwort + 1 je 2.000 Zeichen Kontext
-    charged($acc,$cost,'agent:'.$planId,$pl['sector'],fn()=>ai_chat(ch_agent_system($pl,$cfg,$lang),$msgs,2200),['plan'=>$planId]);
+    $cost=($phone?PRICING['phone_turn']:PRICING['agent_turn']) + (int)ceil($chars/2000);   // 6 (8 Telefon) Token/Antwort + 1 je 2.000 Zeichen Kontext
+    if(!$active && th_balance($aid) < $cost) th_json(402,['error'=>'insufficient_tokens','need'=>$cost,'balance'=>th_balance($aid),'message'=>'Kein Guthaben: Agent mieten oder Tokens kaufen.','rent'=>'https://chat-help.com/chat/tokens-checkout.php?plan='.$planId,'buy'=>'https://chat-help.com/#tokens']);
+    $sys=ch_agent_system($pl,$cfg,$lang).($phone?CH_PHONE_RULES:'');
+    charged($acc,$cost,($phone?'phone-test:':'agent:').$planId,$pl['sector'],fn()=>ai_chat($sys,$msgs,$phone?400:2200),['plan'=>$planId,'access'=>$active?'plan':'tokens']);
 
   /* ---- Sektör ajanı tek tur (plan gerekmez) ---- */
   case $r==='agent' && $m==='POST':
@@ -113,18 +137,22 @@ switch(true){
 
   /* ---- Agent ayarları ---- */
   case $r==='agent/config' && $m==='GET':
-    if($planId==='') th_json(400,['error'=>'plan_required']);
-    if(!th_plan_active($aid,$planId)) th_json(403,['error'=>'plan_not_active']);
+    if($planId==='' || !ch_plan($planId)) th_json(400,['error'=>'plan_required']);
+    $active=th_plan_active($aid,$planId);
     $c=th_agent_cfg($aid,$planId); unset($c['id'],$c['account_id']);
-    th_json(200,['config'=>$c,'widget_snippet'=>$c['widget_key']?'<script src="https://chat-help.com/chat/widget.js" data-key="'.$c['widget_key'].'" async></script>':null]);
+    th_json(200,['config'=>$c,'plan_active'=>$active,
+      'widget_snippet'=>$c['widget_key']?'<script src="https://chat-help.com/chat/widget.js" data-key="'.$c['widget_key'].'" async></script>':null,
+      'phone_webhook'=>$c['widget_key']?'https://chat-help.com/chat/phone-webhook.php?key='.$c['widget_key']:null]);
 
   case $r==='agent/config' && $m==='POST':
-    if($planId==='') th_json(400,['error'=>'plan_required']);
-    if(!th_plan_active($aid,$planId)) th_json(403,['error'=>'plan_not_active']);
-    th_agent_cfg_save($aid,$planId,$b);
+    if($planId==='' || !ch_plan($planId)) th_json(400,['error'=>'plan_required']);
+    $active=th_plan_active($aid,$planId);
+    th_agent_cfg_save($aid,$planId,$b,$active);          // ohne aktiven Plan: speichern ja, Widget/Telefon einschalten nein
     $c=th_agent_cfg($aid,$planId); unset($c['id'],$c['account_id']);
-    th_json(200,['ok'=>true,'config'=>$c,'widget_snippet'=>'<script src="https://chat-help.com/chat/widget.js" data-key="'.$c['widget_key'].'" async></script>']);
+    th_json(200,['ok'=>true,'config'=>$c,'plan_active'=>$active,'note'=>$active?null:'Wissensbasis gespeichert. Website-Widget und Telefon werden mit aktivem Plan freigeschaltet.',
+      'widget_snippet'=>'<script src="https://chat-help.com/chat/widget.js" data-key="'.$c['widget_key'].'" async></script>',
+      'phone_webhook'=>'https://chat-help.com/chat/phone-webhook.php?key='.$c['widget_key']]);
 
   default:
-    th_json(404,['error'=>'not_found','routes'=>['GET /v1/sectors','GET /v1/me','GET /v1/balance','POST /v1/generate','POST /v1/translate','POST /v1/subtitles','POST /v1/agent','GET|POST /v1/agent/config']]);
+    th_json(404,['error'=>'not_found','routes'=>['GET /v1/sectors','POST /v1/auth/request','POST /v1/auth/verify','GET /v1/me','GET /v1/balance','POST /v1/generate','POST /v1/translate','POST /v1/subtitles','POST /v1/agent','GET|POST /v1/agent/config','GET /v1/phone/calls']]);
 }

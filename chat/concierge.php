@@ -29,7 +29,13 @@ $G=[
         'chips'=>['Quiero redactar una reclamación','¿Qué agente encaja con mi tienda?','¿Cuánto cuestan los tokens?']],
 ];
 $g=$G[$lang] ?? $G['de'];
-if($_SERVER['REQUEST_METHOD']==='GET') th_json(200,['greeting'=>$g['hi'],'chips'=>$g['chips'],'lang'=>$lang]);
+/* Live-Demo eines Agenten (Startseite): ?agent=agent-phone → Beispiel-Firma + Wissensbasis, echter Agent */
+$demo=preg_replace('/[^a-z0-9-]/','',(string)($in['agent'] ?? ($_GET['agent'] ?? '')));
+if($demo!=='' && !ch_plan($demo)) $demo='';
+if($_SERVER['REQUEST_METHOD']==='GET'){
+    if($demo!==''){ $d=ch_demo_cfg($demo); $pl=ch_plan($demo); th_json(200,['demo'=>$demo,'agent'=>$pl['name'],'company'=>$d['company'],'greeting'=>$d['greeting'],'chips'=>$d['chips'],'lang'=>'de']); }
+    th_json(200,['greeting'=>$g['hi'],'chips'=>$g['chips'],'lang'=>$lang]);
+}
 
 /* ---- hız sınırı ---- */
 th_bootstrap();
@@ -37,15 +43,28 @@ $p=th_db();
 $p->exec("CREATE TABLE IF NOT EXISTS concierge_log (id INT AUTO_INCREMENT PRIMARY KEY, ip_hash CHAR(32) NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, INDEX(ip_hash,created_at), INDEX(created_at)) ENGINE=InnoDB");
 $ip=$_SERVER['HTTP_CF_CONNECTING_IP'] ?? ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($_SERVER['REMOTE_ADDR'] ?? '0')); $ip=trim(explode(',',$ip)[0]); $h=md5('ch|'.$ip);
 $s=$p->prepare("SELECT COUNT(*) FROM concierge_log WHERE ip_hash=? AND created_at > (NOW() - INTERVAL 1 HOUR)"); $s->execute([$h]);
-if((int)$s->fetchColumn() >= 20) th_json(429,['error'=>'rate_limited','reply'=>['de'=>'Das war viel auf einmal 🙂 Bitte in einer Stunde erneut – oder schreib uns: info@chat-help.com','tr'=>'Bir saat sonra tekrar dene ya da info@chat-help.com adresine yaz 🙂','en'=>'That was a lot at once 🙂 Please try again in an hour or email info@chat-help.com'][$lang] ?? 'Bitte später erneut versuchen.']);
+if((int)$s->fetchColumn() >= 30) th_json(429,['error'=>'rate_limited','reply'=>['de'=>'Das war viel auf einmal 🙂 Bitte in einer Stunde erneut – oder melde dich im Studio an (300 Tokens gratis): https://chat-help.com/chat/agent.php','tr'=>'Bir saat sonra tekrar dene ya da Studio\'ya giriş yap (300 token hediye): https://chat-help.com/chat/agent.php 🙂','en'=>'That was a lot at once 🙂 Please try again in an hour or sign in to the Studio (300 free tokens): https://chat-help.com/chat/agent.php'][$lang] ?? 'Bitte später erneut versuchen.']);
 $s=$p->query("SELECT COUNT(*) FROM concierge_log WHERE created_at > (NOW() - INTERVAL 1 HOUR)");
-if((int)$s->fetchColumn() >= 400) th_json(429,['error'=>'busy','reply'=>'Gerade sehr viel los – bitte gleich noch einmal versuchen.']);
+if((int)$s->fetchColumn() >= 600) th_json(429,['error'=>'busy','reply'=>'Gerade sehr viel los – bitte gleich noch einmal versuchen.']);
 if(random_int(1,50)===1) $p->exec("DELETE FROM concierge_log WHERE created_at < (NOW() - INTERVAL 2 DAY)");
 
 /* ---- mesajlar ---- */
 $msgs=[]; foreach((array)($in['messages']??[]) as $m){ $role=($m['role']??'user')==='assistant'?'assistant':'user'; $t=trim((string)($m['content']??'')); if($t!=='') $msgs[]=['role'=>$role,'content'=>mb_substr($t,0,1500)]; }
 $msgs=array_slice($msgs,-10);
 if(!$msgs || end($msgs)['role']!=='user') th_json(400,['error'=>'messages_required']);
+
+/* ---- Agent-Live-Demo: echter Agent mit Beispiel-Wissensbasis (Plattform-Schlüssel, kein Token-Verbrauch des Besuchers) ---- */
+if($demo!==''){
+    $pl=ch_plan($demo); $d=ch_demo_cfg($demo); $phone=(($in['channel']??'')==='phone') || $demo==='agent-phone';
+    $sys=ch_agent_system($pl,$d,'de').($phone?CH_PHONE_RULES:'')
+        ."\n\nDEMO-HINWEIS (nur intern): Dies ist eine öffentliche Live-Demo auf chat-help.com mit der Beispiel-Firma „".$d['company']."“. Bleibe vollständig in der Rolle. Wenn jemand fragt, wie er so einen Agenten bekommt oder etwas über ChatHelp wissen will: Ein Satz – Studio auf chat-help.com, eigene Wissensbasis einfügen, in 10 Minuten startklar – dann zurück in die Rolle.";
+    $answer=th_ai($sys,$msgs,$phone?300:700,45);
+    if($answer===null) th_json(502,['error'=>'ai_unavailable','reply'=>'Die Demo ist gerade nicht erreichbar – bitte gleich noch einmal versuchen.']);
+    $forward=str_contains($answer,'[WEITERLEITEN]'); $end=str_contains($answer,'[ENDE]');
+    $answer=trim(str_replace(['[WEITERLEITEN]','[ENDE]'],'',$answer));
+    $p->prepare("INSERT INTO concierge_log(ip_hash) VALUES(?)")->execute([$h]);
+    th_json(200,['reply'=>$answer,'source'=>th_ai_info()['provider'] ?? 'ai','demo'=>$demo,'forward'=>$forward,'end'=>$end]);
+}
 
 /* ---- sistem promptu: ürün bilgisi ---- */
 $cat=''; foreach(CH_PLANS as $id=>$v){ $cat.="- {$v[0]} ({$v[4]}, {$v[3]}): ".number_format($v[1]/100,2,',','.')." € ".($v[4]==='buy'?'einmalig':'/ Monat').", inkl. ".number_format($v[2],0,',','.')." Tokens; Kauf: https://chat-help.com/chat/tokens-checkout.php?plan=$id\n"; }
