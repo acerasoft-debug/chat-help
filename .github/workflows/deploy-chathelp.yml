@@ -3,6 +3,8 @@ name: chat-help.com yayına al (site + Token/API backend)
 # NOT: DEPLOY_* secret'ları VESTRA sunucusuna çıkıyor (vestrasales.com / sarvesto.com); chat-help.com
 # orada barınmıyor (dry_run keşfi: aday 0). Bu workflow chat-help.com'un KENDİ bağlantısını kullanır:
 #
+# Hosting tespiti (run 38892339978): chat-help.com → 160.153.0.182 = GoDaddy (secureserver.net) paylaşımlı
+# cPanel barındırma; MX smtp.secureserver.net, NS domaincontrol.com. SSH: GoDaddy → Hosting → Ayarlar → SSH Erişimi: Açık.
 #   GitHub → Settings → Secrets and variables → Actions → New repository secret
 #     CHATHELP_HOST      sunucu adı / IP           (ör. wp123.webpack.hosteurope.de)
 #     CHATHELP_USER      SSH/SFTP kullanıcı adı
