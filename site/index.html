@@ -91,6 +91,23 @@ section{padding:96px 0;scroll-margin-top:84px}@media(max-width:720px){section{pa
 .tk .qty{font:700 16px var(--sans)}.tk .per{color:var(--mute);font-size:13px;margin-top:4px}
 .tk ul{list-style:none;display:grid;gap:8px;margin:14px 0 18px;color:var(--ink2);font-size:14px}.tk li::before{content:"✓ ";color:var(--teal);font-weight:700}
 .tk .btn{margin-top:auto;justify-content:center}
+/* katalog (sektör sekmeleri + paketler) */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:36px}
+.tab{font:600 13.5px var(--sans);padding:10px 14px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);cursor:pointer;background:var(--sur);transition:.2s}
+.tab:hover{border-color:var(--line2);color:#fff}.tab.on{background:linear-gradient(135deg,#f0d998,var(--gold2));color:#1a1407;border-color:transparent}
+.pkgs{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:24px}@media(max-width:960px){.pkgs{grid-template-columns:1fr}}
+.pkg{display:flex;flex-direction:column}.pkg h3{font-size:21px;margin:12px 0 6px}.pkg .d{color:var(--ink2);font-size:14.5px}
+.pkg ul{list-style:none;display:grid;gap:8px;margin:14px 0 16px;color:var(--ink2);font-size:14px}.pkg li::before{content:"✓ ";color:var(--teal);font-weight:700}
+.pkg .pr{margin-top:auto;display:flex;align-items:baseline;gap:6px}.pkg .pr b{font:700 30px var(--sans)}.pkg .pr small{color:var(--mute)}
+.pkg .inc{color:var(--mute);font-size:12.5px;margin-top:4px}
+.pkg .acts{display:flex;gap:8px;margin-top:14px}.pkg .acts .btn{flex:1;justify-content:center;padding:12px 14px;font-size:14px}
+/* token hesaplayıcı */
+.calc{margin-top:28px;border-radius:var(--r2);border:1px solid var(--line2);background:linear-gradient(160deg,rgba(227,194,122,.08),rgba(255,255,255,.03));padding:28px;display:grid;grid-template-columns:1.2fr .8fr;gap:28px;align-items:center}@media(max-width:860px){.calc{grid-template-columns:1fr}}
+.calc h3{font-size:24px}.calc input[type=range]{width:100%;margin:18px 0 10px;accent-color:var(--gold2)}
+.calc .num{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.calc .num input{width:170px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#0b0b12;color:#fff;font:600 16px var(--sans)}
+.calc .out{text-align:right}.calc .out b{font:700 40px var(--sans)}.calc .out small{display:block;color:var(--mute);margin-top:4px}
+.calc .tiers{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.calc .tiers span{font-size:12px;color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:6px 10px}
+@media(max-width:860px){.calc .out{text-align:left}}
 /* api */
 .api{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:start}@media(max-width:960px){.api{grid-template-columns:1fr}}
 .tiers{display:grid;gap:16px;margin-top:28px}
@@ -178,21 +195,9 @@ footer .cols{display:flex;gap:40px;flex-wrap:wrap}footer a:hover{color:#fff}
 <section id="branchen" style="background:var(--bg2)"><div class="wrap">
   <span class="eyebrow">Für jede Branche</span>
   <h2 style="margin-top:12px">KI-Agenten &amp; API – <span class="g">für alle Sektoren.</span></h2>
-  <p class="sub" style="margin-top:14px">Ein Token-Konto, eine API, branchenfertige Agenten und Vorlagen. Wähle deinen Sektor – oder kombiniere mehrere.</p>
-  <div class="sec">
-    <a class="card" href="/chat/"><div class="ic">⚖️</div><h4>Recht &amp; Verwaltung</h4><p>Widerspruch, Fristen, Formulare, Bescheide</p></a>
-    <a class="card" href="#api"><div class="ic">🛍️</div><h4>E-Commerce &amp; Handel</h4><p>Produkttexte, Kundensupport, Retouren</p></a>
-    <a class="card" href="#api"><div class="ic">🏠</div><h4>Immobilien</h4><p>Exposés, Mietverträge, Anfragen-Agent</p></a>
-    <a class="card" href="#api"><div class="ic">🩺</div><h4>Praxis &amp; Gesundheit</h4><p>Terminkommunikation, Patienteninfos (Verwaltung)</p></a>
-    <a class="card" href="#api"><div class="ic">👥</div><h4>HR &amp; Recruiting</h4><p>Stellenanzeigen, Screening, Onboarding</p></a>
-    <a class="card" href="#api"><div class="ic">💶</div><h4>Finanzen &amp; Steuern</h4><p>Belege, Fristen, Erklärungen, Mahnwesen</p></a>
-    <a class="card" href="#api"><div class="ic">🍽️</div><h4>Gastronomie &amp; Hotel</h4><p>Speisekarten, Bewertungen, Buchungen</p></a>
-    <a class="card" href="#api"><div class="ic">🔧</div><h4>Handwerk &amp; Service</h4><p>Angebote, Rechnungen, Kundenkommunikation</p></a>
-    <a class="card" href="#api"><div class="ic">🎓</div><h4>Bildung &amp; Coaching</h4><p>Kursinhalte, Übersetzung, Untertitel</p></a>
-    <a class="card" href="#creator"><div class="ic">📣</div><h4>Marketing &amp; Agenturen</h4><p>Content, SEO, Kampagnen, Reporting</p></a>
-    <a class="card" href="#api"><div class="ic">🚚</div><h4>Logistik &amp; Industrie</h4><p>Dokumentation, Übersetzung, Support</p></a>
-    <a class="card" href="#creator"><div class="ic">🎬</div><h4>Content &amp; Medien</h4><p>Skripte, Untertitel, Social-Content</p></a>
-  </div>
+  <p class="sub" style="margin-top:14px">Ein Token-Konto, eine API, branchenfertige Pakete und Agenten. Wähle deinen Sektor – jedes Paket enthält Tokens, weitere kaufst du jederzeit dazu.</p>
+  <div class="tabs" id="tabs"></div>
+  <div class="pkgs" id="pkgs"></div>
 </div></section>
 
 <section id="agenten"><div class="wrap">
@@ -219,6 +224,16 @@ footer .cols{display:flex;gap:40px;flex-wrap:wrap}footer a:hover{color:#fff}
     <div class="card"><span class="tag teal">Enterprise</span><div class="price"><b>ab 0,0025 €</b><small>/ Token</small></div><div class="qty">1 Mio.+ Tokens</div><div class="per">individuell · auf Rechnung</div><ul><li>Volumenpreis</li><li>AVV · dedizierter Support</li></ul><a class="btn" href="mailto:api@chat-help.com?subject=Tokens%20Enterprise">Anfragen</a></div>
   </div>
   <p style="color:var(--mute);font-size:13.5px;margin-top:16px">Richtwerte: 1 Min Untertitel ≈ 2 Tokens · 1 Social-Post ≈ 5 Tokens · 1 YouTube-Skript ≈ 50 Tokens · 1 Widerspruch ≈ 80 Tokens. Alle Preise zzgl. MwSt.</p>
+  <div class="calc" id="calc">
+    <div>
+      <span class="eyebrow">Tokens nach Wunsch</span>
+      <h3 style="margin-top:10px">Genau so viele, wie du brauchst.</h3>
+      <input type="range" id="tkRange" min="1000" max="500000" step="1000" value="25000">
+      <div class="num"><input type="number" id="tkNum" min="1000" max="5000000" step="1000" value="25000"> <span style="color:var(--mute)">Tokens</span></div>
+      <div class="tiers"><span>ab 1.000: 0,0055 €</span><span>ab 10.000: 0,0049 €</span><span>ab 50.000: 0,0040 €</span><span>ab 200.000: 0,00345 €</span><span>ab 1 Mio.: 0,0025 €</span></div>
+    </div>
+    <div class="out"><b id="tkPrice">122,50 €</b><small id="tkUnit">0,0049 € / Token · zzgl. MwSt.</small><a class="btn p" id="tkBuy" style="margin-top:16px" href="/chat/tokens-checkout.php?tokens=25000">Jetzt kaufen →</a></div>
+  </div>
 </div></section>
 
 <section id="api"><div class="wrap api">
@@ -293,4 +308,86 @@ curl https://api.chat-help.com/v1/scripts \
   <div><div class="logo" style="font-size:18px"><span class="em" style="width:28px;height:28px;font-size:14px">§</span>Chat<b>Help</b></div><div style="margin-top:8px">© 2026 ChatHelp · Acerasoft · chat-help.com</div></div>
   <div class="cols"><div><a href="#creator">Creator-Pakete</a><br><a href="#agenten">KI-Agenten</a><br><a href="/chat/">ChatHelp Recht</a></div><div><a href="/chat/?view=impressum">Impressum</a><br><a href="/chat/?view=datenschutz">Datenschutz</a><br><a href="/chat/?view=agb">AGB</a></div><div><a href="https://instagram.com/chathelpp">Instagram</a><br><a href="mailto:info@chat-help.com">Kontakt</a></div></div>
 </div></footer>
+<script>
+/* ===== KATALOG: Sektör → Paketler (veri-güdümlü; yeni paket = 1 satır) ===== */
+const CATALOG = {
+ recht:{n:"⚖️ Recht & Verwaltung",p:[
+  {t:"Einzeldokument",h:"Widerspruch / Einspruch / Antrag",d:"Ein geprüftes, versandfertiges Schreiben – mit §§, Frist und Form.",b:["§§ & Fristen geprüft (2 KIs)","Versand: Fax · Brief · Einschreiben","PDF + Word"],pr:"9,90 €",u:"/ Dokument",inc:"≈ 80 Tokens",href:"/chat/",tk:2000},
+  {t:"Abo",h:"Recht Basic",d:"Für Mieter, Arbeitnehmer, Familien: alle Standard-Schreiben inklusive.",b:["Unbegrenzt Dokumente ansehen","5 Versände / Monat inklusive","Fristen-Erinnerungen"],pr:"13,99 €",u:"/ Monat",inc:"inkl. 3.500 Tokens",href:"/chat/?plan=basic",tk:5000,f:1},
+  {t:"Abo",h:"Recht Pro",d:"Für Vielnutzer, Vermieter, kleine Betriebe: alles unbegrenzt.",b:["Unbegrenzt Dokumente & Versand","Vertrags-Check & Formulare (DE/FR/TR)","Priorisierte Prüfung"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.500 Tokens",href:"/chat/?plan=pro",tk:10000}]},
+ ecommerce:{n:"🛍️ E-Commerce & Handel",p:[
+  {t:"Abo",h:"Produkttext-Studio",d:"SEO-Produkttexte, Bullet Points und Meta-Daten für deinen Shop.",b:["300 Produkttexte / Monat","Shopify · WooCommerce · Amazon-Format","6 Sprachen"],pr:"49 €",u:"/ Monat",inc:"inkl. 12.000 Tokens",href:"/chat/?plan=ec-texte",tk:10000},
+  {t:"Agent",h:"Support-Agent 24/7",d:"Beantwortet Kundenanfragen aus deiner Wissensbasis – E-Mail, Chat, WhatsApp.",b:["Bis 2.000 Anfragen / Monat","Lieferung, Gewährleistung, Retouren (EU-Recht)","Eskalation an Mensch"],pr:"99 €",u:"/ Monat",inc:"inkl. 25.000 Tokens",href:"/chat/?plan=ec-support",tk:25000,f:1},
+  {t:"Abo",h:"Retouren-Assistent",d:"Retouren- und Reklamationsantworten, rechtssicher und freundlich.",b:["Widerrufsrecht & Gewährleistung korrekt","Vorlagen in deiner Tonalität","Statistik-Dashboard"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.000 Tokens",href:"/chat/?plan=ec-retouren",tk:5000}]},
+ immobilien:{n:"🏠 Immobilien",p:[
+  {t:"Abo",h:"Exposé-Generator",d:"Verkaufs- und Miet-Exposés aus Eckdaten – in Minuten, portalfertig.",b:["50 Exposés / Monat","ImmoScout- & Portal-Format","Energieausweis-Pflichtangaben"],pr:"39 €",u:"/ Monat",inc:"inkl. 10.000 Tokens",href:"/chat/?plan=immo-expose",tk:10000,f:1},
+  {t:"Einzel",h:"Mietvertrag-Check",d:"Vertragsklauseln prüfen und verständlich erklären – mit §§ (BGB).",b:["Unwirksame Klauseln markiert","Handlungsempfehlung","PDF-Bericht"],pr:"19,90 €",u:"/ Dokument",inc:"≈ 120 Tokens",href:"/chat/?plan=immo-check",tk:2000},
+  {t:"Agent",h:"Anfragen-Agent",d:"Antwortet Interessenten 24/7, qualifiziert und vereinbart Besichtigungen.",b:["Bis 1.000 Anfragen / Monat","Kalender-Anbindung","Mehrsprachig"],pr:"79 €",u:"/ Monat",inc:"inkl. 20.000 Tokens",href:"/chat/?plan=immo-agent",tk:20000}]},
+ praxis:{n:"🩺 Praxis & Gesundheit",p:[
+  {t:"Abo",h:"Termin-Kommunikation",d:"Erinnerungen, Absagen, Rückfragen – organisatorisch, DSGVO-konform.",b:["SMS/E-Mail-Vorlagen","Terminerinnerungen automatisch","Keine medizinischen Inhalte"],pr:"59 €",u:"/ Monat",inc:"inkl. 15.000 Tokens",href:"/chat/?plan=praxis-termine",tk:15000,f:1},
+  {t:"Abo",h:"Patienteninfo-Texte",d:"Organisatorische Infoblätter, Anfahrt, Ablauf, Formulare – verständlich.",b:["Leichte Sprache","Mehrsprachig (DE/EN/TR/RU/AR)","Druckfertig"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.000 Tokens",href:"/chat/?plan=praxis-info",tk:5000},
+  {t:"Agent",h:"Rezeptions-Agent",d:"Beantwortet Verwaltungsfragen (Öffnungszeiten, Unterlagen, Rezepte abholen).",b:["24/7 Telefon-/Chat-Entlastung","Übergabe an Praxisteam","Audit-Log"],pr:"129 €",u:"/ Monat",inc:"inkl. 32.000 Tokens",href:"/chat/?plan=praxis-agent",tk:30000}]},
+ hr:{n:"👥 HR & Recruiting",p:[
+  {t:"Abo",h:"Stellenanzeigen-Studio",d:"AGG-konforme Anzeigen für Job-Portale, in deinem Employer-Branding.",b:["30 Anzeigen / Monat","Indeed · StepStone · LinkedIn-Format","Gender-neutral & diskriminierungsfrei"],pr:"39 €",u:"/ Monat",inc:"inkl. 10.000 Tokens",href:"/chat/?plan=hr-anzeigen",tk:10000},
+  {t:"Agent",h:"Screening-Assistent",d:"Strukturierte Vorauswahl, Interviewfragen, Bewerber-Kommunikation.",b:["Bis 500 Bewerbungen / Monat","Absagen & Einladungen automatisch","DSGVO-Löschfristen"],pr:"89 €",u:"/ Monat",inc:"inkl. 22.000 Tokens",href:"/chat/?plan=hr-screening",tk:20000,f:1},
+  {t:"Abo",h:"Onboarding-Kit",d:"Willkommensmappen, Checklisten, 30-60-90-Tage-Pläne pro Rolle.",b:["Vorlagen pro Abteilung","Mehrsprachig","Export Word/PDF"],pr:"49 €",u:"/ Monat",inc:"inkl. 12.000 Tokens",href:"/chat/?plan=hr-onboarding",tk:10000}]},
+ finanzen:{n:"💶 Finanzen & Steuern",p:[
+  {t:"Abo",h:"Beleg-Erklärer",d:"Belege, Bescheide und Formulare verständlich erklärt – mit Fristen.",b:["Steuerbescheid-Check","Einspruchsfristen erkannt","Keine Steuerberatung im Einzelfall"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.000 Tokens",href:"/chat/?plan=fin-belege",tk:5000},
+  {t:"Agent",h:"Mahnwesen-Agent",d:"Zahlungserinnerung → Mahnung → Inkasso-Vorbereitung, rechtssicher.",b:["3-stufig, automatisch","Verzugszinsen korrekt (§ 288 BGB)","Zahlungseingang-Abgleich"],pr:"59 €",u:"/ Monat",inc:"inkl. 15.000 Tokens",href:"/chat/?plan=fin-mahnung",tk:15000,f:1},
+  {t:"Abo",h:"Fristen-Wächter",d:"Alle Steuer- und Abgabefristen im Blick, mit Erinnerungen.",b:["USt-VA, EÜR, Jahresabschluss","Erinnerung 14/7/1 Tage vorher","Team-Kalender"],pr:"19 €",u:"/ Monat",inc:"inkl. 4.000 Tokens",href:"/chat/?plan=fin-fristen",tk:5000}]},
+ gastro:{n:"🍽️ Gastronomie & Hotel",p:[
+  {t:"Abo",h:"Speisekarten & Übersetzung",d:"Karten, Allergene, Tagesangebote – in 6 Sprachen, druck- und QR-fertig.",b:["Allergen-Kennzeichnung (LMIV)","6 Sprachen","QR-Menü"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.000 Tokens",href:"/chat/?plan=gastro-karte",tk:5000},
+  {t:"Abo",h:"Bewertungs-Antworten",d:"Google-, Tripadvisor- und Booking-Bewertungen professionell beantwortet.",b:["Deeskalierend bei Kritik","In deiner Stimme","Bis 300 Antworten / Monat"],pr:"39 €",u:"/ Monat",inc:"inkl. 10.000 Tokens",href:"/chat/?plan=gastro-reviews",tk:10000,f:1},
+  {t:"Agent",h:"Buchungs-Agent",d:"Reservierungen und Gästeanfragen 24/7 – Tisch, Zimmer, Sonderwünsche.",b:["Bis 1.500 Anfragen / Monat","Kalender-/PMS-Anbindung","Mehrsprachig"],pr:"89 €",u:"/ Monat",inc:"inkl. 22.000 Tokens",href:"/chat/?plan=gastro-agent",tk:20000}]},
+ handwerk:{n:"🔧 Handwerk & Service",p:[
+  {t:"Abo",h:"Angebots-Generator",d:"Aus Aufmaß und Stichworten ein sauberes Angebot – mit Positionen und AGB.",b:["50 Angebote / Monat","Positionen & Material","Export PDF"],pr:"39 €",u:"/ Monat",inc:"inkl. 10.000 Tokens",href:"/chat/?plan=hw-angebot",tk:10000,f:1},
+  {t:"Abo",h:"Kunden-Kommunikation",d:"Terminbestätigungen, Verzögerungen, Nachfassen – freundlich und schnell.",b:["SMS/E-Mail-Vorlagen","Automatische Erinnerungen","Bewertungs-Anfrage"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.000 Tokens",href:"/chat/?plan=hw-kunden",tk:5000},
+  {t:"Abo",h:"Rechnungen & Reklamationen",d:"Rechnungstexte, Mahnungen, Reklamations-Antworten – rechtssicher.",b:["Gewährleistung (VOB/BGB) korrekt","Mahnstufen","Vorlagenbibliothek"],pr:"49 €",u:"/ Monat",inc:"inkl. 12.000 Tokens",href:"/chat/?plan=hw-rechnung",tk:10000}]},
+ bildung:{n:"🎓 Bildung & Coaching",p:[
+  {t:"Abo",h:"Kurs-Generator",d:"Lernziele, Module, Übungen und Quizze aus deinem Thema – komplett.",b:["10 Kurse / Monat","Didaktisch strukturiert","Export SCORM/PDF"],pr:"49 €",u:"/ Monat",inc:"inkl. 12.000 Tokens",href:"/chat/?plan=edu-kurs",tk:10000,f:1},
+  {t:"Credits",h:"Untertitel & Übersetzung",d:"Kursvideos transkribiert, übersetzt und mit .SRT untertitelt.",b:["12+ Sprachen","Zeitgestempelte .SRT/.VTT","Zahle nur, was du nutzt"],pr:"ab 19 €",u:"/ 200 Min",inc:"≈ 2 Tokens / Min",href:"/chat/?plan=creator-subtitles",tk:5000},
+  {t:"Abo",h:"Lernmaterial-Studio",d:"Arbeitsblätter, Zusammenfassungen, Karteikarten – pro Niveau.",b:["Leichte Sprache bis Experte","Mehrsprachig","Druckfertig"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.000 Tokens",href:"/chat/?plan=edu-material",tk:5000}]},
+ marketing:{n:"📣 Marketing & Agenturen",p:[
+  {t:"Abo",h:"Social-Media-Automatisierung",d:"Wochen-/Monats-Content-Pool: Posts, Captions, Hashtag-Strategie.",b:["Instagram · TikTok · LinkedIn","Lizenzfrei, in deiner Tonalität","6 Sprachen"],pr:"39 €",u:"/ Monat",inc:"inkl. 10.000 Tokens",href:"/chat/?plan=creator-social",tk:10000},
+  {t:"Abo",h:"SEO-Studio",d:"Keyword-Recherche, Blogartikel, Meta-Daten und interne Verlinkung.",b:["20 Artikel / Monat","Keyword-Cluster","Google-konform (E-E-A-T)"],pr:"59 €",u:"/ Monat",inc:"inkl. 15.000 Tokens",href:"/chat/?plan=mkt-seo",tk:15000,f:1},
+  {t:"API",h:"Agentur-API",d:"Alle Dienste per API für deine Kunden – White-Label-fähig.",b:["50.000 Tokens / Monat","Webhooks · 99,9 % SLA","5 Team-Seats"],pr:"249 €",u:"/ Monat",inc:"inkl. 50.000 Tokens",href:"#api",tk:50000}]},
+ logistik:{n:"🚚 Logistik & Industrie",p:[
+  {t:"Abo",h:"Doku-Übersetzung",d:"Technische Dokumentation, Datenblätter, Sicherheitshinweise – fachgerecht.",b:["12+ Sprachen","Terminologie-Glossar","Format bleibt erhalten"],pr:"49 €",u:"/ Monat",inc:"inkl. 12.000 Tokens",href:"/chat/?plan=log-doku",tk:10000},
+  {t:"Abo",h:"Lieferkommunikation",d:"Lieferavis, Verzögerungen, Schadensmeldungen – automatisch, mehrsprachig.",b:["Vorlagen pro Ereignis","Tracking-Integration","B2B-Ton"],pr:"59 €",u:"/ Monat",inc:"inkl. 15.000 Tokens",href:"/chat/?plan=log-liefer",tk:15000,f:1},
+  {t:"Agent",h:"Support-Agent",d:"Beantwortet Kunden- und Partneranfragen 24/7 aus deiner Doku.",b:["Bis 2.000 Anfragen / Monat","Eskalation an Mensch","Audit-Log"],pr:"99 €",u:"/ Monat",inc:"inkl. 25.000 Tokens",href:"/chat/?plan=log-support",tk:25000}]},
+ medien:{n:"🎬 Content & Medien",p:[
+  {t:"Abo",h:"YouTube-Skript & SEO",d:"Komplette Skripte mit Hook und CTA, Titel-Varianten, Beschreibung, Tags.",b:["Shorts bis 20 Min","5 Titel-Varianten","Kapitelmarken"],pr:"59 €",u:"/ Monat",inc:"inkl. 15.000 Tokens",href:"/chat/?plan=creator-youtube",tk:15000,f:1},
+  {t:"Credits",h:"Untertitel & Übersetzung",d:"Video/Audio → zeitgestempelte .SRT in 12+ Sprachen.",b:["Automatische Transkription","12+ Sprachen",".SRT / .VTT"],pr:"ab 19 €",u:"/ 200 Min",inc:"≈ 2 Tokens / Min",href:"/chat/?plan=creator-subtitles",tk:5000},
+  {t:"Abo",h:"Social-Media-Automatisierung",d:"Posts, Captions und Hashtags für alle Kanäle – wöchentlich frisch.",b:["Instagram · TikTok · YouTube Shorts","Lizenzfrei","6 Sprachen"],pr:"39 €",u:"/ Monat",inc:"inkl. 10.000 Tokens",href:"/chat/?plan=creator-social",tk:10000}]}
+};
+/* ===== Token-Preisstaffel (Server identisch: tokens-checkout.php) ===== */
+function tkUnit(n){return n>=1e6?0.0025:n>=200000?0.00345:n>=50000?0.0040:n>=10000?0.0049:0.0055;}
+const eur=v=>v.toLocaleString('de-DE',{style:'currency',currency:'EUR'});
+const de=n=>n.toLocaleString('de-DE');
+function tkSet(n){n=Math.max(1000,Math.min(5e6,Math.round(n/1000)*1000));
+  const r=document.getElementById('tkRange'),m=document.getElementById('tkNum');
+  r.value=Math.min(n,500000); m.value=n; const u=tkUnit(n);
+  document.getElementById('tkPrice').textContent=eur(n*u);
+  document.getElementById('tkUnit').textContent=u.toLocaleString('de-DE',{minimumFractionDigits:4})+' € / Token · zzgl. MwSt.';
+  document.getElementById('tkBuy').href='/chat/tokens-checkout.php?tokens='+n;}
+function pickTokens(n){tkSet(n);document.getElementById('calc').scrollIntoView({behavior:'smooth',block:'center'});}
+document.getElementById('tkRange').addEventListener('input',e=>tkSet(+e.target.value));
+document.getElementById('tkNum').addEventListener('change',e=>tkSet(+e.target.value));
+tkSet(25000);
+/* ===== Katalog rendern ===== */
+function renderSector(k){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.k===k));
+  const el=document.getElementById('pkgs'); el.innerHTML='';
+  CATALOG[k].p.forEach(p=>{const c=document.createElement('div');c.className='card pkg'+(p.f?' feat':'');
+    c.innerHTML=`<span class="tag ${p.t==='Agent'?'violet':p.t==='API'?'teal':p.t==='Abo'?'gold':''}">${p.t}</span><h3>${p.h}</h3><p class="d">${p.d}</p>
+      <ul>${p.b.map(x=>`<li>${x}</li>`).join('')}</ul>
+      <div class="pr"><b>${p.pr}</b><small>${p.u}</small></div><div class="inc">${p.inc}</div>
+      <div class="acts"><a class="btn ${p.f?'p':''}" href="${p.href}">Starten</a><button class="btn" type="button" onclick="pickTokens(${p.tk})">+ Tokens</button></div>`;
+    el.appendChild(c);});
+  try{history.replaceState(null,'','#branchen-'+k);}catch(e){}
+}
+(function(){const tabs=document.getElementById('tabs');
+  Object.keys(CATALOG).forEach(k=>{const b=document.createElement('button');b.type='button';b.className='tab';b.dataset.k=k;b.textContent=CATALOG[k].n;b.onclick=()=>renderSector(k);tabs.appendChild(b);});
+  const h=(location.hash.match(/^#branchen-(\w+)/)||[])[1]; renderSector(CATALOG[h]?h:'recht');})();
+</script>
 </body></html>

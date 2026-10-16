@@ -32,8 +32,9 @@ th_bootstrap();
 $email = $s['customer_details']['email'] ?? ($s['customer_email'] ?? '');
 if(!$email){ http_response_code(200); exit('no email'); }
 
-/* ---- token miktarı: line item price metadata.tokens ---- */
-$tokens=0;
+/* ---- token miktarı: 1) session metadata.tokens (checkout yazar)  2) price metadata  3) pack adı ---- */
+$tokens=(int)($s['metadata']['tokens'] ?? 0);
+if($tokens<=0){
 $ch=curl_init('https://api.stripe.com/v1/checkout/sessions/'.$s['id'].'/line_items?expand[]=data.price.product');
 curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_USERPWD=>$sk.':',CURLOPT_TIMEOUT=>20]);
 $li=json_decode(curl_exec($ch),true); curl_close($ch);
@@ -41,6 +42,7 @@ foreach(($li['data']??[]) as $item){
     $q=(int)($item['quantity']??1);
     $t=(int)($item['price']['metadata']['tokens'] ?? ($item['price']['product']['metadata']['tokens'] ?? 0));
     $tokens += $t*$q;
+}
 }
 if($tokens<=0){ // yedek: pack adından
     $tokens = ['10k'=>10000,'50k'=>50000,'200k'=>200000][$s['metadata']['pack']??''] ?? 0;
