@@ -60,12 +60,12 @@ const CFG = {
      bütçesinin %35'ine kadar havuzdan şehir almaya devam eder. */
   maxCities:     num('MAX_CITIES', 40),
   osmConcurrency: Math.max(1, Math.min(4, num('OSM_CONCURRENCY', 3))),         // 13 Eki: paralel OSM şehir işçisi
-  euroShare:     Math.max(0, Math.min(1, Number(process.env.EURO_SHARE ?? 0.8) || 0)),   // 13 Eki: otomatik turda Avrupa kasabalarının payı                            // otomatik turda en çok şehir (OSM)
+  euroShare:     Math.max(0, Math.min(1, Number(process.env.EURO_SHARE ?? 0.95) || 0)),   // 16 Eki 2026 (operatör: "daha çok Avrupa"): 0.8 → 0.95   // 13 Eki: otomatik turda Avrupa kasabalarının payı                            // otomatik turda en çok şehir (OSM)
   osmTarget:     num('OSM_TARGET', 900),                           // otomatik turda hedef yeni OSM adayı
   osmPerCity:    num('OSM_PER_CITY', 150),                          // şehir başına en çok yeni OSM adayı
   townQueries:   num('TOWN_QUERIES', 120),                          // 13 Eki: kasaba sorgusu (sunucudaki Bing)
-  focusQueries:  num('FOCUS_QUERIES', 40),                          // 14 Eki: Avustralya/Kanada/Japonya/G. Kore sorgusu (her tur)
-  focusCities:   num('FOCUS_CITIES', 12),                           // 14 Eki: aynı ülkelerden OSM'de taranacak şehir (her tur)
+  focusQueries:  num('FOCUS_QUERIES', 8),     // 16 Eki 2026: 40 → 8 (Avrupa önce)                          // 14 Eki: Avustralya/Kanada/Japonya/G. Kore sorgusu (her tur)
+  focusCities:   num('FOCUS_CITIES', 2),      // 16 Eki 2026: 12 → 2 (Avrupa önce)                           // 14 Eki: aynı ülkelerden OSM'de taranacak şehir (her tur)
   gridCells:     num('GRID_CELLS', 200),                            // 13 Eki: otomatik turda taranacak Avrupa karesi (0 = kapalı)
   gridPerCell:   num('GRID_PER_CELL', 400),                         // kare başına en çok yeni aday
   braveKey:      (ENV.BRAVE_API_KEY ?? '').trim(),
@@ -225,6 +225,25 @@ const BRANDS = [
   ['Becksöndergaard', ['becksondergaard', 'beck sondergaard'], 'm'], ['Roeckl', ['roeckl'], 'm'], ['Codello', ['codello'], 'm'],
   ['Thomas Sabo', ['thomas sabo'], 'm'], ['Daniel Wellington', ['daniel wellington'], 'm'], ['Swarovski', ['swarovski'], 'm'],
   ['Triumph', ['triumph lingerie', 'triumph dessous'], 'u'], ['Mey', ['mey'], 'u'], ['Calida', ['calida'], 'u'], ['Sloggi', ['sloggi'], 'u'],
+  /* --- 16 Eki 2026 (operatör: "başka sektörlere de" → spor & sneaker, golf / yelken / kayak, outlet, concept store): spor ve
+     outdoor markaları (kind p). Yalnız "başkalarının markasını satıyor" kanıtı; premium_brands'a girmez. Günlük kelime olan
+     adlar (head, ping, gill, slam, kappa…) bilerek NİTELEYİCİLİ. */
+  ['Patagonia', ['patagonia'], 'p'], ['Helly Hansen', ['helly hansen'], 'p'], ['Peak Performance', ['peak performance'], 'p'],
+  ['Columbia', ['columbia sportswear', 'columbia montrail'], 'p'], ['Jack Wolfskin', ['jack wolfskin'], 'p'], ['Mammut', ['mammut'], 'p'],
+  ["Arc'teryx", ["arc'teryx", 'arcteryx'], 'p'], ['Haglöfs', ['haglofs'], 'p'], ['Fjällräven', ['fjallraven'], 'p'], ['Odlo', ['odlo'], 'p'],
+  ['Ortovox', ['ortovox'], 'p'], ['Dynafit', ['dynafit'], 'p'], ['Schöffel', ['schoffel'], 'p'], ['Vaude', ['vaude'], 'p'],
+  ['Bogner', ['bogner'], 'p'], ['Kjus', ['kjus'], 'p'], ['Goldbergh', ['goldbergh'], 'p'], ['Spyder', ['spyder'], 'p'],
+  ['Descente', ['descente'], 'p'], ['Rossignol', ['rossignol'], 'p'], ['Sportalm', ['sportalm'], 'p'], ['Toni Sailer', ['toni sailer'], 'p'],
+  ['Musto', ['musto'], 'p'], ['Henri Lloyd', ['henri lloyd', 'henri-lloyd'], 'p'], ['Gill', ['gill marine', 'gill sailing'], 'p'],
+  ['Sail Racing', ['sail racing'], 'p'], ['Slam', ['slam sailing', 'slam vela'], 'p'], ['Sebago', ['sebago'], 'p'], ['Zhik', ['zhik'], 'p'],
+  ['Callaway', ['callaway golf', 'callaway apparel'], 'p'], ['Titleist', ['titleist'], 'p'], ['FootJoy', ['footjoy'], 'p'],
+  ['J.Lindeberg', ['j.lindeberg', 'j. lindeberg', 'jlindeberg'], 'p'], ['Galvin Green', ['galvin green'], 'p'], ['Abacus', ['abacus sportswear', 'abacus golf'], 'p'],
+  ['Chervò', ['chervo'], 'p'], ['Golfino', ['golfino'], 'p'], ['Cross Sportswear', ['cross sportswear', 'cross apparel'], 'p'], ['Daily Sports', ['daily sports'], 'p'],
+  ['Under Armour', ['under armour'], 'p'], ['Fila', ['fila sport', 'fila heritage', 'fila shoes'], 'p'], ['Ellesse', ['ellesse'], 'p'],
+  ['Champion', ['champion reverse weave', 'champion athletics'], 'p'], ['Kappa', ['kappa kontroll', 'robe di kappa'], 'p'], ['Umbro', ['umbro'], 'p'],
+  ['Le Coq Sportif', ['le coq sportif'], 'p'], ['Sergio Tacchini', ['sergio tacchini'], 'p'], ['Quiksilver', ['quiksilver'], 'p'],
+  ['Billabong', ['billabong'], 'p'], ['Rip Curl', ['rip curl', 'ripcurl'], 'p'], ["O'Neill", ["o'neill wetsuits", 'oneill wetsuits', "o'neill surf"], 'p'],
+  ['Volcom', ['volcom'], 'p'], ['Oakley', ['oakley'], 'p'], ['On Running', ['on running', 'on cloud'], 'p'], ['Brooks', ['brooks running'], 'p'],
 ].map(([name, aliases, kind, q]) => ({ name, aliases, kind, q: !!q }));
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -277,7 +296,8 @@ const BLOCK_NAMES = [
   'kaufhof', 'karstadt', 'zalando', 'about you', 'farfetch', 'mytheresa', 'net-a-porter', 'mr porter', 'ssense', 'yoox', 'luisaviaroma',
   'selfridges', 'harrods', 'harvey nichols', 'john lewis', 'house of fraser', 'galeries lafayette', 'printemps', 'le bon marché',
   'el corte inglés', 'el corte ingles', 'la rinascente', 'de bijenkorf', 'nordstrom', "macy's", 'bloomingdale', 'saks fifth',
-  'neiman marcus', 'bergdorf', 'tk maxx', 'tj maxx', 'foot locker', 'jd sports', 'snipes', 'bstn', 'outlet', 'outletcity', 'factory store',
+  'neiman marcus', 'bergdorf', 'tk maxx', 'tj maxx', 'foot locker', 'jd sports', 'snipes', 'bstn', 'outletcity', 'factory store', 'mcarthurglen', 'designer outlet',
+  'intersport', 'decathlon', 'sport 2000', 'sports direct', 'sportscheck', 'go sport', 'xxl sport', 'stadium', 'sport experts',
   'comptoir des cotonniers', 'claudie pierlot', 'the kooples', 'zadig & voltaire', 'gerard darel', 'armand thiery', 'naf naf',
   'cache cache', 'du pareil au meme', 'petit bateau', 'eden park', 'fiorella rubino', 'piazza italia', 'harmont & blaine',
   'luisa spagnoli', 'max & co', 'penny black', 'weekend max mara', 'nara camicie', 'camicissima', 'brooksfield', 'yamamay',
@@ -302,11 +322,24 @@ const TERMS = {
     'roupa', 'odziez', 'ubrania', 'rouxa', 'obleceni', 'toj', 'klader', 'klaer', 'vaatteet', 'jeans', 'jackets', 'jacken', 'hoodies',
     'sweatshirts', 't-shirts', 'tshirts', 'shirts', 'hemden', 'dresses', 'kleider', 'abiti', 'robes', 'vestidos', 'jurken', 'hosen',
     'trousers', 'pants', 'coats', 'mantel', 'cappotti', 'manteaux', 'abrigos', 'jassen', 'knitwear', 'strick', 'maglieria', 'pulls',
-    'multibrand', 'multi-brand', 'multimarca', 'multimarques', 'concept store', 'conceptstore'],
+    'multibrand', 'multi-brand', 'multimarca', 'multimarques', 'concept store', 'conceptstore',
+    /* 16 Eki 2026: bağımsız büyük mağaza / lifestyle / outlet (zincirler BLOCK listesinde kalır, tek marka monobrand'dir). */
+    'department store', 'kaufhaus', 'warenhaus', 'grand magasin', 'grands magasins', 'magazzini', 'grandi magazzini', 'grandes almacenes',
+    'almacenes', 'varuhus', 'stormagasin', 'tavaratalo', 'lifestyle store', 'lifestyle shop', 'lifestylestore', 'outlet', 'outlet store',
+    'markenoutlet', 'marken outlet', 'designer outlet store', 'off-price', 'stockhouse', 'stock house', 'spaccio', 'magasin d\'usine'],
   acc: ['accessories', 'accessoires', 'accessori', 'accesorios', 'acessorios', 'akcesoria', 'bags', 'handbags', 'taschen', 'handtaschen',
     'borse', 'sacs', 'sacs a main', 'bolsos', 'tassen', 'torebki', 'leather goods', 'lederwaren', 'pelletteria', 'maroquinerie',
     'marroquineria', 'sciarpe', 'scarves', 'schals', 'echarpes', 'hats', 'hute', 'cappelli', 'chapeaux', 'sombreros', 'belts', 'gurtel',
     'cinture', 'ceintures', 'cinturones', 'sunglasses', 'sonnenbrillen', 'occhiali', 'lunettes', 'gafas'],
+  /* 16 Eki 2026: spor & sneaker, golf / yelken / kayak / outdoor dükkânları da hedef (kimlik terimi; marka kanıtı yine şart). */
+  sport: ['sport', 'sports', 'sportswear', 'sporting goods', 'sportartikel', 'sportgeschaft', 'sporthaus', 'sportmode', 'articoli sportivi',
+    'negozio sport', 'abbigliamento sportivo', 'articles de sport', 'magasin de sport', 'deportes', 'tienda de deportes', 'ropa deportiva',
+    'artigos desportivos', 'artigos esportivos', 'sportwinkel', 'sportzaak', 'sportbutik', 'sportbutikk', 'sportsforretning', 'urheilukauppa',
+    'sklep sportowy', 'golf', 'golf shop', 'golfshop', 'pro shop', 'proshop', 'golf club shop', 'ski', 'skishop', 'ski shop', 'snowboard',
+    'skisport', 'wintersport', 'outdoor', 'outdoorshop', 'bergsport', 'alpinsport', 'trekking', 'mountain', 'montagne', 'montagna',
+    'running', 'runningshop', 'tennis', 'padel', 'surf', 'surfshop', 'surf shop', 'boardshop', 'board shop', 'skateshop', 'skate shop',
+    'sailing', 'yachting', 'yacht', 'marine', 'nautica', 'nautique', 'voile', 'segeln', 'segelsport', 'vela', 'wassersport',
+    'water sports', 'watersport', 'equestrian'],
   vintage: ['vintage', 'second hand', 'secondhand', 'second-hand', 'friperie', 'fripes', 'thrift', 'consignment', 'pre-owned', 'preowned',
     'pre-loved', 'usato', 'seconda mano', 'depot-vente', 'depot vente', 'segunda mano', 'tweedehands', 'secondhand-mode', 'gebrauchte', 'retro'],
   wholesale: ['wholesale', 'wholesaler', 'grosshandel', 'grossist', 'grossiste', 'grossista', 'ingrosso', "all'ingrosso", 'mayorista',
@@ -325,7 +358,7 @@ for (const k of Object.keys(TERMS)) TERMS[k + 'Re'] = TERMS[k].map(t => new RegE
 const MULTI_NAV_RE = /(?<![a-z0-9])(brands|our brands|marken|unsere marken|marques|nos marques|marche|le nostre marche|marcas|nuestras marcas|merken|onze merken|marki|znacky|maerker|marker|merkit|designers|labels|multibrand|multi-brand|multi brand|multimarca|multimarques|multimerk|multilabel)(?![a-z0-9])/;
 /* 14 Eki 2026 (operatör: "kendi markasını satanlar olmasın"): kendi koleksiyonunu / etiketini satan dükkân. */
 const NEWS_RE = /(?<![a-z0-9])(zeitung|anzeiger|morgenpost|tagblatt|tageblatt|nachrichten|news|newsroom|journal|quotidien|giornale|periodico|diario|krant|gazet|presse|verlag|rundfunk|fernsehen|television|tv|radio|mediathek|sender|redaktion|redazione|redaction|zuschauer|leser)(?![a-z0-9])/;
-const NOT_RETAIL_RE = /(?<![a-z0-9])(tourisme|tourism|turismo|tourist|toerisme|office de tourisme|tourist information|fremdenverkehr|stadtmarketing|city marketing|gemeinde|stadt [a-z]+ (?:offizielle|official)|mairie|ville de|ayuntamiento|comune di|hotel|camping|museum|brauerei|feuerwehr|behordenausruster|sanitatshaus|orthopadie|orthopedie|orthopedic|sicherheitsschuhe|safety shoes|scrubs|kostumverleih|costume rental|location de costumes|army shop|surplus|jagd|waidmann|motorrad|motorcycle|immobilien|versicherung)(?![a-z0-9])/;
+const NOT_RETAIL_RE = /(?<![a-z0-9])(tourisme|tourism|turismo|tourist|toerisme|office de tourisme|tourist information|fremdenverkehr|stadtmarketing|city marketing|gemeinde|stadt [a-z]+ (?:offizielle|official)|mairie|ville de|ayuntamiento|comune di|hotel|campingplatz|camping municipal|campground|campsite|camping village|museum|brauerei|feuerwehr|behordenausruster|sanitatshaus|orthopadie|orthopedie|orthopedic|sicherheitsschuhe|safety shoes|scrubs|kostumverleih|costume rental|location de costumes|army shop|surplus|jagd|waidmann|motorrad|motorcycle|immobilien|versicherung)(?![a-z0-9])/;
 const CJK_MULTI = ['取扱ブランド', '取り扱いブランド', 'ブランド一覧', 'ブランド', 'セレクトショップ', '브랜드', '편집샵', '셀렉트샵'].map(t => normText(t));
 const OWN_BRAND_RE = /(?<![a-z0-9])(our own (?:brand|label|collection)|own label|own brand|our label|designed (?:by us|in our studio|in-house)|in-house (?:brand|label|design)|eigene[sn]? (?:kollektion|label|marke)|unsere eigene[n]? (?:kollektion|marke)|aus eigener (?:herstellung|produktion)|nostr[ao] (?:marchio|collezione|produzione)|propri[ao] (?:marchio|collezione|produzione)|produzione propria|notre (?:propre )?(?:marque|collection|creation)|nos creations|nuestra (?:propia )?(?:marca|coleccion)|marca propia|onze eigen (?:collectie|merk|label)|eigen (?:merk|label|collectie)|wlasna marka|nasza marka)(?![a-z0-9])/;
 
@@ -416,7 +449,9 @@ export function isBlockedDomain(d) {
   for (const b of BRANDS) for (const a of b.aliases) {
     const t = a.replace(/[^a-z0-9]/g, ''); if (t.length >= 5 && flat.includes(t)) return 'excl:brand-site';   // markanın kendi sitesi / monobrand
   }
-  if (/(outlet|wholesale|grosshandel|grossiste|ingrosso|mayorista|groothandel|hurtownia|b2b|stocklot|dropship)/.test(flat)) return 'excl:wholesale';
+  /* 16 Eki 2026: "outlet" artık tek başına toptan sayılmaz (operatör: outlet & stok mağazaları da hedef). Outlet ZİNCİRLERİ
+     (outletcity, mcarthurglen, designeroutlet…) BLOCK_DOMAINS'te kalır. */
+  if (/(wholesale|grosshandel|grossiste|ingrosso|mayorista|groothandel|hurtownia|b2b|stocklot|dropship)/.test(flat)) return 'excl:wholesale';
   /* 14 Eki 2026 (operatör: "aksesuar, lüks marka satmayanlara da gönder, ayakkabı, iç çamaşırı vs."): ayakkabı ve iç çamaşırı
      alan adları artık elenmez — 8 Eki'deki "ayakkabı, iç çamaşırı olmayacak" kuralı operatörün kendisi tarafından kaldırıldı. */
   return '';
@@ -709,12 +744,13 @@ function classify(domain, home, pagesText, hrefsText) {
   const count = (res, s) => res.reduce((n, re) => n + (re.test(s) ? 1 : 0), 0);
   const shoeI = count(TERMS.shoeRe, ident), clothI = count(TERMS.clothRe, ident), underI = count(TERMS.underRe, ident), accI = count(TERMS.accRe, ident);
   const shoeN = count(TERMS.shoeRe, navN), clothN = count(TERMS.clothRe, navN), underN = count(TERMS.underRe, navN), accN = count(TERMS.accRe, navN);
+  const sportI = count(TERMS.sportRe, ident), sportN = count(TERMS.sportRe, navN);   // 16 Eki 2026: spor / golf / yelken / kayak
   const whI = count(TERMS.wholesaleRe, ident), whB = count(TERMS.wholesaleRe, bodyN);
 
-  const brands = { c: new Set(), s: new Set(), u: new Set(), m: new Set() };
+  const brands = { c: new Set(), s: new Set(), u: new Set(), m: new Set(), p: new Set() };
   const hay = bodyN + ' ' + hrefN + ' ' + navN;
   for (const b of BRANDS) if (b.re.test(hay)) brands[b.kind].add(b.name);
-  const nc = brands.c.size, ns = brands.s.size, nu = brands.u.size, nm = brands.m.size, tot = nc + ns + nu + nm;
+  const nc = brands.c.size, ns = brands.s.size, nu = brands.u.size, nm = brands.m.size, np = brands.p.size, tot = nc + ns + nu + nm + np;
   const shopIdent = (clothI + shoeI + underI + accI + clothN + shoeN + underN + accN) > 0;   // giyim / ayakkabı / iç giyim / aksesuar dükkânı
   const multiNav = MULTI_NAV_RE.test(navN) || MULTI_NAV_RE.test(hrefN) || MULTI_NAV_RE.test(ident) || CJK_MULTI.some(w => navN.includes(w) || ident.includes(w));
   const ownBrand = OWN_BRAND_RE.test(ident) || OWN_BRAND_RE.test(bodyN);
@@ -743,15 +779,16 @@ function classify(domain, home, pagesText, hrefsText) {
   if (!reason && nc < CFG.minBrands) {
     /* 14 Eki 2026 (RTL olayı): lüks markasız yolda dükkân kimliği MENÜDEN değil kimlikten (alan adı / başlık / meta / h1)
        gelmeli — haber ve turizm sitelerinin menüsünde "Mode", "Schuhe" sayfası olabiliyor. */
-    const identShop = (clothI + shoeI + underI + accI) > 0;
+    const identShop = (clothI + shoeI + underI + accI + sportI) > 0;   // 16 Eki: spor dükkânı da (marka kanıtı yine şart)
     const multi = identShop && (tot >= 2 || (multiNav && tot >= 1) || multiWord);
     if (ownBrand && tot < 2) reason = 'excl:own-brand';
     else if (!multi) reason = tot === 0 ? 'excl:no-brands' : 'excl:monobrand';
   }
-  const kind = (shoeI + shoeN > clothI + clothN && shoeI + shoeN >= underI + underN) ? 'shoes'
+  const kind = (sportI > 0 && sportI + sportN >= clothI + clothN && sportI + sportN >= shoeI + shoeN) ? 'sport'
+    : (shoeI + shoeN > clothI + clothN && shoeI + shoeN >= underI + underN) ? 'shoes'
     : (underI + underN > clothI + clothN) ? 'underwear' : (accI + accN > clothI + clothN) ? 'accessories' : 'fashion';
-  return { reason, title, brands: [...brands.c], otherBrands: [...brands.s, ...brands.u, ...brands.m], kind, shoeBrands: ns, underBrands: nu,
-    signals: { shoeI, clothI, underI, accI, shoeN, clothN, underN, accN, whI, whB, multiNav, ownBrand, tot } };
+  return { reason, title, brands: [...brands.c], otherBrands: [...brands.s, ...brands.u, ...brands.m, ...brands.p], kind, shoeBrands: ns, underBrands: nu,
+    signals: { shoeI, clothI, underI, accI, sportI, shoeN, clothN, underN, accN, sportN, whI, whB, multiNav, ownBrand, tot } };
 }
 
 const mxCache = new Map();
@@ -911,7 +948,7 @@ async function osmCity(country, city) {
   if (cell) {
     /* Kare: Nominatim yok; yalnız sitesi ya da e-postası etiketli dükkânlar (sitesizler zaten elenirdi, trafik boşuna). */
     const bb = cell.join(',');
-    const q = `[out:json][timeout:25];nwr["shop"~"^(clothes|boutique|fashion|shoes|bag|leather|fashion_accessories)$"][~"^(website|contact:website|email|contact:email)$"~"."](${bb});out tags;`;
+    const q = `[out:json][timeout:25];nwr["shop"~"^(clothes|boutique|fashion|shoes|bag|leather|fashion_accessories|sports|outdoor|ski|golf|surf|department_store)$"][~"^(website|contact:website|email|contact:email)$"~"."](${bb});out tags;`;
     return osmQuery([q], 30000);
   }
   await nominatimSlot();
@@ -923,7 +960,7 @@ async function osmCity(country, city) {
     if (hit) { if (hit.osm_type === 'relation') areaId = 3600000000 + Number(hit.osm_id); if (Array.isArray(hit.boundingbox)) bbox = hit.boundingbox.map(Number); }
   } catch { /* aşağıda hata döner */ }
   if (!areaId && !bbox) return { error: 'şehir bulunamadı (Nominatim)', rows: [] };
-  const sel = '["shop"~"^(clothes|boutique|fashion|shoes|bag|leather|fashion_accessories)$"]';   // 14 Eki: ayakkabı/çanta/aksesuar da
+  const sel = '["shop"~"^(clothes|boutique|fashion|shoes|bag|leather|fashion_accessories|sports|outdoor|ski|golf|surf|department_store)$"]';   // 14 Eki: ayakkabı/çanta/aksesuar da
   const queries = [];
   if (areaId) queries.push(`[out:json][timeout:80];area(${areaId})->.a;nwr${sel}(area.a);out tags;`);   // 11 Eki: 150 → 80 sn — 504 veren büyük şehirler turu 10+ dk bekletiyordu
   if (bbox) queries.push(`[out:json][timeout:80];nwr${sel}(${bbox[0]},${bbox[2]},${bbox[1]},${bbox[3]});out tags;`);   // Nominatim bbox: [güney, kuzey, batı, doğu]
@@ -1572,7 +1609,24 @@ function selftest() {
   t('block zalando', isBlockedDomain('zalando.de') === 'excl:chain');
   t('block farfetch sub', isBlockedDomain('www.farfetch.com') === 'excl:chain');
   t('block brand site', isBlockedDomain('dsquared2.com') === 'excl:brand-site');
-  t('block outlet', isBlockedDomain('designer-outlet-shop.de') === 'excl:wholesale');
+  /* 16 Eki 2026: "outlet" tek başına artık engel değil (operatör: outlet & stok mağazaları da hedef); outlet ZİNCİRİ engelli kalır. */
+  t('outlet alan adı artık engelsiz, outlet zinciri engelli', isBlockedDomain('designer-outlet-shop.de') === '' && isBlockedDomain('mcarthurglen.com') === 'excl:chain' && isBlockedDomain('stocklot-world.com') === 'excl:wholesale');
+  {
+    const golf = '<html><head><title>Pro Shop Golf Club Bergamo</title><meta name="description" content="Golf shop: abbigliamento golf"></head><body><nav><a href="/brand">Brand</a></nav>J.Lindeberg, Galvin Green, Footjoy e Peak Performance</body></html>';
+    const g = classify('golfbergamo.it', golf, 'J.Lindeberg Galvin Green Footjoy Peak Performance', '');
+    t('golf pro shop: 4 spor markası → kabul, tür sport', g.reason === '' && g.kind === 'sport' && g.signals.sportI > 0);
+    const ski = '<html><head><title>Sport Huber – Skishop Kitzbühel</title></head><body>Bogner, Kjus, Goldbergh, Toni Sailer</body></html>';
+    t('kayak dükkânı: kabul', classify('sport-huber.at', ski, 'Bogner Kjus Goldbergh Toni Sailer', '').reason === '');
+    const club = '<html><head><title>Tennis Club Roma – Notizie</title></head><body>Iscrizioni</body></html>';
+    t('marka kanıtı olmayan spor kulübü: elenir (no-brands)', classify('tcroma.it', club, 'iscrizioni corsi', '').reason === 'excl:no-brands');
+    const outl = '<html><head><title>Fashion Outlet Store Graz – Markenmode bis -70%</title></head><body>Tommy Hilfiger, Calvin Klein, Hugo Boss, Lacoste</body></html>';
+    t('bağımsız çok markalı outlet: kabul', classify('fashionoutlet-graz.at', outl, 'Tommy Hilfiger Calvin Klein Hugo Boss Lacoste', '').reason === '');
+    const mono = '<html><head><title>Nike Factory Outlet</title></head><body>Nike</body></html>';
+    t('tek markalı outlet: elenir', classify('nikefactoryoutlet.example', mono, 'nike', '').reason !== '');
+    t('OSM: Intersport / Decathlon zincir', osmPick({ name: 'Intersport Moser', website: 'https://moser.at' }).excl === 'excl:chain' && osmPick({ name: 'Decathlon Lyon', website: 'https://decathlon.fr' }).excl === 'excl:chain');
+    t('OSM: bağımsız outlet adı artık elenmez', !osmPick({ name: 'Outlet Moda Rossi', website: 'https://outletrossi.it' }).excl);
+    t('Avrupa ağırlığı: euroShare 0.95, odak sorgu 8, odak şehir 2', CFG.euroShare === 0.95 && CFG.focusQueries === 8 && CFG.focusCities === 2);
+  }
   t('block shoe domain (14 Eki: artık engel değil)', isBlockedDomain('schuh-mueller.de') === '');
   t('allow boutique', isBlockedDomain('mientus.com') === '');
   t('cfemail', decodeCfEmail('54393d3a3b14313c3d3a3b7a373b39') === 'mondo@mondo.com' || decodeCfEmail('54393d3a3b14313c3d3a3b7a373b39').includes('@'));

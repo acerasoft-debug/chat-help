@@ -132,6 +132,17 @@ def dsn_reason(txt: str) -> str:
     dg = re.search(r'(?im)^Diagnostic-Code:\s*(?:smtp;\s*)?(.+?)\s*$', txt)
     code = st.group(1) if st else ''
     diag = re.sub(r'\s+', ' ', dg.group(1)).strip() if dg else ''
+    if not code and not diag:
+        # 16 Eki 2026: GoDaddy'nin duz metin bildirimi Status/Diagnostic satiri tasimiyor ("... failed permanently:
+        # host mx.x said: 550 5.1.1 <addr>: Recipient address rejected"). Kodu + cevabi metnin icinden al.
+        m = re.search(r'(?i)\b([45]\d\d)[ -]((?:[45]\.\d{1,3}\.\d{1,3})?)\s*(.{0,140})', txt)
+        if m:
+            code = m.group(2) or m.group(1)
+            diag = re.sub(r'\s+', ' ', (m.group(1) + ' ' + m.group(3))).strip()
+        else:
+            p = re.search(r'(?i)(user unknown|unknown user|no such user|does not exist|mailbox (?:not found|unavailable|full)|over quota|'
+                          r'recipient address rejected|address rejected|domain not found|host not found|spam|blocked|policy)', txt)
+            diag = p.group(1) if p else ''
     diag = _ADDR.sub('<addr>', diag)[:110]
     kind = ''
     if re.search(r'(?i)user unknown|unknown user|no such user|does not exist|mailbox (not found|unavailable)|recipient.*(rejected|unknown|not found)|invalid recipient|no mailbox|unrouteable|address rejected|5\.1\.1|5\.1\.10', code + ' ' + diag):

@@ -151,12 +151,22 @@ jobs:
       - name: Sunucudan mevcut leadleri + durumu al, arama vekilini kur
         run: |
           set -o pipefail
-          if ssh vestra 'mkdir -p ~/vestra_tmp' \
+          # 16 Eki 2026: 06:26 turunda SSH bir kez zaman aşımına düştü, liste alınamadı ve tur 106 yeni butiği bulup
+          # sunucuya YAZAMADAN bitti (32 dk boşa). Artık 3 deneme (20/40 sn arayla); yine olmazsa arama hiç başlamaz.
+          fetch_known() {
+            ssh vestra 'mkdir -p ~/vestra_tmp' \
              && ssh vestra 'cat > ~/vestra_tmp/known.php' < scripts/server/vestra-known.php \
              && ssh vestra 'cat > ~/vestra_tmp/search.php' < scripts/server/vestra-search.php \
              && ssh vestra 'cd ~/public_html && php ~/vestra_tmp/known.php; rc=$?; rm -f ~/vestra_tmp/known.php; exit $rc' > known.raw \
              && grep '^{' known.raw | tail -n 1 > known.json \
-             && python3 -c 'import json;d=json.load(open("known.json"));print("bilinen:",len(d["emails"]),"e-posta,",len(d["domains"]),"alan adi, toplam lead",d.get("total"),"| bugun bulunan:",d.get("found_today"),"| anahtarlar:",d.get("keys"));json.dump(d.get("state") or {},open("state.json","w"))'; then
+             && python3 -c 'import json;d=json.load(open("known.json"));print("bilinen:",len(d["emails"]),"e-posta,",len(d["domains"]),"alan adi, toplam lead",d.get("total"),"| bugun bulunan:",d.get("found_today"),"| anahtarlar:",d.get("keys"));json.dump(d.get("state") or {},open("state.json","w"))'
+          }
+          ok=false
+          for wait in 0 20 40; do
+            [ "$wait" -gt 0 ] && { echo "sunucu listesi alinamadi -- ${wait} sn sonra yeniden"; sleep "$wait"; }
+            if fetch_known; then ok=true; break; fi
+          done
+          if [ "$ok" = "true" ]; then
             echo "known_ok=true" >> "$GITHUB_ENV"
             # Günlük bulma tavanı: yalnız ZAMANLI turlarda (elle başlatılan arama her zaman çalışır).
             FT=$(python3 -c 'import json;print(int(json.load(open("known.json")).get("found_today") or 0))')
@@ -167,9 +177,10 @@ jobs:
           else
             # Liste alinamazsa YAZMA: tekrar korumasi olmadan eklemek ayni butige ikinci
             # mektup demek. Bulma calisir, rapor uretilir, sunucuya hicbir sey gitmez.
-            echo "UYARI: sunucudan liste alinamadi -- bu calisma sunucuya YAZMAYACAK"
+            echo "UYARI: sunucudan liste 3 denemede alinamadi -- bu tur ARAMAYI ATLIYOR (bulunanlar yazilamazdi)"
             echo '{"emails":[],"domains":[]}' > known.json; echo '{}' > state.json
             echo "known_ok=false" >> "$GITHUB_ENV"
+            echo "daily_full=true" >> "$GITHUB_ENV"
           fi
 
       - name: Butikleri bul + gerçek e-postaları çıkar
