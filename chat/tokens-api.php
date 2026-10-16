@@ -30,25 +30,9 @@ function ai_chat(string $system, array $messages, int $maxTokens=1500): string {
     $msgs=[]; foreach($messages as $m){ $role=($m['role']??'user')==='assistant'?'assistant':'user'; $c=trim((string)($m['content']??'')); if($c!=='') $msgs[]=['role'=>$role,'content'=>mb_substr($c,0,12000)]; }
     if(!$msgs || end($msgs)['role']!=='user') th_json(400,['error'=>'messages_required','hint'=>'letzte Nachricht muss role=user sein']);
     $msgs=array_slice($msgs,-20);
-    if(defined('CLAUDE_KEY') && CLAUDE_KEY){
-        $model = defined('CLAUDE_MODEL') ? CLAUDE_MODEL : 'claude-sonnet-4-5';
-        $ch=curl_init('https://api.anthropic.com/v1/messages');
-        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>90,
-            CURLOPT_POSTFIELDS=>json_encode(['model'=>$model,'max_tokens'=>$maxTokens,'system'=>$system,'messages'=>$msgs]),
-            CURLOPT_HTTPHEADER=>['x-api-key: '.CLAUDE_KEY,'anthropic-version: 2023-06-01','content-type: application/json']]);
-        $r=json_decode(curl_exec($ch),true); curl_close($ch);
-        if(!empty($r['content'][0]['text'])) return $r['content'][0]['text'];
-        if(!empty($r['error'])) error_log('CH api claude: '.json_encode($r['error']));
-    }
-    if(defined('DEEPSEEK_KEY') && DEEPSEEK_KEY){
-        $ch=curl_init('https://api.deepseek.com/chat/completions');
-        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>90,
-            CURLOPT_POSTFIELDS=>json_encode(['model'=>'deepseek-chat','max_tokens'=>$maxTokens,'messages'=>array_merge([['role'=>'system','content'=>$system]],$msgs)]),
-            CURLOPT_HTTPHEADER=>['Authorization: Bearer '.DEEPSEEK_KEY,'content-type: application/json']]);
-        $r=json_decode(curl_exec($ch),true); curl_close($ch);
-        if(!empty($r['choices'][0]['message']['content'])) return $r['choices'][0]['message']['content'];
-    }
-    th_json(502,['error'=>'ai_unavailable','message'=>'KI-Backend nicht erreichbar (CLAUDE_KEY / DEEPSEEK_KEY in db.php prüfen)']);
+    $out = th_ai($system, $msgs, $maxTokens, 90);   // model zinciri + DeepSeek yedeği (tokens-lib)
+    if($out!==null) return $out;
+    th_json(502,['error'=>'ai_unavailable','message'=>'KI-Backend nicht erreichbar (CLAUDE_KEY / CLAUDE_MODEL in db.php prüfen)','detail'=>th_ai_info()['errors'] ?? []]);
 }
 function ai_complete(string $system, string $user, int $maxTokens=1500): string { return ai_chat($system,[['role'=>'user','content'=>$user]],$maxTokens); }
 function sys_for(string $sector, string $lang): string {

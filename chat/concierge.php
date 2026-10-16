@@ -65,21 +65,8 @@ $cat
 REGELN: Bleibe bei ChatHelp-Themen; bei fremden Themen freundlich zurücklenken. Erfinde keine Preise oder Funktionen, die oben nicht stehen. Wenn jemand ein Rechtsproblem schildert: kurz einordnen (welches Schreiben passt) und zu ChatHelp Recht führen. Wenn jemand ein Unternehmen hat: den passenden Agenten vorschlagen (Name, Preis, was er tut) und Mieten vs. Kaufen erklären. Kontakt: info@chat-help.com.
 SYS;
 
-$answer=null;
-if(defined('CLAUDE_KEY') && CLAUDE_KEY){
-    $ch=curl_init('https://api.anthropic.com/v1/messages');
-    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>45,
-        CURLOPT_POSTFIELDS=>json_encode(['model'=>defined('CLAUDE_MODEL')?CLAUDE_MODEL:'claude-sonnet-4-5','max_tokens'=>550,'system'=>$system,'messages'=>$msgs]),
-        CURLOPT_HTTPHEADER=>['x-api-key: '.CLAUDE_KEY,'anthropic-version: 2023-06-01','content-type: application/json']]);
-    $r=json_decode(curl_exec($ch),true); curl_close($ch); $answer=$r['content'][0]['text'] ?? null;
-}
-if($answer===null && defined('DEEPSEEK_KEY') && DEEPSEEK_KEY){
-    $ch=curl_init('https://api.deepseek.com/chat/completions');
-    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>45,
-        CURLOPT_POSTFIELDS=>json_encode(['model'=>'deepseek-chat','max_tokens'=>550,'messages'=>array_merge([['role'=>'system','content'=>$system]],$msgs)]),
-        CURLOPT_HTTPHEADER=>['Authorization: Bearer '.DEEPSEEK_KEY,'content-type: application/json']]);
-    $r=json_decode(curl_exec($ch),true); curl_close($ch); $answer=$r['choices'][0]['message']['content'] ?? null;
-}
+$answer = th_ai($system, $msgs, 550, 45);   // Claude model zinciri → DeepSeek (tokens-lib)
+$source = th_ai_info()['provider'] ?? 'rules';
 if($answer===null){
     // KI anahtarı yoksa yine de yardımcı ol: kural tabanlı kısa yönlendirme
     $q=mb_strtolower(end($msgs)['content']);
@@ -90,4 +77,4 @@ if($answer===null){
         : 'Gern! Tokens kaufst du hier: https://chat-help.com/#tokens · Rechtsschreiben: https://chat-help.com/chat/ · Agenten: https://chat-help.com/#agenten · Fragen: info@chat-help.com');
 }
 $p->prepare("INSERT INTO concierge_log(ip_hash) VALUES(?)")->execute([$h]);
-th_json(200,['reply'=>$answer]);
+th_json(200,['reply'=>$answer,'source'=>$source]);

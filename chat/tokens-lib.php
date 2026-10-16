@@ -124,6 +124,59 @@ function th_log_usage(int $acc, string $task, string $sector, int $tokens, int $
     th_db()->prepare("INSERT INTO api_usage(account_id,task,sector,tokens,ms) VALUES(?,?,?,?,?)")->execute([$acc,$task,$sector,$tokens,$ms]);
 }
 
+/** KI model zinciri: db.php'de CLAUDE_MODEL varsa önce o; sonra en yeni → eski. Son çalışan model 6 saat önbelleklenir. */
+function th_ai_models(): array {
+    $m = (defined('CLAUDE_MODEL') && CLAUDE_MODEL) ? [CLAUDE_MODEL] : [];
+    return array_values(array_unique(array_merge($m, ['claude-sonnet-5-5','claude-sonnet-4-6','claude-sonnet-4-5'])));
+}
+/** Son th_ai() çağrısının bilgisi: provider, model, errors[] */
+function th_ai_info(): array { return $GLOBALS['__th_ai_info'] ?? []; }
+/**
+ * KI sohbet: Claude (model zinciri; model bulunamazsa sıradakine geçer), olmazsa DeepSeek. Metin ya da null döner.
+ * messages = [{role:user|assistant, content}]  — son mesaj user olmalı.
+ */
+function th_ai(string $system, array $messages, int $maxTokens=1200, int $timeout=60): ?string {
+    $msgs=[]; foreach($messages as $m){ $role=($m['role']??'user')==='assistant'?'assistant':'user'; $c=trim((string)($m['content']??'')); if($c!=='') $msgs[]=['role'=>$role,'content'=>$c]; }
+    if(!$msgs || end($msgs)['role']!=='user') return null;
+    $info=['provider'=>null,'model'=>null,'errors'=>[]];
+    $cacheF = sys_get_temp_dir().'/ch_ai_model.json';
+    $models = th_ai_models();
+    $cached = @json_decode((string)@file_get_contents($cacheF), true);
+    if(!empty($cached['model']) && (time()-(int)($cached['t']??0)) < 21600 && in_array($cached['model'],$models,true)){
+        $models = array_values(array_unique(array_merge([$cached['model']], $models)));
+    }
+    if(defined('CLAUDE_KEY') && CLAUDE_KEY){
+        foreach($models as $model){
+            $ch=curl_init('https://api.anthropic.com/v1/messages');
+            curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>$timeout,
+                CURLOPT_POSTFIELDS=>json_encode(['model'=>$model,'max_tokens'=>$maxTokens,'system'=>$system,'messages'=>$msgs]),
+                CURLOPT_HTTPHEADER=>['x-api-key: '.CLAUDE_KEY,'anthropic-version: 2023-06-01','content-type: application/json']]);
+            $raw=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $cerr=curl_error($ch); curl_close($ch);
+            $r=json_decode((string)$raw,true);
+            if(!empty($r['content'][0]['text'])){
+                $info['provider']='claude'; $info['model']=$model; $GLOBALS['__th_ai_info']=$info;
+                if(($cached['model']??null)!==$model) @file_put_contents($cacheF, json_encode(['model'=>$model,'t'=>time()]));
+                return $r['content'][0]['text'];
+            }
+            $et=(string)($r['error']['type']??''); $em=(string)($r['error']['message']??$cerr);
+            $info['errors'][]=$model.': '.($code?:'curl').' '.$et.' '.mb_substr($em,0,120);
+            $modelProblem = $code===404 || $et==='not_found_error' || ($et==='invalid_request_error' && stripos($em,'model')!==false);
+            if(!$modelProblem) break; // anahtar / limit / sunucu hatası: başka model denemenin anlamı yok
+        }
+    }
+    if(defined('DEEPSEEK_KEY') && DEEPSEEK_KEY){
+        $ch=curl_init('https://api.deepseek.com/chat/completions');
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>$timeout,
+            CURLOPT_POSTFIELDS=>json_encode(['model'=>'deepseek-chat','max_tokens'=>$maxTokens,'messages'=>array_merge([['role'=>'system','content'=>$system]],$msgs)]),
+            CURLOPT_HTTPHEADER=>['Authorization: Bearer '.DEEPSEEK_KEY,'content-type: application/json']]);
+        $r=json_decode((string)curl_exec($ch),true); curl_close($ch);
+        if(!empty($r['choices'][0]['message']['content'])){ $info['provider']='deepseek'; $info['model']='deepseek-chat'; $GLOBALS['__th_ai_info']=$info; return $r['choices'][0]['message']['content']; }
+        $info['errors'][]='deepseek-chat: '.mb_substr((string)($r['error']['message']??'yanıt yok'),0,120);
+    }
+    $GLOBALS['__th_ai_info']=$info; error_log('CH th_ai: '.json_encode($info['errors']));
+    return null;
+}
+
 /** E-posta: Brevo HTTPS API varsa onunla, yoksa mail(). */
 function th_mail(string $to, string $subject, string $html): bool {
     $from = defined('SMTP_FROM') ? SMTP_FROM : 'noreply@chat-help.com'; $name = defined('SMTP_NAME') ? SMTP_NAME : 'ChatHelp';

@@ -48,21 +48,8 @@ if(th_balance($aid) < $cost) th_json(402,['error'=>'owner_out_of_tokens','messag
 
 /* KI çağrısı (api.php ile aynı mantık; bağımsız tutuldu) */
 $system = ch_agent_system($pl,$w,(string)($in['lang'] ?? ($w['lang'] ?: 'de')))."\n\nDu sprichst mit einem Website-Besucher (nicht mit dem Betreiber). Kurz, hilfreich, max. 6 Sätze. Wenn du etwas nicht weißt: ehrlich sagen und Kontaktaufnahme anbieten.";
-$answer=null; $t0=microtime(true);
-if(defined('CLAUDE_KEY') && CLAUDE_KEY){
-    $ch=curl_init('https://api.anthropic.com/v1/messages');
-    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>60,
-        CURLOPT_POSTFIELDS=>json_encode(['model'=>defined('CLAUDE_MODEL')?CLAUDE_MODEL:'claude-sonnet-4-5','max_tokens'=>700,'system'=>$system,'messages'=>$clean]),
-        CURLOPT_HTTPHEADER=>['x-api-key: '.CLAUDE_KEY,'anthropic-version: 2023-06-01','content-type: application/json']]);
-    $r=json_decode(curl_exec($ch),true); curl_close($ch); $answer=$r['content'][0]['text'] ?? null;
-}
-if($answer===null && defined('DEEPSEEK_KEY') && DEEPSEEK_KEY){
-    $ch=curl_init('https://api.deepseek.com/chat/completions');
-    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>60,
-        CURLOPT_POSTFIELDS=>json_encode(['model'=>'deepseek-chat','max_tokens'=>700,'messages'=>array_merge([['role'=>'system','content'=>$system]],$clean)]),
-        CURLOPT_HTTPHEADER=>['Authorization: Bearer '.DEEPSEEK_KEY,'content-type: application/json']]);
-    $r=json_decode(curl_exec($ch),true); curl_close($ch); $answer=$r['choices'][0]['message']['content'] ?? null;
-}
+$t0=microtime(true);
+$answer = th_ai($system, $clean, 700, 60);   // Claude model zinciri → DeepSeek (tokens-lib)
 if($answer===null) th_json(502,['error'=>'ai_unavailable']);
 th_debit($aid,$cost,'widget:'.$pl['id']);
 th_log_usage($aid,'widget',$pl['sector'],$cost,(int)((microtime(true)-$t0)*1000));
