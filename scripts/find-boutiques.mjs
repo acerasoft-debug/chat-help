@@ -256,7 +256,7 @@ const QUERY_BRANDS = BRANDS.filter(b => b.q).map(b => b.name);
    4+ karakterli girdiler "etiket bununla başlıyor mu", kısa girdiler tam eşleşme. */
 const BLOCK_DOMAINS = `
 midilibre mundodeportivo marca lequipe gazzetta kicker sport1 eurosport tuttosport corrieredellosport nicematin laprovence letelegramme lavoixdunord lalsace lestrepublicain leprogres ledauphine
-lyko neye boozt nelly ellos bestseller varner cubus dressmann kappahl lindex bikbok carlings ginatricot gina-tricot stadium intersport xxl sportamore sportmaster
+bever asadventure unterwegs tennis-point sportokay sport-schuster sportarena globetrotter lyko neye boozt nelly ellos bestseller varner cubus dressmann kappahl lindex bikbok carlings ginatricot gina-tricot stadium intersport xxl sportamore sportmaster
 zalando aboutyou about-you otto bonprix asos boohoo shein temu wish aliexpress alibaba dhgate amazon ebay etsy rakuten
 cdiscount fnac laredoute la-redoute veepee vente-privee privalia showroomprive brandalley vinted vestiairecollective rebelle
 therealreal poshmark depop grailed stockx goat tradesy mercari wallapop leboncoin kleinanzeigen subito marktplaats 2dehands olx allegro
@@ -1214,11 +1214,15 @@ const EURO_TOWNS = [
 
 /** Otomatik turun şehirleri: önce Avrupa kasabaları (kendi imleciyle), kalan pay büyük şehir havuzundan.
  *  Sıra önemli — tur süre bütçesine takılırsa taze Avrupa kasabaları yine de taranmış olur. */
+/* 16 Eki 2026: gönderimi durdurulan ülkeler (sunucunun paused listesi, known.json) otomatik turda taranmaz — 13:40 turu
+   956 adayın çoğunu Almanya'da (Mönchengladbach, Bochum…) harcadı, oysa Almanya'ya mektup şimdilik gitmiyor. */
+export const SKIP_COUNTRIES = new Set();
+const skippedPlace = (p) => SKIP_COUNTRIES.has(String(p).split('|')[0].trim().toLowerCase());
 export function pickAutoCities(state, n, euroShare) {
   const nE = Math.min(EURO_TOWNS.length, Math.round(n * euroShare)), nP = Math.min(CITY_POOL.length, n - nE), out = [];
   const ce = Number(state.euroCursor || 0) % EURO_TOWNS.length, cp = Number(state.placesCursor || 0) % CITY_POOL.length;
-  for (let k = 0; k < nE; k++) out.push(EURO_TOWNS[(ce + k) % EURO_TOWNS.length]);
-  for (let k = 0; k < nP; k++) out.push(CITY_POOL[(cp + k) % CITY_POOL.length]);
+  for (let k = 0, got = 0; got < nE && k < EURO_TOWNS.length; k++) { const t = EURO_TOWNS[(ce + k) % EURO_TOWNS.length]; if (skippedPlace(t)) continue; out.push(t); got++; }
+  for (let k = 0, got = 0; got < nP && k < CITY_POOL.length; k++) { const t = CITY_POOL[(cp + k) % CITY_POOL.length]; if (skippedPlace(t)) continue; out.push(t); got++; }
   return out;
 }
 
@@ -1265,6 +1269,7 @@ export function pickGridCells(state, n) {
   while (out.length < n && steps < EURO_GRID.length) {
     const c = EURO_GRID[cur]; cur = (cur + 1) % EURO_GRID.length; steps++;
     const e = empty[c]; if (e && Date.parse(e) > cutoff) continue;
+    if (skippedPlace(c)) continue;
     out.push(c);
   }
   return out;
@@ -1370,6 +1375,9 @@ async function main() {
   const state = loadJson(CFG.stateFile, { version: 1, domains: {}, queries: {}, runs: [] });
   state.domains ||= {}; state.queries ||= {}; state.runs ||= [];
   const knownRaw = CFG.knownFile ? loadJson(CFG.knownFile, {}) : {};
+  for (const c of (Array.isArray(knownRaw.paused) ? knownRaw.paused : [])) SKIP_COUNTRIES.add(String(c).trim().toLowerCase());
+  for (const c of list('SKIP_COUNTRIES')) SKIP_COUNTRIES.add(c.trim().toLowerCase());
+  if (SKIP_COUNTRIES.size) log(`otomatik turda atlanan (gonderimi durdurulmus) ulkeler: ${[...SKIP_COUNTRIES].join(', ')}`);
   const known = { emails: new Set((knownRaw.emails || []).map(e => String(e).toLowerCase())), domains: new Set((knownRaw.domains || []).map(d => registrableDomain(String(d)))) };
   log(`ayarlar: sorgu=${CFG.queriesPerRun} site=${CFG.maxSites} butce=${CFG.budgetSec}s motor=${CFG.engines.join(',')}${CFG.braveKey ? '(+brave key)' : ''} dil=${CFG.langs.join(',') || 'hepsi'} ulke=${CFG.countries.join(',') || 'hepsi'}${CFG.dryRun ? ' [DRY-RUN]' : ''}`);
   log(`bilinen: ${known.emails.size} e-posta, ${known.domains.size} alan adi (sunucu) | durum dosyasi: ${Object.keys(state.domains).length} alan adi, ${Object.keys(state.queries).length} sorgu`);
@@ -1538,7 +1546,11 @@ async function main() {
   const results = []; let done = 0;
   await (async () => { let i = 0; await Promise.all(Array.from({ length: CFG.concurrency }, async () => {
     while (i < todo.length) { if (elapsed() > CFG.budgetSec) return; const item = todo[i++];
-      let r; try { r = await analyzeSite(item.reg, ctx, item); } catch (e) { r = { domain: item.reg, status: 'fail', reason: 'fail:' + String(e.message || e).slice(0, 40) }; }
+      /* 16 Eki 2026: 13:40 turu 955/956'da SESSİZCE bitti (çıkış 0, rapor yok, 34 dk'lık iş kayboldu): son sitenin vaadi hiç
+         sonuçlanmadı ve olay döngüsünde bekleyen zamanlayıcı kalmayınca Node süreci kapattı. Her site artık en çok 120 sn —
+         yarışan zamanlayıcı döngüyü canlı tutar ve takılan site 'fail:timeout' olur. */
+      let r; try { r = await Promise.race([analyzeSite(item.reg, ctx, item), new Promise(res => setTimeout(() => res({ domain: item.reg, status: 'fail', reason: 'fail:timeout' }), 120000))]); }
+      catch (e) { r = { domain: item.reg, status: 'fail', reason: 'fail:' + String(e.message || e).slice(0, 40) }; }
       r.query = item.q; results.push(r); done++;
       const tag = r.status === 'ok' ? `+ ${r.company} <${r.email}> ${r.country || '?'} [${(r.brands || []).slice(0, 4).join(', ')}]` : `- ${r.reason}${r.title ? ' | ' + r.title.slice(0, 50) : ''}`;
       log(`  ${String(done).padStart(3)}/${todo.length} ${r.domain}: ${tag}`);
@@ -1626,6 +1638,11 @@ function selftest() {
     t('OSM: Intersport / Decathlon zincir', osmPick({ name: 'Intersport Moser', website: 'https://moser.at' }).excl === 'excl:chain' && osmPick({ name: 'Decathlon Lyon', website: 'https://decathlon.fr' }).excl === 'excl:chain');
     t('OSM: bağımsız outlet adı artık elenmez', !osmPick({ name: 'Outlet Moda Rossi', website: 'https://outletrossi.it' }).excl);
     t('Avrupa ağırlığı: euroShare 0.95, odak sorgu 8, odak şehir 2', CFG.euroShare === 0.95 && CFG.focusQueries === 8 && CFG.focusCities === 2);
+    SKIP_COUNTRIES.add('germany');
+    const pc = pickAutoCities({ euroCursor: 0, placesCursor: 0 }, 60, 1), pg = pickGridCells({ gridCursor: 0 }, 400);
+    t('durdurulan ülke (Germany) şehir ve karelerden atlanır', pc.length === 60 && !pc.some(x => x.startsWith('Germany|')) && pg.length === 400 && !pg.some(x => x.startsWith('Germany|')));
+    SKIP_COUNTRIES.clear();
+    t('Bever / Unterwegs / Tennis-Point zincir', isBlockedDomain('bever.nl') === 'excl:chain' && isBlockedDomain('unterwegs.biz') === 'excl:chain' && isBlockedDomain('tennis-point.de') === 'excl:chain');
   }
   t('block shoe domain (14 Eki: artık engel değil)', isBlockedDomain('schuh-mueller.de') === '');
   t('allow boutique', isBlockedDomain('mientus.com') === '');
@@ -1763,4 +1780,9 @@ function selftest() {
 }
 
 if (process.argv.includes('--selftest')) selftest();
-else main().catch(e => { console.error('HATA:', e); process.exit(1); });
+else {
+  /* Olay döngüsü main() bitmeden boşalırsa (sonuçlanmayan vaat) süreç 0 ile çıkıp işi "başarılı" gösteriyordu. */
+  let mainDone = false;
+  process.on('beforeExit', () => { if (!mainDone) { console.error('HATA: olay döngüsü boşaldı, main() bitmedi (sonuçlanmayan vaat) — sonuç yazılmadı'); process.exitCode = 1; } });
+  main().then(() => { mainDone = true; }, e => { mainDone = true; console.error('HATA:', e); process.exit(1); });
+}

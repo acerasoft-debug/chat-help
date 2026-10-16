@@ -44,4 +44,8 @@ echo json_encode([
   'total'   => count($leads),
   'state'   => $state ?: new stdClass(),
   'keys'    => $keys,
+  /* 16 Eki 2026: gönderimi durdurulan ülkeler (mailbox.json paused_countries) — bulucu otomatik turda o ülkelerin
+     şehir/karelerini taramaz (bulunanlar zaten gönderilemezdi). Fonksiyon yoksa boş. */
+  'paused'  => (function () use ($home) { if (is_readable($home.'/public_html/inc/finder.php')) { require_once $home.'/public_html/inc/finder.php'; }
+                 return function_exists('vestra_send_paused_countries') ? array_values(vestra_send_paused_countries()) : []; })(),
 ], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), "\n";
