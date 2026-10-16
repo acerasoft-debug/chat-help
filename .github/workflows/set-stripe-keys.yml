@@ -1,0 +1,98 @@
+name: Stripe-Schlüssel auf dem Sarvesto-Server setzen
+
+# Elle tetiklenir: Actions → bu workflow → Run workflow.
+#
+# Gerekli repo secret'ları (Settings → Secrets and variables → Actions):
+#   STRIPE_SECRET_KEY        sk_live_… ya da sk_test_…        (zorunlu)
+#   STRIPE_WEBHOOK_SECRET    whsec_… (Dashboard → Developers → Webhooks)  (önerilir)
+#   STRIPE_PUBLISHABLE_KEY   pk_…  (isteğe bağlı, Checkout yönlendirmesi için gerekmez)
+#
+# Anahtarlar hiçbir dosyaya commit edilmez, log'a yazılmaz; yalnızca sunucudaki
+# ~/data/stripe_settings.json dosyasına (chmod 600) yazılır. Sarvesto bu
+# dosyayı inc/config.php vr_stripe_settings() ile okur. Yazmadan önce anahtar
+# Stripe'ta /v1/account ile doğrulanır; geçersizse hiçbir şey yazılmaz.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Kurulum klasörü (sunucuda)"
+        required: false
+        default: "~/maxsales_de"
+
+permissions:
+  contents: read
+
+jobs:
+  set-keys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Secret'lar var mı
+        env:
+          SK: ${{ secrets.STRIPE_SECRET_KEY }}
+          WH: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+        run: |
+          if [ -z "$SK" ]; then
+            echo "::error::STRIPE_SECRET_KEY tanımlı değil. Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+          case "$SK" in sk_live_*) echo "Modus: LIVE";; sk_test_*) echo "Modus: TEST";; *) echo "::error::Anahtar sk_live_ veya sk_test_ ile başlamalı."; exit 1;; esac
+          [ -n "$WH" ] || echo "::warning::STRIPE_WEBHOOK_SECRET boş: siparişler webhook olmadan 'bezahlt' olmaz. Dashboard → Developers → Webhooks → Add endpoint → https://sarvesto.com/api/webhook.php → Signing secret."
+
+      - name: Anahtarı Stripe'ta doğrula (runner'dan)
+        env:
+          SK: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          code=$(curl -sS -o /tmp/acct.json -w "%{http_code}" -u "$SK:" https://api.stripe.com/v1/account)
+          if [ "$code" != "200" ]; then
+            echo "::error::Stripe anahtarı reddetti (HTTP $code): $(python3 -c "import json;print(json.load(open('/tmp/acct.json')).get('error',{}).get('message',''))" 2>/dev/null)"
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json
+          d = json.load(open('/tmp/acct.json'))
+          print("Konto        :", d.get("id", "?")[:8] + "…", "·", d.get("country", "?"))
+          print("Name         :", (d.get("business_profile") or {}).get("name") or d.get("settings", {}).get("dashboard", {}).get("display_name") or "—")
+          print("charges      :", d.get("charges_enabled"), "· payouts:", d.get("payouts_enabled"))
+          caps = d.get("capabilities") or {}
+          print("card_payments:", caps.get("card_payments"), "· transfers (Connect):", caps.get("transfers", "nicht aktiv"))
+          PY
+          rm -f /tmp/acct.json
+
+      - name: Sunucuya yaz
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SK: ${{ secrets.STRIPE_SECRET_KEY }}
+          PK: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+          WH: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          TARGET: ${{ github.event.inputs.target }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: SK,PK,WH,TARGET
+          script: |
+            set -e
+            DEST=$(eval echo "${TARGET:-~/maxsales_de}")
+            # Veri dizini: kurulumun bir üstündeki data/ (Sarvesto'da ~/data), yoksa kurulum içi data/
+            if [ -d "$DEST/../data" ]; then DATA=$(cd "$DEST/../data" && pwd); else mkdir -p "$DEST/data"; DATA=$(cd "$DEST/data" && pwd); fi
+            F="$DATA/stripe_settings.json"
+            SK="$SK" PK="$PK" WH="$WH" F="$F" php -r '
+              $f = getenv("F");
+              $cur = is_readable($f) ? (json_decode((string)file_get_contents($f), true) ?: []) : [];
+              if (!is_array($cur)) $cur = [];
+              $cur["secret_key"] = getenv("SK");
+              if (getenv("PK") !== "" && getenv("PK") !== false) $cur["publishable_key"] = getenv("PK");
+              if (getenv("WH") !== "" && getenv("WH") !== false) $cur["webhook_secret"] = getenv("WH");
+              $cur["updated_at"] = date("c");
+              $tmp = $f . ".tmp";
+              file_put_contents($tmp, json_encode($cur, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+              chmod($tmp, 0600); rename($tmp, $f); chmod($f, 0600);
+              echo "geschrieben: $f\n";
+              echo "secret_key: gesetzt (" . substr($cur["secret_key"], 0, 7) . "…)\n";
+              echo "webhook_secret: " . (!empty($cur["webhook_secret"]) ? "gesetzt" : "FEHLT") . "\n";
+              echo "publishable_key: " . (!empty($cur["publishable_key"]) ? "gesetzt" : "leer") . "\n";
+            '
+            echo "== Selbsttest (zeigt keine Schlüssel) =="
+            cd "$DEST" && php tools/selftest.php --stripe 2>&1 | sed -n '/Stripe/,/Mail/p' | head -20 || true
