@@ -82,7 +82,7 @@ if ($em !== '' && $code === '') {
     echo "  → Jetzt Code aus dem Postfach lesen und mit args {\"auth_email\":\"$em\",\"code\":\"…\"} erneut laufen lassen.\n\n";
 }
 if ($em !== '' && $code !== '') {
-    $r = req('auth/verify — Code → API-Key', "$base/chat/tokens-api.php/v1/auth/verify", ['email'=>$em,'code'=>$code], 30, 60);
+    $r = req('auth/verify — Code → API-Key', "$base/chat/tokens-api.php/v1/auth/verify", ['email'=>$em,'code'=>$code], 30, 0);   // gövde yazdırılmaz: anahtar loga düşmesin
     $j = json_decode($r['body'], true); $key = (string)($j['key'] ?? '');
     if ($key === '') { echo "  ✗ kein Key: ".mb_substr($r['body'],0,200)."\n\n"; }
     else {
