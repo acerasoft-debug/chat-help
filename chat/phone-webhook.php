@@ -49,16 +49,25 @@ function say(string $text, string $lang): string {
     foreach($parts as $i=>$p){ $p=trim($p); if($p==='') continue; $ssml.=($ssml!==''?'<break time="'.(str_ends_with($p,'?')?'280':'360').'ms"/>':'').'<s>'.x($p).'</s>'; }
     return '<Say voice="'.x($v).'" language="'.x($lang).'">'.$ssml.'</Say>';
 }
-/** Zuhören: Konversationsmodell, kurze Reaktionszeit, der Anrufer darf unterbrechen (bargeIn). */
+/** Zuhören: Standard-Spracherkennung (alle Sprachen), Ende bei natürlicher Sprechpause, Anrufer darf jederzeit unterbrechen (Twilio bargeIn = Standard).
+ *  db.php: TWILIO_SPEECH_MODEL (z. B. 'phone_call') nur setzen, wenn das Modell für die Sprache freigegeben ist. */
 function gather(string $inner, string $lang, string $action, string $hints=''): string {
-    return '<Gather input="speech" language="'.x($lang).'" speechModel="experimental_conversations" speechTimeout="auto" actionOnEmptyResult="true" profanityFilter="false"'.($hints!==''?' hints="'.x(mb_substr($hints,0,480)).'"':'').' action="'.x($action).'" method="POST">'.$inner.'</Gather>';
+    $model=(defined('TWILIO_SPEECH_MODEL') && TWILIO_SPEECH_MODEL) ? ' speechModel="'.x(TWILIO_SPEECH_MODEL).'"' : '';
+    return '<Gather input="speech" language="'.x($lang).'"'.$model.' speechTimeout="auto" actionOnEmptyResult="true" profanityFilter="false"'.($hints!==''?' hints="'.x(mb_substr($hints,0,480)).'"':'').' action="'.x($action).'" method="POST">'.$inner.'</Gather>';
 }
-/** Twilio-Signatur: Base64(HMAC-SHA1(url + sortierte POST-Parameter, AuthToken)) */
-function twilio_sig_ok(string $url): bool {
+/** Twilio-Signatur: Base64(HMAC-SHA1(angefragte URL + sortierte POST-Parameter, AuthToken)) – gilt auch für unsere Redirect-URLs (&w=…). */
+function twilio_sig_ok(): bool {
     if(!defined('TWILIO_AUTH_TOKEN') || !TWILIO_AUTH_TOKEN) return true;
     $sig=$_SERVER['HTTP_X_TWILIO_SIGNATURE'] ?? ''; if($sig==='') return false;
-    $data=$url; $p=$_POST; ksort($p); foreach($p as $k=>$v) $data.=$k.$v;
+    $data='https://chat-help.com'.($_SERVER['REQUEST_URI'] ?? ''); $p=$_POST; ksort($p); foreach($p as $k=>$v) $data.=$k.$v;
     return hash_equals(base64_encode(hash_hmac('sha1',$data,TWILIO_AUTH_TOKEN,true)),$sig);
+}
+/** Kurze menschliche Überbrückung, wenn das Nachschlagen (Kalender, Karte, Adresse) etwas dauert. */
+function filler(string $lang): string {
+    $F=['de'=>['Einen kleinen Moment, ich schaue kurz nach.','Mhm, einen Augenblick bitte.','Ich prüfe das gerade für Sie, einen Moment.','Gleich hab ich es, einen kleinen Moment.'],
+        'en'=>['One moment, let me check that for you.','Just a second, I am looking that up.'],'tr'=>['Bir saniye, hemen bakıyorum.','Kısa bir an lütfen, kontrol ediyorum.'],
+        'fr'=>['Un petit instant, je vérifie.','Une seconde, je regarde.'],'es'=>['Un momento, lo compruebo.','Un segundo, lo estoy mirando.'],'it'=>['Un attimo, controllo subito.','Un secondo, verifico.']];
+    $l=$F[substr($lang,0,2)] ?? $F['en']; return $l[array_rand($l)];
 }
 
 $key=(string)($_GET['key'] ?? '');
@@ -73,7 +82,7 @@ $pl=ch_plan($cfg['plan']); $aid=(int)$cfg['account_id'];
 $lang='de-DE'; $GLOBALS['ph_gender']='f';
 if(preg_match('/^([a-z]{2}-[A-Z]{2})(?:-([mf]))?$/',(string)$cfg['phone_voice'],$mv)){ $lang=$mv[1]; $GLOBALS['ph_gender']=$mv[2] ?? 'f'; }
 if(!$pl || !th_plan_active($aid,$pl['id'])) twiml(say('Dieser Telefon-Assistent ist derzeit nicht aktiv. Auf Wiederhören.',$lang).'<Hangup/>');
-if(!twilio_sig_ok($self)){ http_response_code(403); twiml('<Hangup/>'); }
+if(!twilio_sig_ok()){ http_response_code(403); twiml('<Hangup/>'); }
 
 $sid=preg_replace('/[^A-Za-z0-9]/','',(string)($_POST['CallSid'] ?? '')); if($sid==='') twiml('<Hangup/>');
 $from=mb_substr((string)($_POST['From'] ?? ''),0,32); $to=mb_substr((string)($_POST['To'] ?? ''),0,32);
@@ -90,9 +99,24 @@ $call=th_call($sid) ?: th_call_start($aid,$pl['id'],$sid,$from,$to);
 $tr=json_decode((string)($call['transcript'] ?? '[]'),true) ?: [];
 $turns=(int)($call['turns'] ?? 0); $silent=(int)($call['silent'] ?? 0);
 
+/* Antwort der KI abholen (Warteschleife): Die KI rechnet nach dem Abschicken der Antwort an Twilio im Hintergrund weiter.
+   Ist sie nach ~2,5 s fertig, antwortet der Agent sofort; sonst sagt er kurz „Einen Moment …“ und holt die Antwort danach ab. Kein 15-s-Timeout von Twilio. */
+$wait=isset($_GET['w']) ? max(0,(int)$_GET['w']) : null;
+if($wait!==null){
+    $deadline=microtime(true)+($wait===0?2.6:8.0); $pend=null;
+    do{ $pend=json_decode((string)(th_call($sid)['pending'] ?? ''),true); if(($pend['state'] ?? '')==='ready') break; usleep(250000); } while(microtime(true)<$deadline);
+    if(($pend['state'] ?? '')==='ready'){ th_call_update($sid,['pending'=>null]); render_reply((array)$pend['reply'],$cfg,$lang,$self,$hints,$to); }
+    if(($pend['state'] ?? '')!=='work' || $wait>=4 || time()-(int)($pend['at'] ?? 0)>45){
+        th_call_update($sid,['pending'=>null]);
+        twiml(gather(say('Entschuldigung, das hat gerade zu lange gedauert. Könnten Sie mir Ihr Anliegen bitte noch einmal kurz sagen?',$lang),$lang,$self,$hints));
+    }
+    twiml(($wait===0 ? say(filler($lang),$lang) : '<Pause length="1"/>').'<Redirect method="POST">'.x($self.'&w='.($wait+1)).'</Redirect>');
+}
+
+
 /* Begrüßung */
 if($speech==='' && $turns===0 && !$tr){
-    $h=(int)date('G'); $tag=$h<11?'Guten Morgen':($h<18?'Guten Tag':'Guten Abend');
+    $h=(int)(new DateTimeImmutable('now',new DateTimeZone('Europe/Berlin')))->format('G'); $tag=$h<11?'Guten Morgen':($h<18?'Guten Tag':'Guten Abend');
     $greet=$cfg['phone_greeting'] ?: "$tag, $company, Sie sprechen mit dem digitalen Assistenten. Was kann ich für Sie tun?";
     $tr[]=['role'=>'assistant','content'=>$greet]; th_call_update($sid,['transcript'=>json_encode($tr,JSON_UNESCAPED_UNICODE)]);
     twiml(gather(say($greet,$lang),$lang,$self,$hints));
@@ -115,7 +139,7 @@ if(th_balance($aid) < $cost){
 }
 $sys=ch_agent_system($pl,$cfg,substr($lang,0,2)).CH_PHONE_RULES;
 if(!empty($cfg['phone_hours'])) $sys.="\nTelefonische Erreichbarkeit des Teams (für Rückrufe): ".$cfg['phone_hours'];
-$sys.="\nAnrufer-Nummer (für Rückrufe, nicht vorlesen): ".($from ?: 'unbekannt').". Aktuelle Zeit: ".date('d.m.Y H:i').".";
+$sys.="\nAnrufer-Nummer (für Rückrufe, nicht vorlesen): ".($from ?: 'unbekannt').". Aktuelle Zeit (Deutschland): ".(new DateTimeImmutable('now',new DateTimeZone('Europe/Berlin')))->format('l, d.m.Y H:i').".";
 $msgs=array_slice(array_values(array_filter($tr,fn($m)=>in_array($m['role'],['user','assistant'],true))),-16);
 if($msgs[0]['role']!=='user') array_shift($msgs);   // Claude: erste Nachricht muss vom Nutzer sein
 require_once __DIR__.'/order-lib.php';   // Werkzeuge: Terminbuchung (appt_on) + Bestellannahme (order_on)
@@ -123,25 +147,47 @@ $tk=ord_toolkit($aid,'phone',(string)$from);
 if($tk['tools']){ $sys.=$tk['hint'];
     if($tk['appt'])  $sys.="\nAm Telefon: Datum und Uhrzeit immer ausgesprochen wiederholen (z. B. „Donnerstag, den dreiundzwanzigsten Oktober um fünfzehn Uhr“).";
     if($tk['order']) $sys.="\nAm Telefon: Positionen einzeln bestätigen, Adresse mit Hausnummer und Postleitzahl wiederholen, am Ende Gesamtsumme und Zeit nennen. Die Rufnummer des Anrufers gilt als Kontaktnummer, falls er keine andere nennt.";
-    $reply=th_ai_tools($sys,$msgs,$tk['tools'],$tk['exec'],320,40); $cost+=2*count(th_ai_info()['tool_calls'] ?? []); }
-else $reply=th_ai($sys,$msgs,300,25);
-if($reply===null) $reply='Entschuldigung, da war kurz eine Störung in der Leitung. Könnten Sie das bitte noch einmal sagen?';
-$forward=str_contains($reply,'[WEITERLEITEN]'); $end=str_contains($reply,'[ENDE]');
-$spoken=trim(preg_replace('/\s+/',' ',str_replace(['[WEITERLEITEN]','[ENDE]','*','#','`'],'',$reply)));
-if($spoken==='') $spoken=$forward?'Einen Moment bitte, ich verbinde Sie.':'Vielen Dank für Ihren Anruf. Auf Wiederhören.';
-
-$tr[]=['role'=>'assistant','content'=>$spoken]; $turns++;
-th_debit($aid,$cost,'phone:'.$pl['id'],$sid.':'.$turns);
-th_log_usage($aid,'phone',$pl['sector'],$cost,0);
-$upd=['transcript'=>json_encode($tr,JSON_UNESCAPED_UNICODE),'turns'=>$turns,'silent'=>0,'tokens'=>(int)$call['tokens']+$cost];
-
-if($forward){
-    $fw=$cfg['phone_forward']; $upd['outcome']=$fw?'forwarded':'callback';
-    th_call_update($sid,$upd);
-    if($fw) twiml(say($spoken,$lang).'<Dial timeout="25" callerId="'.x($to).'">'.x($fw).'</Dial>'.say('Hm, gerade ist leider niemand frei. Ich habe alles notiert – wir rufen Sie so schnell wie möglich zurück. Auf Wiederhören!',$lang).'<Hangup/>');
-    twiml(say($spoken.' Ich habe Ihr Anliegen notiert, das Team ruft Sie so schnell wie möglich zurück. Auf Wiederhören!',$lang).'<Hangup/>');
 }
-if($end){ $upd['outcome']='done'; $upd['status']='completed'; $upd['ended_at']=date('Y-m-d H:i:s'); th_call_update($sid,$upd); twiml(say($spoken,$lang).'<Pause length="1"/><Hangup/>'); }
-if($turns>=25){ $upd['outcome']='maxturns'; th_call_update($sid,$upd); twiml(say($spoken.' Vielen Dank für das Gespräch, ich wünsche Ihnen noch einen schönen Tag. Auf Wiederhören!',$lang).'<Hangup/>'); }
-th_call_update($sid,$upd);
-twiml(gather(say($spoken,$lang),$lang,$self,$hints));
+/** Denkt, bucht/bestellt über Werkzeuge, schreibt Transkript + Tokens. Gibt die gesprochene Antwort zurück. */
+$work=function() use($sys,$msgs,$tk,$tr,$turns,$cost,$aid,$pl,$sid,$call,$cfg): array {
+    if($tk['tools']){ $reply=th_ai_tools($sys,$msgs,$tk['tools'],$tk['exec'],320,40); $cost+=2*count(th_ai_info()['tool_calls'] ?? []); }
+    else $reply=th_ai($sys,$msgs,300,25);
+    if($reply===null) $reply='Entschuldigung, da war kurz eine Störung in der Leitung. Könnten Sie das bitte noch einmal sagen?';
+    $forward=str_contains($reply,'[WEITERLEITEN]'); $end=str_contains($reply,'[ENDE]');
+    $spoken=trim(preg_replace('/\s+/',' ',str_replace(['[WEITERLEITEN]','[ENDE]','*','#','`'],'',$reply)));
+    if($spoken==='') $spoken=$forward?'Einen Moment bitte, ich verbinde Sie.':'Vielen Dank für Ihren Anruf. Auf Wiederhören.';
+    $tr[]=['role'=>'assistant','content'=>$spoken]; $turns++;
+    th_debit($aid,$cost,'phone:'.$pl['id'],$sid.':'.$turns);
+    th_log_usage($aid,'phone',$pl['sector'],$cost,0);
+    $upd=['transcript'=>json_encode($tr,JSON_UNESCAPED_UNICODE),'turns'=>$turns,'silent'=>0,'tokens'=>(int)$call['tokens']+$cost];
+    if($forward) $upd['outcome']=$cfg['phone_forward']?'forwarded':'callback';
+    elseif($end){ $upd['outcome']='done'; $upd['status']='completed'; $upd['ended_at']=date('Y-m-d H:i:s'); }
+    elseif($turns>=25) $upd['outcome']='maxturns';
+    th_call_update($sid,$upd);
+    return ['spoken'=>$spoken,'forward'=>$forward,'end'=>$end,'turns'=>$turns];
+};
+/* Mit Werkzeugen (Kalender/Karte/Adresse) kann es länger dauern → Antwort an Twilio sofort, KI im Hintergrund, Abholung per Redirect */
+if($tk['tools']){
+    th_call_update($sid,['transcript'=>json_encode($tr,JSON_UNESCAPED_UNICODE),'pending'=>json_encode(['state'=>'work','at'=>time()])]);
+    $tw='<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">'.x($self.'&w=0').'</Redirect></Response>';
+    if(th_finish_response($tw,'text/xml; charset=UTF-8')){
+        try{ $res=$work(); }catch(Throwable $e){ $res=['spoken'=>'Entschuldigung, da ist gerade etwas schiefgelaufen. Können Sie das bitte noch einmal sagen?','forward'=>false,'end'=>false,'turns'=>$turns]; }
+        th_call_update($sid,['pending'=>json_encode(['state'=>'ready','at'=>time(),'reply'=>$res],JSON_UNESCAPED_UNICODE)]);
+        exit;
+    }
+    th_call_update($sid,['pending'=>null]);   // Server kann nicht im Hintergrund weiterrechnen → synchron
+}
+render_reply($work(),$cfg,$lang,$self,$hints,$to);
+
+/** TwiML für eine fertige Antwort: weiterleiten, auflegen oder weiter zuhören. */
+function render_reply(array $r, array $cfg, string $lang, string $self, string $hints, string $to): void {
+    $spoken=(string)($r['spoken'] ?? '');
+    if(!empty($r['forward'])){
+        $fw=$cfg['phone_forward'];
+        if($fw) twiml(say($spoken,$lang).'<Dial timeout="25" callerId="'.x($to).'">'.x($fw).'</Dial>'.say('Hm, gerade ist leider niemand frei. Ich habe alles notiert – wir rufen Sie so schnell wie möglich zurück. Auf Wiederhören!',$lang).'<Hangup/>');
+        twiml(say($spoken.' Ich habe Ihr Anliegen notiert, das Team ruft Sie so schnell wie möglich zurück. Auf Wiederhören!',$lang).'<Hangup/>');
+    }
+    if(!empty($r['end'])) twiml(say($spoken,$lang).'<Pause length="1"/><Hangup/>');
+    if((int)($r['turns'] ?? 0)>=25) twiml(say($spoken.' Vielen Dank für das Gespräch, ich wünsche Ihnen noch einen schönen Tag. Auf Wiederhören!',$lang).'<Hangup/>');
+    twiml(gather(say($spoken,$lang),$lang,$self,$hints));
+}

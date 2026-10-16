@@ -213,7 +213,8 @@ function ord_public(array $o, ?array $s=null): array {
         'lat'=>$o['lat']!==null?(float)$o['lat']:null,'lon'=>$o['lon']!==null?(float)$o['lon']:null,'items'=>$items,'items_text'=>implode(', ',array_map(fn($i)=>$i['qty'].'× '.$i['name'].($i['options']?' ('.implode(', ',$i['options']).')':''),$items)),
         'subtotal_cents'=>(int)$o['subtotal_cents'],'fee_cents'=>(int)$o['fee_cents'],'total_cents'=>(int)$o['total_cents'],'total'=>number_format($o['total_cents']/100,2,',','.').' €','payment'=>$o['payment'],'note'=>$o['note'],
         'eta'=>$o['eta_at']?(new DateTimeImmutable($o['eta_at'],$tz))->format('H:i'):null,'created'=>(new DateTimeImmutable($o['created_at'],$tz))->format('H:i'),'created_at'=>$o['created_at'],'driver'=>$drv,
-        'maps'=>$o['lat']!==null?'https://www.google.com/maps/dir/?api=1&destination='.$o['lat'].','.$o['lon']:($o['address_text']?'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($o['address_text']):null),'restaurant'=>$s['name']];
+        'maps'=>$o['lat']!==null?'https://www.google.com/maps/dir/?api=1&destination='.$o['lat'].','.$o['lon']:($o['address_text']?'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($o['address_text']):null),'restaurant'=>$s['name'],
+        'track'=>'https://chat-help.com/chat/order.php?c='.$o['code']];
 }
 function ord_orders(int $acc, string $scope='open'): array {
     ord_bootstrap(); $s=ord_settings($acc);
@@ -250,13 +251,16 @@ function ord_notify_driver(array $o, array $s): void {
     if(!$sent){ $to=$s['notify_email'] ?: ord_owner_email((int)$o['account_id']); if($to) th_mail($to,'Fahrer '.$drv['name'].' konnte nicht benachrichtigt werden – Bestellung '.$p['code'],'<pre style="font-family:Inter,Arial">'.htmlspecialchars($txt).'</pre>'); }
 }
 function ord_notify_customer(array $o, array $s, string $status): void {
-    $p=ord_public($o,$s); if($o['channel']!=='whatsapp' || !$o['wa_from']) return;
-    $msg=['confirmed'=>"✅ Bestellung {$p['code']} bestätigt! ".($p['type']==='delivery'?"Lieferung voraussichtlich um {$p['eta']} Uhr.":"Abholbereit um {$p['eta']} Uhr.")." Gesamt {$p['total']} ({$p['payment']}).",
+    $p=ord_public($o,$s);
+    $msg=['confirmed'=>"✅ Bestellung {$p['code']} bestätigt! ".($p['type']==='delivery'?"Lieferung voraussichtlich um {$p['eta']} Uhr.":"Abholbereit um {$p['eta']} Uhr.")." Gesamt {$p['total']} ({$p['payment']}). Status live: {$p['track']}",
           'ready'=>"🛍️ Bestellung {$p['code']} ist fertig".($p['type']==='pickup'?' zur Abholung.':'.'),
-          'out_for_delivery'=>"🚗 Bestellung {$p['code']} ist unterwegs".($p['driver']?" mit {$p['driver']['name']}":'').". Bis gleich!",
+          'out_for_delivery'=>"🚗 Bestellung {$p['code']} ist unterwegs".($p['driver']?" mit {$p['driver']['name']}":'').". Bis gleich! {$p['track']}",
           'delivered'=>"Guten Appetit! 🍕 Danke für die Bestellung bei {$s['name']}.",
           'cancelled'=>"Bestellung {$p['code']} wurde storniert. Bei Fragen: {$s['phone']}"][$status] ?? null;
-    if($msg) ord_wa_send($s,$o['wa_from'],$msg);
+    if(!$msg) return;
+    if($o['channel']==='whatsapp' && $o['wa_from']){ ord_wa_send($s,$o['wa_from'],$msg); return; }
+    /* Telefon-Bestellungen: SMS an die Anrufernummer (nur Bestätigung/Unterwegs/Storno, wenn Twilio-SMS eingerichtet ist) */
+    if($o['channel']==='phone' && $o['phone'] && in_array($status,['confirmed','out_for_delivery','cancelled'],true)) ord_sms_send($o['phone'],($s['name']?$s['name'].': ':'').$msg);
 }
 function ord_owner_email(int $acc): string { if($acc<=0) return ''; $s=th_db()->prepare("SELECT email FROM token_accounts WHERE id=?"); $s->execute([$acc]); return (string)($s->fetchColumn() ?: ''); }
 /** WhatsApp senden: Meta Cloud API (wa_phone_id + wa_token) oder Twilio (TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN + wa_number). */
@@ -316,7 +320,7 @@ function ord_system_hint(int $acc): string {
     $zones=$s['zones']?implode('; ',array_map(fn($z)=>$z['name'].' (PLZ '.$z['plz'].'): Gebühr '.number_format($z['fee_cents']/100,2,',','.').' €, Mindestbestellwert '.number_format($z['min_cents']/100,2,',','.').' €',$s['zones'])):'Liefergebiet nach PLZ-Prüfung';
     $cats=array_count_values(array_column(ord_menu($acc),'category'));
     return "\n\nBESTELLANNAHME (aktiv) für ".($s['name']?:'das Restaurant').($s['address']?', '.$s['address']:'').". Jetzt: ".$now->format('l H:i')." – ".($open['open']?'GEÖFFNET bis '.$open['until']:'GESCHLOSSEN'.($open['next']?', öffnet um '.$open['next']:'')).". Öffnungszeiten: ".implode(' · ',$h).". Lieferung ".($s['delivery_on']?'ja':'nein').", Abholung ".($s['pickup_on']?'ja':'nein').". Liefergebiete: $zones. Zahlarten: ".$s['payment_methods'].". Lieferzeit ca. ".$s['eta_delivery_min']." Min, Abholung ca. ".$s['eta_pickup_min']." Min. Karte: ".implode(', ',array_map(fn($c,$n)=>"$c ($n)",array_keys($cats),$cats)).".
-REGELN: Karte/Preise NUR über get_menu (nicht raten). Bestellung aufnehmen: Positionen mit Menge und Größe/Optionen, Lieferung oder Abholung, bei Lieferung Adresse mit Straße, Hausnummer, PLZ, Ort → check_delivery_address (nur im Liefergebiet weiter; sonst Abholung anbieten), Name, Telefonnummer, Zahlart. Dann Zusammenfassung mit Gesamtsumme (inkl. Liefergebühr) und „Soll ich die Bestellung so aufgeben?“ – erst nach Ja create_order. Danach Bestellcode, Gesamtsumme und voraussichtliche Zeit nennen. Upselling höchstens einmal, dezent (Getränk/Dessert). Allergien/Unverträglichkeiten: Hinweise aus der Karte nennen, bei Unsicherheit ans Team verweisen. Kurz, freundlich, in der Sprache des Kunden.";
+REGELN: Karte/Preise NUR über get_menu (nicht raten). Bestellung aufnehmen: Positionen mit Menge und Größe/Optionen, Lieferung oder Abholung, bei Lieferung Adresse mit Straße, Hausnummer, PLZ, Ort → check_delivery_address (nur im Liefergebiet weiter; sonst Abholung anbieten), Name, Telefonnummer, Zahlart. Dann Zusammenfassung mit Gesamtsumme (inkl. Liefergebühr) und „Soll ich die Bestellung so aufgeben?“ – erst nach Ja create_order. Danach Bestellcode, Gesamtsumme und voraussichtliche Zeit nennen; im Chat/WhatsApp zusätzlich den Status-Link (Feld track) mitschicken, am Telefon den Link NICHT vorlesen (Bestätigung kommt per SMS). Upselling höchstens einmal, dezent (Getränk/Dessert). Allergien/Unverträglichkeiten: Hinweise aus der Karte nennen, bei Unsicherheit ans Team verweisen. Kurz, freundlich, in der Sprache des Kunden.";
 }
 
 /* ---------- Links (WhatsApp-Webhook, Küchen-Board, Fahrer) ---------- */

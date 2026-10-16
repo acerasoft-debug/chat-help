@@ -56,6 +56,9 @@ function th_bootstrap(): void {
              'phone_voice'=>"VARCHAR(40) DEFAULT 'de-DE'",'phone_forward'=>"VARCHAR(40) DEFAULT ''",'phone_hours'=>"VARCHAR(160) DEFAULT ''"] as $c=>$def){
         if(!in_array($c,$cols,true)) $p->exec("ALTER TABLE agent_configs ADD COLUMN $c $def");
     }
+    /* phone_calls: Hintergrund-Antwort (KI rechnet weiter, Twilio holt per Redirect ab) */
+    $cols = $p->query("SHOW COLUMNS FROM phone_calls")->fetchAll(PDO::FETCH_COLUMN);
+    if(!in_array('pending',$cols,true)) $p->exec("ALTER TABLE phone_calls ADD COLUMN pending MEDIUMTEXT NULL");
 }
 
 /* ---------- Studio-Login (E-Mail + 6-stelliger Code) ---------- */
@@ -110,7 +113,7 @@ function th_call_start(int $acc, string $plan, string $sid, string $from, string
     return th_call($sid);
 }
 function th_call_update(string $sid, array $f): void {
-    $allowed=['status','turns','silent','tokens','transcript','outcome','ended_at']; $set=[]; $vals=[];
+    $allowed=['status','turns','silent','tokens','transcript','outcome','ended_at','pending']; $set=[]; $vals=[];
     foreach($f as $k=>$v){ if(in_array($k,$allowed,true)){ $set[]="$k=?"; $vals[]=$v; } }
     if(!$set) return; $vals[]=$sid; th_db()->prepare("UPDATE phone_calls SET ".implode(',',$set)." WHERE call_sid=?")->execute($vals);
 }
@@ -319,6 +322,7 @@ function th_ai_tools(string $system, array $messages, array $tools, callable $ex
 function th_mail(string $to, string $subject, string $html): bool {
     /* Absender: MAIL_FROM, sonst support@chat-help.com (Domain mit MX/SPF; SMTP_FROM zeigt ggf. auf .de) */
     $from = defined('MAIL_FROM') ? MAIL_FROM : 'support@chat-help.com'; $name = defined('SMTP_NAME') ? SMTP_NAME : 'ChatHelp';
+    if(preg_match('/\.(invalid|test|example)$/i',trim($to)) || !filter_var(trim($to),FILTER_VALIDATE_EMAIL)) return true;   // Testkonten (RFC 2606) / ungültige Adressen: nichts versenden, keine Bounces
     if(defined('BREVO_KEY') && BREVO_KEY){
         $ch=curl_init('https://api.brevo.com/v3/smtp/email');
         curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>20,
@@ -343,5 +347,17 @@ function th_nocache(): void {
 function th_fresh(): void {
     if($_SERVER['REQUEST_METHOD']!=='GET' || isset($_GET['_']) || headers_sent()) return;
     $u=strtok((string)$_SERVER['REQUEST_URI'],'?'); $q=$_GET; $q['_']=dechex(time()); th_nocache(); header('Location: '.$u.'?'.http_build_query($q),true,302); exit;
+}
+/**
+ * Antwort sofort an den Aufrufer schicken und danach im Hintergrund weiterarbeiten (PHP-FPM / LiteSpeed).
+ * Für Webhooks mit kurzer Geduld (Twilio 15 s, Meta wiederholt bei langsamer Antwort). false = nicht möglich, nichts gesendet → synchron weitermachen.
+ */
+function th_finish_response(string $body, string $ctype='application/json; charset=UTF-8', int $code=200): bool {
+    if(PHP_SAPI==='cli' || headers_sent() || (!function_exists('fastcgi_finish_request') && !function_exists('litespeed_finish_request'))) return false;
+    ignore_user_abort(true); @set_time_limit(180);
+    http_response_code($code); header('Content-Type: '.$ctype); header('Content-Length: '.strlen($body)); header('Connection: close');
+    echo $body; while(ob_get_level()>0) @ob_end_flush(); @flush();
+    if(function_exists('fastcgi_finish_request')) fastcgi_finish_request(); else litespeed_finish_request();
+    return true;
 }
 function th_json(int $code, array $data): void { th_nocache(); http_response_code($code); header('Content-Type: application/json; charset=UTF-8'); echo json_encode($data, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); exit; }

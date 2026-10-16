@@ -46,6 +46,8 @@ textarea{min-height:160px;resize:vertical;line-height:1.5}
 .call{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px;background:#fff}.call .hd{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--ink2);cursor:pointer}.call .tr{display:none;margin-top:10px;display:none;flex-direction:column;gap:6px}.call.open .tr{display:flex}.call .tr div{font-size:13px;padding:7px 10px;border-radius:10px;max-width:92%}.call .tr .a{background:var(--sur2);align-self:flex-start}.call .tr .u{background:var(--ink);color:#fff;align-self:flex-end}
 .mic{width:46px;border-radius:12px;border:1px solid var(--line2);background:#fff;font-size:18px}.mic.rec{background:var(--rosel);border-color:#f7c6d5;animation:pl 1.4s infinite}@keyframes pl{70%{box-shadow:0 0 0 9px rgba(217,51,107,0)}100%{box-shadow:0 0 0 0 rgba(217,51,107,0)}}
 table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--mute);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.guide{margin-top:12px;border:1px solid var(--line);border-radius:14px;background:var(--sur2)}.guide summary{cursor:pointer;padding:12px 14px;font-weight:700;font-size:14px;list-style:none}.guide summary::-webkit-details-marker{display:none}.guide summary::after{content:"＋";float:right;color:var(--gold)}.guide[open] summary::after{content:"－"}
+.guide ol{margin:0;padding:0 16px 14px 34px;font-size:13.5px;color:var(--ink2);line-height:1.6}.guide ol li{margin:6px 0}.guide code{font:12px ui-monospace,Menlo,Consolas,monospace;background:#fff;border:1px solid var(--line);border-radius:6px;padding:1px 5px}.guide .tip{padding:0 16px 14px;font-size:12.5px;color:var(--mute)}
 .banner{display:flex;gap:12px;align-items:center;padding:12px 16px;border-radius:14px;background:var(--goldl);border:1px solid #eadbb0;color:#5c4411;margin-bottom:16px}
 </style></head>
 <body>
@@ -146,7 +148,15 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
         <label>Erreichbarkeit des Teams (für Rückruf-Zusagen)</label><input type="text" id="phHours" placeholder="Mo–Fr 9–17 Uhr">
         <div class="row" style="justify-content:space-between;margin-top:14px"><span class="mute small">Transkripte &amp; Weiterleitung landen hier im Studio.</span><button class="btn p" id="phSave">Speichern</button></div><div id="phMsg"></div>
         <div class="sec"><h3>Deine Rufnummer</h3><div id="phNumber" class="mute" style="margin-top:6px">–</div>
-          <p class="mute small">Nach Buchung richten wir deine Nummer (DE/AT/CH/TR/EU) innerhalb von 24 h ein – oder du leitest deine bestehende Nummer bei Besetzt/außerhalb der Zeiten um. Technisch versiert? Eigene Twilio-Nummer: Voice-Webhook (POST) auf diese URL:</p><div class="snip" id="phHook">Speichern, um die Webhook-URL zu erhalten.</div></div>
+          <p class="mute small">Nach Buchung richten wir deine Nummer (DE/AT/CH/TR/EU) innerhalb von 24 h ein – oder du leitest deine bestehende Nummer bei Besetzt/außerhalb der Zeiten um. Technisch versiert? Eigene Twilio-Nummer: Voice-Webhook (POST) auf diese URL:</p><div class="snip" id="phHook">Speichern, um die Webhook-URL zu erhalten.</div>
+          <details class="guide"><summary>Eigene Nummer mit Twilio verbinden – Schritt für Schritt</summary><ol>
+            <li>Konto auf <b>twilio.com</b> anlegen und eine Telefonnummer kaufen (Phone Numbers → Buy a number; für Deutschland ist ein Adressnachweis nötig, Freigabe meist 1–3 Tage).</li>
+            <li>Nummer öffnen → <b>Voice Configuration</b> → „A call comes in“: <b>Webhook</b>, Methode <b>HTTP POST</b>, URL = die Webhook-URL oben.</li>
+            <li>„Call status changes“ (Status-Callback): dieselbe URL, ebenfalls POST – so landen Gesprächsende und Dauer im Studio.</li>
+            <li>Hier im Studio: Agent wählen, Begrüßung, Stimme und Weiterleitungsnummer eintragen, <b>Telefon aktiv</b> anhaken, speichern.</li>
+            <li>Bestehende Festnetznummer behalten? Bei deinem Anbieter eine <b>Rufumleitung</b> auf die Twilio-Nummer einrichten (immer, bei Besetzt oder nach 20 Sekunden).</li>
+            <li>Testanruf machen – das Transkript erscheint rechts unter „Anrufe &amp; Transkripte“.</li></ol>
+            <div class="tip">Sicherheit: Hinterlegt ChatHelp deinen Twilio Auth Token, wird jede Anfrage per Signatur geprüft. Lieber ohne Technik? support@chat-help.com richtet die Nummer für dich ein.</div></details></div>
         <div class="sec"><h3>Im Browser testen</h3><p class="mute small" style="margin:4px 0 8px">Sprich mit dem Agenten wie am Telefon – Antwort wird vorgelesen (Chrome/Edge/Safari). Kostet 8 Tokens je Antwort.</p><button class="btn" id="phTest">🎙️ Telefon-Test starten</button></div>
       </div>
       <div class="card"><h3 style="font-size:17px">Anrufe &amp; Transkripte</h3><p class="mute small" style="margin:4px 0 0">Letzte 60 Anrufe dieses Agenten. Klick öffnet das Transkript.</p><div id="phCalls" style="margin-top:8px"><div class="mute small">Noch keine Anrufe.</div></div></div>
@@ -209,7 +219,16 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
           <label>Anbieter</label><select id="odWaProv"><option value="meta">Meta WhatsApp Business (Cloud API)</option><option value="twilio">Twilio WhatsApp</option></select>
           <div id="odWaMeta"><div class="grid g2" style="gap:10px"><div><label>Phone Number ID</label><input type="text" id="odWaPhoneId" placeholder="1234567890"></div><div><label>Access Token</label><input type="text" id="odWaToken" placeholder="EAAG… (wird verschlüsselt gespeichert)"></div></div><label>Verify-Token (frei wählbar)</label><input type="text" id="odWaVerify" placeholder="z. B. napoli-2026"></div>
           <div id="odWaTwilio" class="hidden"><label>WhatsApp-Nummer (Twilio Sender)</label><input type="text" id="odWaNumber" placeholder="+4915…"><p class="mute small">Account SID / Auth Token hinterlegt ChatHelp serverseitig (support@chat-help.com).</p></div>
-          <label>Webhook-URL (bei Meta als Callback bzw. bei Twilio als „When a message comes in“)</label><div class="snip" id="odWaHook">Speichern, um die URL zu erhalten.</div><div class="row" style="margin-top:8px"><button class="btn s" id="odWaCopy">URL kopieren</button><span class="mute small">Meta: developers.facebook.com → App → WhatsApp → Konfiguration → Webhook; Feld „messages“ abonnieren.</span></div>
+          <label>Webhook-URL (bei Meta als Callback bzw. bei Twilio als „When a message comes in“)</label><div class="snip" id="odWaHook">Speichern, um die URL zu erhalten.</div><div class="row" style="margin-top:8px"><button class="btn s" id="odWaCopy">URL kopieren</button></div>
+          <details class="guide"><summary>WhatsApp Business (Meta) verbinden – Schritt für Schritt</summary><ol>
+            <li>Auf <b>business.facebook.com</b> ein Business-Konto anlegen bzw. öffnen und das Unternehmen verifizieren.</li>
+            <li>Auf <b>developers.facebook.com</b> → Meine Apps → App erstellen (Typ „Business“) → Produkt <b>WhatsApp</b> hinzufügen.</li>
+            <li>WhatsApp → <b>API-Setup</b>: eigene Telefonnummer hinzufügen und per SMS bestätigen. Die <b>Phone Number ID</b> hier oben eintragen.</li>
+            <li>Business-Einstellungen → Systembenutzer anlegen → Token mit den Rechten <code>whatsapp_business_messaging</code> und <code>whatsapp_business_management</code> erzeugen (läuft nicht ab) → als <b>Access Token</b> eintragen.</li>
+            <li>Einen <b>Verify-Token</b> frei wählen, hier eintragen und <b>Speichern</b>.</li>
+            <li>WhatsApp → <b>Konfiguration → Webhook</b>: Callback-URL = Webhook-URL oben, Verify-Token = dein Verify-Token → „Bestätigen und speichern“ → Feld <code>messages</code> abonnieren.</li>
+            <li>Testnachricht an deine WhatsApp-Nummer schicken: Der Agent antwortet, Bestellungen erscheinen links unter „Live-Bestellungen“ und auf dem Küchen-Board.</li></ol>
+            <div class="tip">Twilio statt Meta: Anbieter „Twilio“ wählen, WhatsApp-Absendernummer eintragen und in Twilio unter „When a message comes in“ die Webhook-URL (POST) setzen. Einrichtung durch uns: support@chat-help.com.</div></details>
         </div>
       </div>
       <div>

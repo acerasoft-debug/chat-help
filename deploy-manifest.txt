@@ -24,6 +24,7 @@ chat/whatsapp-webhook.php    chat/whatsapp-webhook.php
 chat/board.php               chat/board.php
 chat/driver.php              chat/driver.php
 chat/order-api.php           chat/order-api.php
+chat/order.php               chat/order.php
 chat/skin.css                chat/skin.css
 chat/skin.js                 chat/skin.js
 # Ana sayfa videosu (hero): site/media-src ile üretildi
