@@ -1,4 +1,4 @@
-<?php header('Cache-Control: no-cache, no-store, must-revalidate'); header('X-Robots-Tag: noindex'); ?><!DOCTYPE html>
+<?php header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0'); header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store'); header('X-Robots-Tag: noindex'); ?><!DOCTYPE html>
 <html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ChatHelp Studio – Agenten, Pakete & Tokens</title><meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
