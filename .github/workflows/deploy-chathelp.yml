@@ -8,10 +8,11 @@ name: chat-help.com yayına al (site + Token/API backend)
 # Host Europe → Mein Hosting → Einstellungen → "Produktions-Website" sütunu → "Anzeigen": SFTP/SSH Hostname, Port,
 # Benutzername, Passwort (orada değiştirilebilir). Bunları GitHub'a secret olarak gir (sohbete YAZMA):
 #   GitHub → Settings → Secrets and variables → Actions → New repository secret
-#     CHATHELP_HOST      hostname / IP (panelde yazan)
-#     CHATHELP_PORT      panelde yazan port (yoksa 22)
 #     CHATHELP_USER      SFTP/SSH kullanıcı adı
 #     CHATHELP_PASSWORD  şifre        —veya—   CHATHELP_SSH_KEY  (PEM özel anahtar)
+#     CHATHELP_HOST      (isteğe bağlı) varsayılan 145450.eu11.ssh.myftpupload.com  (panel: SSH/SFTP)
+#     CHATHELP_PORT      (isteğe bağlı) varsayılan 22
+#   Panel bilgisi: HTTPS 145450.eu11.myftpupload.com · SSH/SFTP 145450.eu11.ssh.myftpupload.com · eski: pzs.085.myftpupload.com
 #   Düz FTP varsa:       CHATHELP_FTP_HOST, CHATHELP_FTP_USER, CHATHELP_FTP_PASSWORD
 #
 # BAĞLANTI MODU otomatik: kabuk çalışıyorsa ssh+rsync, çalışmıyorsa SFTP (lftp), FTP secret'ları varsa FTP.
@@ -100,7 +101,9 @@ jobs:
         id: mode
         run: |
           MODE=none; P="${CH_PORT:-22}"
-          if [ -n "$CH_HOST" ] && [ -n "$CH_USER" ] && { [ -n "$CH_KEY" ] || [ -n "$CH_PASS" ]; }; then
+          # Host Europe panelinden (Produktions-Website → Anzeigen): SSH/SFTP sunucusu. Secret verilmediyse bu kullanılır.
+          CH_HOST="${CH_HOST:-145450.eu11.ssh.myftpupload.com}"
+          if [ -n "$CH_USER" ] && { [ -n "$CH_KEY" ] || [ -n "$CH_PASS" ]; }; then
             mkdir -p ~/.ssh
             if [ -n "$CH_KEY" ]; then
               printf '%s\n' "$CH_KEY" > ~/.ssh/id_deploy; chmod 600 ~/.ssh/id_deploy
@@ -124,7 +127,7 @@ jobs:
           echo "mode=$MODE" >> $GITHUB_OUTPUT
           echo "BAGLANTI: $MODE  (secret ön eki: ${{ github.event.inputs.secrets_prefix }})"
           if [ "$MODE" = none ]; then
-            echo "::error::chat-help.com için bağlantı secret'ları yok. Ekle: ${{ github.event.inputs.secrets_prefix }}_HOST + _USER + (_PASSWORD veya _SSH_KEY) [+ _PORT]  —ya da—  ${{ github.event.inputs.secrets_prefix }}_FTP_HOST + _FTP_USER + _FTP_PASSWORD"
+            echo "::error::chat-help.com için bağlantı secret'ları yok. Ekle: ${{ github.event.inputs.secrets_prefix }}_USER + ${{ github.event.inputs.secrets_prefix }}_PASSWORD (veya _SSH_KEY). Sunucu varsayılan: $CH_HOST:$P (_HOST/_PORT ile değiştirilebilir)  —ya da—  _FTP_HOST + _FTP_USER + _FTP_PASSWORD"
             exit 1
           fi
 
