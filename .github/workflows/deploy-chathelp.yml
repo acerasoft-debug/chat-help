@@ -118,15 +118,25 @@ jobs:
               LOPEN="set sftp:connect-program \"ssh -a -x -i $HOME/.ssh/id_deploy -o StrictHostKeyChecking=no\"; open -u $CH_USER,x -p $P sftp://$CH_HOST"
             else
               echo "SSHPASS=$CH_PASS" >> $GITHUB_ENV; export SSHPASS="$CH_PASS"
-              SSHCMD="sshpass -e ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password -o PubkeyAuthentication=no -o ConnectTimeout=25 -p $P"
+              SSHCMD="sshpass -e ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -o ConnectTimeout=25 -p $P"
               echo "LFTP_PASSWORD=$CH_PASS" >> $GITHUB_ENV
               LOPEN="set sftp:connect-program \"sshpass -e ssh -a -x -o StrictHostKeyChecking=no -o PubkeyAuthentication=no\"; open -u $CH_USER --env-password -p $P sftp://$CH_HOST"
             fi
             echo "SSHCMD=$SSHCMD" >> $GITHUB_ENV; echo "SRV=$CH_USER@$CH_HOST" >> $GITHUB_ENV
             echo "LFTP_OPEN=set net:timeout 30; set net:max-retries 2; set net:reconnect-interval-base 5; set ssl:verify-certificate no; $LOPEN" >> $GITHUB_ENV
+            SRC_U="CHATHELP_*"; [ "$CH_USER" = "$ACERA_V" ] && SRC_U="ACERA"; SRC_P="CHATHELP_*"; [ "$CH_PASS" = "$ACERS_V" ] && SRC_P="ACERS"; [ -n "$CH_KEY" ] && SRC_P="SSH_KEY"
+            echo "kimlik kaynağı: kullanıcı=$SRC_U  şifre/anahtar=$SRC_P  (kullanıcı adı uzunluğu ${#CH_USER}, şifre uzunluğu ${#CH_PASS})"
             echo "kabuk testi ($CH_HOST:$P)..."
-            OUT=$($SSHCMD "$CH_USER@$CH_HOST" 'echo SHELL_OK; echo "HOME=$HOME PWD=$(pwd)"' 2>&1); RC=$?
-            if echo "$OUT" | grep -q SHELL_OK; then MODE=ssh; echo "$OUT"; else MODE=sftp; echo "kabuk yok/kapalı (rc=$RC) -> SFTP modu. ssh çıktısı:"; echo "$OUT" | tail -5; fi
+            RC=0; OUT=$($SSHCMD "$CH_USER@$CH_HOST" 'echo SHELL_OK; echo "HOME=$HOME PWD=$(pwd)"' 2>&1) || RC=$?
+            if echo "$OUT" | grep -q SHELL_OK; then MODE=ssh; echo "$OUT"
+            elif [ "$RC" = 5 ] || echo "$OUT" | grep -qiE 'Permission denied|Authentication failed|password.*incorrect'; then
+              echo "$OUT" | tail -5
+              echo "::error::Sunucu kullanıcı adı/şifreyi REDDETTİ (rc=$RC). Kaynak: kullanıcı=$SRC_U şifre=$SRC_P. Host Europe → Produktions-Website → Anzeigen'daki SFTP Benutzername ve Passwort ile GitHub'daki CHATHELP_USER / CHATHELP_PASSWORD birebir aynı olmalı (gerekirse panelde yeni şifre belirle ve secret'ı güncelle)."
+              echo "mode=auth-failed" >> $GITHUB_OUTPUT; exit 1
+            elif [ "$RC" = 6 ] || echo "$OUT" | grep -qiE 'Could not resolve|Connection (timed out|refused)|No route to host'; then
+              echo "$OUT" | tail -5; echo "::error::Sunucuya ulaşılamadı ($CH_HOST:$P, rc=$RC). CHATHELP_HOST/PORT değerini kontrol et."
+              echo "mode=net-failed" >> $GITHUB_OUTPUT; exit 1
+            else MODE=sftp; echo "kabuk yok/kapalı (rc=$RC) -> SFTP modu. ssh çıktısı:"; echo "$OUT" | tail -5; fi
           elif [ -n "$FTP_HOST" ] && [ -n "$FTP_USER" ] && [ -n "$FTP_PASS" ]; then
             MODE=ftp; echo "LFTP_PASSWORD=$FTP_PASS" >> $GITHUB_ENV
             echo "LFTP_OPEN=set net:timeout 30; set net:max-retries 2; set ssl:verify-certificate no; set ftp:ssl-allow yes; open -u $FTP_USER --env-password ftp://$FTP_HOST" >> $GITHUB_ENV
