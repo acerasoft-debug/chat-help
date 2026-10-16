@@ -256,6 +256,7 @@ const QUERY_BRANDS = BRANDS.filter(b => b.q).map(b => b.name);
    4+ karakterli girdiler "etiket bununla başlıyor mu", kısa girdiler tam eşleşme. */
 const BLOCK_DOMAINS = `
 midilibre mundodeportivo marca lequipe gazzetta kicker sport1 eurosport tuttosport corrieredellosport nicematin laprovence letelegramme lavoixdunord lalsace lestrepublicain leprogres ledauphine
+dicasdeviagem destinationtoronto tiendanimal eyesandmore pittarosso pittarello officeshoes walder ochsner-shoes ginabiancheria mercerieguffanti
 treasure-f ishii-sports gallery2 boardriders chullanka scapino vanharen altonsports runnerslab tauntonleisure vintiz repetto
 bever asadventure unterwegs tennis-point sportokay sport-schuster sportarena globetrotter lyko neye boozt nelly ellos bestseller varner cubus dressmann kappahl lindex bikbok carlings ginatricot gina-tricot stadium intersport xxl sportamore sportmaster
 zalando aboutyou about-you otto bonprix asos boohoo shein temu wish aliexpress alibaba dhgate amazon ebay etsy rakuten
