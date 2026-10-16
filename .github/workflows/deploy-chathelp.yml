@@ -51,6 +51,14 @@ on:
         description: "Secret ön eki (CHATHELP → CHATHELP_HOST vb.). Vestra bağlantısını denemek için DEPLOY"
         required: true
         default: "CHATHELP"
+      verify_only:
+        description: "true = kopyalama yok; sunucu tarafı kontrol + geniş canlı doğrulama (başlıklar, yönlendirme, önbellek)"
+        required: false
+        default: "false"
+      flush_cache:
+        description: "true = sunucuda WP-CLI ile önbellek temizlemeyi dene (varsa)"
+        required: false
+        default: "false"
       sftp_user:
         description: "GEÇİCİ: secret yoksa SFTP/SSH kullanıcı adı (loga yazılmaz)"
         required: false
@@ -78,6 +86,8 @@ jobs:
       TOOLS: ${{ github.event.inputs.include_tools }}
       ROOTIDX: ${{ github.event.inputs.root_index }}
       TARGET_IN: ${{ github.event.inputs.target }}
+      VERIFY_ONLY: ${{ github.event.inputs.verify_only }}
+      FLUSH: ${{ github.event.inputs.flush_cache }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -244,7 +254,7 @@ jobs:
           echo "DOKUNULMAYAN: chat/auth.php, chat/db.php, chat/index.php, WordPress dosyalari ve diger tum mevcut dosyalar"
 
       - name: Sunucuya kopyala (SSH kabuk + rsync)
-        if: ${{ github.event.inputs.dry_run != 'true' && steps.mode.outputs.mode == 'ssh' }}
+        if: ${{ github.event.inputs.dry_run != 'true' && github.event.inputs.verify_only != 'true' && steps.mode.outputs.mode == 'ssh' }}
         run: |
           set -e
           DEST="${{ steps.disc.outputs.dest }}"; TS=$(date +%Y%m%d-%H%M%S)
@@ -263,7 +273,7 @@ jobs:
           echo "KOPYALAMA TAMAM -> $DEST"
 
       - name: Sunucuya kopyala (SFTP/FTP)
-        if: ${{ github.event.inputs.dry_run != 'true' && (steps.mode.outputs.mode == 'sftp' || steps.mode.outputs.mode == 'ftp') }}
+        if: ${{ github.event.inputs.dry_run != 'true' && github.event.inputs.verify_only != 'true' && (steps.mode.outputs.mode == 'sftp' || steps.mode.outputs.mode == 'ftp') }}
         run: |
           set -e
           lf(){ printf '%s\n%s\nquit\n' "$LFTP_OPEN" "$1" > /tmp/lf.cmd; lftp -f /tmp/lf.cmd; }
@@ -292,13 +302,34 @@ jobs:
           fi
           echo "KOPYALAMA TAMAM (${{ steps.mode.outputs.mode }}) -> $DEST"
 
-      - name: Canlı doğrulama
-        if: ${{ github.event.inputs.dry_run != 'true' }}
+      - name: Sunucu tarafı kontrol (SSH)
+        if: ${{ steps.mode.outputs.mode == 'ssh' && (github.event.inputs.dry_run != 'true' || github.event.inputs.verify_only == 'true') }}
         run: |
           set +e
-          echo "--- /chat/api.php/v1/sectors ---"
-          curl -sS -m 20 -o /tmp/s.json -w "HTTP %{http_code}\n" "https://chat-help.com/chat/api.php/v1/sectors"; head -c 300 /tmp/s.json; echo
-          echo "--- /chat/ (mevcut uygulama) ---"
-          curl -sS -m 20 -o /dev/null -w "HTTP %{http_code}\n" "https://chat-help.com/chat/"
-          echo "--- / (yeni site?) ---"
-          curl -sS -m 20 -H 'Cache-Control: no-cache' -o /tmp/i.html -w "HTTP %{http_code}\n" "https://chat-help.com/?v=$(date +%s)"; grep -o "KI, die" /tmp/i.html | head -1 && echo "YENI SITE CANLI ✓" || echo "kokte hala eski sayfa (CDN onbellegi veya index.php oncelikli olabilir; birkac dk sonra tekrar bak)"
+          DEST="${{ steps.disc.outputs.dest }}"; case "$DEST" in auto|"") echo "docroot yok"; exit 0;; esac
+          $SSHCMD "$SRV" "cd $DEST && echo '--- index.html ---' && ls -la index.html index.html.bak-* 2>/dev/null && head -c 400 index.html && echo && echo '--- .htaccess ---' && cat .htaccess && echo && echo '--- index.php (ilk satirlar) ---' && head -c 300 index.php && echo && echo '--- wp-cli? ---' && (command -v wp && wp --path=\$PWD --skip-plugins --skip-themes option get siteurl 2>&1 | head -3 || echo 'wp yok')"
+
+      - name: Önbellek temizle (WP-CLI, varsa)
+        if: ${{ steps.mode.outputs.mode == 'ssh' && github.event.inputs.flush_cache == 'true' }}
+        run: |
+          set +e
+          DEST="${{ steps.disc.outputs.dest }}"; case "$DEST" in auto|"") echo "docroot yok"; exit 0;; esac
+          $SSHCMD "$SRV" "cd $DEST && for c in 'wp cache flush' 'wp gd cache flush' 'wp godaddy cache flush' 'wp gd-system-plugin cache flush' 'wp rewrite flush'; do echo \">> \$c\"; \$c --path=\$PWD 2>&1 | head -3; done; touch index.html .htaccess; echo touched"
+
+      - name: Canlı doğrulama
+        if: ${{ github.event.inputs.dry_run != 'true' || github.event.inputs.verify_only == 'true' }}
+        run: |
+          set +e
+          chk(){ # $1=url
+            echo "=== $1 ==="
+            curl -sS -m 25 -D /tmp/h -o /tmp/b -w "status=%{http_code}  time=%{time_total}s\n" "$1"
+            grep -iE '^(HTTP/|location|cache-control|age|expires|x-cache|cf-cache-status|cf-ray|server|x-powered-by|set-cookie|vary|etag|last-modified):' /tmp/h | sed 's/^/  /'
+            if grep -q "KI, die" /tmp/b; then echo "  icerik: YENI SITE ✓"; elif grep -qiE 'wp-content|wp-includes' /tmp/b; then echo "  icerik: WORDPRESS sayfasi"; else echo "  icerik: baska/eski ($(wc -c </tmp/b) bayt) -> $(grep -o '<title>[^<]*' /tmp/b | head -1)"; fi
+          }
+          chk "https://chat-help.com/"
+          chk "https://www.chat-help.com/"
+          chk "https://chat-help.com/index.html"
+          chk "https://chat-help.com/?nocache=$(date +%s)"
+          echo "=== yonlendirme takibi (/) ==="; curl -sS -m 25 -L -o /tmp/f -w "final=%{url_effective} status=%{http_code} redirects=%{num_redirects}\n" "https://chat-help.com/"; grep -q "KI, die" /tmp/f && echo "  final icerik: YENI SITE ✓" || echo "  final icerik: eski/baska -> $(grep -o '<title>[^<]*' /tmp/f | head -1)"
+          echo "=== /chat/api.php/v1/sectors ==="; curl -sS -m 20 -o /tmp/s.json -w "status=%{http_code}\n" "https://chat-help.com/chat/api.php/v1/sectors"; head -c 200 /tmp/s.json; echo
+          echo "=== /chat/ ==="; curl -sS -m 20 -o /dev/null -w "status=%{http_code}\n" "https://chat-help.com/chat/"
