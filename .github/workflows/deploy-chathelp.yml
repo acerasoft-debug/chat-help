@@ -15,6 +15,10 @@ name: chat-help.com yayına al (site + Token/API backend)
 #   Panel bilgisi: HTTPS 145450.eu11.myftpupload.com · SSH/SFTP 145450.eu11.ssh.myftpupload.com · eski: pzs.085.myftpupload.com
 #   Düz FTP varsa:       CHATHELP_FTP_HOST, CHATHELP_FTP_USER, CHATHELP_FTP_PASSWORD
 #
+# PLATFORM NOTU (Managed WordPress): .htaccess doğrudan işlenmez; platform onu nginx kurallarına ÇEVİRİR (~20 sn gecikme,
+# kayıt: html/.htaccess.log). DirectoryIndex/Options/Header/php_flag DESTEKLENMEZ; basit RewriteRule'lar desteklenir.
+# Kökte yeni index.html'in görünmesi için 'RewriteRule ^$ /index.html [L]' kullanılır (fix_root_redirect). Kenar CDN (Cloudflare)
+# ve origin sayfa önbelleği birkaç dakika eski kopyayı verebilir; tarayıcıya max-age=31 gün gönderilir → gizli pencere ile test et.
 # BAĞLANTI MODU otomatik: kabuk çalışıyorsa ssh+rsync, çalışmıyorsa SFTP (lftp), FTP secret'ları varsa FTP.
 # GÜVENLİ: --delete YOK; mevcut uygulama (chat/auth.php, db.php, chat/index.php, WordPress) ASLA yazılmaz; yalnız yeni
 # dosyalar kopyalanır; kök index.html ve .htaccess önce yedeklenir (*.bak-<ts>).
