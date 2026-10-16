@@ -69,7 +69,7 @@ if($type==='checkout.session.completed'){
         $newKey=(!th_has_key($aid)) ? th_issue_key($aid,'auto') : null;
         $bal=th_balance($aid);
         th_mail($email,'ChatHelp: '.$pl['name'].' ist aktiv ✅', mail_plan($pl,$bal,$newKey,true));
-        if($pl['kind']==='agent') th_mail(defined('SMTP_FROM')?SMTP_FROM:'info@chat-help.com','[ChatHelp] Neuer Agent gebucht: '.$pl['name'],'<p>Kunde: '.htmlspecialchars($email).'<br>Agent: '.$pl['id'].'<br>Subscription: '.$subId.'</p><p>Onboarding innerhalb 24h: Wissensbasis/Konten anbinden.</p>');
+        if($pl['kind']==='agent') th_mail(defined('SMTP_FROM')?SMTP_FROM:'support@chat-help.com','[ChatHelp] Neuer Agent gebucht: '.$pl['name'],'<p>Kunde: '.htmlspecialchars($email).'<br>Agent: '.$pl['id'].'<br>Subscription: '.$subId.'</p><p>Onboarding innerhalb 24h: Wissensbasis/Konten anbinden.</p>');
         done(['ok'=>true,'plan'=>$pl['id'],'credited'=>$credited,'balance'=>$bal,'key_issued'=>(bool)$newKey]);
     }
     done(['ok'=>true,'skip'=>'other checkout']);
@@ -108,7 +108,7 @@ function mail_tokens(int $tokens, int $bal, ?string $newKey): string {
       .'<p>Dein ChatHelp-Guthaben: <b>'.number_format($bal,0,',','.').' Tokens</b>. Nutzbar in allen Paketen, Agenten und per API.</p>'
       .key_block($newKey)
       .'<p><a href="https://chat-help.com/chat/studio.php" style="background:#b0801f;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Zum Arbeitsbereich →</a></p>'
-      .'<p style="color:#666;font-size:13px">Doku: <a href="https://chat-help.com/#api">chat-help.com/#api</a> · Fragen: info@chat-help.com</p></div>';
+      .'<p style="color:#666;font-size:13px">Doku: <a href="https://chat-help.com/#api">chat-help.com/#api</a> · Fragen: support@chat-help.com</p></div>';
 }
 function mail_plan(array $pl, int $bal, ?string $newKey, bool $first): string {
     $agent = $pl['kind']==='agent';
@@ -119,7 +119,7 @@ function mail_plan(array $pl, int $bal, ?string $newKey, bool $first): string {
                : '<p>Öffne den Arbeitsbereich, wähle dein Paket und starte mit den fertigen Vorlagen.</p>')
       .key_block($newKey)
       .'<p><a href="https://chat-help.com/chat/studio.php?plan='.$pl['id'].'" style="background:#b0801f;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Arbeitsbereich öffnen →</a></p>'
-      .'<p style="color:#666;font-size:13px">Monatlich kündbar · Rechnung von Stripe · Fragen: info@chat-help.com</p></div>';
+      .'<p style="color:#666;font-size:13px">Monatlich kündbar · Rechnung von Stripe · Fragen: support@chat-help.com</p></div>';
 }
 function key_block(?string $newKey): string {
     return $newKey

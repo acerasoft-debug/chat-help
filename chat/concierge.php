@@ -59,7 +59,7 @@ if($demo!==''){
     $sys=ch_agent_system($pl,$d,'de').($phone?CH_PHONE_RULES:'')
         ."\n\nDEMO-HINWEIS (nur intern): Dies ist eine öffentliche Live-Demo auf chat-help.com mit der Beispiel-Firma „".$d['company']."“. Bleibe vollständig in der Rolle. Wenn jemand fragt, wie er so einen Agenten bekommt oder etwas über ChatHelp wissen will: Ein Satz – Studio auf chat-help.com, eigene Wissensbasis einfügen, in 10 Minuten startklar – dann zurück in die Rolle.";
     $answer=th_ai($sys,$msgs,$phone?300:700,45);
-    if($answer===null) th_json(502,['error'=>'ai_unavailable','reply'=>'Die Demo ist gerade nicht erreichbar – bitte gleich noch einmal versuchen.']);
+    if($answer===null) th_json(200,['error'=>'ai_unavailable','reply'=>'Die Demo ist gerade nicht erreichbar – bitte gleich noch einmal versuchen.','demo'=>$demo,'detail'=>th_ai_info()['errors'] ?? []]);   // 200: Cloudflare würde 502 durch eigene Fehlerseite ersetzen
     $forward=str_contains($answer,'[WEITERLEITEN]'); $end=str_contains($answer,'[ENDE]');
     $answer=trim(str_replace(['[WEITERLEITEN]','[ENDE]'],'',$answer));
     $p->prepare("INSERT INTO concierge_log(ip_hash) VALUES(?)")->execute([$h]);
@@ -81,7 +81,7 @@ PRODUKTE
 KATALOG (Pakete & Agenten)
 $cat
 
-REGELN: Bleibe bei ChatHelp-Themen; bei fremden Themen freundlich zurücklenken. Erfinde keine Preise oder Funktionen, die oben nicht stehen. Wenn jemand ein Rechtsproblem schildert: kurz einordnen (welches Schreiben passt) und zu ChatHelp Recht führen. Wenn jemand ein Unternehmen hat: den passenden Agenten vorschlagen (Name, Preis, was er tut) und Mieten vs. Kaufen erklären. Kontakt: info@chat-help.com.
+REGELN: Bleibe bei ChatHelp-Themen; bei fremden Themen freundlich zurücklenken. Erfinde keine Preise oder Funktionen, die oben nicht stehen. Wenn jemand ein Rechtsproblem schildert: kurz einordnen (welches Schreiben passt) und zu ChatHelp Recht führen. Wenn jemand ein Unternehmen hat: den passenden Agenten vorschlagen (Name, Preis, was er tut) und Mieten vs. Kaufen erklären. Kontakt: support@chat-help.com.
 SYS;
 
 $answer = th_ai($system, $msgs, 550, 45);   // Claude model zinciri → DeepSeek (tokens-lib)
@@ -93,7 +93,7 @@ if($answer===null){
       ? 'Dafür ist ChatHelp Recht da: geprüfte, versandfertige Schreiben mit echten Rechtsgrundlagen → https://chat-help.com/chat/'
       : (preg_match('/agent|support|shop|kunden|bot|widget|website/u',$q)
         ? 'Passend wäre ein KI-Agent zum Mieten (ab 79 €/Monat, inkl. Tokens & Website-Widget). Agenten ansehen → https://chat-help.com/#agenten'
-        : 'Gern! Tokens kaufst du hier: https://chat-help.com/#tokens · Rechtsschreiben: https://chat-help.com/chat/ · Agenten: https://chat-help.com/#agenten · Fragen: info@chat-help.com');
+        : 'Gern! Tokens kaufst du hier: https://chat-help.com/#tokens · Rechtsschreiben: https://chat-help.com/chat/ · Agenten: https://chat-help.com/#agenten · Fragen: support@chat-help.com');
 }
 $p->prepare("INSERT INTO concierge_log(ip_hash) VALUES(?)")->execute([$h]);
 th_json(200,['reply'=>$answer,'source'=>$source]);

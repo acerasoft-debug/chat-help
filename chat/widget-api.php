@@ -50,7 +50,7 @@ if(th_balance($aid) < $cost) th_json(402,['error'=>'owner_out_of_tokens','messag
 $system = ch_agent_system($pl,$w,(string)($in['lang'] ?? ($w['lang'] ?: 'de')))."\n\nDu sprichst mit einem Website-Besucher (nicht mit dem Betreiber). Kurz, hilfreich, max. 6 Sätze. Wenn du etwas nicht weißt: ehrlich sagen und Kontaktaufnahme anbieten.";
 $t0=microtime(true);
 $answer = th_ai($system, $clean, 700, 60);   // Claude model zinciri → DeepSeek (tokens-lib)
-if($answer===null) th_json(502,['error'=>'ai_unavailable']);
+if($answer===null) th_json(503,['error'=>'ai_unavailable']);
 th_debit($aid,$cost,'widget:'.$pl['id']);
 th_log_usage($aid,'widget',$pl['sector'],$cost,(int)((microtime(true)-$t0)*1000));
 th_json(200,['reply'=>$answer]);

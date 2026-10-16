@@ -241,11 +241,14 @@ function th_ai(string $system, array $messages, int $maxTokens=1200, int $timeou
                 CURLOPT_HTTPHEADER=>['x-api-key: '.CLAUDE_KEY,'anthropic-version: 2023-06-01','content-type: application/json']]);
             $raw=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $cerr=curl_error($ch); curl_close($ch);
             $r=json_decode((string)$raw,true);
-            if(!empty($r['content'][0]['text'])){
+            /* Metin blokları birleştirilir: yeni modeller ilk blokta 'thinking' döndürebilir, metin sonraki blokta olur */
+            $txt=''; foreach((array)($r['content'] ?? []) as $blk){ if(is_array($blk) && ($blk['type'] ?? 'text')==='text') $txt.=(string)($blk['text'] ?? ''); }
+            if(trim($txt)!==''){
                 $info['provider']='claude'; $info['model']=$model; $GLOBALS['__th_ai_info']=$info;
                 if(($cached['model']??null)!==$model) @file_put_contents($cacheF, json_encode(['model'=>$model,'t'=>time()]));
-                return $r['content'][0]['text'];
+                return $txt;
             }
+            if($code===200){ $info['errors'][]=$model.': 200 leer (stop_reason '.($r['stop_reason']??'?').')'; continue; }
             $et=(string)($r['error']['type']??''); $em=(string)($r['error']['message']??$cerr);
             $info['errors'][]=$model.': '.($code?:'curl').' '.$et.' '.mb_substr($em,0,120);
             if($code===401 || $et==='authentication_error' || $et==='permission_error') break; // anahtar sorunu: başka model denemenin anlamı yok

@@ -32,7 +32,7 @@ function ai_chat(string $system, array $messages, int $maxTokens=1500): string {
     $msgs=array_slice($msgs,-20);
     $out = th_ai($system, $msgs, $maxTokens, 90);   // model zinciri + DeepSeek yedeği (tokens-lib)
     if($out!==null) return $out;
-    th_json(502,['error'=>'ai_unavailable','message'=>'KI-Backend nicht erreichbar (CLAUDE_KEY / CLAUDE_MODEL in db.php prüfen)','detail'=>th_ai_info()['errors'] ?? []]);
+    th_json(503,['error'=>'ai_unavailable','message'=>'KI-Backend nicht erreichbar (CLAUDE_KEY / CLAUDE_MODEL in db.php prüfen)','detail'=>th_ai_info()['errors'] ?? []]);
 }
 function ai_complete(string $system, string $user, int $maxTokens=1500): string { return ai_chat($system,[['role'=>'user','content'=>$user]],$maxTokens); }
 function sys_for(string $sector, string $lang): string {
