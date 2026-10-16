@@ -20,7 +20,7 @@
   function add(cls,txt){var d=document.createElement('div');d.className=cls;d.textContent=txt;M.appendChild(d);M.scrollTop=M.scrollHeight;return d;}
   function toggle(o){open=o; p.classList.toggle('on',o); btn.innerHTML=o?'×':'💬'; if(o){ if(!hist.length){ add('chw-a',meta.greeting); } setTimeout(function(){I.focus();},50);} }
   btn.onclick=function(){toggle(!open);}; p.querySelector('.chw-x').onclick=function(){toggle(false);};
-  fetch(API+'?key='+encodeURIComponent(KEY)).then(function(r){return r.json();}).then(function(j){ if(j&&j.ok){ meta=j; p.querySelector('.chw-tt').textContent=j.title||'Assistent'; p.querySelector('.chw-st').textContent=(j.agent||'')+' · online'; } }).catch(function(){});
+  fetch(API+'?key='+encodeURIComponent(KEY)+'&_='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(function(j){ if(j&&j.ok){ meta=j; p.querySelector('.chw-tt').textContent=j.title||'Assistent'; p.querySelector('.chw-st').textContent=(j.agent||'')+' · online'; } }).catch(function(){});
   F.onsubmit=function(e){ e.preventDefault(); var t=I.value.trim(); if(!t) return; I.value=''; add('chw-u',t); hist.push({role:'user',content:t});
     var ty=add('chw-t','…schreibt'); I.disabled=true;
     fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:KEY,messages:hist.slice(-12),lang:meta.lang||'de'})})

@@ -387,7 +387,10 @@ const AGENTS=[
  {id:'gastro-agent',ic:'🍽️',n:'Buchungs-Agent Gastro',s:'gastro',sn:'Gastro',p:89,tk:22000,d:'Reservierungen und Gästeanfragen 24/7 – Karte, Öffnungszeiten, Allergene, mehrsprachig.',b:['Reservierung mit allen Details','Antwortet in der Sprache des Gastes','Karte & Allergene aus Wissensbasis']},
  {id:'log-support',ic:'🚚',n:'Support-Agent Logistik',s:'logistik',sn:'Logistik',p:99,tk:25000,d:'Kunden- und Partneranfragen 24/7 aus deiner Dokumentation – präzise, mit Referenz.',b:['Antwort mit Dokument-Referenz','Keine Zusagen ohne Grundlage','Vorgangsnummer abfragen']}
 ];
-const CHECKOUT='/chat/tokens-checkout.php';const eur=v=>v.toLocaleString('de-DE',{style:'currency',currency:'EUR',minimumFractionDigits:0});const de=n=>n.toLocaleString('de-DE');
+const CHECKOUT='/chat/tokens-checkout.php';
+/* Ödeme bağlantıları: Stripe oturum yönlendirmesi (303) kenar önbelleğine girmesin → her tıklamada benzersiz parametre */
+document.addEventListener('click',e=>{const a=e.target.closest('a[href*="tokens-checkout.php"]');if(!a)return;try{const u=new URL(a.getAttribute('href'),location.origin);u.searchParams.set('_',Date.now().toString(36));a.href=u.pathname+u.search;}catch(_){}} ,true);
+const eur=v=>v.toLocaleString('de-DE',{style:'currency',currency:'EUR',minimumFractionDigits:0});const de=n=>n.toLocaleString('de-DE');
 function renderAgents(f){const g=document.getElementById('agGrid');g.innerHTML='';AGENTS.filter(a=>f==='all'||a.s===f).forEach(a=>{const c=document.createElement('div');c.className='card ag';
   c.innerHTML=`<div class="top"><div class="ic">${a.ic}</div><span class="tag indigo">${a.sn}</span></div><h3>${a.n}</h3><p>${a.d}</p><ul>${a.b.map(x=>`<li>${x}</li>`).join('')}</ul>
    <div class="pr"><b>${a.p} €</b><small>/ Monat</small></div><div class="inc">inkl. ${de(a.tk)} Tokens / Monat · Studio · Widget · monatlich kündbar</div>

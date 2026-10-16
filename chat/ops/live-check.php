@@ -25,7 +25,7 @@ function req(string $label, string $url, ?array $json = null, int $to = 60, int 
     echo sprintf("=== %s ===\n  %s %s\n  status=%s  %.2fs  type=%s  cf-cache=%s  len=%d%s\n", $label, $json !== null ? 'POST' : 'GET', $url, $code ?: 'ERR', $dt, $ct, $cache, strlen($body), $err ? "  curl: $err" : '');
     $b = trim(preg_replace('/\s+/', ' ', strip_tags($body)));
     echo "  ".mb_substr($b, 0, $show)."\n\n";
-    return ['code'=>$code, 'body'=>$body];
+    return ['code'=>$code, 'body'=>$body, 'cache'=>$cache, 'hdr'=>$hdr];
 }
 
 /* Recht arka ucu */
@@ -44,7 +44,11 @@ $r = req('tokens-api — /v1/sectors', "$base/chat/tokens-api.php/v1/sectors", n
 $j = json_decode($r['body'], true);
 echo "  → ".(isset($j['sectors']) ? "sectors ✓ (".count($j['sectors']).") plans=".(isset($j['plans']) ? count($j['plans']) : 0) : "JSON ✗")."\n\n";
 req('tokens-api — /v1/me (anahtarsız → 401 beklenir)', "$base/chat/tokens-api.php/v1/me", null, 20, 160);
-req('tokens-checkout — plan=agent-support (303 Stripe beklenir)', "$base/chat/tokens-checkout.php?plan=agent-support", null, 30, 200);
+/* Ödeme yönlendirmesi önbelleğe giriyor mu? Aynı taze URL iki kez: ikincisi HIT olmamalı */
+$fresh = "$base/chat/tokens-checkout.php?plan=agent-sales&_=".bin2hex(random_bytes(4));
+$r1 = req('tokens-checkout — 1. istek (303 Stripe beklenir)', $fresh, null, 30, 120);
+$r2 = req('tokens-checkout — 2. istek aynı URL (cf-cache HIT OLMAMALI)', $fresh, null, 30, 120);
+echo "  → ".(($r2['cache'] ?? '') === 'HIT' ? "✗ 303 ÖNBELLEĞE GİRİYOR (cf-cache=HIT) — herkes aynı Stripe oturumuna gider!" : "✓ yönlendirme önbelleğe girmiyor (cf-cache=".($r2['cache'] ?? '?').")")."\n\n";
 
 /* Concierge */
 $r = req('concierge — GET greeting', "$base/chat/concierge.php?lang=de", null, 20, 240);

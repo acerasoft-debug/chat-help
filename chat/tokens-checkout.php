@@ -11,6 +11,8 @@
  */
 require_once __DIR__.'/db.php';
 require_once __DIR__.'/plans.php';
+/* Yönlendirme (Stripe oturum URL'si) kişiye özel → asla edge/platform önbelleğine girmesin (platform varsayılanı 31 gün public) */
+header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0'); header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store'); header('Pragma: no-cache'); header('Expires: 0');
 $sk = defined('STRIPE_SK') ? STRIPE_SK : (defined('STRIPE_SECRET') ? STRIPE_SECRET : (defined('STRIPE_SECRET_KEY') ? STRIPE_SECRET_KEY : ''));
 if(!$sk){ http_response_code(500); exit('Stripe anahtarı (STRIPE_SK / STRIPE_SECRET / STRIPE_SECRET_KEY) db.php\'de tanımlı değil.'); }
 

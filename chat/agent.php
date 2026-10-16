@@ -126,7 +126,7 @@ const T={
  _sector:[['Aufgabe beschreiben','Ziel: … Kontext: … – liefere das fertige Ergebnis.'],['Text verbessern','Verbessere diesen Text (Ton: professionell): …'],['Zusammenfassen','Fasse zusammen und nenne nächste Schritte: …']]
 };
 /* ---- API ---- */
-async function api(path,opts={}){const r=await fetch(API+path,{...opts,headers:{'Content-Type':'application/json','Authorization':'Bearer '+KEY,...(opts.headers||{})}});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.message||j.error||('HTTP '+r.status));e.data=j;e.status=r.status;throw e;}return j;}
+async function api(path,opts={}){const u=API+path+(path.includes('?')?'&':'?')+'_='+Date.now();/* edge-cache kıran: hesaba özel JSON asla paylaşılan önbellekten gelmesin */const r=await fetch(u,{...opts,cache:'no-store',headers:{'Content-Type':'application/json','Authorization':'Bearer '+KEY,...(opts.headers||{})}});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.message||j.error||('HTTP '+r.status));e.data=j;e.status=r.status;throw e;}return j;}
 function show(v){['vLogin','vDash','vWs'].forEach(i=>$('#'+i).classList.toggle('hid',i!==v));$('#logout').classList.toggle('hid',v==='vLogin');$('#bal').classList.toggle('hid',v==='vLogin');}
 function banner(html){const b=$('#banner');b.innerHTML=html;b.classList.remove('hid');}
 /* ---- Login ---- */

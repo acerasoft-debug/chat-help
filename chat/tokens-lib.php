@@ -190,4 +190,6 @@ function th_mail(string $to, string $subject, string $html): bool {
     return @mail($to,$subject,$html,"MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: $name <$from>");
 }
 
-function th_json(int $code, array $data): void { http_response_code($code); header('Content-Type: application/json; charset=UTF-8'); echo json_encode($data, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); exit; }
+/** Dinamik yanıtlar Cloudflare/platform önbelleğine girmesin (platform varsayılanı: public, 31 gün). */
+function th_nocache(): void { header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0'); header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store'); header('Pragma: no-cache'); header('Expires: 0'); header('Vary: Authorization, Cookie'); }
+function th_json(int $code, array $data): void { th_nocache(); http_response_code($code); header('Content-Type: application/json; charset=UTF-8'); echo json_encode($data, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); exit; }
