@@ -161,6 +161,12 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
             <span><?= te('checkout_go') ?></span><?= vr_icon('arrow', 16) ?>
           </button>
 
+          <!-- START: ACERASOFT HOLDING SECURE PAYMENT NOTICE -->
+          <div id="billing-notice" style="margin-top: 15px; padding: 12px; border: 1px solid #e2ddd2; background: #fdfcf7; font-size: 12px; line-height: 1.5; color: #666; text-align: left; font-family: sans-serif; border-radius: 4px;">
+              <strong>Güvenli Faturalandırma Bildirimi:</strong> Güvenliğiniz için platformumuz üzerinden yapılan tüm kredi kartı tahsilatları, uluslararası takaslar ve finansal operasyonlar çatı kuruluşumuz olan <strong>Acerasoft LLC</strong> altyapısı ile merkezileştirilmiş ve güvence altına alınmıştır. Kart ekstrenizde bu işleme ait yetkili satıcı tanımı olarak <strong>Acerasoft LLC</strong> ibaresi yer alacaktır. Tüm veriler 256-bit SSL ağı üzerinden şifrelenerek güvenle işlenmektedir.
+          </div>
+          <!-- END: ACERASOFT HOLDING SECURE PAYMENT NOTICE -->
+
           <p style="font-size:12px;color:var(--muted)">
             <?= vr_icon('lock', 13) ?> <?= te('checkout_stripe') ?>
             <?php if (vr_stripe_settings()['mode'] === 'test'): ?>
