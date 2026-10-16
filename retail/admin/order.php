@@ -118,7 +118,19 @@ vr_admin_head('Bestellung ' . $o['number'], ['sub' => vr_date((int)$o['created_a
             <?= h(trim((string)($addr['line1'] ?? ''))) ?><?= trim((string)($addr['line2'] ?? '')) !== '' ? '<br>' . h(trim((string)$addr['line2'])) : '' ?><br>
             <?= h(trim(((string)($addr['postal_code'] ?? '')) . ' ' . ((string)($addr['city'] ?? '')))) ?><br>
             <?= h(vr_country_name((string)($addr['country'] ?? $o['ship_country'] ?? ''))) ?>
-          <?php else: ?><span class="asmall">noch nicht erfasst (kommt mit der Zahlung von Stripe)</span><?php endif; ?></dd>
+            <?php $sa = (array)($o['customer']['address_stripe'] ?? []); if (array_filter($sa)): ?>
+              <br><span class="asmall">Bei Stripe abweichend angegeben: <?= h(trim(implode(', ', array_filter([(string)($sa['line1'] ?? ''), trim(((string)($sa['postal_code'] ?? '')) . ' ' . ((string)($sa['city'] ?? ''))), (string)($sa['country'] ?? '')])))) ?></span>
+            <?php endif; ?>
+          <?php else: ?><span class="asmall">noch nicht erfasst</span><?php endif; ?></dd>
+          <?php $ba = (array)($o['customer']['billing'] ?? []); if (array_filter($ba)): ?>
+          <dt>Rechnungsadresse</dt><dd>
+            <?= trim((string)($ba['company'] ?? '')) !== '' ? h(trim((string)$ba['company'])) . '<br>' : '' ?><?= h(trim((string)($ba['name'] ?? ''))) ?><br>
+            <?= h(trim((string)($ba['line1'] ?? ''))) ?><?= trim((string)($ba['line2'] ?? '')) !== '' ? '<br>' . h(trim((string)$ba['line2'])) : '' ?><br>
+            <?= h(trim(((string)($ba['postal_code'] ?? '')) . ' ' . ((string)($ba['city'] ?? '')))) ?><br>
+            <?= h(vr_country_name((string)($ba['country'] ?? ''))) ?>
+            <?= trim((string)($ba['vat'] ?? '')) !== '' ? '<br><span class="asmall">USt-IdNr. ' . h(trim((string)$ba['vat'])) . '</span>' : '' ?>
+          </dd>
+          <?php endif; ?>
         </dl>
       </div>
     <?php vr_admin_card_close(); ?>

@@ -71,6 +71,20 @@ vr_acc_open($me, 'orders.php', t('order_number') . ' ' . $o['number']);
         <?= h(vr_country_name((string)($addr['country'] ?? $o['ship_country'] ?? ''))) ?>
       </p>
     </article>
+    <?php $ba = (array)($o['customer']['billing'] ?? []); if (array_filter($ba)): ?>
+    <article class="acccard">
+      <header class="acccard__h"><h2><?= te('acc_addr_bill') ?></h2></header>
+      <p class="addr">
+        <?php if (trim((string)($ba['company'] ?? '')) !== ''): ?><?= h(trim((string)$ba['company'])) ?><br><?php endif; ?>
+        <?= h((string)($ba['name'] ?? '')) ?><br>
+        <?= h(trim((string)($ba['line1'] ?? ''))) ?><br>
+        <?php if (trim((string)($ba['line2'] ?? '')) !== ''): ?><?= h(trim((string)$ba['line2'])) ?><br><?php endif; ?>
+        <?= h(trim(((string)($ba['postal_code'] ?? '')) . ' ' . ((string)($ba['city'] ?? '')))) ?><br>
+        <?= h(vr_country_name((string)($ba['country'] ?? ''))) ?>
+        <?php if (trim((string)($ba['vat'] ?? '')) !== ''): ?><br><?= te('acc_vat') ?>: <?= h(trim((string)$ba['vat'])) ?><?php endif; ?>
+      </p>
+    </article>
+    <?php endif; ?>
   <?php endif; ?>
   <article class="acccard">
     <header class="acccard__h"><h2><?= te('acc_order_help') ?></h2></header>

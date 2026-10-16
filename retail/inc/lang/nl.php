@@ -735,5 +735,14 @@ return [
     'acc_export_b' => 'Download alles wat wij over uw account opslaan als leesbaar bestand (art. 15 en 20 AVG).',
     'acc_export_cta' => 'Gegevens downloaden',
     'acc_last_login' => 'Laatste aanmelding: {date}',
+    // Kasa — Stripe'a geçmeden önce zorunlu teslimat adresi (checkout.php)
+    'checkout_addr_lead' => 'Vertel ons waar we moeten bezorgen. Betalen kan alleen met een volledig bezorgadres.',
+    'checkout_addr_missing' => 'Vul een volledig bezorgadres in: naam, straat en huisnummer, postcode en plaats.',
+    'checkout_addr_keep' => 'Bezorgen op mijn opgeslagen adres',
+    'checkout_addr_other' => 'Zet de schakelaar uit om voor deze bestelling een ander adres op te geven.',
+    'checkout_addr_manage' => 'Wijzigen in account',
+    'checkout_bill_lead' => 'Alleen nodig als de factuur naar een ander adres of bedrijf moet.',
+    'checkout_bill_missing' => 'Vul een volledig factuuradres in: naam, straat en huisnummer, postcode en plaats.',
+    'checkout_step_pay' => 'Bevestigen en betalen',
     'acc_create' => 'Account aanmaken',
 ];

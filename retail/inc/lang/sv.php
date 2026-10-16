@@ -729,5 +729,14 @@ return [
     'acc_export_b' => 'Ladda ner allt vi sparar om ditt konto som en läsbar fil (art. 15 och 20 GDPR).',
     'acc_export_cta' => 'Ladda ner uppgifter',
     'acc_last_login' => 'Senaste inloggning: {date}',
+    // Kasa — Stripe'a geçmeden önce zorunlu teslimat adresi (checkout.php)
+    'checkout_addr_lead' => 'Berätta vart vi ska leverera. Betalning är bara möjlig med en fullständig leveransadress.',
+    'checkout_addr_missing' => 'Ange en fullständig leveransadress: namn, gata och nummer, postnummer och ort.',
+    'checkout_addr_keep' => 'Leverera till min sparade adress',
+    'checkout_addr_other' => 'Stäng av reglaget för att ange en annan adress för den här beställningen.',
+    'checkout_addr_manage' => 'Ändra i kontot',
+    'checkout_bill_lead' => 'Behövs bara om fakturan ska gå till en annan adress eller ett företag.',
+    'checkout_bill_missing' => 'Ange en fullständig faktureringsadress: namn, gata och nummer, postnummer och ort.',
+    'checkout_step_pay' => 'Bekräfta och betala',
     'acc_create' => 'Skapa konto',
 ];

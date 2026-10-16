@@ -729,5 +729,14 @@ return [
     'acc_export_b' => 'Scarica tutto ciò che conserviamo sul tuo account in un file leggibile (art. 15 e 20 GDPR).',
     'acc_export_cta' => 'Scarica i dati',
     'acc_last_login' => 'Ultimo accesso: {date}',
+    // Kasa — Stripe'a geçmeden önce zorunlu teslimat adresi (checkout.php)
+    'checkout_addr_lead' => 'Indicaci dove consegnare. Il pagamento è possibile solo con un indirizzo di spedizione completo.',
+    'checkout_addr_missing' => 'Inserisci un indirizzo di spedizione completo: nome, via e numero civico, CAP e città.',
+    'checkout_addr_keep' => 'Consegna al mio indirizzo salvato',
+    'checkout_addr_other' => 'Disattiva l’interruttore per usare un altro indirizzo per questo ordine.',
+    'checkout_addr_manage' => 'Modifica nell’account',
+    'checkout_bill_lead' => 'Serve solo se la fattura deve andare a un altro indirizzo o a un’azienda.',
+    'checkout_bill_missing' => 'Inserisci un indirizzo di fatturazione completo: nome, via e numero civico, CAP e città.',
+    'checkout_step_pay' => 'Conferma e paga',
     'acc_create' => 'Crea un account',
 ];

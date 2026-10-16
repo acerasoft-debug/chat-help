@@ -735,5 +735,14 @@ return [
     'acc_export_b' => 'Laden Sie alles herunter, was wir zu Ihrem Konto speichern, als lesbare Datei (Art. 15 und 20 DSGVO).',
     'acc_export_cta' => 'Daten herunterladen',
     'acc_last_login' => 'Letzte Anmeldung: {date}',
+    // Kasa — Stripe'a geçmeden önce zorunlu teslimat adresi (checkout.php)
+    'checkout_addr_lead' => 'Bitte geben Sie die Adresse an, an die wir liefern sollen. Ohne vollständige Lieferadresse ist keine Zahlung möglich.',
+    'checkout_addr_missing' => 'Bitte geben Sie eine vollständige Lieferadresse an: Name, Straße und Hausnummer, PLZ und Ort.',
+    'checkout_addr_keep' => 'An meine gespeicherte Adresse liefern',
+    'checkout_addr_other' => 'Schalter ausschalten, um für diese Bestellung eine andere Adresse anzugeben.',
+    'checkout_addr_manage' => 'Im Konto ändern',
+    'checkout_bill_lead' => 'Nur nötig, wenn die Rechnung an eine andere Adresse oder Firma gehen soll.',
+    'checkout_bill_missing' => 'Bitte geben Sie eine vollständige Rechnungsadresse an: Name, Straße und Hausnummer, PLZ und Ort.',
+    'checkout_step_pay' => 'Bestätigen und bezahlen',
     'acc_create' => 'Konto erstellen',
 ];

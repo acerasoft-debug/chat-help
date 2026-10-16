@@ -746,5 +746,14 @@ return [
     'acc_export_b' => 'Download everything we store about your account as a readable file (Art. 15 and 20 GDPR).',
     'acc_export_cta' => 'Download data',
     'acc_last_login' => 'Last sign-in: {date}',
+    // Kasa — Stripe'a geçmeden önce zorunlu teslimat adresi (checkout.php)
+    'checkout_addr_lead' => 'Please tell us where to deliver. Payment is only possible with a complete shipping address.',
+    'checkout_addr_missing' => 'Please enter a complete shipping address: name, street and number, postcode and city.',
+    'checkout_addr_keep' => 'Deliver to my saved address',
+    'checkout_addr_other' => 'Turn the switch off to use a different address for this order.',
+    'checkout_addr_manage' => 'Edit in account',
+    'checkout_bill_lead' => 'Only needed if the invoice should go to a different address or company.',
+    'checkout_bill_missing' => 'Please enter a complete billing address: name, street and number, postcode and city.',
+    'checkout_step_pay' => 'Confirm and pay',
     'acc_create' => 'Create account',
 ];

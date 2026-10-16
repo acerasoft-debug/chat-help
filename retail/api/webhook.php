@@ -122,24 +122,36 @@ try {
             $sd = (array)($obj['shipping_details'] ?? $obj['collected_information']['shipping_details'] ?? []);
             $ad = (array)($sd['address'] ?? $cd['address'] ?? []);
 
+            // Teslimat adresi kasada (checkout.php) alınıp siparişe yazıldı;
+            // Stripe'tan gelen adres onu EZMEZ. Ad/telefon da yalnız boşsa
+            // dolar. Stripe'ta farklı bir adres girildiyse panelde
+            // karşılaştırmak için address_stripe altında saklanır.
+            $have       = (array)($order['customer'] ?? []);
+            $haveAddr   = array_filter((array)($have['address'] ?? []));
+            $stripeAddr = array_filter([
+                'name'        => (string)($sd['name'] ?? ''),
+                'line1'       => (string)($ad['line1'] ?? ''),
+                'line2'       => (string)($ad['line2'] ?? ''),
+                'postal_code' => (string)($ad['postal_code'] ?? ''),
+                'city'        => (string)($ad['city'] ?? ''),
+                'state'       => (string)($ad['state'] ?? ''),
+                'country'     => (string)($ad['country'] ?? ''),
+            ]);
+            $cust = [];
+            if ((string)($cd['email'] ?? '') !== '')         $cust['email'] = (string)$cd['email'];
+            if (trim((string)($have['name'] ?? '')) === '')   $cust['name']  = (string)($sd['name'] ?? $cd['name'] ?? '');
+            if (trim((string)($have['phone'] ?? '')) === '')  $cust['phone'] = (string)($cd['phone'] ?? '');
+            if (!$haveAddr) {
+                $cust['address'] = $stripeAddr;
+            } elseif ($stripeAddr && $stripeAddr != $haveAddr) {
+                $cust['address_stripe'] = $stripeAddr;
+            }
+
             vr_order_mark_paid($orderId, [
                 'session_id'     => (string)($obj['id'] ?? ''),
                 'payment_intent' => $piId,
                 'charge_id'      => $charge,
-                'customer'       => [
-                    'email'   => (string)($cd['email'] ?? ''),
-                    'name'    => (string)($sd['name'] ?? $cd['name'] ?? ''),
-                    'phone'   => (string)($cd['phone'] ?? ''),
-                    'address' => array_filter([
-                        'name'        => (string)($sd['name'] ?? ''),
-                        'line1'       => (string)($ad['line1'] ?? ''),
-                        'line2'       => (string)($ad['line2'] ?? ''),
-                        'postal_code' => (string)($ad['postal_code'] ?? ''),
-                        'city'        => (string)($ad['city'] ?? ''),
-                        'state'       => (string)($ad['state'] ?? ''),
-                        'country'     => (string)($ad['country'] ?? ''),
-                    ]),
-                ],
+                'customer'       => $cust,
             ]);
             echo "ok";
             break;

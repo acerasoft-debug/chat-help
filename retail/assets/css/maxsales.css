@@ -3091,3 +3091,24 @@ fieldset .acccard__h{margin:0 0 18px}
 @media (max-width:640px){
   .grid:has(.card) .card__brand{font-size:10px;letter-spacing:.14em;font-weight:600;color:var(--ink)}
 }
+
+/* ------------------------------------------------- kasa: adres kartları
+   Üç adım: teslimat adresi · fatura adresi · onay + ödeme. Kayıtlı adres
+   .ckaddr kartında, alanlar yalnız gerekince açılır (data-toggle-target). */
+.ckform{gap:18px}
+.ckcard{border:1px solid var(--bone-3);background:var(--bone);padding:clamp(18px,2.4vw,26px);display:grid;gap:14px;min-width:0;transition:border-color .3s var(--ease)}
+.ckcard:focus-within{border-color:#bdbdbd}
+.ckcard--err{border-color:var(--ember)}
+.ckcard__h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0}
+.ckcard__h h2{display:flex;align-items:center;gap:10px;margin:0;font-family:var(--serif);font-weight:400;font-size:20px;line-height:1.2}
+.ckcard__step{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-2);white-space:nowrap}
+.ckcard__lead{margin:0;font-size:13px;line-height:1.55;color:var(--muted)}
+.ckaddr{display:flex;gap:12px;align-items:flex-start;background:var(--bone-2);padding:14px 16px;border-radius:var(--r)}
+.ckaddr>svg{flex:0 0 auto;margin-top:4px}
+.ckaddr p{margin:0;font-size:14.5px;line-height:1.7}
+.ckaddr .xlink{margin-left:auto;white-space:nowrap;padding-top:5px}
+.ckfields{display:grid;gap:14px}
+.ckfields[hidden]{display:none}
+.ckcard .check{margin-top:2px}
+.ckcard .btn--lg{justify-self:start}
+@media (max-width:560px){.ckaddr{flex-wrap:wrap}.ckaddr .xlink{margin-left:28px}}

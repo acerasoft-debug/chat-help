@@ -729,5 +729,14 @@ return [
     'acc_export_b' => 'Hesabınızla bağlı saxladığımız hər şeyi oxunaqlı fayl kimi yükləyin (GDPR maddə 15 və 20).',
     'acc_export_cta' => 'Məlumatları yüklə',
     'acc_last_login' => 'Son giriş: {date}',
+    // Kasa — Stripe'a geçmeden önce zorunlu teslimat adresi (checkout.php)
+    'checkout_addr_lead' => 'Zəhmət olmasa çatdırılma ünvanını qeyd edin. Tam çatdırılma ünvanı olmadan ödəniş mümkün deyil.',
+    'checkout_addr_missing' => 'Zəhmət olmasa tam çatdırılma ünvanı daxil edin: ad, küçə və bina nömrəsi, poçt indeksi və şəhər.',
+    'checkout_addr_keep' => 'Yadda saxlanmış ünvanıma çatdırın',
+    'checkout_addr_other' => 'Bu sifariş üçün başqa ünvan göstərmək istəyirsinizsə açarı söndürün.',
+    'checkout_addr_manage' => 'Hesabda dəyiş',
+    'checkout_bill_lead' => 'Yalnız faktura başqa ünvana və ya şirkətə gedəcəksə lazımdır.',
+    'checkout_bill_missing' => 'Zəhmət olmasa tam faktura ünvanı daxil edin: ad, küçə və bina nömrəsi, poçt indeksi və şəhər.',
+    'checkout_step_pay' => 'Təsdiqlə və ödə',
     'acc_create' => 'Hesab yarat',
 ];
