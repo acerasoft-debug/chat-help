@@ -26,7 +26,7 @@ name: chat-help.com yayına al (site + Token/API backend)
 #   kökte yeni site görünür, /chat/ ve /wp-admin/ çalışmaya devam eder. WordPress ana sayfası kalsın istiyorsan false.
 #
 # 1) dry_run=true  : hosting tespiti + bağlantı testi + docroot keşfi (chat/auth.php içeren klasör) + kök analizi. KOPYALAMAZ.
-# 2) dry_run=false : kopyalar, https://chat-help.com/chat/api.php/v1/sectors ve / ile doğrular.
+# 2) dry_run=false : kopyalar, https://chat-help.com/chat/tokens-api.php/v1/sectors ve / ile doğrular.
 
 on:
   workflow_dispatch:
@@ -290,7 +290,7 @@ jobs:
           if [ "$ROOTIDX" = "true" ] && $SSHCMD "$SRV" "[ -f $DEST/index.php ]"; then
             $SSHCMD "$SRV" "cd $DEST && { [ -f .htaccess ] && cp .htaccess .htaccess.bak-$TS; true; } && if grep -qiE '^[[:space:]]*DirectoryIndex' .htaccess 2>/dev/null; then sed -i -E 's/^[[:space:]]*DirectoryIndex.*/DirectoryIndex index.html index.php/' .htaccess; echo HTACCESS: DirectoryIndex guncellendi; else { echo 'DirectoryIndex index.html index.php'; [ -f .htaccess ] && cat .htaccess; } > .htaccess.new && mv .htaccess.new .htaccess; echo HTACCESS: DirectoryIndex eklendi; fi"
           fi
-          $SSHCMD "$SRV" "cd $DEST && ls -la index.html index.php .htaccess 2>/dev/null; ls -la chat/api.php chat/tokens-lib.php chat/plans.php chat/agent.php 2>&1"
+          $SSHCMD "$SRV" "cd $DEST && ls -la index.html index.php .htaccess 2>/dev/null; ls -la chat/tokens-api.php chat/tokens-lib.php chat/plans.php chat/agent.php 2>&1"
           echo "KOPYALAMA TAMAM -> $DEST"
 
       - name: Sunucuya kopyala (SFTP/FTP)
@@ -308,7 +308,7 @@ jobs:
           put -o $DEST/$DST $SRC"; done < <(grep -vE '^\s*(#|$)' deploy-manifest.txt)
           lf "set cmd:fail-exit yes
           cd $DEST$PUTS$EXTRA
-          cls -la $DEST/index.html $DEST/chat/api.php $DEST/chat/tokens-lib.php"
+          cls -la $DEST/index.html $DEST/chat/tokens-api.php $DEST/chat/tokens-lib.php"
           if [ "$ROOTIDX" = "true" ] && lf "cls -1 $DEST/index.php" >/dev/null 2>&1; then
             : > /tmp/ht; lf "get $DEST/.htaccess -o /tmp/ht" 2>/dev/null || echo "(.htaccess yoktu, yeni olusturulacak)"
             cp /tmp/ht /tmp/ht.orig
@@ -430,5 +430,5 @@ jobs:
           chk "https://chat-help.com/?nocache=$(date +%s)"
           echo "=== yonlendirme takibi (/) ==="; curl -sS -m 25 -L -o /tmp/f -w "final=%{url_effective} status=%{http_code} redirects=%{num_redirects}\n" "https://chat-help.com/"; grep -q "KI, die" /tmp/f && echo "  final icerik: YENI SITE ✓" || echo "  final icerik: eski/baska -> $(grep -o '<title>[^<]*' /tmp/f | head -1)"
           chk "https://chat-help.com/home.php"
-          echo "=== /chat/api.php/v1/sectors ==="; curl -sS -m 20 -o /tmp/s.json -w "status=%{http_code}\n" "https://chat-help.com/chat/api.php/v1/sectors"; head -c 200 /tmp/s.json; echo
+          echo "=== /chat/tokens-api.php/v1/sectors ==="; curl -sS -m 20 -o /tmp/s.json -w "status=%{http_code}\n" "https://chat-help.com/chat/tokens-api.php/v1/sectors"; head -c 200 /tmp/s.json; echo
           echo "=== /chat/ ==="; curl -sS -m 20 -o /dev/null -w "status=%{http_code}\n" "https://chat-help.com/chat/"
