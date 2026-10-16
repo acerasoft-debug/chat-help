@@ -41,11 +41,8 @@ foreach($incoming as $in){
     $cost=CH_PRICING['widget_turn'];
     if(th_balance($aid) < $cost){ $replies[]=[$from,'Wir sind gleich wieder für Sie da – bitte rufen Sie uns an: '.($os['phone']?:'')]; continue; }
     $sys=ch_agent_system($pl,$cfg,(string)($cfg['lang']?:'de'))."\n\nKANAL: WhatsApp. Kurze Nachrichten (max. 4–5 Zeilen), gern Emojis sparsam, Listen mit „•“. Kunde: ".($in['name']?:'unbekannt').".";
-    $tools=[]; $exec=[];
-    if($os['order_on']){ $sys.=ord_system_hint($aid); $tools=array_merge($tools,ord_tools()); $exec['ord']=true; }
-    if(appt_settings($aid)['appt_on']===1){ $sys.=appt_system_hint($aid); $tools=array_merge($tools,appt_tools()); $exec['appt']=true; }
-    $handler=function(string $n,array $i) use($aid,$from,$exec){ if(isset($exec['ord']) && in_array($n,['get_menu','check_delivery_address','create_order','get_order_status','cancel_order'],true)) return ord_exec($aid,$n,$i,'whatsapp',$from); if(isset($exec['appt'])) return appt_exec($aid,$n,$i,'whatsapp'); return ['error'=>'unknown_tool']; };
-    $reply=$tools ? th_ai_tools($sys,$hist,$tools,$handler,700,60) : th_ai($sys,$hist,600,45);
+    $tk=ord_toolkit($aid,'whatsapp',$from); $sys.=$tk['hint'];
+    $reply=$tk['tools'] ? th_ai_tools($sys,$hist,$tk['tools'],$tk['exec'],700,60) : th_ai($sys,$hist,600,45);
     if($reply===null) $reply='Entschuldigung, gerade gab es ein technisches Problem. Bitte versuchen Sie es gleich noch einmal'.($os['phone']?' oder rufen Sie an: '.$os['phone']:'').'.';
     $cost+=2*count(th_ai_info()['tool_calls'] ?? []);
     $hist[]=['role'=>'assistant','content'=>$reply]; ord_wa_session_save($aid,$from,$hist,$in['name']);

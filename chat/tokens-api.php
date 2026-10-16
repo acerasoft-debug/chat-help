@@ -12,12 +12,15 @@
  *                                    {sector, goal, context}        → sektör ajanı tek tur (plan gerekmez, token yeter)
  *   GET  /chat/tokens-api.php/v1/agent/config?plan=…                       → agent ayarları (firma, ton, dil, bilgi tabanı, widget)
  *   POST /chat/tokens-api.php/v1/agent/config {plan, company, tone, lang, kb, widget_on, widget_domain}
+ *   GET|POST /v1/appt/settings · GET /v1/appt/slots?date&service · GET /v1/appt/bookings · POST /v1/appt/book|cancel|status   → Terminbuchung (appt-lib)
+ *   GET|POST /v1/order/settings · POST /v1/order/menu|drivers · GET /v1/order/check?address · GET /v1/order/orders · POST /v1/order/create|status → Bestellannahme (order-lib)
  * Auth: Authorization: Bearer ch_live_…   Fiyat: sabit task tarifesi (plans.php CH_PRICING).
  * Model: CLAUDE_KEY varsa Claude, yoksa DeepSeek (db.php). Sektör/paket eklemek = plans.php'ye bir satır.
  */
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 require_once __DIR__.'/appt-lib.php';
+require_once __DIR__.'/order-lib.php';
 header('Access-Control-Allow-Origin: *'); header('Access-Control-Allow-Headers: Authorization, Content-Type'); header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 if($_SERVER['REQUEST_METHOD']==='OPTIONS'){ http_response_code(204); exit; }
 th_bootstrap();
@@ -109,6 +112,26 @@ switch(true){
   case $r==='appt/status' && $m==='POST':
     th_json(appt_set_status($aid,(int)($b['id']??0),(string)($b['status']??''))?200:400,['ok'=>true]);
 
+  /* ---- Bestellannahme (Restaurant, Pizzeria, Lieferdienst): Einstellungen, Karte, Fahrer, Live-Bestellungen ---- */
+  case $r==='order/settings' && $m==='GET':
+    th_json(200,['settings'=>ord_settings_public(ord_settings($aid)),'menu'=>ord_menu($aid,false),'drivers'=>ord_drivers($aid,false),'links'=>ord_links($aid),'statuses'=>ORD_STATUSES]);
+  case $r==='order/settings' && $m==='POST':
+    $st=ord_settings_save($aid,$b);   // enthält optional menu[] und drivers[]
+    th_json(200,['ok'=>true,'settings'=>ord_settings_public($st),'menu'=>ord_menu($aid,false),'drivers'=>ord_drivers($aid,false),'links'=>ord_links($aid)]);
+  case $r==='order/menu' && $m==='POST':
+    if(!empty($b['demo'])) ord_menu_save($aid,ORD_DEMO['menu']); else ord_menu_save($aid,is_array($b['menu']??null)?$b['menu']:[]);
+    th_json(200,['ok'=>true,'menu'=>ord_menu($aid,false)]);
+  case $r==='order/drivers' && $m==='POST':
+    ord_drivers_save($aid,is_array($b['drivers']??null)?$b['drivers']:[]); th_json(200,['ok'=>true,'drivers'=>ord_drivers($aid,false)]);
+  case $r==='order/check' && $m==='GET':
+    th_json(200,ord_check_address($aid,(string)($_GET['address'] ?? '')));
+  case $r==='order/orders' && $m==='GET':
+    th_json(200,['orders'=>ord_orders($aid,($_GET['scope'] ?? 'open')==='all'?'all':'open'),'drivers'=>array_map(fn($d)=>['id'=>$d['id'],'name'=>$d['name']],ord_drivers($aid,true))]);
+  case $r==='order/create' && $m==='POST':
+    $res=ord_create($aid,$b,'studio'); th_json(isset($res['error'])?422:200,$res);
+  case $r==='order/status' && $m==='POST':
+    $res=ord_set_status($aid,(int)($b['id']??0),(string)($b['status']??''),isset($b['driver_id'])&&$b['driver_id']!==''&&$b['driver_id']!==null?(int)$b['driver_id']:null); th_json(isset($res['error'])?400:200,$res);
+
   case $r==='balance' && $m==='GET':
     $u=th_db()->prepare("SELECT task,sector,tokens,created_at FROM api_usage WHERE account_id=? ORDER BY id DESC LIMIT 20"); $u->execute([$aid]);
     th_json(200,['email'=>$acc['email'],'balance'=>th_balance($aid),'recent'=>$u->fetchAll(PDO::FETCH_ASSOC)]);
@@ -145,11 +168,11 @@ switch(true){
     $cost=($phone?PRICING['phone_turn']:PRICING['agent_turn']) + (int)ceil($chars/2000);   // 6 (8 Telefon) Token/Antwort + 1 je 2.000 Zeichen Kontext
     if(!$active && th_balance($aid) < $cost) th_json(402,['error'=>'insufficient_tokens','need'=>$cost,'balance'=>th_balance($aid),'message'=>'Kein Guthaben: Agent mieten oder Tokens kaufen.','rent'=>'https://chat-help.com/chat/tokens-checkout.php?plan='.$planId,'buy'=>'https://chat-help.com/#tokens']);
     $sys=ch_agent_system($pl,$cfg,$lang).($phone?CH_PHONE_RULES:'');
-    /* Terminbuchung aktiv → Agent bekommt Werkzeuge (freie Zeiten, buchen, absagen); je Werkzeugaufruf +2 Tokens */
-    $apptOn = appt_settings($aid)['appt_on'] === 1;
-    if($apptOn){
-        $sys .= appt_system_hint($aid,$lang);
-        $work = function() use($sys,$msgs,$phone,$aid){ $out=th_ai_tools($sys,$msgs,appt_tools(),fn($n,$i)=>appt_exec($aid,$n,$i,$phone?'phone-test':'studio'),$phone?400:1800,90); if($out===null) th_json(503,['error'=>'ai_unavailable','detail'=>th_ai_info()['errors'] ?? []]); return $out; };
+    /* Terminbuchung (appt_on) und/oder Bestellannahme (order_on) aktiv → Agent bekommt echte Werkzeuge; je Werkzeugaufruf +2 Tokens */
+    $tk = ord_toolkit($aid,$phone?'phone-test':'studio','',null,null,$lang);
+    if($tk['tools']){
+        $sys .= $tk['hint'];
+        $work = function() use($sys,$msgs,$phone,$tk){ $out=th_ai_tools($sys,$msgs,$tk['tools'],$tk['exec'],$phone?400:1800,90); if($out===null) th_json(503,['error'=>'ai_unavailable','detail'=>th_ai_info()['errors'] ?? []]); return $out; };
         $t0=microtime(true); if(th_balance($aid) < $cost) th_json(402,['error'=>'insufficient_tokens','need'=>$cost,'balance'=>th_balance($aid),'buy'=>'https://chat-help.com/#preise']);
         $result=$work(); $calls=th_ai_info()['tool_calls'] ?? []; $cost += 2*count($calls);
         th_debit($aid,$cost,($phone?'phone-test:':'agent:').$planId); th_log_usage($aid,'agent:'.$planId,$pl['sector'],$cost,(int)((microtime(true)-$t0)*1000));
@@ -184,5 +207,5 @@ switch(true){
       'phone_webhook'=>'https://chat-help.com/chat/phone-webhook.php?key='.$c['widget_key']]);
 
   default:
-    th_json(404,['error'=>'not_found','routes'=>['GET /v1/sectors','POST /v1/auth/request','POST /v1/auth/verify','GET /v1/me','GET /v1/balance','POST /v1/generate','POST /v1/translate','POST /v1/subtitles','POST /v1/agent','GET|POST /v1/agent/config','GET /v1/phone/calls']]);
+    th_json(404,['error'=>'not_found','routes'=>['GET /v1/sectors','POST /v1/auth/request','POST /v1/auth/verify','GET /v1/me','GET /v1/balance','POST /v1/generate','POST /v1/translate','POST /v1/subtitles','POST /v1/agent','GET|POST /v1/agent/config','GET /v1/phone/calls','GET|POST /v1/appt/settings','GET /v1/appt/slots','GET /v1/appt/bookings','POST /v1/appt/book|cancel|status','GET|POST /v1/order/settings','POST /v1/order/menu','POST /v1/order/drivers','GET /v1/order/check','GET /v1/order/orders','POST /v1/order/create|status']]);
 }

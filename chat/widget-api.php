@@ -49,8 +49,9 @@ if(th_balance($aid) < $cost) th_json(402,['error'=>'owner_out_of_tokens','messag
 /* KI çağrısı (api.php ile aynı mantık; bağımsız tutuldu) */
 $system = ch_agent_system($pl,$w,(string)($in['lang'] ?? ($w['lang'] ?: 'de')))."\n\nDu sprichst mit einem Website-Besucher (nicht mit dem Betreiber). Kurz, hilfreich, max. 6 Sätze. Wenn du etwas nicht weißt: ehrlich sagen und Kontaktaufnahme anbieten.";
 $t0=microtime(true);
-require_once __DIR__.'/appt-lib.php';
-if(appt_settings($aid)['appt_on']===1){ $system.=appt_system_hint($aid); $answer=th_ai_tools($system,$clean,appt_tools(),fn($n,$i)=>appt_exec($aid,$n,$i,'widget'),900,75); $cost+=2*count(th_ai_info()['tool_calls'] ?? []); }
+require_once __DIR__.'/order-lib.php';   // Werkzeuge: Terminbuchung (appt_on) + Bestellannahme (order_on)
+$tk=ord_toolkit($aid,'widget');
+if($tk['tools']){ $system.=$tk['hint']; $answer=th_ai_tools($system,$clean,$tk['tools'],$tk['exec'],900,75); $cost+=2*count(th_ai_info()['tool_calls'] ?? []); }
 else $answer = th_ai($system, $clean, 700, 60);   // Claude model zinciri → DeepSeek (tokens-lib)
 if($answer===null) th_json(503,['error'=>'ai_unavailable']);
 th_debit($aid,$cost,'widget:'.$pl['id']);

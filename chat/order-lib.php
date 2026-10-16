@@ -10,6 +10,7 @@
  * • Konto 0 = Demo „Pizzeria Napoli“ (keine Benachrichtigungen, Bestellungen nach 2 Tagen gelöscht)
  */
 require_once __DIR__.'/tokens-lib.php';
+require_once __DIR__.'/appt-lib.php';
 
 const ORD_STATUSES = ['new','confirmed','preparing','ready','out_for_delivery','delivered','cancelled'];
 const ORD_DEMO = ['name'=>'Pizzeria Napoli','address'=>'Friesenstraße 50, 50670 Köln','lat'=>50.9432,'lon'=>6.9416,'phone'=>'0221 9876543','min_order_cents'=>1500,'delivery_fee_cents'=>250,'eta_delivery_min'=>35,'eta_pickup_min'=>20,'payment_methods'=>'bar,karte,paypal',
@@ -303,7 +304,7 @@ function ord_exec(int $acc, string $name, array $in, string $channel, string $wa
             $menu=array_values(array_filter($menu,fn($m)=>(!$cat||str_contains(mb_strtolower($m['category']),$cat))&&(!$q||str_contains(mb_strtolower($m['name'].' '.$m['description'].' '.$m['tags']),$q))));
             return ['open'=>ord_is_open(ord_settings($acc)),'items'=>array_map(fn($m)=>['id'=>$m['id'],'category'=>$m['category'],'name'=>$m['name'],'description'=>$m['description'],'price_eur'=>round($m['price_cents']/100,2),'options'=>array_map(fn($g)=>['name'=>$g['name'],'choices'=>array_map(fn($c)=>$c['label'].($c['delta']?' ('.($c['delta']>0?'+':'').number_format($c['delta']/100,2,',','.').' €)':''),$g['choices'])],$m['options']),'tags'=>$m['tags']],$menu)];
         case 'check_delivery_address': return ord_check_address($acc,(string)($in['address']??''));
-        case 'create_order': return ord_create($acc,$in,$channel,$waFrom);
+        case 'create_order': if($acc===0) $in['force']=1; return ord_create($acc,$in,$channel,$waFrom);   // Demo (Konto 0): auch außerhalb der Öffnungszeiten
         case 'get_order_status': if(!empty($in['code'])){ $o=ord_by_code((string)$in['code']); return $o&&(int)$o['account_id']===$acc?['orders'=>[ord_public($o)]]:['orders'=>[]]; } return ['orders'=>ord_find_by_phone($acc,(string)($in['phone']??$waFrom))];
         case 'cancel_order': $o=ord_by_code((string)($in['code']??'')); if(!$o||(int)$o['account_id']!==$acc) return ['error'=>'not_found']; if(!in_array($o['status'],['new','confirmed'],true)) return ['error'=>'too_late','status'=>$o['status']]; return ord_set_status($acc,(int)$o['id'],'cancelled');
     }
@@ -316,4 +317,35 @@ function ord_system_hint(int $acc): string {
     $cats=array_count_values(array_column(ord_menu($acc),'category'));
     return "\n\nBESTELLANNAHME (aktiv) für ".($s['name']?:'das Restaurant').($s['address']?', '.$s['address']:'').". Jetzt: ".$now->format('l H:i')." – ".($open['open']?'GEÖFFNET bis '.$open['until']:'GESCHLOSSEN'.($open['next']?', öffnet um '.$open['next']:'')).". Öffnungszeiten: ".implode(' · ',$h).". Lieferung ".($s['delivery_on']?'ja':'nein').", Abholung ".($s['pickup_on']?'ja':'nein').". Liefergebiete: $zones. Zahlarten: ".$s['payment_methods'].". Lieferzeit ca. ".$s['eta_delivery_min']." Min, Abholung ca. ".$s['eta_pickup_min']." Min. Karte: ".implode(', ',array_map(fn($c,$n)=>"$c ($n)",array_keys($cats),$cats)).".
 REGELN: Karte/Preise NUR über get_menu (nicht raten). Bestellung aufnehmen: Positionen mit Menge und Größe/Optionen, Lieferung oder Abholung, bei Lieferung Adresse mit Straße, Hausnummer, PLZ, Ort → check_delivery_address (nur im Liefergebiet weiter; sonst Abholung anbieten), Name, Telefonnummer, Zahlart. Dann Zusammenfassung mit Gesamtsumme (inkl. Liefergebühr) und „Soll ich die Bestellung so aufgeben?“ – erst nach Ja create_order. Danach Bestellcode, Gesamtsumme und voraussichtliche Zeit nennen. Upselling höchstens einmal, dezent (Getränk/Dessert). Allergien/Unverträglichkeiten: Hinweise aus der Karte nennen, bei Unsicherheit ans Team verweisen. Kurz, freundlich, in der Sprache des Kunden.";
+}
+
+/* ---------- Links (WhatsApp-Webhook, Küchen-Board, Fahrer) ---------- */
+/** Agent-Schlüssel (widget_key) des Kontos für WhatsApp-Webhook – bevorzugt agent-bestellung; legt bei Bedarf eine Konfiguration an. */
+function ord_agent_key(int $acc): string {
+    if($acc===0) return 'demo';
+    $s=th_db()->prepare("SELECT widget_key FROM agent_configs WHERE account_id=? AND widget_key IS NOT NULL ORDER BY (plan='agent-bestellung') DESC, id LIMIT 1"); $s->execute([$acc]); $wk=(string)$s->fetchColumn();
+    if($wk===''){ th_agent_cfg_save($acc,'agent-bestellung',[],false); $s->execute([$acc]); $wk=(string)$s->fetchColumn(); }
+    return $wk;
+}
+function ord_links(int $acc): array {
+    $s=ord_settings($acc); $k=ord_agent_key($acc);
+    return ['whatsapp_webhook'=>'https://chat-help.com/chat/whatsapp-webhook.php?key='.$k,'verify_token'=>$s['wa_verify'] ?: $k,
+        'board'=>$s['board_token']?'https://chat-help.com/chat/board.php?t='.$s['board_token']:null,
+        'drivers'=>array_map(fn($d)=>['id'=>$d['id'],'name'=>$d['name'],'url'=>$d['url'] ?? null],ord_drivers($acc,true))];
+}
+
+/* ---------- Werkzeugkasten eines Agenten: Bestellungen (order_on) + Termine (appt_on) ---------- */
+/** Rückgabe: hint (System-Zusatz), tools (für th_ai_tools), exec (callable), order/appt (bool). Ohne aktive Module: tools leer. */
+function ord_toolkit(int $acc, string $channel, string $waFrom='', ?bool $order=null, ?bool $appt=null, string $lang='de'): array {
+    $order = $order ?? (ord_settings($acc)['order_on']===1); $appt = $appt ?? (appt_settings($acc)['appt_on']===1);
+    $hint=''; $tools=[];
+    if($order){ $hint.=ord_system_hint($acc); $tools=array_merge($tools,ord_tools()); }
+    if($appt){ $hint.=appt_system_hint($acc,$lang); $tools=array_merge($tools,appt_tools()); }
+    $ordNames=array_column(ord_tools(),'name');
+    $exec=function(string $n,array $i) use($acc,$channel,$waFrom,$order,$appt,$ordNames){
+        if($order && in_array($n,$ordNames,true)) return ord_exec($acc,$n,$i,$channel,$waFrom);
+        if($appt) return appt_exec($acc,$n,$i,$channel);
+        return ['error'=>'unknown_tool'];
+    };
+    return ['hint'=>$hint,'tools'=>$tools,'exec'=>$exec,'order'=>$order,'appt'=>$appt];
 }
