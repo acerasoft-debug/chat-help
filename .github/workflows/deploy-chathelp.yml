@@ -1,0 +1,118 @@
+name: chat-help.com yayına al (site + Token/API backend)
+
+# Vestra ile aynı SSH bağlantısı (DEPLOY_SSH_KEY/HOST/USER/PORT). Sandbox sunucuya
+# çıkamaz ama bu runner çıkar. GÜVENLİ: --delete YOK; mevcut uygulama (chat/auth.php,
+# db.php, index.php) ASLA yazılmaz; sadece yeni dosyalar kopyalanır; kök index.html yedeklenir.
+#
+# 1) Önce dry_run=true: docroot'u keşfeder (chat/auth.php içeren klasör) ve planı yazar.
+# 2) Sonra dry_run=false (+ target gerekirse): kopyalar ve https://chat-help.com/chat/api.php/v1/sectors ile doğrular.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Dosyaların alınacağı dal (site/ + chat/*.php)"
+        required: true
+        default: "claude/chat-help-system-video-x0nofb"
+      target:
+        description: "Docroot (ör. ~/public_html veya ~/chat-help.com). 'auto' = chat/auth.php içeren tek klasörü bul"
+        required: true
+        default: "auto"
+      dry_run:
+        description: "true = sadece keşfet + planı yaz, KOPYALAMA"
+        required: true
+        default: "true"
+      include_tools:
+        description: "true = bekleyen tek-seferlik fix scriptlerini de kopyala (open-signup, mail-api, fix-geo, fix-mail)"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Dosyaları doğrula + PHP sözdizimi
+        run: |
+          set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq php-cli > /dev/null
+          [ -f site/index.html ] || { echo "::error::site/index.html yok"; exit 1; }
+          for f in chat/tokens-lib.php chat/api.php chat/tokens-checkout.php chat/tokens-webhook.php; do
+            [ -f "$f" ] || { echo "::error::$f yok"; exit 1; }; php -l "$f"; done
+          if [ "${{ github.event.inputs.include_tools }}" = "true" ]; then
+            for f in chat/open-signup.php chat/mail-api.php chat/fix-geo.php chat/fix-mail.php; do [ -f "$f" ] && php -l "$f" || echo "(yok, atlandı) $f"; done
+          fi
+
+      - name: SSH hazırla
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          echo "SSHOPT=-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=20 -p ${{ secrets.DEPLOY_PORT || 22 }}" >> $GITHUB_ENV
+          echo "SRV=${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" >> $GITHUB_ENV
+
+      - name: Docroot keşfi
+        id: disc
+        run: |
+          set -e
+          OUT=$(ssh $SSHOPT "$SRV" '
+            echo "HOME=$HOME"
+            for d in ~/public_html ~/*/ ~/public_html/*/ ~/domains/*/public_html ~/www; do
+              d="${d%/}"; [ -f "$d/chat/auth.php" ] && echo "CANDIDATE:$d"
+            done
+            echo "--- ev dizini ---"; ls -la ~ 2>/dev/null | head -40
+            echo "--- cPanel domainler ---"; (uapi --output=jsonpretty DomainInfo list_domains 2>/dev/null | head -60) || echo "(uapi yok)"
+          ')
+          echo "$OUT"
+          CANDS=$(echo "$OUT" | grep '^CANDIDATE:' | sed 's/^CANDIDATE://' | sort -u)
+          N=$(echo "$CANDS" | grep -c . || true)
+          echo "aday sayisi: $N"
+          T="${{ github.event.inputs.target }}"
+          if [ "$T" = "auto" ]; then
+            if [ "$N" -eq 1 ]; then T="$CANDS"; else echo "::warning::auto icin tam 1 aday gerekli (bulunan: $N). target'i elle ver."; fi
+          fi
+          echo "dest=$T" >> $GITHUB_OUTPUT
+          echo "SECILEN DOCROOT: $T"
+
+      - name: Plan
+        run: |
+          echo "ref        : ${{ github.event.inputs.ref }}"
+          echo "docroot    : ${{ steps.disc.outputs.dest }}"
+          echo "dry_run    : ${{ github.event.inputs.dry_run }}"
+          echo "kopyalanacak:"
+          echo "  site/index.html                 -> DOCROOT/index.html   (eski: index.html.bak-<ts>)"
+          echo "  chat/tokens-lib.php, api.php, tokens-checkout.php, tokens-webhook.php -> DOCROOT/chat/"
+          [ "${{ github.event.inputs.include_tools }}" = "true" ] && echo "  + chat/open-signup.php, mail-api.php, fix-geo.php, fix-mail.php (tek-seferlik, sonra sil)"
+          echo "DOKUNULMAYAN: chat/auth.php, chat/db.php, chat/index.php ve diger tum mevcut dosyalar"
+
+      - name: Sunucuya kopyala
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          set -e
+          DEST="${{ steps.disc.outputs.dest }}"
+          case "$DEST" in auto|"") echo "::error::docroot belirlenemedi; target'i elle ver"; exit 1;; esac
+          # kök index.html yedeği
+          ssh $SSHOPT "$SRV" "cd $DEST && ( [ -f index.html ] && cp index.html index.html.bak-\$(date +%Y%m%d-%H%M%S) || true ) && mkdir -p chat"
+          rsync -az -e "ssh $SSHOPT" site/index.html "$SRV:$DEST/index.html"
+          rsync -az -e "ssh $SSHOPT" chat/tokens-lib.php chat/api.php chat/tokens-checkout.php chat/tokens-webhook.php "$SRV:$DEST/chat/"
+          if [ "${{ github.event.inputs.include_tools }}" = "true" ]; then
+            for f in chat/open-signup.php chat/mail-api.php chat/fix-geo.php chat/fix-mail.php; do [ -f "$f" ] && rsync -az -e "ssh $SSHOPT" "$f" "$SRV:$DEST/chat/"; done
+          fi
+          # index.php kökte varsa index.html'i golgeleyebilir -> bilgi ver
+          ssh $SSHOPT "$SRV" "cd $DEST && ls -la index.html index.php 2>/dev/null; ls chat/api.php chat/tokens-lib.php"
+          echo "KOPYALAMA TAMAM -> $DEST"
+
+      - name: Canlı doğrulama
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          set +e
+          echo "--- /chat/api.php/v1/sectors ---"
+          curl -sS -m 20 -o /tmp/s.json -w "HTTP %{http_code}\n" "https://chat-help.com/chat/api.php/v1/sectors"; head -c 300 /tmp/s.json; echo
+          echo "--- / (yeni site?) ---"
+          curl -sS -m 20 -o /tmp/i.html -w "HTTP %{http_code}\n" "https://chat-help.com/"; grep -o "KI, die" /tmp/i.html | head -1 && echo "YENI SITE CANLI ✓" || echo "kokte hala eski sayfa (index.php golgeliyor olabilir)"
