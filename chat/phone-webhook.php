@@ -20,26 +20,23 @@ header('Content-Type: text/xml; charset=UTF-8');
 function twiml(string $inner): void { echo '<?xml version="1.0" encoding="UTF-8"?><Response>'.$inner.'</Response>'; exit; }
 function x(string $s): string { return htmlspecialchars($s, ENT_XML1|ENT_QUOTES, 'UTF-8'); }
 /**
- * Natürliche Stimme je Sprache (Twilio-Namen). Standard: Amazon Polly „Generative“ (menschlichste Klasse), männliche Variante = Suffix -m in phone_voice (z. B. de-DE-m).
- * db.php: TWILIO_VOICE (fester Name für alles) · TWILIO_VOICE_TIER='neural' (falls Generative im Twilio-Konto nicht verfügbar ist → Fehler 13520).
+ * Natürliche Stimme je Sprache (gültige Twilio-Werte laut offizieller Voice-Tabelle, geprüft vom Server am 16.10.2026).
+ * phone_voice: "de-DE" (weiblich, beste Stimme) · "de-DE-m" (männlich) · "de-DE-g" / "de-DE-gm" (Google Chirp3-HD weiblich/männlich).
+ * Amazon Polly „Generative“ (mit SSML-Pausen) für DE/EN/FR/ES/IT, Google Chirp3-HD für TR/NL/PL/RU und als Alternative.
+ * db.php: TWILIO_VOICE (fester Wert für alles) · TWILIO_VOICE_TIER='neural' (Polly Neural statt Generative, falls im Twilio-Konto nicht freigeschaltet).
  */
 function voice_for(string $lang): string {
     if(defined('TWILIO_VOICE') && TWILIO_VOICE) return TWILIO_VOICE;
-    $g=$GLOBALS['ph_gender'] ?? 'f'; $tier=(defined('TWILIO_VOICE_TIER') && TWILIO_VOICE_TIER==='neural') ? 'Neural' : 'Generative';
-    $V=[ // [weiblich generativ, weiblich neural, männlich]
-      'de-DE'=>['Polly.Vicki-Generative','Polly.Vicki-Neural','Polly.Daniel-Neural'],
-      'en-US'=>['Polly.Joanna-Generative','Polly.Joanna-Neural','Polly.Matthew-Generative'],
-      'en-GB'=>['Polly.Amy-Generative','Polly.Amy-Neural','Polly.Arthur-Neural'],
-      'fr-FR'=>['Polly.Lea-Generative','Polly.Lea-Neural','Polly.Remi-Neural'],
-      'es-ES'=>['Polly.Lucia-Generative','Polly.Lucia-Neural','Polly.Sergio-Neural'],
-      'it-IT'=>['Polly.Bianca-Generative','Polly.Bianca-Neural','Polly.Adriano-Neural'],
-      'nl-NL'=>['Polly.Laura-Neural','Polly.Laura-Neural','Polly.Laura-Neural'],
-      'pl-PL'=>['Polly.Ola-Neural','Polly.Ola-Neural','Polly.Ola-Neural'],
-      'tr-TR'=>['Polly.Filiz','Polly.Filiz','Polly.Filiz'],
-      'ru-RU'=>['Polly.Tatyana','Polly.Tatyana','Polly.Maxim']];
-    $row=$V[$lang] ?? $V['de-DE'];
-    if($g==='m') return $tier==='Neural' ? str_replace('-Generative','-Neural',$row[2]) : $row[2];
-    return $tier==='Neural' ? $row[1] : $row[0];
+    $g=$GLOBALS['ph_gender'] ?? 'f'; $chirp=fn(string $l,bool $m)=>'Google.'.$l.'-Chirp3-HD-'.($m?'Charon':'Aoede');
+    $P=[ // [weiblich, männlich] – null = Google Chirp3-HD
+      'de-DE'=>['Polly.Vicki-Generative','Polly.Daniel-Generative'], 'en-US'=>['Polly.Joanna-Generative','Polly.Matthew-Generative'],
+      'en-GB'=>['Polly.Amy-Generative',null], 'fr-FR'=>['Polly.Lea-Generative',null], 'es-ES'=>['Polly.Lucia-Generative','Polly.Sergio-Generative'],
+      'it-IT'=>['Polly.Bianca-Generative',null], 'tr-TR'=>[null,null], 'nl-NL'=>[null,null], 'pl-PL'=>[null,null], 'ru-RU'=>[null,null]];
+    if(!isset($P[$lang])) $lang='de-DE';
+    if($g==='g' || $g==='gm') return $chirp($lang,$g==='gm');
+    $v=$P[$lang][$g==='m'?1:0] ?? null; if($v===null) return $chirp($lang,$g==='m');
+    if(defined('TWILIO_VOICE_TIER') && TWILIO_VOICE_TIER==='neural') $v=str_replace('-Generative','-Neural',$v);
+    return $v;
 }
 /** Gesprochener Text → SSML: Sätze mit kurzen Atempausen, damit es nach Mensch klingt statt nach Durchlesen. */
 function say(string $text, string $lang): string {
@@ -80,7 +77,7 @@ $cfg=th_phone_cfg($key);
 if(!$cfg) twiml(say('Dieser Telefon-Assistent ist derzeit nicht aktiv. Auf Wiederhören.','de-DE').'<Hangup/>');
 $pl=ch_plan($cfg['plan']); $aid=(int)$cfg['account_id'];
 $lang='de-DE'; $GLOBALS['ph_gender']='f';
-if(preg_match('/^([a-z]{2}-[A-Z]{2})(?:-([mf]))?$/',(string)$cfg['phone_voice'],$mv)){ $lang=$mv[1]; $GLOBALS['ph_gender']=$mv[2] ?? 'f'; }
+if(preg_match('/^([a-z]{2}-[A-Z]{2})(?:-(m|f|g|gm))?$/',(string)$cfg['phone_voice'],$mv)){ $lang=$mv[1]; $GLOBALS['ph_gender']=$mv[2] ?? 'f'; }
 if(!$pl || !th_plan_active($aid,$pl['id'])) twiml(say('Dieser Telefon-Assistent ist derzeit nicht aktiv. Auf Wiederhören.',$lang).'<Hangup/>');
 if(!twilio_sig_ok()){ http_response_code(403); twiml('<Hangup/>'); }
 
@@ -116,7 +113,7 @@ if($wait!==null){
 
 /* Begrüßung */
 if($speech==='' && $turns===0 && !$tr){
-    $h=(int)(new DateTimeImmutable('now',new DateTimeZone('Europe/Berlin')))->format('G'); $tag=$h<11?'Guten Morgen':($h<18?'Guten Tag':'Guten Abend');
+    $h=(int)(new DateTimeImmutable('now',new DateTimeZone('Europe/Berlin')))->format('G'); $tag=$h<5?'Guten Abend':($h<11?'Guten Morgen':($h<18?'Guten Tag':'Guten Abend'));
     $greet=$cfg['phone_greeting'] ?: "$tag, $company, Sie sprechen mit dem digitalen Assistenten. Was kann ich für Sie tun?";
     $tr[]=['role'=>'assistant','content'=>$greet]; th_call_update($sid,['transcript'=>json_encode($tr,JSON_UNESCAPED_UNICODE)]);
     twiml(gather(say($greet,$lang),$lang,$self,$hints));

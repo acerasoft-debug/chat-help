@@ -83,7 +83,7 @@ echo "  Laufzeit-Umgebung: PHP ".PHP_VERSION.", fastcgi_finish_request ".(functi
 sec('Studio-API: Bestellannahme');
 $r=$api('GET','order/settings'); ok($r['code']===200 && isset($r['json']['settings']),'GET /v1/order/settings','order_on='.($r['json']['settings']['order_on'] ?? '?'));
 $allDay=[]; for($w=0;$w<=6;$w++) $allDay[(string)$w]=[['00:00','23:59']];
-$payload=['order_on'=>1,'name'=>'Selftest Pizzeria','address'=>'Friesenstraße 50, 50670 Köln','phone'=>'0221 000000','notify_email'=>'','tz'=>'Europe/Berlin','delivery_on'=>1,'pickup_on'=>1,
+$payload=['order_on'=>1,'name'=>'Selftest Pizzeria','address'=>'Friesenstraße 50, 50670 Köln','phone'=>'0221 000000','notify_email'=>'','tz'=>'Europe/Berlin','delivery_on'=>1,'pickup_on'=>1,'pickup_discount_pct'=>10,
   'min_order_cents'=>1500,'delivery_fee_cents'=>250,'eta_delivery_min'=>35,'eta_pickup_min'=>15,'payment_methods'=>'bar,karte','hours'=>$allDay,
   'zones'=>[['name'=>'Innenstadt','plz'=>'50667,50670,50672','fee_cents'=>0,'min_cents'=>1500],['name'=>'Südstadt','plz'=>'50677,50678','fee_cents'=>250,'min_cents'=>2000]],
   'menu'=>[['category'=>'Pizza','name'=>'Margherita','description'=>'Tomate, Mozzarella','price_cents'=>850,'options'=>'Größe: Normal 0 | Groß +3,00','tags'=>'vegetarisch'],
@@ -123,8 +123,17 @@ if($o){
     $r=http('GET',"$BASE/chat/order.php?c={$o['code']}",null,[],'json',true); ok(str_contains($r['body'],'guten Appetit'),'Statusseite: zugestellt');
 }
 $r=$api('POST','order/create',['type'=>'pickup','items'=>[['name'=>'Margherita','qty'=>1]],'name'=>'Abholer','phone'=>'+49 170 1111111','payment'=>'bar']); $o2=$r['json']['order'] ?? null;
-ok($o2 && (int)$o2['fee_cents']===0 && (int)$o2['total_cents']===850,'Abholbestellung ohne Liefergebühr',$o2['code'] ?? short($r['body']));
+ok($o2 && (int)$o2['fee_cents']===0 && (int)$o2['discount_cents']===85 && (int)$o2['total_cents']===765,'Abholbestellung: keine Liefergebühr, 10 % Abholrabatt verbucht (8,50 → 7,65 €)',$o2 ? $o2['code'].' · '.$o2['total'] : short($r['body']));
 if($o2){ $r=http('POST',"$BASE/chat/order.php?c={$o2['code']}",['do'=>'cancel'],[],'form',true); ok((ord_by_code($o2['code'])['status'] ?? '')==='cancelled' && str_contains($r['body'],'storniert'),'Kunde storniert über die Statusseite'); }
+
+/* Kartensuche: „Pizza Salami“ muss die Salami finden; Unsinn liefert die ganze Karte statt „gibt es nicht“ */
+require_once __DIR__.'/order-lib.php';
+$m1=ord_exec($aid,'get_menu',['query'=>'Pizza Salami'],'selftest'); ok(count($m1['items'] ?? [])===1 && ($m1['items'][0]['name'] ?? '')==='Salami','Kartensuche „Pizza Salami“ findet die Salami');
+$m2=ord_exec($aid,'get_menu',['category'=>'Pizzen'],'selftest'); ok(count($m2['items'] ?? [])===2,'Kategorie „Pizzen“ findet beide Pizzen');
+$m3=ord_exec($aid,'get_menu',['query'=>'Sushi'],'selftest'); ok(count($m3['items'] ?? [])===3 && !empty($m3['note']),'Unbekannter Artikel: komplette Karte + Hinweis');
+
+/* Seitenversionen: Studio/Buchungsseite/Board liefern immer den aktuellen Stand (302 → ?v=…) */
+$r=http('GET',"$BASE/chat/studio.php",null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'pBestellungen') && str_contains($r['body'],'Eigene Nummer mit Twilio verbinden') && str_contains($r['url'],'v='),'Studio: aktuelle Version (Bestellungen-Tab + Anleitungen)',preg_replace('/^https:\/\/chat-help\.com/','',$r['url']).' · cf='.$r['cache']);
 
 /* ---------- Studio-API: Termine ---------- */
 sec('Studio-API: Terminbuchung');
@@ -176,8 +185,9 @@ if($AI){
     $r=http('POST',"$BASE/chat/whatsapp-webhook.php?key=$cfgKey",['Body'=>'Hallo! Was kostet bei euch eine große Margherita?','From'=>"whatsapp:+$wa",'ProfileName'=>'WA Test','MessageSid'=>$sidA],[],'form');
     ok(!str_contains($r['body'],'<Message>'),'WhatsApp: doppelt zugestellte Nachricht wird nicht erneut beantwortet');
     $r=http('POST',"$BASE/chat/whatsapp-webhook.php?key=$cfgKey",['Body'=>'Super, dann bitte eine große Margherita zum Abholen, Name WA Test, bar. Ja, genau so aufgeben.','From'=>"whatsapp:+$wa",'ProfileName'=>'WA Test','MessageSid'=>'SM'.rnd(16)],[],'form');
-    $s=th_db()->prepare("SELECT code,total_cents FROM orders WHERE account_id=? AND channel='whatsapp' AND wa_from=?"); $s->execute([$aid,$wa]); $wo=$s->fetch(PDO::FETCH_ASSOC);
-    ok((bool)$wo,'WhatsApp: Bestellung über 2 Nachrichten angelegt (Gedächtnis)',($wo?$wo['code'].' · '.number_format($wo['total_cents']/100,2,',','.').' € · ':'').sprintf('%.1fs · ',$r['t']).short(html_entity_decode(strip_tags($r['body'])),220));
+    $s=th_db()->prepare("SELECT code,total_cents,discount_cents FROM orders WHERE account_id=? AND channel='whatsapp' AND wa_from=?"); $s->execute([$aid,$wa]); $wo=$s->fetch(PDO::FETCH_ASSOC);
+    if(!$wo){ $r=http('POST',"$BASE/chat/whatsapp-webhook.php?key=$cfgKey",['Body'=>'Ja, bitte so aufgeben.','From'=>"whatsapp:+$wa",'ProfileName'=>'WA Test','MessageSid'=>'SM'.rnd(16)],[],'form'); $s->execute([$aid,$wa]); $wo=$s->fetch(PDO::FETCH_ASSOC); }
+    ok((bool)$wo,'WhatsApp: Bestellung im Gesprächsverlauf angelegt (Gedächtnis)',($wo?$wo['code'].' · '.number_format($wo['total_cents']/100,2,',','.').' € · ':'').sprintf('%.1fs · ',$r['t']).short(html_entity_decode(strip_tags($r['body'])),220));
 
     /* WhatsApp über Meta (Webhook sofort bestätigt, Antwort danach über Graph-API – ohne Zugangsdaten übersprungen) */
     $wm='491700001'.random_int(100,999);
@@ -212,7 +222,7 @@ if($AI){
     $call=th_call($sid); $s=th_db()->prepare("SELECT code,total_cents FROM orders WHERE account_id=? AND channel='phone'"); $s->execute([$aid]); $po=$s->fetch(PDO::FETCH_ASSOC);
     ok($call && (int)$call['turns']>=2 && (int)$call['tokens']>0,'Anruf protokolliert (Transkript + Tokens)','Antworten='.($call['turns'] ?? 0).' Tokens='.($call['tokens'] ?? 0).($po?' · Bestellung '.$po['code'].' '.number_format($po['total_cents']/100,2,',','.').' €':' · (noch keine Bestellung)'));
     ok(empty($call['pending']),'Keine hängende Hintergrund-Antwort');
-    http('POST',$self,$base+['CallStatus'=>'completed'],$sign($self,$base+['CallStatus'=>'completed']),'form'); ok((th_call($sid)['status'] ?? '')==='completed','Anrufende (Status-Callback)');
+    $end=array_merge($base,['CallStatus'=>'completed']); http('POST',$self,$end,$sign($self,$end),'form'); ok((th_call($sid)['status'] ?? '')==='completed','Anrufende (Status-Callback)');
     /* männliche Stimme */
     th_db()->prepare("UPDATE agent_configs SET phone_voice='de-DE-m' WHERE account_id=? AND plan='agent-bestellung'")->execute([$aid]);
     $g2=$turn(['CallSid'=>'CA'.rnd(16)]+$base); ok($g2['voice']!=='' && $g2['voice']!==$g['voice'],'Stimmwahl männlich wirkt',$g2['voice']);
@@ -232,7 +242,7 @@ if($DOCS){
             echo "  [$loc] Polly Neural: ".(implode(' ;; ',$pick('/Polly.*Neural|Neural.*Polly/i',6)) ?: '—')."\n";
             echo "  [$loc] Google Chirp3-HD: ".(implode(' ;; ',$pick('/Chirp3-HD/i',4)) ?: '—')."\n";
         }
-        foreach(['Vicki-Generative','Daniel-Generative','Joanna-Generative','Matthew-Generative','Amy-Generative','Lea-Generative','Remi-Generative','Lucia-Generative','Sergio-Generative','Bianca-Generative','Adriano-Generative','de-DE-Chirp3-HD-Aoede','de-DE-Chirp3-HD-Charon','tr-TR-Chirp3-HD-Aoede'] as $v) echo "  enthält „$v“: ".(stripos($doc,$v)!==false?'ja':'nein')."\n";
+        foreach(['Vicki-Generative','Daniel-Generative','Joanna-Generative','Matthew-Generative','Amy-Generative','Lea-Generative','Remi-Generative','Lucia-Generative','Sergio-Generative','Bianca-Generative','Adriano-Generative','de-DE-Chirp3-HD-Aoede','de-DE-Chirp3-HD-Charon','tr-TR-Chirp3-HD-Aoede'] as $v) echo "  enthält „{$v}“: ".(stripos($doc,$v)!==false?'ja':'nein')."\n";
         if(preg_match_all('/[a-z]{2}-[A-Z]{2}-Chirp3-HD-[A-Za-z]+/',$doc,$cm)){ $byLoc=[]; foreach(array_unique($cm[0]) as $v){ $byLoc[substr($v,0,5)][]=substr($v,16); } foreach(['de-DE','tr-TR','en-US','fr-FR'] as $l) if(isset($byLoc[$l])) echo "  Chirp3-HD $l: ".implode(', ',array_slice($byLoc[$l],0,30))."\n"; }
         foreach(preg_split('/\R/',strip_tags($doc)) as $l){ if(preg_match('/beta|not covered|SLA|13520|13512|invalid voice|SSML/i',$l) && mb_strlen(trim($l))>20){ echo "  Hinweis: ".short($l,260)."\n"; } }
     }

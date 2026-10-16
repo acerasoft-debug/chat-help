@@ -5,6 +5,7 @@ site/index.html              index.html
 site/home.php                home.php
 chat/plans.php               chat/plans.php
 chat/tokens-lib.php          chat/tokens-lib.php
+chat/pagever.php             chat/pagever.php
 chat/tokens-api.php                 chat/tokens-api.php
 chat/tokens-checkout.php     chat/tokens-checkout.php
 chat/tokens-webhook.php      chat/tokens-webhook.php

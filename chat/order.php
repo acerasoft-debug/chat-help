@@ -59,6 +59,7 @@ $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
   <?php endif; ?>
   <div class="items">
     <?php foreach($p['items'] as $it): ?><div class="r"><span><?= (int)$it['qty'] ?>× <?= $e($it['name']) ?><?php if(!empty($it['options'])): ?><small><?= $e(implode(', ',$it['options'])) ?></small><?php endif; ?></span><span><?= number_format($it['total_cents']/100,2,',','.') ?> €</span></div><?php endforeach; ?>
+    <?php if(!empty($p['discount_cents'])): ?><div class="r"><span>Abholrabatt</span><span>−<?= number_format($p['discount_cents']/100,2,',','.') ?> €</span></div><?php endif; ?>
     <?php if($p['fee_cents']): ?><div class="r"><span>Liefergebühr</span><span><?= number_format($p['fee_cents']/100,2,',','.') ?> €</span></div><?php endif; ?>
     <div class="r t"><span>Gesamt · <?= $e($p['payment']) ?></span><span><?= $e($p['total']) ?></span></div>
   </div>

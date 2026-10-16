@@ -1,5 +1,6 @@
 <?php
 /** ChatHelp — Öffentliche Buchungsseite eines Betriebs: book.php?k=<Buchungsschlüssel>  (k=demo → Salon Luna) */
+require_once __DIR__.'/pagever.php'; ch_page_version(__FILE__);
 header('Content-Type: text/html; charset=UTF-8'); header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0'); header('Cloudflare-CDN-Cache-Control: no-store'); header('Set-Cookie: chnc=1; Path=/; Max-Age=3600; Secure; HttpOnly; SameSite=Lax', false);
 $k = preg_replace('/[^a-z0-9_]/','',(string)($_GET['k'] ?? 'demo')) ?: 'demo';
 ?><!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Termin buchen</title><meta name="robots" content="noindex">

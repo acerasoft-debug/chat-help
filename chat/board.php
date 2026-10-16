@@ -6,7 +6,7 @@
  */
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/order-lib.php';
-th_nocache();
+require_once __DIR__.'/pagever.php'; th_nocache(); ch_page_version(__FILE__);
 $t=preg_replace('/[^a-f0-9]/','',(string)($_GET['t'] ?? ''));
 $acc=null; if(strlen($t)===24){ th_bootstrap(); ord_bootstrap(); $s=th_db()->prepare("SELECT account_id FROM order_settings WHERE board_token=?"); $s->execute([$t]); $a=$s->fetchColumn(); if($a!==false) $acc=(int)$a; }
 if($acc===null){ header('Content-Type: text/plain; charset=UTF-8'); http_response_code(404); exit("Board-Link ungültig. Im Studio → Bestellungen → Küchen-Board findest du den aktuellen Link.\n"); }
