@@ -82,6 +82,15 @@ section{padding:96px 0;scroll-margin-top:84px}@media(max-width:720px){section{pa
 /* agents */
 .ag{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:40px}@media(max-width:960px){.ag{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.ag{grid-template-columns:1fr}}
 .ag .card{padding:22px}.ag .ic{font-size:26px;margin-bottom:12px}.ag h4{font:600 16px var(--sans);margin-bottom:6px}.ag p{color:var(--mute);font-size:13.5px}
+/* branchen */
+.sec{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:40px}@media(max-width:960px){.sec{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.sec{grid-template-columns:1fr}}
+.sec .card{padding:22px}.sec .ic{font-size:26px;margin-bottom:12px}.sec h4{font:600 16px var(--sans);margin-bottom:6px}.sec p{color:var(--mute);font-size:13.5px}
+/* tokens */
+.tk{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:40px}@media(max-width:960px){.tk{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.tk{grid-template-columns:1fr}}
+.tk .card{display:flex;flex-direction:column;padding:24px}.tk .price{margin:14px 0 2px}.tk .price b{font-size:30px}
+.tk .qty{font:700 16px var(--sans)}.tk .per{color:var(--mute);font-size:13px;margin-top:4px}
+.tk ul{list-style:none;display:grid;gap:8px;margin:14px 0 18px;color:var(--ink2);font-size:14px}.tk li::before{content:"✓ ";color:var(--teal);font-weight:700}
+.tk .btn{margin-top:auto;justify-content:center}
 /* api */
 .api{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:start}@media(max-width:960px){.api{grid-template-columns:1fr}}
 .tiers{display:grid;gap:16px;margin-top:28px}
@@ -115,7 +124,7 @@ footer .cols{display:flex;gap:40px;flex-wrap:wrap}footer a:hover{color:#fff}
 
 <nav class="nav"><div class="wrap">
   <a class="logo" href="/"><span class="em">§</span>Chat<b>Help</b></a>
-  <div class="menu"><a href="#creator">Creator-Pakete</a><a href="#agenten">KI-Agenten</a><a href="#api">API</a><a href="#recht">Recht</a><a href="#preise">Preise</a></div>
+  <div class="menu"><a href="#creator">Creator</a><a href="#branchen">Branchen</a><a href="#agenten">Agenten</a><a href="#tokens">Tokens</a><a href="#api">API</a><a href="#recht">Recht</a></div>
   <div class="navr"><a class="btn" href="/chat/">Anmelden</a><a class="btn p" href="#creator">Loslegen</a></div>
 </div></nav>
 
@@ -123,8 +132,8 @@ footer .cols{display:flex;gap:40px;flex-wrap:wrap}footer a:hover{color:#fff}
   <div>
     <span class="tag gold reveal">Made in Europe · DSGVO-konform</span>
     <h1 class="reveal d1">KI, die <span class="g">für dich</span> arbeitet.</h1>
-    <p class="sub reveal d2">Fertige KI-Pakete für Content-Creator, einsatzbereite KI-Agenten &amp; Automationen, geprüfte Rechtsdokumente – per Web-App oder <b style="color:#fff">REST-API</b>. Eine Plattform, ein Konto.</p>
-    <div class="cta reveal d3"><a class="btn p" href="#creator">Creator-Pakete ansehen →</a><a class="btn" href="#agenten">KI-Agenten entdecken</a></div>
+    <p class="sub reveal d2">KI-Pakete, branchenfertige Agenten und eine REST-API für <b style="color:#fff">jede Branche</b> – bezahlt in Tokens, nutzbar per Web-App oder API. Eine Plattform, ein Konto.</p>
+    <div class="cta reveal d3"><a class="btn p" href="#tokens">Tokens kaufen →</a><a class="btn" href="#branchen">API für deine Branche</a></div>
     <div class="trust reveal d3"><span><i>✓</i> Von 2 KIs geprüft</span><span><i>✓</i> EU-Server &amp; DSGVO</span><span><i>✓</i> Monatlich kündbar</span></div>
   </div>
   <div class="panel reveal d2">
@@ -161,8 +170,28 @@ footer .cols{display:flex;gap:40px;flex-wrap:wrap}footer a:hover{color:#fff}
       <div class="price"><b>59 €</b><small>/ Monat</small></div><a class="btn p" href="/chat/?plan=creator-youtube">Paket starten</a></div>
     <div class="card"><span class="tag" style="color:var(--rose);border-color:rgba(242,109,139,.4)">Untertitel</span><h3>KI-Übersetzung &amp; Untertitel</h3><div class="de">Video &amp; Audio → .SRT in jeder Sprache</div>
       <p style="color:var(--ink2);font-size:15px">Lade Video oder Audio hoch – die KI transkribiert, übersetzt in europäische Sprachen und liefert zeitgestempelte .SRT-Dateien, fertig zum Hochladen.</p>
-      <ul><li>Automatische Transkription</li><li>Übersetzung in 12+ Sprachen</li><li>Zeitgestempelte .SRT / .VTT</li><li>Credits – zahle nur, was du nutzt</li></ul>
-      <div class="price"><b>ab 19 €</b><small>/ 200 Min</small></div><a class="btn p" href="/chat/?plan=creator-subtitles">Credits kaufen</a></div>
+      <ul><li>Automatische Transkription</li><li>Übersetzung in 12+ Sprachen</li><li>Zeitgestempelte .SRT / .VTT</li><li>Tokens – zahle nur, was du nutzt</li></ul>
+      <div class="price"><b>ab 19 €</b><small>/ 200 Min</small></div><a class="btn p" href="/chat/?plan=creator-subtitles">Tokens kaufen</a></div>
+  </div>
+</div></section>
+
+<section id="branchen" style="background:var(--bg2)"><div class="wrap">
+  <span class="eyebrow">Für jede Branche</span>
+  <h2 style="margin-top:12px">KI-Agenten &amp; API – <span class="g">für alle Sektoren.</span></h2>
+  <p class="sub" style="margin-top:14px">Ein Token-Konto, eine API, branchenfertige Agenten und Vorlagen. Wähle deinen Sektor – oder kombiniere mehrere.</p>
+  <div class="sec">
+    <a class="card" href="/chat/"><div class="ic">⚖️</div><h4>Recht &amp; Verwaltung</h4><p>Widerspruch, Fristen, Formulare, Bescheide</p></a>
+    <a class="card" href="#api"><div class="ic">🛍️</div><h4>E-Commerce &amp; Handel</h4><p>Produkttexte, Kundensupport, Retouren</p></a>
+    <a class="card" href="#api"><div class="ic">🏠</div><h4>Immobilien</h4><p>Exposés, Mietverträge, Anfragen-Agent</p></a>
+    <a class="card" href="#api"><div class="ic">🩺</div><h4>Praxis &amp; Gesundheit</h4><p>Terminkommunikation, Patienteninfos (Verwaltung)</p></a>
+    <a class="card" href="#api"><div class="ic">👥</div><h4>HR &amp; Recruiting</h4><p>Stellenanzeigen, Screening, Onboarding</p></a>
+    <a class="card" href="#api"><div class="ic">💶</div><h4>Finanzen &amp; Steuern</h4><p>Belege, Fristen, Erklärungen, Mahnwesen</p></a>
+    <a class="card" href="#api"><div class="ic">🍽️</div><h4>Gastronomie &amp; Hotel</h4><p>Speisekarten, Bewertungen, Buchungen</p></a>
+    <a class="card" href="#api"><div class="ic">🔧</div><h4>Handwerk &amp; Service</h4><p>Angebote, Rechnungen, Kundenkommunikation</p></a>
+    <a class="card" href="#api"><div class="ic">🎓</div><h4>Bildung &amp; Coaching</h4><p>Kursinhalte, Übersetzung, Untertitel</p></a>
+    <a class="card" href="#creator"><div class="ic">📣</div><h4>Marketing &amp; Agenturen</h4><p>Content, SEO, Kampagnen, Reporting</p></a>
+    <a class="card" href="#api"><div class="ic">🚚</div><h4>Logistik &amp; Industrie</h4><p>Dokumentation, Übersetzung, Support</p></a>
+    <a class="card" href="#creator"><div class="ic">🎬</div><h4>Content &amp; Medien</h4><p>Skripte, Untertitel, Social-Content</p></a>
   </div>
 </div></section>
 
@@ -179,20 +208,33 @@ footer .cols{display:flex;gap:40px;flex-wrap:wrap}footer a:hover{color:#fff}
   <div style="margin-top:28px"><a class="btn" href="/chat/?view=agents">Alle Agenten ansehen →</a></div>
 </div></section>
 
+<section id="tokens" style="background:var(--bg2)"><div class="wrap">
+  <span class="eyebrow">Tokens</span>
+  <h2 style="margin-top:12px">Eine Währung. <span class="g">Alle Dienste.</span></h2>
+  <p class="sub" style="margin-top:14px">Kaufe Tokens einmalig – nutze sie in jedem Paket, jedem Agenten und per API. Kein Abo nötig, Tokens verfallen nicht. Mengenrabatt inklusive.</p>
+  <div class="tk">
+    <div class="card"><span class="tag">Starter</span><div class="price"><b>49 €</b></div><div class="qty">10.000 Tokens</div><div class="per">0,0049 € / Token</div><ul><li>Alle Dienste &amp; API</li><li>Verfallen nicht</li></ul><a class="btn" href="/chat/?tokens=10k">Kaufen</a></div>
+    <div class="card feat"><span class="tag gold">Pro</span><div class="price"><b>199 €</b></div><div class="qty">50.000 Tokens</div><div class="per">0,0040 € / Token · −18 %</div><ul><li>Alle Dienste &amp; API</li><li>Priorisierte Verarbeitung</li></ul><a class="btn p" href="/chat/?tokens=50k">Kaufen</a></div>
+    <div class="card"><span class="tag violet">Business</span><div class="price"><b>690 €</b></div><div class="qty">200.000 Tokens</div><div class="per">0,00345 € / Token · −30 %</div><ul><li>Alle Dienste &amp; API</li><li>Team-Seats · Dashboard</li></ul><a class="btn" href="/chat/?tokens=200k">Kaufen</a></div>
+    <div class="card"><span class="tag teal">Enterprise</span><div class="price"><b>ab 0,0025 €</b><small>/ Token</small></div><div class="qty">1 Mio.+ Tokens</div><div class="per">individuell · auf Rechnung</div><ul><li>Volumenpreis</li><li>AVV · dedizierter Support</li></ul><a class="btn" href="mailto:api@chat-help.com?subject=Tokens%20Enterprise">Anfragen</a></div>
+  </div>
+  <p style="color:var(--mute);font-size:13.5px;margin-top:16px">Richtwerte: 1 Min Untertitel ≈ 2 Tokens · 1 Social-Post ≈ 5 Tokens · 1 YouTube-Skript ≈ 50 Tokens · 1 Widerspruch ≈ 80 Tokens. Alle Preise zzgl. MwSt.</p>
+</div></section>
+
 <section id="api"><div class="wrap api">
   <div>
-    <span class="eyebrow">API &amp; Business</span>
+    <span class="eyebrow">API &amp; Business · für alle Branchen</span>
     <h2 style="margin-top:12px">Dieselbe KI – <span class="gx">in deinem Produkt.</span></h2>
     <p class="sub" style="margin-top:14px">Alle Dienste – Social-Content, YouTube-Skripte &amp; SEO, Untertitel &amp; Übersetzung, KI-Agenten – per REST-API. Für Agenturen, Plattformen und Teams, die skalieren: priorisierte Verarbeitung, Webhooks, SLA und DSGVO-Vertrag (AVV).</p>
     <div class="tiers">
       <div class="card tier"><div><span class="tag violet">API Pro</span><h3 style="font-size:22px;margin-top:12px">Für Agenturen &amp; Teams</h3>
-        <ul><li>✓ Alle Dienste per REST-API &amp; Webhooks</li><li>✓ 50.000 Credits / Monat inklusive</li><li>✓ Priorisierte Verarbeitung · 99,9 % SLA</li><li>✓ 5 Team-Seats · Nutzungs-Dashboard</li></ul></div>
+        <ul><li>✓ Alle Dienste per REST-API &amp; Webhooks</li><li>✓ 50.000 Tokens / Monat inklusive</li><li>✓ Priorisierte Verarbeitung · 99,9 % SLA</li><li>✓ 5 Team-Seats · Nutzungs-Dashboard</li></ul></div>
         <div class="right"><div class="price" style="justify-content:flex-end"><b>249 €</b><small>/ Monat</small></div><a class="btn p" style="margin-top:12px" href="mailto:api@chat-help.com?subject=API%20Pro">API-Key anfordern</a></div></div>
       <div class="card tier feat"><div><span class="tag gold">Enterprise</span><h3 style="font-size:22px;margin-top:12px">Volumen, White-Label, dedizierter Support</h3>
         <ul><li>✓ Individuelle Volumenpreise &amp; Limits</li><li>✓ White-Label &amp; eigene Domain</li><li>✓ Dedizierter Ansprechpartner · AVV/DSGVO</li><li>✓ Onboarding &amp; Integrationshilfe</li></ul></div>
         <div class="right"><div class="price" style="justify-content:flex-end"><b>ab 990 €</b><small>/ Monat</small></div><a class="btn" style="margin-top:12px" href="mailto:api@chat-help.com?subject=Enterprise">Gespräch vereinbaren</a></div></div>
     </div>
-    <p style="color:var(--mute);font-size:13.5px;margin-top:16px">Darüber hinaus Pay-as-you-go ab 0,005 € / Credit · Alle Preise zzgl. MwSt.</p>
+    <p style="color:var(--mute);font-size:13.5px;margin-top:16px">Darüber hinaus Pay-as-you-go ab 0,005 € / Token – oder günstiger per <a href="#tokens" style="color:var(--gold)">Token-Paket</a> · Alle Preise zzgl. MwSt.</p>
   </div>
   <div class="code"><div class="bar"><i></i><i></i><i></i></div><span class="c"># Untertitel in 4 Sprachen – ein Aufruf</span>
 curl https://api.chat-help.com/v1/subtitles \
@@ -242,7 +284,7 @@ curl https://api.chat-help.com/v1/scripts \
   <div class="ctab">
     <span class="eyebrow">Bereit?</span>
     <h2 style="margin:14px 0 12px">Ein Konto. <span class="g">Alle drei Welten.</span></h2>
-    <p class="sub" style="margin:0 auto">Starte mit einem Paket oder direkt per API und erweitere jederzeit – Creator, Agenten, API und Recht teilen sich dein ChatHelp-Konto.</p>
+    <p class="sub" style="margin:0 auto">Kaufe Tokens oder starte mit einem Paket – Creator, Branchen-Agenten, API und Recht teilen sich dein ChatHelp-Konto und deine Tokens.</p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px"><a class="btn p" href="/chat/?view=konto">Kostenlos registrieren</a><a class="btn" href="#creator">Pakete vergleichen</a></div>
   </div>
 </div></section>
