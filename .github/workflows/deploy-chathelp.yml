@@ -110,9 +110,11 @@ jobs:
         run: |
           set -e
           sudo apt-get update -qq && sudo apt-get install -y -qq php-cli sshpass lftp dnsutils > /dev/null
-          [ -f site/index.html ] || { echo "::error::site/index.html yok"; exit 1; }
-          for f in chat/tokens-lib.php chat/api.php chat/tokens-checkout.php chat/tokens-webhook.php; do
-            [ -f "$f" ] || { echo "::error::$f yok"; exit 1; }; php -l "$f"; done
+          [ -f deploy-manifest.txt ] || { echo "::error::deploy-manifest.txt yok"; exit 1; }
+          grep -vE '^\s*(#|$)' deploy-manifest.txt | while read -r SRC DST; do
+            [ -f "$SRC" ] || { echo "::error::manifest: $SRC yok"; exit 1; }
+            case "$SRC" in *.php) php -l "$SRC" || exit 1;; *) echo "ok $SRC";; esac
+          done
           if [ "$TOOLS" = "true" ]; then
             for f in chat/open-signup.php chat/mail-api.php chat/fix-geo.php chat/fix-mail.php; do [ -f "$f" ] && php -l "$f" || echo "(yok, atlandı) $f"; done
           fi
@@ -255,8 +257,8 @@ jobs:
           echo "docroot    : ${{ steps.disc.outputs.dest }}${{ steps.discl.outputs.dest }}"
           echo "dry_run    : ${{ github.event.inputs.dry_run }}   root_index: $ROOTIDX"
           echo "kopyalanacak:"
-          echo "  site/index.html                 -> DOCROOT/index.html   (eski: index.html.bak-<ts>)"
-          echo "  chat/tokens-lib.php, api.php, tokens-checkout.php, tokens-webhook.php -> DOCROOT/chat/"
+          grep -vE '^\s*(#|$)' deploy-manifest.txt | while read -r SRC DST; do echo "  $SRC -> DOCROOT/$DST"; done
+          echo "  (kök index.html eskisi: index.html.bak-<ts>)"
           [ "$TOOLS" = "true" ] && echo "  + chat/open-signup.php, mail-api.php, fix-geo.php, fix-mail.php (tek-seferlik, sonra sil)"
           [ "$ROOTIDX" = "true" ] && echo "  + kökte index.php varsa .htaccess: DirectoryIndex index.html index.php (eski: .htaccess.bak-<ts>)"
           echo "DOKUNULMAYAN: chat/auth.php, chat/db.php, chat/index.php, WordPress dosyalari ve diger tum mevcut dosyalar"
@@ -269,15 +271,17 @@ jobs:
           case "$DEST" in auto|"") echo "::error::docroot belirlenemedi; target'i elle ver"; exit 1;; esac
           $SSHCMD "$SRV" "cd $DEST && ( [ -f index.html ] && cp index.html index.html.bak-$TS || true ) && mkdir -p chat"
           if $SSHCMD "$SRV" "command -v rsync >/dev/null"; then CP(){ rsync -az -e "$SSHCMD" "$@"; }; echo "aktarım: rsync"; else CP(){ $SCPCMD -q "$@"; }; echo "aktarım: scp (sunucuda rsync yok)"; fi
-          CP site/index.html "$SRV:$DEST/index.html"
-          CP chat/tokens-lib.php chat/api.php chat/tokens-checkout.php chat/tokens-webhook.php "$SRV:$DEST/chat/"
+          grep -vE '^\s*(#|$)' deploy-manifest.txt | while read -r SRC DST; do
+            D=$(dirname "$DST"); [ "$D" = "." ] || $SSHCMD "$SRV" "mkdir -p $DEST/$D"
+            CP "$SRC" "$SRV:$DEST/$DST" && echo "  -> $DST"
+          done
           if [ "$TOOLS" = "true" ]; then
             for f in chat/open-signup.php chat/mail-api.php chat/fix-geo.php chat/fix-mail.php; do [ -f "$f" ] && CP "$f" "$SRV:$DEST/chat/"; done
           fi
           if [ "$ROOTIDX" = "true" ] && $SSHCMD "$SRV" "[ -f $DEST/index.php ]"; then
             $SSHCMD "$SRV" "cd $DEST && { [ -f .htaccess ] && cp .htaccess .htaccess.bak-$TS; true; } && if grep -qiE '^[[:space:]]*DirectoryIndex' .htaccess 2>/dev/null; then sed -i -E 's/^[[:space:]]*DirectoryIndex.*/DirectoryIndex index.html index.php/' .htaccess; echo HTACCESS: DirectoryIndex guncellendi; else { echo 'DirectoryIndex index.html index.php'; [ -f .htaccess ] && cat .htaccess; } > .htaccess.new && mv .htaccess.new .htaccess; echo HTACCESS: DirectoryIndex eklendi; fi"
           fi
-          $SSHCMD "$SRV" "cd $DEST && ls -la index.html index.php .htaccess 2>/dev/null; ls chat/api.php chat/tokens-lib.php"
+          $SSHCMD "$SRV" "cd $DEST && ls -la index.html index.php .htaccess 2>/dev/null; ls -la chat/api.php chat/tokens-lib.php chat/plans.php chat/agent.php 2>&1"
           echo "KOPYALAMA TAMAM -> $DEST"
 
       - name: Sunucuya kopyala (SFTP/FTP)
@@ -290,14 +294,11 @@ jobs:
           lf "cd $DEST; mv index.html index.html.bak-$TS" 2>/dev/null && echo "index.html yedeklendi" || echo "(kökte index.html yoktu)"
           EXTRA=""; if [ "$TOOLS" = "true" ]; then for f in chat/open-signup.php chat/mail-api.php chat/fix-geo.php chat/fix-mail.php; do [ -f "$f" ] && EXTRA="$EXTRA
           put -O $DEST/chat $f"; done; fi
+          PUTS=""; while read -r SRC DST; do D=$(dirname "$DST"); PUTS="$PUTS
+          mkdir -p $DEST/$D
+          put -o $DEST/$DST $SRC"; done < <(grep -vE '^\s*(#|$)' deploy-manifest.txt)
           lf "set cmd:fail-exit yes
-          cd $DEST
-          mkdir -p chat
-          put -O $DEST site/index.html
-          put -O $DEST/chat chat/tokens-lib.php
-          put -O $DEST/chat chat/api.php
-          put -O $DEST/chat chat/tokens-checkout.php
-          put -O $DEST/chat chat/tokens-webhook.php$EXTRA
+          cd $DEST$PUTS$EXTRA
           cls -la $DEST/index.html $DEST/chat/api.php $DEST/chat/tokens-lib.php"
           if [ "$ROOTIDX" = "true" ] && lf "cls -1 $DEST/index.php" >/dev/null 2>&1; then
             : > /tmp/ht; lf "get $DEST/.htaccess -o /tmp/ht" 2>/dev/null || echo "(.htaccess yoktu, yeni olusturulacak)"
