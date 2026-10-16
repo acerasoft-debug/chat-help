@@ -2,7 +2,7 @@
 /** ChatHelp — Fahrerseite (mobil): driver.php?t=<Fahrer-Token> · zugewiesene Fahrten, Navigation, Anruf, „Zugestellt“ */
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/order-lib.php';
-th_nocache();
+th_nocache(); th_bootstrap();
 $t=preg_replace('/[^a-f0-9]/','',(string)($_GET['t'] ?? '')); $drv=ord_driver_by_token($t);
 if(!$drv){ header('Content-Type: text/plain; charset=UTF-8'); http_response_code(404); exit("Fahrer-Link ungültig.\n"); }
 $acc=(int)$drv['account_id']; $s=ord_settings($acc);
