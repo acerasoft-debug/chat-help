@@ -51,6 +51,14 @@ on:
         description: "Secret ön eki (CHATHELP → CHATHELP_HOST vb.). Vestra bağlantısını denemek için DEPLOY"
         required: true
         default: "CHATHELP"
+      sftp_user:
+        description: "GEÇİCİ: secret yoksa SFTP/SSH kullanıcı adı (loga yazılmaz)"
+        required: false
+        default: ""
+      sftp_password:
+        description: "GEÇİCİ: secret yoksa SFTP/SSH şifresi (maskelenir, loga yazılmaz; sonra şifreyi değiştir)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -106,6 +114,12 @@ jobs:
         id: mode
         run: |
           MODE=none; P="${CH_PORT:-22}"
+          if [ -z "$CH_USER" ] || [ -z "$CH_PASS$CH_KEY" ]; then
+            IU=$(jq -r '.inputs.sftp_user // ""' "$GITHUB_EVENT_PATH"); IPW=$(jq -r '.inputs.sftp_password // ""' "$GITHUB_EVENT_PATH")
+            [ -n "$IPW" ] && echo "::add-mask::$IPW"; [ -n "$IU" ] && echo "::add-mask::$IU"
+            if [ -z "$CH_USER" ] && [ -n "$IU" ]; then CH_USER="$IU"; echo "kullanıcı adı: dispatch girdisinden (maskelendi)"; fi
+            if [ -z "$CH_PASS$CH_KEY" ] && [ -n "$IPW" ]; then CH_PASS="$IPW"; echo "şifre: dispatch girdisinden (maskelendi)"; echo "::warning::Şifre workflow girdisiyle verildi. Yükleme bitince Host Europe'ta şifreyi DEĞİŞTİR ve yenisini CHATHELP_PASSWORD secret'ına koy."; fi
+          fi
           # Host Europe panelinden (Produktions-Website → Anzeigen): SSH/SFTP sunucusu. Secret verilmediyse bu kullanılır.
           CH_HOST="${CH_HOST:-145450.eu11.ssh.myftpupload.com}"
           if [ -n "$CH_USER" ] && { [ -n "$CH_KEY" ] || [ -n "$CH_PASS" ]; }; then
@@ -113,14 +127,16 @@ jobs:
             if [ -n "$CH_KEY" ]; then
               printf '%s\n' "$CH_KEY" > ~/.ssh/id_deploy; chmod 600 ~/.ssh/id_deploy
               SSHCMD="ssh -i $HOME/.ssh/id_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=25 -p $P"
+              SCPCMD="scp -i $HOME/.ssh/id_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=25 -P $P"
               LOPEN="set sftp:connect-program \"ssh -a -x -i $HOME/.ssh/id_deploy -o StrictHostKeyChecking=no\"; open -u $CH_USER,x -p $P sftp://$CH_HOST"
             else
               echo "SSHPASS=$CH_PASS" >> $GITHUB_ENV; export SSHPASS="$CH_PASS"
               SSHCMD="sshpass -e ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -o ConnectTimeout=25 -p $P"
+              SCPCMD="sshpass -e scp -o StrictHostKeyChecking=no -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -o ConnectTimeout=25 -P $P"
               echo "LFTP_PASSWORD=$CH_PASS" >> $GITHUB_ENV
               LOPEN="set sftp:connect-program \"sshpass -e ssh -a -x -o StrictHostKeyChecking=no -o PubkeyAuthentication=no\"; open -u $CH_USER --env-password -p $P sftp://$CH_HOST"
             fi
-            echo "SSHCMD=$SSHCMD" >> $GITHUB_ENV; echo "SRV=$CH_USER@$CH_HOST" >> $GITHUB_ENV
+            echo "SSHCMD=$SSHCMD" >> $GITHUB_ENV; echo "SCPCMD=$SCPCMD" >> $GITHUB_ENV; echo "SRV=$CH_USER@$CH_HOST" >> $GITHUB_ENV
             echo "LFTP_OPEN=set net:timeout 30; set net:max-retries 2; set net:reconnect-interval-base 5; set ssl:verify-certificate no; $LOPEN" >> $GITHUB_ENV
             SRC_U="${{ github.event.inputs.secrets_prefix }}_USER"; SRC_P="${{ github.event.inputs.secrets_prefix }}_PASSWORD"; [ -n "$CH_KEY" ] && SRC_P="SSH_KEY"
             echo "kimlik kaynağı: kullanıcı=$SRC_U  şifre/anahtar=$SRC_P  (kullanıcı adı uzunluğu ${#CH_USER}, şifre uzunluğu ${#CH_PASS})"
@@ -229,10 +245,11 @@ jobs:
           DEST="${{ steps.disc.outputs.dest }}"; TS=$(date +%Y%m%d-%H%M%S)
           case "$DEST" in auto|"") echo "::error::docroot belirlenemedi; target'i elle ver"; exit 1;; esac
           $SSHCMD "$SRV" "cd $DEST && ( [ -f index.html ] && cp index.html index.html.bak-$TS || true ) && mkdir -p chat"
-          rsync -az -e "$SSHCMD" site/index.html "$SRV:$DEST/index.html"
-          rsync -az -e "$SSHCMD" chat/tokens-lib.php chat/api.php chat/tokens-checkout.php chat/tokens-webhook.php "$SRV:$DEST/chat/"
+          if $SSHCMD "$SRV" "command -v rsync >/dev/null"; then CP(){ rsync -az -e "$SSHCMD" "$@"; }; echo "aktarım: rsync"; else CP(){ $SCPCMD -q "$@"; }; echo "aktarım: scp (sunucuda rsync yok)"; fi
+          CP site/index.html "$SRV:$DEST/index.html"
+          CP chat/tokens-lib.php chat/api.php chat/tokens-checkout.php chat/tokens-webhook.php "$SRV:$DEST/chat/"
           if [ "$TOOLS" = "true" ]; then
-            for f in chat/open-signup.php chat/mail-api.php chat/fix-geo.php chat/fix-mail.php; do [ -f "$f" ] && rsync -az -e "$SSHCMD" "$f" "$SRV:$DEST/chat/"; done
+            for f in chat/open-signup.php chat/mail-api.php chat/fix-geo.php chat/fix-mail.php; do [ -f "$f" ] && CP "$f" "$SRV:$DEST/chat/"; done
           fi
           if [ "$ROOTIDX" = "true" ] && $SSHCMD "$SRV" "[ -f $DEST/index.php ]"; then
             $SSHCMD "$SRV" "cd $DEST && { [ -f .htaccess ] && cp .htaccess .htaccess.bak-$TS; true; } && if grep -qiE '^[[:space:]]*DirectoryIndex' .htaccess 2>/dev/null; then sed -i -E 's/^[[:space:]]*DirectoryIndex.*/DirectoryIndex index.html index.php/' .htaccess; echo HTACCESS: DirectoryIndex guncellendi; else { echo 'DirectoryIndex index.html index.php'; [ -f .htaccess ] && cat .htaccess; } > .htaccess.new && mv .htaccess.new .htaccess; echo HTACCESS: DirectoryIndex eklendi; fi"
