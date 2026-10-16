@@ -339,4 +339,9 @@ function th_nocache(): void {
     /* Host Europe/GoDaddy MWP: Set-Cookie içeren yanıtlar platform/edge önbelleğine alınmaz (Cache-Control tek başına yetmiyor) */
     header('Set-Cookie: chnc=1; Path=/; Max-Age=3600; Secure; HttpOnly; SameSite=Lax', false);
 }
+/** Dynamische HTML-Seiten (Fahrer, Termin-Verwaltung): ohne Cache-Buster per 302 auf dieselbe URL + _=<Zeit> umleiten – Redirects werden am Edge nicht gecacht, die Zielseite ist eindeutig. */
+function th_fresh(): void {
+    if($_SERVER['REQUEST_METHOD']!=='GET' || isset($_GET['_']) || headers_sent()) return;
+    $u=strtok((string)$_SERVER['REQUEST_URI'],'?'); $q=$_GET; $q['_']=dechex(time()); th_nocache(); header('Location: '.$u.'?'.http_build_query($q),true,302); exit;
+}
 function th_json(int $code, array $data): void { th_nocache(); http_response_code($code); header('Content-Type: application/json; charset=UTF-8'); echo json_encode($data, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); exit; }

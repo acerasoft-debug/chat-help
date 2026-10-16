@@ -2,7 +2,7 @@
 /** ChatHelp — Termin ansehen / absagen / in den Kalender (öffentlich per Buchungscode): appt.php?c=CODE[&ics=1] */
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/appt-lib.php';
-th_nocache();
+th_nocache(); if(!isset($_GET['ics'])) th_fresh();   // Statusseite immer frisch (Edge-Cache), ICS darf gecacht werden
 $code=strtoupper(preg_replace('/[^A-Za-z0-9]/','',(string)($_GET['c'] ?? '')));
 $b=$code!=='' ? appt_by_code($code) : null; $s=$b ? appt_settings((int)$b['account_id']) : null;
 if($b && isset($_GET['ics'])){ header('Content-Type: text/calendar; charset=UTF-8'); header('Content-Disposition: attachment; filename="termin-'.$b['code'].'.ics"'); echo appt_ics($b,$s); exit; }
