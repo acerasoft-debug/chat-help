@@ -49,7 +49,7 @@ jobs:
         run: |
           set -e
           sudo apt-get update -qq && sudo apt-get install -y -qq sshpass php-cli > /dev/null
-          for f in chat/dump-signup.php chat/open-signup.php chat/diag-mail.php chat/diag-geo.php chat/mail-api.php chat/fix-mail.php chat/fix-geo.php; do php -l "$f" >/dev/null || exit 1; done
+          for f in chat/dump-signup.php chat/open-signup.php chat/diag-mail.php chat/diag-geo.php chat/mail-final.php chat/fix-geo.php; do php -l "$f" >/dev/null || exit 1; done
           trim(){ local v="$1"; v="${v//$'\r'/}"; v="${v#"${v%%[![:space:]]*}"}"; v="${v%"${v##*[![:space:]]}"}"; printf '%s' "$v"; }
           CH_USER=$(trim "$CH_USER"); CH_PASS=$(trim "$CH_PASS"); CH_HOST=$(trim "${CH_HOST:-145450.eu11.ssh.myftpupload.com}"); P=$(trim "${CH_PORT:-22}")
           [ -n "$CH_USER" ] && [ -n "$CH_PASS" ] || { echo "::error::CHATHELP_USER / CHATHELP_PASSWORD yok"; exit 1; }
@@ -66,7 +66,7 @@ jobs:
         run: |
           set -e
           mkdir -p /tmp/t; R=$(openssl rand -hex 6); echo "RND=$R" >> $GITHUB_ENV
-          for f in dump-signup open-signup diag-mail diag-geo mail-api fix-mail fix-geo; do
+          for f in dump-signup open-signup diag-mail diag-geo mail-final fix-geo; do
             { printf '%s\n' "<?php if (PHP_SAPI !== 'cli') { http_response_code(403); exit('forbidden'); } ?>"; cat "chat/$f.php"; } > "/tmp/t/_fx_${R}_$f.php"
             php -l "/tmp/t/_fx_${R}_$f.php" >/dev/null
           done
@@ -88,6 +88,7 @@ jobs:
           run open-signup '[]' 160
           run diag-mail "[\"to\"=>\"$MAIL_TO\"]" 200
           run diag-geo '[]' 160
+          run mail-final "[\"to\"=>\"$MAIL_TO\"]" 60
 
       - name: UYGULA — kayıt açma (DB), e-posta (API/SMTP), ülke/hukuk kilidi, opcache
         if: ${{ github.event.inputs.mode == 'apply' }}
@@ -97,8 +98,7 @@ jobs:
           run(){ echo; echo "################ $1 ################"; $SSHCMD -n "$SRV" "cd $DEST/chat && php -d display_errors=1 -d error_reporting=E_ALL -r '\$_GET=$2; \$_SERVER[\"REMOTE_ADDR\"]=\"127.0.0.1\"; \$_SERVER[\"HTTP_HOST\"]=\"chat-help.com\"; include \"_fx_${R}_$1.php\";' 2>&1 | head -${3:-220}"; }
           echo "--- yedekler (oncesi) ---"; $SSHCMD -n "$SRV" "cd $DEST/chat && cp -n auth.php auth.php.bak-fix-$(date +%Y%m%d-%H%M%S) && ls -la auth.php* | tail -3"
           run open-signup '["apply"=>"1"]' 200
-          HASBREVO=$($SSHCMD -n "$SRV" "grep -c \"define('BREVO_KEY'\" $DEST/chat/db.php")
-          if [ "${HASBREVO:-0}" -ge 1 ]; then run mail-api "[\"to\"=>\"$MAIL_TO\"]" 220; else echo "BREVO_KEY db.php'de yok -> SMTP yolu (fix-mail)"; run fix-mail "[\"to\"=>\"$MAIL_TO\"]" 220; fi
+          run mail-final "[\"to\"=>\"$MAIL_TO\",\"apply\"=>\"1\"]" 120
           run fix-geo '[]' 200
           echo; echo "################ opcache reset (web) ################"
           curl -sS -m 20 "https://chat-help.com/chat/_opc_${R}.php?x=$(date +%s)"; echo
