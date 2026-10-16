@@ -211,6 +211,8 @@ return [
 
     'checkout_title'     => 'Kassa',
     'checkout_stripe'    => 'Ödəniş üçün sizi Stripe-a yönləndirəcəyik.',
+    'billing_notice_t'   => 'Təhlükəsiz hesablaşma bildirişi:',
+    'billing_notice'     => 'Təhlükəsizliyiniz üçün platformamızda aparılan bütün kart ödənişləri, beynəlxalq hesablaşmalar və maliyyə əməliyyatları ana şirkətimiz olan %C% şirkətinin infrastrukturu vasitəsilə mərkəzləşdirilib və qorunur. Kart çıxarışınızda bu əməliyyat üzrə səlahiyyətli satıcı adı kimi %C% göstəriləcək. Bütün məlumatlar 256-bit SSL bağlantısı ilə şifrələnir və təhlükəsiz emal olunur.',
     'checkout_country'   => 'Çatdırılma ölkəsi',
     'checkout_go'        => 'Ödənişə davam et',
     'checkout_terms'     => 'Sifariş verməklə {terms} qəbul edir və {withdrawal} oxuduğunuzu təsdiqləyirsiniz.',

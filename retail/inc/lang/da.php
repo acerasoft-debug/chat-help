@@ -211,6 +211,8 @@ return [
 
     'checkout_title'     => 'Kasse',
     'checkout_stripe'    => 'Du sendes videre til Stripe for at betale.',
+    'billing_notice_t'   => 'Meddelelse om sikker fakturering:',
+    'billing_notice'     => 'Af hensyn til din sikkerhed bliver alle kortbetalinger, internationale afregninger og finansielle transaktioner på vores platform centraliseret og sikret via infrastrukturen hos vores moderselskab, %C%. På din kortudskrift vil %C% fremgå som autoriseret forhandler for denne transaktion. Alle data krypteres og behandles sikkert via en 256-bit SSL-forbindelse.',
     'checkout_country'   => 'Leveringsland',
     'checkout_go'        => 'Videre til betaling',
     'checkout_terms'     => 'Ved at bestille accepterer du {terms} og bekræfter, at du har læst {withdrawal}.',

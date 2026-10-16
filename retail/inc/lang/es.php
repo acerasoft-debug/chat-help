@@ -211,6 +211,8 @@ return [
 
     'checkout_title'     => 'Caja',
     'checkout_stripe'    => 'Te llevaremos a Stripe para pagar.',
+    'billing_notice_t'   => 'Aviso de facturación segura:',
+    'billing_notice'     => 'Por tu seguridad, todos los cobros con tarjeta, liquidaciones internacionales y operaciones financieras de nuestra plataforma están centralizados y protegidos a través de la infraestructura de nuestra empresa matriz, %C%. En el extracto de tu tarjeta aparecerá %C% como nombre del comercio autorizado para esta operación. Todos los datos se cifran y se procesan de forma segura mediante una conexión SSL de 256 bits.',
     'checkout_country'   => 'País de entrega',
     'checkout_go'        => 'Continuar al pago',
     'checkout_terms'     => 'Al pedir aceptas las {terms} y confirmas haber leído el {withdrawal}.',

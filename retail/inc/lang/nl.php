@@ -217,6 +217,8 @@ return [
 
     'checkout_title'     => 'Kassa',
     'checkout_stripe'    => 'Je wordt naar Stripe gebracht om te betalen.',
+    'billing_notice_t'   => 'Melding veilige facturering:',
+    'billing_notice'     => 'Voor je veiligheid worden alle kaartbetalingen, internationale verrekeningen en financiële handelingen op ons platform centraal afgehandeld en beveiligd via de infrastructuur van ons moederbedrijf %C%. Op je kaartafschrift verschijnt %C% als geautoriseerde handelaar voor deze transactie. Alle gegevens worden versleuteld en veilig verwerkt via een 256-bit SSL-verbinding.',
     'checkout_country'   => 'Land van levering',
     'checkout_go'        => 'Verder naar betaling',
     'checkout_terms'     => 'Door te bestellen aanvaard je de {terms} en bevestig je dat je het {withdrawal} hebt gelezen.',

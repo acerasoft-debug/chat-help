@@ -215,6 +215,8 @@ return [
 
     'checkout_title'     => 'Commande',
     'checkout_stripe'    => 'Vous allez être redirigé vers Stripe pour payer.',
+    'billing_notice_t'   => 'Avis de facturation sécurisée :',
+    'billing_notice'     => 'Pour votre sécurité, l’ensemble des paiements par carte, des règlements internationaux et des opérations financières de notre plateforme sont centralisés et sécurisés via l’infrastructure de notre société mère, %C%. %C% apparaîtra comme nom du commerçant autorisé pour cette transaction sur votre relevé de carte. Toutes les données sont chiffrées et traitées en toute sécurité via une connexion SSL 256 bits.',
     'checkout_country'   => 'Pays de livraison',
     'checkout_go'        => 'Continuer vers le paiement',
     'checkout_terms'     => 'En commandant, vous acceptez les {terms} et confirmez avoir lu le {withdrawal}.',

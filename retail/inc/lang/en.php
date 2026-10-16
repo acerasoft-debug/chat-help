@@ -225,6 +225,8 @@ return [
     // -------------------------------------------------------------- checkout
     'checkout_title'     => 'Checkout',
     'checkout_stripe'    => 'You will be taken to Stripe to pay. Your bag is reserved while you are there.',
+    'billing_notice_t'   => 'Secure billing notice:',
+    'billing_notice'     => 'For your security, all card payments, international settlements and financial operations on our platform are centralised and secured through the infrastructure of our parent company, %C%. %C% will appear as the authorised merchant name for this transaction on your card statement. All data is encrypted and processed securely over a 256-bit SSL connection.',
     'checkout_country'   => 'Delivery country',
     'checkout_go'        => 'Continue to payment',
     'checkout_terms'     => 'By ordering you accept the {terms} and confirm you have read the {withdrawal}.',

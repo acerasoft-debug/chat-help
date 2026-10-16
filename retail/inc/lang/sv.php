@@ -211,6 +211,8 @@ return [
 
     'checkout_title'     => 'Kassa',
     'checkout_stripe'    => 'Du skickas vidare till Stripe för att betala.',
+    'billing_notice_t'   => 'Meddelande om säker fakturering:',
+    'billing_notice'     => 'För din säkerhet hanteras och skyddas alla kortbetalningar, internationella avräkningar och finansiella transaktioner på vår plattform centralt via infrastrukturen hos vårt moderbolag, %C%. På ditt kontoutdrag visas %C% som auktoriserad handlare för denna transaktion. All data krypteras och behandlas säkert via en 256-bitars SSL-anslutning.',
     'checkout_country'   => 'Leveransland',
     'checkout_go'        => 'Vidare till betalning',
     'checkout_terms'     => 'Genom att beställa godkänner du {terms} och bekräftar att du läst {withdrawal}.',

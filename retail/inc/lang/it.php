@@ -211,6 +211,8 @@ return [
 
     'checkout_title'     => 'Cassa',
     'checkout_stripe'    => 'Ti porteremo su Stripe per il pagamento.',
+    'billing_notice_t'   => 'Avviso di fatturazione sicura:',
+    'billing_notice'     => 'Per la tua sicurezza, tutti i pagamenti con carta, i regolamenti internazionali e le operazioni finanziarie della nostra piattaforma sono centralizzati e protetti tramite l’infrastruttura della nostra società capogruppo, %C%. Sull’estratto conto della carta, %C% comparirà come nome dell’esercente autorizzato per questa transazione. Tutti i dati sono cifrati e trattati in sicurezza tramite una connessione SSL a 256 bit.',
     'checkout_country'   => 'Paese di consegna',
     'checkout_go'        => 'Continua al pagamento',
     'checkout_terms'     => 'Ordinando accetti le {terms} e confermi di aver letto il {withdrawal}.',

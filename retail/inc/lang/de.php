@@ -217,6 +217,8 @@ return [
 
     'checkout_title'     => 'Kasse',
     'checkout_stripe'    => 'Zum Bezahlen leiten wir Sie zu Stripe. Ihre Tasche bleibt in der Zeit reserviert.',
+    'billing_notice_t'   => 'Hinweis zur sicheren Abrechnung:',
+    'billing_notice'     => 'Zu Ihrer Sicherheit werden alle Kartenzahlungen, internationalen Abrechnungen und Finanzvorgänge auf unserer Plattform zentral über die Infrastruktur unserer Dachgesellschaft %C% abgewickelt und abgesichert. Auf Ihrer Kartenabrechnung erscheint %C% als autorisierter Händler für diese Transaktion. Alle Daten werden über eine 256-Bit-SSL-Verbindung verschlüsselt und sicher verarbeitet.',
     'checkout_country'   => 'Lieferland',
     'checkout_go'        => 'Weiter zur Zahlung',
     'checkout_terms'     => 'Mit der Bestellung akzeptieren Sie die {terms} und bestätigen, die {withdrawal} gelesen zu haben.',
