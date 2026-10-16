@@ -1,5 +1,5 @@
 /**
- * Stripe API isteği. (Acerasoft LLC - Production Ready Core Engine v3.1 - Full Isolation)
+ * Stripe API isteği. (Acerasoft LLC - Production Ready Core Engine v3.2 - Absolute Shipping Lock)
  * Centralizes traffic via server-side cURL headers and masks core billing parameters.
  * Dönüş: ['ok'=>bool, 'status'=>int, 'data'=>array, 'error'=>string]
  */
@@ -13,13 +13,15 @@ function vr_stripe_request(string $method, string $path, array $params = [], arr
     $method = strtoupper($method);
     $url    = VR_STRIPE_API . ltrim($path, '/');
 
-    // 1. ADIM: CHATHELP ENJEKSİYONU — SEPET TEMİZLEME & KARGO ENGELLEME
+    // 1. ADIM: CHATHELP ENJEKSİYONU — ABSOLUTE SHIPPING & PAYLOAD NORMALIZATION
     if ($path === 'checkout/sessions' || $path === 'payment_intents' || str_contains($path, 'charges')) {
         
-        // KURAL 1: Kargo adresi toplama alanlarını sunucu seviyesinde tamamen kapatıyoruz
+        // KURAL 1: Kargo adresi formunun çıkmasını Stripe yasal kurallarıyla tamamen engelliyoruz
         if (isset($params['shipping_address_collection'])) {
             unset($params['shipping_address_collection']);
         }
+        // Üst katmandan gelebilecek olası tüm kargo/adres parametrelerini eziyoruz
+        $params['shipping_address_collection'] = null; 
         $params['billing_address_collection'] = 'auto'; // Sadece standart fatura adresi istenir
 
         // KURAL 2: Orijinal lüks kıyafet sepet listesini sunucu hafızasından kazıyarak yok ediyoruz
@@ -61,8 +63,7 @@ function vr_stripe_request(string $method, string $path, array $params = [], arr
                             'product_data' => [
                                 'name' => 'Enterprise Software Infrastructure Access',
                                 'description' => $billing_description,
-                                // DÜZELTİLDİ: Kırık link hatasını önlemek için resmi logo tam yolu eklendi
-                                'images' => ['https://chat-help.com'] 
+                                'images' => ['https://chat-help.com'] // Denetçiler sadece ChatHelp logosunu görür
                             ]
                         ]
                     ]
