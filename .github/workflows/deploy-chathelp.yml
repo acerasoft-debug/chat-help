@@ -329,7 +329,19 @@ jobs:
           else
             echo "kok yonlendirme kurali bulunamadi (zaten yok)"
           fi
-          echo "--- .htaccess (chat/ gecen satirlar) ---"; grep -n 'chat/' .htaccess || true
+          if ! grep -qE '^[[:space:]]*RewriteRule \^\$ /index\.html \[L\]' .htaccess; then
+            cp -n .htaccess ".htaccess.bak-rootidx-$TS" 2>/dev/null || true
+            if grep -qE '^# devre disi \(yeni ana sayfa kokte\)' .htaccess; then
+              sed -i -E '/^# devre disi \(yeni ana sayfa kokte\)/a RewriteRule ^$ /index.html [L]' .htaccess
+            else
+              sed -i -E '0,/^[[:space:]]*RewriteEngine On/s//&\nRewriteRule ^$ \/index.html [L]/' .htaccess
+            fi
+            echo "KOK -> /index.html IC YONLENDIRME EKLENDI"
+          else
+            echo "kok -> /index.html ic yonlendirme zaten var"
+          fi
+          echo "--- .htaccess (ilgili satirlar) ---"; grep -nE 'chat/|index\.html|DirectoryIndex|RewriteEngine' .htaccess || true
+          echo "--- .htaccess.log (platform donusum kaydi) ---"; ls -la --time-style=full-iso .htaccess .htaccess.log 2>/dev/null; tail -n 40 .htaccess.log 2>/dev/null || echo "(okunamadi)"
           REMOTE
           $SSHCMD "$SRV" "bash -s $DEST" < /tmp/fix-root.sh
 
