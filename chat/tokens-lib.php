@@ -27,6 +27,56 @@ function th_bootstrap(): void {
     $p->exec("CREATE TABLE IF NOT EXISTS api_usage (
         id INT AUTO_INCREMENT PRIMARY KEY, account_id INT NOT NULL, task VARCHAR(40), sector VARCHAR(40),
         tokens INT, ms INT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, INDEX(account_id, created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    /* Aylık paket / agent abonelikleri (Stripe subscription) */
+    $p->exec("CREATE TABLE IF NOT EXISTS token_plans (
+        id INT AUTO_INCREMENT PRIMARY KEY, account_id INT NOT NULL, plan VARCHAR(40) NOT NULL,
+        stripe_sub VARCHAR(80) NULL, status VARCHAR(20) DEFAULT 'active', period_end DATETIME NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NULL,
+        INDEX(account_id), UNIQUE KEY uq_sub (stripe_sub)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    /* Agent ayarları (müşterinin bilgi tabanı, ton, firma) + widget anahtarı */
+    $p->exec("CREATE TABLE IF NOT EXISTS agent_configs (
+        id INT AUTO_INCREMENT PRIMARY KEY, account_id INT NOT NULL, plan VARCHAR(40) NOT NULL,
+        company VARCHAR(120) DEFAULT '', tone VARCHAR(40) DEFAULT 'freundlich-professionell', lang VARCHAR(8) DEFAULT 'de',
+        kb MEDIUMTEXT NULL, widget_key CHAR(40) NULL, widget_domain VARCHAR(190) DEFAULT '', widget_on TINYINT(1) DEFAULT 0,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_acc_plan (account_id, plan), UNIQUE KEY uq_widget (widget_key)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+/* ---------- Abonelikler ---------- */
+function th_plan_upsert(int $acc, string $plan, string $sub, string $status, ?string $periodEnd): void {
+    $p=th_db();
+    if($sub){ $s=$p->prepare("SELECT id FROM token_plans WHERE stripe_sub=?"); $s->execute([$sub]); $id=$s->fetchColumn(); }
+    else { $s=$p->prepare("SELECT id FROM token_plans WHERE account_id=? AND plan=? AND stripe_sub IS NULL"); $s->execute([$acc,$plan]); $id=$s->fetchColumn(); }
+    if($id) $p->prepare("UPDATE token_plans SET account_id=?, plan=?, status=?, period_end=?, updated_at=NOW() WHERE id=?")->execute([$acc,$plan,$status,$periodEnd,$id]);
+    else    $p->prepare("INSERT INTO token_plans(account_id,plan,stripe_sub,status,period_end) VALUES(?,?,?,?,?)")->execute([$acc,$plan,$sub?:null,$status,$periodEnd]);
+}
+function th_plan_status(string $sub, string $status, ?string $periodEnd=null): void {
+    th_db()->prepare("UPDATE token_plans SET status=?, period_end=COALESCE(?,period_end), updated_at=NOW() WHERE stripe_sub=?")->execute([$status,$periodEnd,$sub]);
+}
+/** Hesabın aktif paketleri (active/trialing/past_due → kullanılabilir). */
+function th_plans(int $acc): array {
+    $s=th_db()->prepare("SELECT plan,status,period_end,stripe_sub FROM token_plans WHERE account_id=? ORDER BY created_at DESC"); $s->execute([$acc]); return $s->fetchAll(PDO::FETCH_ASSOC);
+}
+function th_plan_active(int $acc, string $plan): bool {
+    $s=th_db()->prepare("SELECT COUNT(*) FROM token_plans WHERE account_id=? AND plan=? AND status IN ('active','trialing','past_due')"); $s->execute([$acc,$plan]); return (int)$s->fetchColumn()>0;
+}
+/* ---------- Agent ayarları / widget ---------- */
+function th_agent_cfg(int $acc, string $plan): array {
+    $s=th_db()->prepare("SELECT * FROM agent_configs WHERE account_id=? AND plan=?"); $s->execute([$acc,$plan]);
+    return $s->fetch(PDO::FETCH_ASSOC) ?: ['account_id'=>$acc,'plan'=>$plan,'company'=>'','tone'=>'freundlich-professionell','lang'=>'de','kb'=>'','widget_key'=>null,'widget_domain'=>'','widget_on'=>0];
+}
+function th_agent_cfg_save(int $acc, string $plan, array $d): void {
+    $p=th_db(); $cur=th_agent_cfg($acc,$plan);
+    $company=mb_substr(trim($d['company']??$cur['company']),0,120); $tone=mb_substr(trim($d['tone']??$cur['tone']),0,40); $lang=mb_substr(trim($d['lang']??$cur['lang']),0,8);
+    $kb=mb_substr((string)($d['kb']??$cur['kb']),0,60000); $dom=mb_substr(trim($d['widget_domain']??$cur['widget_domain']),0,190); $on=(int)!empty($d['widget_on']);
+    $wk=$cur['widget_key'] ?: ('wk_'.bin2hex(random_bytes(18)));
+    $p->prepare("INSERT INTO agent_configs(account_id,plan,company,tone,lang,kb,widget_key,widget_domain,widget_on) VALUES(?,?,?,?,?,?,?,?,?)
+        ON DUPLICATE KEY UPDATE company=VALUES(company),tone=VALUES(tone),lang=VALUES(lang),kb=VALUES(kb),widget_domain=VALUES(widget_domain),widget_on=VALUES(widget_on),updated_at=NOW()")
+      ->execute([$acc,$plan,$company,$tone,$lang,$kb,$wk,$dom,$on]);
+}
+function th_widget(string $wk): ?array {
+    if(!preg_match('/^wk_[a-f0-9]{36}$/',$wk)) return null;
+    $s=th_db()->prepare("SELECT c.*, a.email FROM agent_configs c JOIN token_accounts a ON a.id=c.account_id WHERE c.widget_key=? AND c.widget_on=1"); $s->execute([$wk]);
+    return $s->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
 function th_account(string $email): array {
