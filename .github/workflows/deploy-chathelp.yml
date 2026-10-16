@@ -132,6 +132,8 @@ jobs:
           echo "mode=$MODE" >> $GITHUB_OUTPUT
           echo "BAGLANTI: $MODE  (secret ön eki: ${{ github.event.inputs.secrets_prefix }})"
           if [ "$MODE" = none ]; then
+            case "$CH_HOST" in *.*) echo "HOST: hostname gibi görünüyor";; *) echo "::warning::HOST hostname gibi DEĞİL (içine kullanıcı adı mı girildi?)";; esac
+            if printf '%s' "$CH_PORT" | grep -qE '^[0-9]{1,5}$'; then echo "PORT: sayısal"; else echo "::warning::PORT sayısal DEĞİL (içine şifre/kullanıcı mı girildi? uzunluk: ${#CH_PORT})"; fi
             echo "::error::chat-help.com için bağlantı secret'ları yok. Ekle: ${{ github.event.inputs.secrets_prefix }}_USER + ${{ github.event.inputs.secrets_prefix }}_PASSWORD (veya _SSH_KEY). Sunucu varsayılan: $CH_HOST:$P (_HOST/_PORT ile değiştirilebilir)  —ya da—  _FTP_HOST + _FTP_USER + _FTP_PASSWORD"
             exit 1
           fi
