@@ -1,0 +1,98 @@
+name: chat-help.com ops — CLI betiği çalıştır (web'e kapalı geçici kopya, sonra silinir)
+
+# Repo'daki chat/ops/*.php betiklerinden birini sunucuda PHP CLI ile çalıştırır.
+#   • Betik rastgele adlı geçici kopya olarak yüklenir, başına "yalnız CLI" bekçisi eklenir (web'den 403) ve işin
+#     sonunda HER DURUMDA silinir. Çıktının tamamı bu logdadır.
+#   • args: betiğe $_GET olarak verilen JSON nesnesi  (örn. {"apply":"1","src":"chat/api.php.bak-tr-20260701-101010"})
+#   • opcache: iş sonunda web bağlamında geçici dosya ile sıfırlanır (betik dosya değiştirdiyse hemen etkili olsun).
+#   • verify_url: iş sonunda GET edilir ve ilk 400 bayt yazdırılır (isteğe bağlı doğrulama).
+# db.php, WordPress ve uygulama dosyalarına yalnız betiğin kendisi dokunur; her betik ne yaptığını başlığında belirtir.
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "Çalıştırılacak betik (repo yolu, yalnız chat/ops/*.php)"
+        required: true
+        default: "chat/ops/restore-api.php"
+      args:
+        description: "Betiğe $_GET olarak verilecek JSON nesnesi"
+        required: false
+        default: "{}"
+      verify_url:
+        description: "İş sonunda GET edilecek URL (isteğe bağlı)"
+        required: false
+        default: ""
+      ref:
+        description: "Betiklerin alınacağı dal"
+        required: true
+        default: "claude/chat-help-system-video-x0nofb"
+      secrets_prefix:
+        description: "Secret ön eki"
+        required: true
+        default: "CHATHELP"
+
+permissions:
+  contents: read
+
+jobs:
+  ops:
+    runs-on: ubuntu-latest
+    env:
+      CH_HOST: ${{ secrets[format('{0}_HOST', github.event.inputs.secrets_prefix)] }}
+      CH_USER: ${{ secrets[format('{0}_USER', github.event.inputs.secrets_prefix)] }}
+      CH_PASS: ${{ secrets[format('{0}_PASSWORD', github.event.inputs.secrets_prefix)] }}
+      CH_PORT: ${{ secrets[format('{0}_PORT', github.event.inputs.secrets_prefix)] }}
+      SCRIPT: ${{ github.event.inputs.script }}
+      ARGS: ${{ github.event.inputs.args }}
+      VERIFY_URL: ${{ github.event.inputs.verify_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Bağlan ve girdileri doğrula
+        run: |
+          set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq sshpass php-cli jq > /dev/null
+          case "$SCRIPT" in chat/ops/[a-z0-9-]*.php) ;; *) echo "::error::script yalnız chat/ops/<ad>.php olabilir: $SCRIPT"; exit 1;; esac
+          [ -f "$SCRIPT" ] || { echo "::error::$SCRIPT yok (ref doğru mu?)"; exit 1; }
+          php -l "$SCRIPT" >/dev/null || exit 1
+          printf '%s' "${ARGS:-{\}}" | jq -e 'type=="object"' >/dev/null || { echo "::error::args geçerli bir JSON nesnesi değil"; exit 1; }
+          echo "ARGS_B64=$(printf '%s' "${ARGS:-{\}}" | base64 -w0)" >> $GITHUB_ENV
+          trim(){ local v="$1"; v="${v//$'\r'/}"; v="${v#"${v%%[![:space:]]*}"}"; v="${v%"${v##*[![:space:]]}"}"; printf '%s' "$v"; }
+          CH_USER=$(trim "$CH_USER"); CH_PASS=$(trim "$CH_PASS"); CH_HOST=$(trim "${CH_HOST:-145450.eu11.ssh.myftpupload.com}"); P=$(trim "${CH_PORT:-22}")
+          [ -n "$CH_USER" ] && [ -n "$CH_PASS" ] || { echo "::error::CHATHELP_USER / CHATHELP_PASSWORD yok"; exit 1; }
+          echo "SSHPASS=$CH_PASS" >> $GITHUB_ENV
+          echo "SSHCMD=sshpass -e ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -o ConnectTimeout=25 -p $P" >> $GITHUB_ENV
+          echo "SCPCMD=sshpass -e scp -o StrictHostKeyChecking=no -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -o ConnectTimeout=25 -P $P" >> $GITHUB_ENV
+          echo "SRV=$CH_USER@$CH_HOST" >> $GITHUB_ENV
+          export SSHPASS="$CH_PASS"
+          DEST=$(sshpass -e ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -p "$P" "$CH_USER@$CH_HOST" 'for d in ~/html ~/public_html ~/www; do [ -f "$d/chat/auth.php" ] && { echo "$d"; break; }; done')
+          [ -n "$DEST" ] || { echo "::error::docroot bulunamadı"; exit 1; }
+          echo "DEST=$DEST" >> $GITHUB_ENV; echo "DOCROOT: $DEST   betik: $SCRIPT   args: $ARGS"
+
+      - name: Betiği yükle (yalnız-CLI bekçili geçici kopya)
+        run: |
+          set -e
+          mkdir -p /tmp/t; R=$(openssl rand -hex 6); echo "RND=$R" >> $GITHUB_ENV
+          { printf '%s\n' "<?php if (PHP_SAPI !== 'cli') { http_response_code(403); exit('forbidden'); } ?>"; cat "$SCRIPT"; } > "/tmp/t/_ops_${R}.php"
+          php -l "/tmp/t/_ops_${R}.php" >/dev/null
+          printf '%s\n' "<?php header('Content-Type: text/plain'); if(function_exists('opcache_reset')){ echo opcache_reset()?'opcache reset OK':'opcache reset FAILED'; } else echo 'opcache yok';" > "/tmp/t/_opc_${R}.php"
+          $SCPCMD -q "/tmp/t/_ops_${R}.php" "/tmp/t/_opc_${R}.php" "$SRV:$DEST/chat/" </dev/null
+          echo "yüklendi: _ops_${R}.php _opc_${R}.php"
+
+      - name: Çalıştır
+        run: |
+          set +e
+          echo "################ $SCRIPT ################"
+          $SSHCMD -n "$SRV" "cd $DEST/chat && php -d display_errors=1 -d error_reporting=E_ALL -d memory_limit=512M -r '\$_GET=json_decode(base64_decode(\"$ARGS_B64\"),true) ?: []; \$_SERVER[\"REMOTE_ADDR\"]=\"127.0.0.1\"; \$_SERVER[\"HTTP_HOST\"]=\"chat-help.com\"; include \"_ops_${RND}.php\";' 2>&1 | head -c 800000"
+          echo; echo "################ opcache reset (web) ################"
+          curl -sS -m 20 "https://chat-help.com/chat/_opc_${RND}.php?x=$(date +%s)"; echo
+          if [ -n "$VERIFY_URL" ]; then echo; echo "################ doğrulama: $VERIFY_URL ################"; curl -sS -m 25 -o /tmp/v.out -w "status=%{http_code} type=%{content_type}\n" "$VERIFY_URL"; head -c 400 /tmp/v.out; echo; fi
+
+      - name: Geçici dosyaları SİL (her durumda)
+        if: ${{ always() }}
+        run: |
+          $SSHCMD -n "$SRV" "cd $DEST/chat && rm -f _ops_${RND}.php _opc_${RND}.php && ls _ops_* _opc_* 2>/dev/null || echo 'geçici dosyalar silindi'"
+          curl -sS -m 10 -o /dev/null -w "geçici betik web: %{http_code} (404 beklenir)\n" "https://chat-help.com/chat/_ops_${RND}.php"
