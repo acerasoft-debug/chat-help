@@ -571,6 +571,7 @@ const VESTRA_NOT_RETAIL_DOMAINS = ['rtl', 'ksta', 'morgenpost', 'sueddeutsche', 
   /* 16 Eki 2026 tur denetimi: zincirler, marka/kurum siteleri, ikinci el */
   'treasure-f', 'ishii-sports', 'gallery2', 'boardriders', 'chullanka', 'scapino', 'vanharen', 'altonsports', 'runnerslab', 'tauntonleisure', 'vintiz', 'repetto',
   'bever', 'asadventure', 'unterwegs', 'tennis-point',
+  'dicasdeviagem', 'destinationtoronto', 'tiendanimal', 'eyesandmore', 'pittarosso', 'pittarello', 'officeshoes', 'walder', 'ochsner-shoes', 'ginabiancheria', 'mercerieguffanti',
   'lyko', 'neye', 'boozt', 'nelly', 'ellos', 'zalando', 'aboutyou', 'bestseller', 'varner', 'cubus', 'dressmann', 'kappahl', 'lindex', 'hm', 'cos', 'arket', 'weekday', 'monki', 'bikbok', 'carlings', 'gina-tricot', 'ginatricot', 'stadium', 'intersport', 'xxl', 'sportamore', 'sportmaster'];
 
 /** Gönderimi şimdilik durdurulan ülkeler (14 Eki 2026, operatör: "Alman e-mailleri de şu an için yok"). mailbox.json
