@@ -86,7 +86,7 @@ label{display:block;font-size:12.5px;color:var(--mute);margin:12px 0 5px}input.f
   <div class="foot">ChatHelp Studio · Tokens verfallen nicht · <a href="/chat/?view=datenschutz">Datenschutz</a> · <a href="/chat/?view=impressum">Impressum</a> · <a href="mailto:info@chat-help.com">Support</a></div>
 </div>
 <script>
-const API='/chat/api.php/v1/'; const $=s=>document.querySelector(s); const de=n=>Number(n).toLocaleString('de-DE');
+const API='/chat/tokens-api.php/v1/'; const $=s=>document.querySelector(s); const de=n=>Number(n).toLocaleString('de-DE');
 let KEY=localStorage.getItem('ch_api_key')||''; let ME=null; let CUR=null; let HIST=[];
 const q=new URLSearchParams(location.search);
 /* ---- Aufgaben-Vorlagen je Plan / Sektor ---- */

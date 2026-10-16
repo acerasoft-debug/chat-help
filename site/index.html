@@ -300,18 +300,18 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <div class="card tier"><div><span class="tag indigo">API Pro</span><h3 style="font-size:22px;margin-top:12px">Für Agenturen &amp; Teams</h3><ul><li>✓ 50.000 Tokens / Monat inklusive</li><li>✓ Alle Endpunkte, Webhooks, 5 Team-Seats</li><li>✓ 99,9 % SLA, priorisierte Verarbeitung</li></ul></div><div class="right"><div class="price"><b>249 €</b><small>/ Monat</small></div><a class="btn p" style="margin-top:12px" href="mailto:api@chat-help.com?subject=API%20Pro">Zugang anfragen</a></div></div>
         <div class="card tier"><div><span class="tag">Enterprise</span><h3 style="font-size:22px;margin-top:12px">White-Label &amp; Volumen</h3><ul><li>✓ Ab 500.000 Tokens / Monat</li><li>✓ Eigene Modelle/Prompts, dedizierter Support</li><li>✓ AVV, EU-Hosting, Rechnung</li></ul></div><div class="right"><div class="price"><b>ab 990 €</b><small>/ Monat</small></div><a class="btn" style="margin-top:12px" href="mailto:api@chat-help.com?subject=Enterprise">Gespräch vereinbaren</a></div></div>
       </div>
-      <p style="color:var(--mute);font-size:13.5px;margin-top:16px">Darüber hinaus Pay-as-you-go über <a href="#tokens" style="color:var(--gold);font-weight:600">Token-Pakete</a> · Doku &amp; Sektoren: <a href="/chat/api.php/v1/sectors" style="color:var(--gold);font-weight:600">/v1/sectors</a></p>
+      <p style="color:var(--mute);font-size:13.5px;margin-top:16px">Darüber hinaus Pay-as-you-go über <a href="#tokens" style="color:var(--gold);font-weight:600">Token-Pakete</a> · Doku &amp; Sektoren: <a href="/chat/tokens-api.php/v1/sectors" style="color:var(--gold);font-weight:600">/v1/sectors</a></p>
     </div>
     <div class="code"><span class="c"># 1) Tokens kaufen → Key per E-Mail (ch_live_…)</span>
 <span class="c"># 2) Agent-Antwort mit deiner Wissensbasis</span>
-curl https://chat-help.com/chat/api.php/v1/agent \
+curl https://chat-help.com/chat/tokens-api.php/v1/agent \
   -H <span class="s">"Authorization: Bearer ch_live_…"</span> \
   -H <span class="s">"Content-Type: application/json"</span> \
   -d <span class="s">'{"plan":"agent-support",
        "messages":[{"role":"user","content":"Wann kommt Bestellung 4711?"}]}'</span>
 
 <span class="c"># 3) Content: 7 Posts für die Woche</span>
-curl https://chat-help.com/chat/api.php/v1/generate \
+curl https://chat-help.com/chat/tokens-api.php/v1/generate \
   -H <span class="s">"Authorization: Bearer ch_live_…"</span> \
   -d <span class="s">'{"task":"post","sector":"marketing","lang":"de",
        "input":"Thema: Herbstkollektion, Zielgruppe: 25-40"}'</span>

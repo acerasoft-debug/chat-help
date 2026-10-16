@@ -2,16 +2,16 @@
 /**
  * ChatHelp API v1 — TEK giriş noktası, tüm sektörler, gerçek Agent çalışma zamanı
  * ==================================================================================
- *   GET  /chat/api.php/v1/sectors                                   → sektörler, task'lar, token fiyatları (herkese açık)
- *   GET  /chat/api.php/v1/me                                        → hesap, bakiye, aktif paketler/agentler, son kullanım
- *   GET  /chat/api.php/v1/balance                                   → bakiye + son kullanım
- *   POST /chat/api.php/v1/generate   {task, sector, input, lang}    → metin üretimi (post/script/widerspruch/...)
- *   POST /chat/api.php/v1/translate  {text, target[], lang}         → çeviri
- *   POST /chat/api.php/v1/subtitles  {transcript, target[], minutes}→ zaman damgalı SRT
- *   POST /chat/api.php/v1/agent      {plan, messages[]}             → kiralanan AGENT ile çok turlu sohbet (bilgi tabanı + rol)
+ *   GET  /chat/tokens-api.php/v1/sectors                                   → sektörler, task'lar, token fiyatları (herkese açık)
+ *   GET  /chat/tokens-api.php/v1/me                                        → hesap, bakiye, aktif paketler/agentler, son kullanım
+ *   GET  /chat/tokens-api.php/v1/balance                                   → bakiye + son kullanım
+ *   POST /chat/tokens-api.php/v1/generate   {task, sector, input, lang}    → metin üretimi (post/script/widerspruch/...)
+ *   POST /chat/tokens-api.php/v1/translate  {text, target[], lang}         → çeviri
+ *   POST /chat/tokens-api.php/v1/subtitles  {transcript, target[], minutes}→ zaman damgalı SRT
+ *   POST /chat/tokens-api.php/v1/agent      {plan, messages[]}             → kiralanan AGENT ile çok turlu sohbet (bilgi tabanı + rol)
  *                                    {sector, goal, context}        → sektör ajanı tek tur (plan gerekmez, token yeter)
- *   GET  /chat/api.php/v1/agent/config?plan=…                       → agent ayarları (firma, ton, dil, bilgi tabanı, widget)
- *   POST /chat/api.php/v1/agent/config {plan, company, tone, lang, kb, widget_on, widget_domain}
+ *   GET  /chat/tokens-api.php/v1/agent/config?plan=…                       → agent ayarları (firma, ton, dil, bilgi tabanı, widget)
+ *   POST /chat/tokens-api.php/v1/agent/config {plan, company, tone, lang, kb, widget_on, widget_domain}
  * Auth: Authorization: Bearer ch_live_…   Fiyat: sabit task tarifesi (plans.php CH_PRICING).
  * Model: CLAUDE_KEY varsa Claude, yoksa DeepSeek (db.php). Sektör/paket eklemek = plans.php'ye bir satır.
  */

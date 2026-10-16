@@ -5,7 +5,7 @@ site/index.html              index.html
 site/home.php                home.php
 chat/plans.php               chat/plans.php
 chat/tokens-lib.php          chat/tokens-lib.php
-chat/api.php                 chat/api.php
+chat/tokens-api.php                 chat/tokens-api.php
 chat/tokens-checkout.php     chat/tokens-checkout.php
 chat/tokens-webhook.php      chat/tokens-webhook.php
 chat/agent.php               chat/agent.php
