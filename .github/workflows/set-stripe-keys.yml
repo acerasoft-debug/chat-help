@@ -1,0 +1,19 @@
+name: Stripe-Schlüssel auf dem Sarvesto-Server setzen
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Kurulum klasörü (sunucuda)"
+        required: false
+        default: "~/maxsales_de"
+
+permissions:
+  contents: read
+
+# Yer tutucu: asıl iş akışı claude/vestra-premium-retail-site-rxj4va dalında.
+jobs:
+  stub:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Bu iş akışını çalışma dalından başlatın (Use workflow from → claude/vestra-premium-retail-site-rxj4va)."
