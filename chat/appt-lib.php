@@ -30,6 +30,7 @@ function appt_bootstrap(): void {
         reminded TINYINT(1) DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, INDEX(account_id, start_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $p->exec("CREATE TABLE IF NOT EXISTS appt_blocks (
         id INT AUTO_INCREMENT PRIMARY KEY, account_id INT NOT NULL, start_at DATETIME NOT NULL, end_at DATETIME NOT NULL, reason VARCHAR(120) DEFAULT '', INDEX(account_id, start_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $p->exec("CREATE TABLE IF NOT EXISTS appt_jobs (name VARCHAR(40) PRIMARY KEY, last_run DATETIME NULL) ENGINE=InnoDB");   // Zeitsperre für lazy Jobs (Erinnerungen), ersetzt die frühere Sperrdatei
     if(random_int(1,40)===1) $p->exec("DELETE FROM appt_bookings WHERE account_id=0 AND created_at < (NOW() - INTERVAL 2 DAY)");
 }
 
@@ -38,14 +39,30 @@ function appt_settings(int $acc): array {
     appt_bootstrap();
     $s=th_db()->prepare("SELECT * FROM appt_settings WHERE account_id=?"); $s->execute([$acc]); $r=$s->fetch(PDO::FETCH_ASSOC);
     if(!$r){ $r=['account_id'=>$acc,'appt_on'=>$acc===0?1:0,'company'=>$acc===0?APPT_DEMO['company']:'','address'=>$acc===0?APPT_DEMO['address']:'','slot_min'=>30,'buffer_min'=>0,'lead_min'=>120,'max_days'=>60,'tz'=>'Europe/Berlin','hours'=>null,'notify_email'=>'','confirm_text'=>'']; }
-    $h=json_decode((string)($r['hours']??''),true); $r['hours']=is_array($h)&&$h ? $h : APPT_DEFAULT_HOURS;
+    $h=json_decode((string)($r['hours']??''),true); $r['hours']=is_array($h)&&$h ? appt_hours_parse($h) : APPT_DEFAULT_HOURS;   // gespeicherte Altwerte (z. B. 25:00) werden beim Lesen verworfen statt appt_slots abstürzen zu lassen
     foreach(['slot_min','buffer_min','lead_min','max_days','appt_on'] as $k) $r[$k]=(int)$r[$k];
     return $r;
 }
-function appt_settings_save(int $acc, array $d): array {
-    appt_bootstrap(); $cur=appt_settings($acc);
+/** Öffnungszeiten prüfen: je Wochentag 0–6 Liste [von,bis] im Format HH:MM (00–23:00–59), bis darf 24:00 sein; bis 00:00/24:00 = Tagesende.
+ *  Über Mitternacht hinaus gibt es bei Terminen nicht – andere bis<=von sind ein Fehler ($err = deutscher Hinweis, Rückgabe ohne das Intervall). */
+function appt_hours_parse(array $raw, ?string &$err=null): array {
+    $err=null; $wd=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']; $hm='/^([01]\d|2[0-3]):[0-5]\d$/'; $out=[];
+    for($w=0;$w<=6;$w++){ $rows=[]; $list=$raw[(string)$w] ?? $raw[$w] ?? [];
+        foreach(is_array($list)?$list:[$list] as $iv){
+            $f=is_array($iv)&&count($iv)>=2 ? trim((string)array_values($iv)[0]) : ''; $t=is_array($iv)&&count($iv)>=2 ? trim((string)array_values($iv)[1]) : '';
+            if(!preg_match($hm,$f) || !(preg_match($hm,$t) || $t==='24:00')){ $err??=$wd[$w].': ungültige Uhrzeit „'.(is_array($iv)?implode('–',array_map('strval',array_slice(array_values($iv),0,2))):(string)$iv).'“ – bitte HH:MM (00:00–23:59, Ende auch 24:00).'; continue; }
+            if($t!=='00:00' && $t!=='24:00' && $t<=$f){ $err??=$wd[$w].': '.$f.'–'.$t.' – das Ende muss nach dem Beginn liegen (Termine über Mitternacht hinaus sind nicht möglich; Tagesende als 00:00 oder 24:00).'; continue; }
+            $rows[]=[$f,$t]; }
+        $out[(string)$w]=$rows; }
+    return $out;
+}
+/** Speichert Einstellungen. Ungültige Öffnungszeiten → nichts wird gespeichert: $err=['error'=>'hours_invalid','message'=>…];
+ *  ruft ein Web-Aufrufer ohne $err auf (Altaufruf), wird der Fehler direkt als HTTP 422 beantwortet (nie stilles Verwerfen). */
+function appt_settings_save(int $acc, array $d, ?array &$err=null): array {
+    appt_bootstrap(); $cur=appt_settings($acc); $err=null;
     $hours=$cur['hours'];
-    if(isset($d['hours']) && is_array($d['hours'])){ $hours=[]; for($w=0;$w<=6;$w++){ $rows=[]; foreach((array)($d['hours'][(string)$w] ?? $d['hours'][$w] ?? []) as $iv){ if(is_array($iv)&&count($iv)>=2&&preg_match('/^\d{2}:\d{2}$/',$iv[0])&&preg_match('/^\d{2}:\d{2}$/',$iv[1])&&$iv[0]<$iv[1]) $rows[]=[$iv[0],$iv[1]]; } $hours[(string)$w]=$rows; } }
+    if(isset($d['hours']) && is_array($d['hours'])){ $hours=appt_hours_parse($d['hours'],$herr);
+        if($herr!==null){ $err=['error'=>'hours_invalid','message'=>'Öffnungszeiten nicht gespeichert – '.$herr,'hint'=>$herr]; if(func_num_args()<3 && PHP_SAPI!=='cli') th_json(422,$err); return $cur; } }
     $v=['appt_on'=>(int)!empty($d['appt_on'] ?? $cur['appt_on']),'company'=>mb_substr(trim((string)($d['company']??$cur['company'])),0,120),'address'=>mb_substr(trim((string)($d['address']??$cur['address'])),0,200),
         'slot_min'=>max(5,min(240,(int)($d['slot_min']??$cur['slot_min']))),'buffer_min'=>max(0,min(120,(int)($d['buffer_min']??$cur['buffer_min']))),'lead_min'=>max(0,min(10080,(int)($d['lead_min']??$cur['lead_min']))),
         'max_days'=>max(1,min(365,(int)($d['max_days']??$cur['max_days']))),'tz'=>in_array($d['tz']??'',timezone_identifiers_list(),true)?$d['tz']:$cur['tz'],
@@ -74,34 +91,57 @@ function appt_services_save(int $acc, array $list): void {
         else { $p->prepare("INSERT INTO appt_services(account_id,name,duration_min,price_cents,staff,active,sort) VALUES(?,?,?,?,?,?,?)")->execute([$acc,$name,$dur,$price,$staff,$act,$i]); $id=(int)$p->lastInsertId(); }
         $keep[]=$id; }
     if($keep) $p->prepare("UPDATE appt_services SET active=0 WHERE account_id=? AND id NOT IN (".implode(',',array_map('intval',$keep)).")")->execute([$acc]);
+    else $p->prepare("UPDATE appt_services SET active=0 WHERE account_id=?")->execute([$acc]);   // leere Liste = alle Leistungen entfernt
 }
 function appt_service(int $acc, ?int $id): ?array { foreach(appt_services($acc) as $s){ if($id===null || (int)$s['id']===(int)$id) return $s; } return null; }
+/** Leistung für Slots/Buchung auflösen → [svc|null, dauer_min, fehler|null]. id>0 muss eine AKTIVE Leistung des Kontos sein (sonst unknown_service – nie stillschweigend die erste Leistung).
+ *  Ohne id (null/0): genau eine Leistung → diese; keine → Taktung slot_min; mehrere → $need ? service_required : allgemeine Zeiten in slot_min. */
+function appt_resolve_service(int $acc, ?int $id, ?array $s=null, bool $need=false): array {
+    $s=$s ?: appt_settings($acc); $all=appt_services($acc); $list=array_map(fn($x)=>['id'=>(int)$x['id'],'name'=>$x['name'],'duration_min'=>(int)$x['duration_min']],$all);
+    if($id!==null && $id>0){ foreach($all as $x) if((int)$x['id']===$id) return [$x,(int)$x['duration_min'],null];
+        return [null,0,['error'=>'unknown_service','service_id'=>$id,'hint'=>'Diese Leistung gibt es nicht (mehr). Bitte eine der angebotenen Leistungen wählen und deren service_id verwenden.','services'=>$list]]; }
+    if(count($all)===1) return [$all[0],(int)$all[0]['duration_min'],null];
+    if($all && $need) return [null,0,['error'=>'service_required','hint'=>'Bitte zuerst die gewünschte Leistung wählen (service_id aus der Liste).','services'=>$list]];
+    return [null,(int)$s['slot_min'],null];
+}
+/** Jetzt als Wanduhr der Konto-Zeitzone (start_at/end_at sind in dieser Zeitzone gespeichert – nie mit MySQL NOW() vergleichen). */
+function appt_now(array $s): DateTimeImmutable { return new DateTimeImmutable('now',appt_tz($s)); }
+/** Anzahl Überschneidungen mit aktiven Buchungen (booked/done) und Sperrzeiten, jeweils inkl. Puffer; $lock → FOR UPDATE (in einer Transaktion). */
+function appt_conflicts(int $acc, DateTimeImmutable $st, DateTimeImmutable $en, int $buf=0, int $exceptId=0, bool $lock=false): int {
+    $p=th_db(); $a=$st->modify('-'.max(0,$buf).' minutes')->format('Y-m-d H:i:s'); $z=$en->modify('+'.max(0,$buf).' minutes')->format('Y-m-d H:i:s');
+    $q=$p->prepare("SELECT COUNT(*) FROM appt_bookings WHERE account_id=? AND id<>? AND status IN ('booked','done') AND start_at < ? AND end_at > ?".($lock?" FOR UPDATE":"")); $q->execute([$acc,$exceptId,$z,$a]); $n=(int)$q->fetchColumn();
+    $q=$p->prepare("SELECT COUNT(*) FROM appt_blocks WHERE account_id=? AND start_at < ? AND end_at > ?"); $q->execute([$acc,$z,$a]);
+    return $n+(int)$q->fetchColumn();
+}
 
 /* ---------- Slots ---------- */
 function appt_tz(array $s): DateTimeZone { try{ return new DateTimeZone($s['tz'] ?: 'Europe/Berlin'); }catch(Throwable $e){ return new DateTimeZone('Europe/Berlin'); } }
 /** Freie Startzeiten (HH:MM) für ein Datum und eine Leistung. */
 function appt_slots(int $acc, string $date, ?int $serviceId=null): array {
     $s=appt_settings($acc); $tz=appt_tz($s);
-    if(!preg_match('/^\d{4}-\d{2}-\d{2}$/',$date)) return ['error'=>'date_format','hint'=>'YYYY-MM-DD'];
-    $svc=appt_service($acc,$serviceId); $dur=$svc ? (int)$svc['duration_min'] : $s['slot_min'];
+    if(!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/',$date,$dm)) return ['error'=>'date_format','hint'=>'YYYY-MM-DD'];
+    if(!checkdate((int)$dm[2],(int)$dm[3],(int)$dm[1])) return ['error'=>'date_invalid','date'=>$date,'hint'=>'Dieses Datum gibt es nicht (z. B. 31.11. oder 30.02.) – bitte ein gültiges Datum im Format YYYY-MM-DD nennen.'];
+    [$svc,$dur,$err]=appt_resolve_service($acc,$serviceId,$s); if($err) return $err+['date'=>$date];
+    $sv=$svc ? ['id'=>(int)$svc['id'],'name'=>$svc['name'],'duration_min'=>$dur] : null; $gen=!$svc && appt_services($acc) ? ['hint'=>'Ohne service_id: allgemeine Zeiten im '.$s['slot_min'].'-Minuten-Takt – für verbindliche Zeiten die Leistung (service_id) angeben.'] : [];
     $day=new DateTimeImmutable($date.' 00:00',$tz); $now=new DateTimeImmutable('now',$tz);
     if($day < $now->setTime(0,0)) return ['date'=>$date,'slots'=>[],'closed'=>false,'reason'=>'past'];
     if($day > $now->modify('+'.$s['max_days'].' days')) return ['date'=>$date,'slots'=>[],'closed'=>false,'reason'=>'too_far','max_days'=>$s['max_days']];
     $ranges=$s['hours'][(string)(int)$day->format('w')] ?? [];
-    if(!$ranges) return ['date'=>$date,'slots'=>[],'closed'=>true,'service'=>$svc];
+    if(!$ranges) return ['date'=>$date,'slots'=>[],'closed'=>true,'service'=>$sv];
     $p=th_db(); $q=$p->prepare("SELECT start_at,end_at FROM appt_bookings WHERE account_id=? AND status IN ('booked','done') AND start_at < ? AND end_at > ?"); $q->execute([$acc,$day->modify('+1 day')->format('Y-m-d H:i:s'),$day->format('Y-m-d H:i:s')]);
     $busy=array_map(fn($r)=>[new DateTimeImmutable($r['start_at'],$tz),new DateTimeImmutable($r['end_at'],$tz)],$q->fetchAll(PDO::FETCH_ASSOC));
     $q=$p->prepare("SELECT start_at,end_at FROM appt_blocks WHERE account_id=? AND start_at < ? AND end_at > ?"); $q->execute([$acc,$day->modify('+1 day')->format('Y-m-d H:i:s'),$day->format('Y-m-d H:i:s')]);
     foreach($q->fetchAll(PDO::FETCH_ASSOC) as $r) $busy[]=[new DateTimeImmutable($r['start_at'],$tz),new DateTimeImmutable($r['end_at'],$tz)];
     $minStart=$now->modify('+'.$s['lead_min'].' minutes'); $buf=$s['buffer_min']; $out=[];
-    foreach($ranges as [$o,$c]){ $t=new DateTimeImmutable($date.' '.$o,$tz); $end=new DateTimeImmutable($date.' '.$c,$tz);
-        while($t->modify('+'.$dur.' minutes') <= $end){
+    foreach($ranges as [$o,$c]){ $t=new DateTimeImmutable($date.' '.$o,$tz); $end=($c==='00:00'||$c==='24:00') ? $day->modify('+1 day') : new DateTimeImmutable($date.' '.$c,$tz);   // 00:00/24:00 = Tagesende
+        while($t->modify('+'.$dur.' minutes') <= $end && $t->format('Y-m-d')===$date){
             $te=$t->modify('+'.$dur.' minutes'); $ok=$t >= $minStart;
             if($ok) foreach($busy as [$bs,$be]){ if($t < $be->modify('+'.$buf.' minutes') && $te->modify('+'.$buf.' minutes') > $bs){ $ok=false; break; } }
             if($ok) $out[]=$t->format('H:i');
             $t=$t->modify('+'.$s['slot_min'].' minutes');
         } }
-    return ['date'=>$date,'weekday'=>$day->format('l'),'slots'=>$out,'closed'=>false,'service'=>$svc ? ['id'=>$svc['id'],'name'=>$svc['name'],'duration_min'=>$dur] : null];
+    $out=array_values(array_unique($out)); sort($out);   // überlappende Intervalle eines Tages → keine doppelten Zeiten
+    return ['date'=>$date,'weekday'=>$day->format('l'),'slots'=>$out,'closed'=>false,'service'=>$sv]+$gen;
 }
 /** Nächste Tage mit freien Slots (für Agent/Buchungsseite). */
 function appt_next_days(int $acc, ?int $serviceId, int $days=10): array {
@@ -117,20 +157,32 @@ function appt_book(int $acc, ?int $serviceId, string $start, string $name, strin
     if(!$s['appt_on']) return ['error'=>'appointments_disabled'];
     $name=mb_substr(trim($name),0,120); $phone=mb_substr(trim($phone),0,40); $email=filter_var(trim($email),FILTER_VALIDATE_EMAIL)?trim($email):''; $note=mb_substr(trim($note),0,500);
     if($name==='') return ['error'=>'name_required']; if($phone==='' && $email==='') return ['error'=>'contact_required','hint'=>'Telefonnummer oder E-Mail'];
-    if(!preg_match('/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/',$start,$m)) return ['error'=>'start_format','hint'=>'YYYY-MM-DD HH:MM'];
-    $svc=appt_service($acc,$serviceId); $dur=$svc ? (int)$svc['duration_min'] : $s['slot_min'];
-    $slots=appt_slots($acc,$m[1],$svc['id'] ?? null);
-    if(!in_array($m[2],$slots['slots'] ?? [],true)) return ['error'=>'slot_unavailable','date'=>$m[1],'available'=>array_slice($slots['slots'] ?? [],0,10),'closed'=>$slots['closed'] ?? false];
-    $st=new DateTimeImmutable($m[1].' '.$m[2],$tz); $en=$st->modify('+'.$dur.' minutes'); $p=th_db();
-    $p->beginTransaction();
+    if(!preg_match('/^(\d{4})-(\d{2})-(\d{2})[ T]([01]\d|2[0-3]):([0-5]\d)/',trim($start),$m)) return ['error'=>'start_format','hint'=>'YYYY-MM-DD HH:MM'];
+    $date=$m[1].'-'.$m[2].'-'.$m[3]; $time=$m[4].':'.$m[5];
+    if(!checkdate((int)$m[2],(int)$m[3],(int)$m[1])) return ['error'=>'date_invalid','date'=>$date,'hint'=>'Dieses Datum gibt es nicht (z. B. 31.11. oder 30.02.) – bitte das Datum mit dem Kunden klären.'];
+    [$svc,$dur,$err]=appt_resolve_service($acc,$serviceId,$s,true); if($err) return $err;
+    $slots=appt_slots($acc,$date,$svc ? (int)$svc['id'] : null); if(isset($slots['error'])) return $slots;   // gleiche Leistung/Dauer wie beim Speichern
+    if(!in_array($time,$slots['slots'] ?? [],true)) return ['error'=>'slot_unavailable','date'=>$date,'available'=>array_slice($slots['slots'] ?? [],0,10),'closed'=>$slots['closed'] ?? false];
+    $st=new DateTimeImmutable($date.' '.$time,$tz); $en=$st->modify('+'.$dur.' minutes'); $p=th_db(); $code='';
+    $lk=th_lock('appt_book:'.$acc,8);   // Buchungen eines Kontos nacheinander (vermeidet Lücken-Sperren-Deadlocks); ohne Sperre greifen Transaktion + Wiederholung
     try{
-        $q=$p->prepare("SELECT COUNT(*) FROM appt_bookings WHERE account_id=? AND status IN ('booked','done') AND start_at < ? AND end_at > ? FOR UPDATE"); $q->execute([$acc,$en->format('Y-m-d H:i:s'),$st->format('Y-m-d H:i:s')]);
-        if((int)$q->fetchColumn()>0){ $p->rollBack(); return ['error'=>'slot_unavailable','date'=>$m[1]]; }
-        $code=appt_code();
-        $p->prepare("INSERT INTO appt_bookings(account_id,service_id,service_name,start_at,end_at,customer_name,phone,email,note,status,source,code) VALUES(?,?,?,?,?,?,?,?,?,'booked',?,?)")
-          ->execute([$acc,$svc['id'] ?? null,$svc['name'] ?? 'Termin',$st->format('Y-m-d H:i:s'),$en->format('Y-m-d H:i:s'),$name,$phone,$email,$note,mb_substr($source,0,16),$code]);
-        $id=(int)$p->lastInsertId(); $p->commit();
-    }catch(Throwable $e){ $p->rollBack(); return ['error'=>'db','message'=>$e->getMessage()]; }
+        for($try=1;;$try++){
+            try{
+                $p->beginTransaction();
+                if(appt_conflicts($acc,$st,$en,(int)$s['buffer_min'],0,true)>0){ $p->rollBack(); return ['error'=>'slot_unavailable','date'=>$date,'hint'=>'Diese Zeit wurde gerade vergeben.','available'=>array_slice(appt_slots($acc,$date,$svc ? (int)$svc['id'] : null)['slots'] ?? [],0,10)]; }
+                $code=appt_code();
+                $p->prepare("INSERT INTO appt_bookings(account_id,service_id,service_name,start_at,end_at,customer_name,phone,email,note,status,source,code) VALUES(?,?,?,?,?,?,?,?,?,'booked',?,?)")
+                  ->execute([$acc,$svc['id'] ?? null,$svc['name'] ?? 'Termin',$st->format('Y-m-d H:i:s'),$en->format('Y-m-d H:i:s'),$name,$phone,$email,$note,mb_substr($source,0,16),$code]);
+                $p->commit(); break;
+            }catch(Throwable $e){
+                try{ if($p->inTransaction()) $p->rollBack(); }catch(Throwable $e2){}
+                $st8=$e instanceof PDOException ? (string)($e->errorInfo[0] ?? $e->getCode()) : ''; $drv=$e instanceof PDOException ? (int)($e->errorInfo[1] ?? 0) : 0;
+                if(($st8==='40001' || $drv===1213 || ($drv===1062 && str_contains($e->getMessage(),'code'))) && $try<3){ usleep(random_int(20000,90000)*$try); continue; }   // Deadlock / Code-Kollision → bis zu 3 Versuche
+                error_log('CH appt_book acc='.$acc.' try='.$try.': '.$e->getMessage());
+                return ['error'=>'db','message'=>'Die Buchung konnte gerade nicht gespeichert werden – bitte noch einmal versuchen.','hint'=>'Bitte erneut versuchen.'];
+            }
+        }
+    } finally { if($lk) th_unlock('appt_book:'.$acc); }
     $b=appt_by_code($code); if($acc!==0) appt_notify($b,$s,'confirm');
     return ['ok'=>true,'booking'=>appt_public($b,$s)];
 }
@@ -140,36 +192,60 @@ function appt_public(array $b, ?array $s=null): array {
     $wd=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][(int)$st->format('w')];
     return ['code'=>$b['code'],'service'=>$b['service_name'],'date'=>$st->format('Y-m-d'),'time'=>$st->format('H:i'),'end'=>(new DateTimeImmutable($b['end_at'],$tz))->format('H:i'),'weekday'=>$wd,
         'human'=>$wd.', '.$st->format('d.m.Y').' um '.$st->format('H:i').' Uhr','name'=>$b['customer_name'],'phone'=>$b['phone'],'email'=>$b['email'],'note'=>$b['note'],'status'=>$b['status'],'company'=>$s['company'],'address'=>$s['address'],
-        'manage_url'=>'https://chat-help.com/chat/appt.php?c='.$b['code']];
+        'manage_url'=>'https://chat-help.com/chat/appt.php?c='.$b['code'],'cancellable'=>$b['status']==='booked' && $st > appt_now($s)];
 }
-function appt_cancel(string $code, int $acc=-1): array {
-    $b=appt_by_code($code); if(!$b || ($acc>=0 && (int)$b['account_id']!==$acc)) return ['error'=>'not_found'];
-    if($b['status']==='cancelled') return ['ok'=>true,'already'=>true,'booking'=>appt_public($b)];
-    th_db()->prepare("UPDATE appt_bookings SET status='cancelled' WHERE id=?")->execute([$b['id']]); $b['status']='cancelled';
-    $s=appt_settings((int)$b['account_id']); if((int)$b['account_id']!==0) appt_notify($b,$s,'cancel');
+/** Absagen per Buchungscode (öffentlich, Agent, Studio). Nur Status 'booked' mit Beginn in der Zukunft (Wanduhr der Konto-Zeitzone);
+ *  $force (Betreiber) erlaubt auch bereits begonnene/vergangene gebuchte Termine. Fehler: not_found | not_cancellable | too_late (+ deutscher hint). */
+function appt_cancel(string $code, int $acc=-1, bool $force=false): array {
+    $b=appt_by_code($code); if(!$b || ($acc>=0 && (int)$b['account_id']!==$acc)) return ['error'=>'not_found','hint'=>'Kein Termin mit diesem Buchungscode gefunden.'];
+    $s=appt_settings((int)$b['account_id']); $tz=appt_tz($s); $now=appt_now($s);
+    if($b['status']==='cancelled') return ['ok'=>true,'already'=>true,'booking'=>appt_public($b,$s)];
+    $bad=fn($b)=>['error'=>'not_cancellable','status'=>$b['status'],'hint'=>'Dieser Termin ist bereits abgeschlossen ('.(['done'=>'wahrgenommen','noshow'=>'als nicht erschienen vermerkt'][$b['status']] ?? $b['status']).') und kann nicht mehr abgesagt werden.','booking'=>appt_public($b,$s)];
+    $late=fn($b)=>['error'=>'too_late','hint'=>'Der Termin hat bereits begonnen oder liegt in der Vergangenheit – eine Absage ist nicht mehr möglich. Bitte wenden Sie sich direkt an den Betrieb.','booking'=>appt_public($b,$s)];
+    if($b['status']!=='booked') return $bad($b);
+    if(!$force && new DateTimeImmutable($b['start_at'],$tz) <= $now) return $late($b);
+    $u=th_db()->prepare("UPDATE appt_bookings SET status='cancelled' WHERE id=? AND status='booked'".($force?'':' AND start_at > ?')); $u->execute($force?[$b['id']]:[$b['id'],$now->format('Y-m-d H:i:s')]);
+    if($u->rowCount()!==1){ $b=appt_by_code($code) ?: $b; if($b['status']==='cancelled') return ['ok'=>true,'already'=>true,'booking'=>appt_public($b,$s)]; return $b['status']==='booked' ? $late($b) : $bad($b); }   // paralleler Statuswechsel
+    $b['status']='cancelled'; if((int)$b['account_id']!==0) appt_notify($b,$s,'cancel');
     return ['ok'=>true,'booking'=>appt_public($b,$s)];
 }
 function appt_find_by_phone(int $acc, string $phone): array {
     $d=preg_replace('/\D/','',$phone); if(strlen($d)<6) return [];
-    $s=th_db()->prepare("SELECT * FROM appt_bookings WHERE account_id=? AND status='booked' AND start_at >= NOW() AND REPLACE(REPLACE(REPLACE(phone,' ',''),'+',''),'-','') LIKE ? ORDER BY start_at LIMIT 5"); $s->execute([$acc,'%'.substr($d,-8)]);
-    return array_map(fn($b)=>appt_public($b),$s->fetchAll(PDO::FETCH_ASSOC));
+    $set=appt_settings($acc); $now=appt_now($set)->format('Y-m-d H:i:s');   // Wanduhr der Konto-Zeitzone, nicht MySQL NOW()
+    $s=th_db()->prepare("SELECT * FROM appt_bookings WHERE account_id=? AND status='booked' AND start_at > ? AND REPLACE(REPLACE(REPLACE(phone,' ',''),'+',''),'-','') LIKE ? ORDER BY start_at LIMIT 5"); $s->execute([$acc,$now,'%'.substr($d,-8)]);
+    return array_map(fn($b)=>appt_public($b,$set),$s->fetchAll(PDO::FETCH_ASSOC));
 }
 function appt_bookings(int $acc, string $from, string $to): array {
     appt_bootstrap(); $s=th_db()->prepare("SELECT * FROM appt_bookings WHERE account_id=? AND start_at >= ? AND start_at < ? ORDER BY start_at"); $s->execute([$acc,$from.' 00:00:00',$to.' 23:59:59']);
     $set=appt_settings($acc); return array_map(fn($b)=>appt_public($b,$set)+['id'=>(int)$b['id'],'source'=>$b['source'],'created_at'=>$b['created_at']],$s->fetchAll(PDO::FETCH_ASSOC));
 }
-function appt_set_status(int $acc, int $id, string $status): bool {
-    if(!in_array($status,['booked','done','noshow','cancelled'],true)) return false;
-    return th_db()->prepare("UPDATE appt_bookings SET status=? WHERE id=? AND account_id=?")->execute([$status,$id,$acc]);
+/** Status setzen (Studio) → ['ok'=>true] | ['error'=>'invalid_status'|'not_found'|'slot_conflict'|'db','hint'=>…]. Wieder auf 'booked' nur, wenn der Zeitraum (inkl. Puffer/Sperrzeiten) frei ist. */
+function appt_status_update(int $acc, int $id, string $status): array {
+    if(!in_array($status,['booked','done','noshow','cancelled'],true)) return ['error'=>'invalid_status','hint'=>'Erlaubt: booked, done, noshow, cancelled.'];
+    appt_bootstrap(); $p=th_db(); $s=appt_settings($acc); $tz=appt_tz($s); $lk=th_lock('appt_book:'.$acc,8);
+    try{
+        $p->beginTransaction();
+        $q=$p->prepare("SELECT * FROM appt_bookings WHERE id=? AND account_id=? FOR UPDATE"); $q->execute([$id,$acc]); $b=$q->fetch(PDO::FETCH_ASSOC);
+        if(!$b){ $p->rollBack(); return ['error'=>'not_found','hint'=>'Termin nicht gefunden.']; }
+        if($b['status']===$status){ $p->commit(); return ['ok'=>true,'unchanged'=>true]; }
+        if($status==='booked' && !in_array($b['status'],['booked','done'],true) && appt_conflicts($acc,new DateTimeImmutable($b['start_at'],$tz),new DateTimeImmutable($b['end_at'],$tz),(int)$s['buffer_min'],(int)$b['id'],true)>0){
+            $p->rollBack(); return ['error'=>'slot_conflict','hint'=>'Der Zeitraum ist inzwischen anderweitig belegt – der Termin kann nicht wieder aktiviert werden.']; }
+        $p->prepare("UPDATE appt_bookings SET status=? WHERE id=? AND account_id=?")->execute([$status,$id,$acc]); $p->commit();
+        return ['ok'=>true];
+    }catch(Throwable $e){ try{ if($p->inTransaction()) $p->rollBack(); }catch(Throwable $e2){} error_log('CH appt_status acc='.$acc.': '.$e->getMessage()); return ['error'=>'db','hint'=>'Bitte erneut versuchen.']; }
+    finally{ if($lk) th_unlock('appt_book:'.$acc); }
 }
+/** Kompatibel: true nur bei Erfolg; false bei ungültigem Status, unbekannter ID (not_found) oder Überschneidung – Details in $res. */
+function appt_set_status(int $acc, int $id, string $status, ?array &$res=null): bool { $res=appt_status_update($acc,$id,$status); return !empty($res['ok']); }
 function appt_ics(array $b, array $s): string {
     $tz=appt_tz($s); $st=(new DateTimeImmutable($b['start_at'],$tz))->setTimezone(new DateTimeZone('UTC')); $en=(new DateTimeImmutable($b['end_at'],$tz))->setTimezone(new DateTimeZone('UTC'));
     $esc=fn($t)=>str_replace([',',';',"\n"],['\,','\;','\n'],(string)$t);
     return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//ChatHelp//Termine//DE\r\nMETHOD:PUBLISH\r\nBEGIN:VEVENT\r\nUID:".$b['code']."@chat-help.com\r\nDTSTAMP:".gmdate('Ymd\THis\Z')."\r\nDTSTART:".$st->format('Ymd\THis\Z')."\r\nDTEND:".$en->format('Ymd\THis\Z')."\r\nSUMMARY:".$esc($b['service_name'].' – '.$s['company'])."\r\nLOCATION:".$esc($s['address'])."\r\nDESCRIPTION:".$esc('Buchungscode '.$b['code'].' · Verwalten: https://chat-help.com/chat/appt.php?c='.$b['code'])."\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
 }
 /* ---------- E-Mails ---------- */
-function appt_notify(array $b, array $s, string $kind): void {
-    $pub=appt_public($b,$s); $company=$s['company'] ?: 'Ihr Termin';
+/** Rückgabe: true, wenn alle fälligen E-Mails angenommen wurden (für die Erinnerungs-Wiederholung). */
+function appt_notify(array $b, array $s, string $kind): bool {
+    $pub=appt_public($b,$s); $company=$s['company'] ?: 'Ihr Termin'; $ok=true;
     $box=function(string $title,string $body) use($pub,$s){ return '<div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;padding:30px;border:1px solid #e6e8ef;border-radius:20px;color:#0f1222"><div style="font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#b8862b;font-weight:700">'.htmlspecialchars($s['company']).'</div><h2 style="margin:10px 0 14px;font-size:22px">'.$title.'</h2>'.$body
         .'<div style="margin:18px 0;padding:16px;border-radius:14px;background:#f6ecd3"><b style="font-size:17px">'.htmlspecialchars($pub['service']).'</b><br>'.htmlspecialchars($pub['human']).' (bis '.htmlspecialchars($pub['end']).' Uhr)'.($s['address']?'<br>'.htmlspecialchars($s['address']):'').'<br><span style="color:#6b7083;font-size:13px">Buchungscode '.$pub['code'].'</span></div>'
         .'<p style="font-size:13px;color:#6b7083">Termin verwalten / absagen / in den Kalender: <a href="'.$pub['manage_url'].'" style="color:#b8862b">'.$pub['manage_url'].'</a></p></div>'; };

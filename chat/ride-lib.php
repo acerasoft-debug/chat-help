@@ -547,7 +547,8 @@ function ride_book(int $acc, array $d, string $channel, string $from=''): array 
     try{
         $s=ride_settings($acc);
         if(!ride_enabled($acc)) return ['error'=>'rides_disabled','hint'=>'Die Taxi-Annahme ist gerade nicht aktiv – bitte direkt bei der Zentrale anrufen'.($s['phone']?' ('.$s['phone'].')':'').'.'];
-        $in=ride_input($d); $channel=mb_substr(preg_replace('/[^a-z0-9_-]/','',strtolower($channel)) ?: 'chat',0,16); $relaxed=$in['manual'] || $channel==='hotel';
+        $in=ride_input($d); $channel=mb_substr(preg_replace('/[^a-z0-9_-]/','',strtolower($channel)) ?: 'chat',0,16);
+        $relaxed=$in['manual'] || $channel==='hotel' || ($acc===0 && $channel==='demo');   // Studio, Hotel-Rezeption, Live-Demo: Telefonnummer freiwillig
         if($channel==='hotel') $in['confirm_address']=true;
         $name=mb_substr(trim(strip_tags($in['name'])),0,120);
         if(mb_strlen($name)<2) return ['error'=>'name_required','hint'=>'Bitte den Namen des Fahrgasts erfragen (für den Fahrer).'];
@@ -829,7 +830,8 @@ function ride_system_hint(int $acc, string $channel='chat'): string {
     $chanRule=$phone
         ? 'TELEFON: Die Anrufernummer ist die Kontaktnummer – nicht danach fragen; nur wenn der Anrufer eine andere Nummer möchte, diese als phone übergeben (ist die Nummer unterdrückt, meldet book_ride phone_required → Rückrufnummer erfragen). Adressen kurz wiederholen. Den Code langsam mit Pausen buchstabieren (Feld code_spoken). KEINE Links oder URLs vorlesen – der Kunde bekommt, falls eingerichtet, eine SMS. Kurze Sätze, zügig – Kunden stehen oft an der Straße.'
         : ($channel==='whatsapp' ? 'WHATSAPP: Die Absendernummer ist die Kontaktnummer – nicht danach fragen. Nach der Buchung den Status-Link (Feld track) mitschicken; Zuteilung und „Taxi ist da“ kommen automatisch per WhatsApp.'
-        : 'CHAT: Eine Rückrufnummer für den Fahrer ist Pflicht – bitte erfragen. Nach der Buchung den Status-Link (Feld track) mitschicken.');
+        : ($acc===0 && $channel==='demo' ? 'LIVE-DEMO: fiktive Taxi-Zentrale, es fährt kein echtes Taxi. Die Telefonnummer ist hier freiwillig (nicht danach drängen). Nach der Buchung den Status-Link (Feld track) mitschicken – dort läuft die Fahrt im Zeitraffer ab (Fahrer, Kennzeichen, „Taxi ist da“).'
+        : 'CHAT: Eine Rückrufnummer für den Fahrer ist Pflicht – bitte erfragen. Nach der Buchung den Status-Link (Feld track) mitschicken.'));
     return "\n\nTAXI-ZENTRALE (aktiv) für ".($s['name'] ?: 'das Taxiunternehmen').($s['address']!=='' ? ' · Zentrale '.$s['address'] : '').($s['phone']!=='' ? ' · Tel. '.$s['phone'] : '').'. Jetzt: '.ride_wd($now,true).', '.$now->format('d.m.Y, H:i').' Uhr ('.$s['tz'].').'
         .' Einsatzgebiet: '.ride_area_text($s).'. Tarif (Richtwerte): '.ride_tariff_text($s).'. Festpreise: '.$fixed.'. Fahrzeuge: '.$veh.'. Taxistände: '.$stands.'. Zahlung: '.$pay.'.'
         .' Wartezeit bei „sofort“ derzeit ca. '.$eta['min'].' Min (genau je Abholort über estimate_ride). '.($s['prebook_days']>0 ? 'Vorbestellung bis '.$s['prebook_days'].' Tage im Voraus, mindestens '.RIDE_MIN_LEAD.' Min Vorlauf.' : 'Keine Vorbestellungen – nur Sofortfahrten.')

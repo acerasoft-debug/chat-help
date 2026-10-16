@@ -2,7 +2,7 @@
    Verfügbarkeit & manuelle Buchung, Rezeptions-Board. Nutzt die Studio-Globals api(), msg(), esc(), eurIn(), eurOut(), active(). */
 (function(){
   'use strict';
-  var PANEL='panel-hotel', DATA=null, TODAY='', DEMO_ROOMS=[], KINDS={}, timer=null, booking=null, busy=false, again=false;
+  var PANEL='panel-hotel', TODAY='', DEMO_ROOMS=[], KINDS={}, timer=null, booking=null, busy=false, again=false;
   function el(id){ return document.getElementById(id); }
   function h(s){ return esc(s==null ? '' : s); }
   function visible(){ var p=el(PANEL); return !!p && !p.closest('.hidden'); }
@@ -18,7 +18,7 @@
 
   /* ---------- Einstellungen ---------- */
   function fill(j){
-    DATA=j; var s=j.settings||{}; KINDS=j.kinds||{}; DEMO_ROOMS=j.demo_rooms||[];
+    var s=j.settings||{}; KINDS=j.kinds||{}; DEMO_ROOMS=j.demo_rooms||[];
     el('htOn').checked=!!s.hotel_on; el('htName').value=s.name||''; el('htAddress').value=s.address||''; el('htPhone').value=s.phone||''; el('htNotify').value=s.notify_email||'';
     var tz=el('htTz'); if(s.tz && ![].slice.call(tz.options).some(function(o){ return o.value===s.tz; })){ var o=document.createElement('option'); o.textContent=s.tz; tz.appendChild(o); } tz.value=s.tz||'Europe/Berlin';
     el('htIn').value=s.checkin_from||'15:00'; el('htOut').value=s.checkout_until||'11:00'; el('htAuto').checked=!!s.auto_confirm;
