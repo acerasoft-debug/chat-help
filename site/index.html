@@ -1,212 +1,314 @@
 <!DOCTYPE html>
-<html lang="de" data-cc="DE">
+<html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ChatHelp — Geprüfte Rechtsschreiben, KI-Agenten zum Mieten & Creator-Pakete</title>
-<meta name="description" content="ChatHelp: Rechtsdokumente mit echten Rechtsgrundlagen (von zwei KI-Prüfungen gegengelesen), fertige KI-Agenten zum Mieten oder Kaufen, Social-Media- und YouTube-Pakete, Tokens und REST-API. Made in Europe, DSGVO-konform.">
+<title>ChatHelp — KI-Agenten für Telefon, Website & Backoffice · Inkasso, Kanzleien, Steuerberater, Praxen, Shops</title>
+<meta name="description" content="Fertige KI-Agenten, die Anrufe annehmen, Kunden beantworten und Akten vorbereiten – 24/7, nur mit deinen Fakten. Für Inkasso, Rechtsanwälte, Steuerberater, Versicherungsmakler, Hausverwaltungen, Autohäuser, Praxen und Shops. Plus ChatHelp Recht: geprüfte Rechtsschreiben. Made in Europe, DSGVO-konform.">
 <link rel="canonical" href="https://chat-help.com/">
-<meta property="og:title" content="ChatHelp — KI, die wirklich arbeitet.">
-<meta property="og:description" content="Geprüfte Rechtsschreiben · KI-Agenten mieten oder kaufen · Creator-Pakete · Tokens & API. Made in Europe.">
+<meta property="og:title" content="ChatHelp — KI-Agenten, die für dich arbeiten. 24/7.">
+<meta property="og:description" content="Telefon-Agent, Support-Agent, Kanzlei-, Inkasso- und Steuer-Agent: in 10 Minuten mit deiner Wissensbasis startklar. Live testen, mieten oder kaufen.">
 <meta property="og:type" content="website">
+<meta property="og:image" content="https://chat-help.com/media/hero-poster.jpg">
 <meta name="theme-color" content="#ffffff">
-<script>(function(){try{var l=localStorage.getItem('ch_lang'),c=localStorage.getItem('ch_cc');if(l)document.documentElement.lang=l;if(c)document.documentElement.setAttribute('data-cc',c);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
 <style>
-:root{--bg:#fbfbfd;--sur:#ffffff;--sur2:#f4f5f9;--line:#e6e8ef;--line2:#d9dce6;--ink:#0f1222;--ink2:#3b4055;--mute:#6b7083;--mute2:#9094a6;
---gold:#b8862b;--gold2:#d4a84a;--goldl:#f6ecd3;--indigo:#4f46e5;--indigol:#eceafe;--teal:#0f9f9c;--teall:#e2f6f4;--rose:#d9336b;--rosel:#fde7ee;--ok:#1a9e5a;
---sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Fraunces',Georgia,serif;--r:16px;--r2:22px;--max:1180px;
---sh1:0 1px 2px rgba(15,18,34,.05),0 8px 28px rgba(15,18,34,.06);--sh2:0 2px 6px rgba(15,18,34,.06),0 24px 60px rgba(15,18,34,.12)}
+:root{--bg:#fbfbfd;--sur:#fff;--sur2:#f4f5f9;--sur3:#eef0f6;--line:#e6e8ef;--line2:#d9dce6;--ink:#0f1222;--ink2:#3b4055;--mute:#6b7083;--mute2:#9094a6;
+--gold:#b8862b;--gold2:#d4a84a;--goldl:#f6ecd3;--indigo:#4f46e5;--indigol:#eceafe;--teal:#0f9f9c;--teall:#e2f6f4;--rose:#d9336b;--rosel:#fde7ee;--ok:#1a9e5a;--okl:#e4f5ea;
+--sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Fraunces',Georgia,serif;--r:16px;--r2:24px;--max:1200px;
+--sh1:0 1px 2px rgba(15,18,34,.05),0 10px 30px rgba(15,18,34,.07);--sh2:0 2px 6px rgba(15,18,34,.06),0 30px 70px rgba(15,18,34,.14)}
 *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-body::before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(900px 500px at 12% -10%,rgba(212,168,74,.14),transparent 60%),radial-gradient(800px 500px at 95% 5%,rgba(79,70,229,.09),transparent 60%)}
-a{color:inherit;text-decoration:none}img,svg{display:block}button{font:inherit}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(900px 520px at 10% -10%,rgba(212,168,74,.16),transparent 60%),radial-gradient(900px 520px at 100% 0%,rgba(79,70,229,.10),transparent 60%)}
+a{color:inherit;text-decoration:none}img,svg,video{display:block;max-width:100%}button{font:inherit;cursor:pointer}
 .wrap{width:min(var(--max),calc(100% - 40px));margin:0 auto}
 h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:-.015em;line-height:1.08;color:var(--ink)}
-h2{font-size:clamp(30px,4vw,44px)}
+h2{font-size:clamp(32px,4.2vw,50px)}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font:600 12.5px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
-.sub{color:var(--ink2);font-size:clamp(16px,1.5vw,18.5px);max-width:64ch;margin-top:14px}
+.eyebrow::before{content:"";width:22px;height:2px;background:var(--gold2);border-radius:2px}
+.sub{color:var(--ink2);font-size:clamp(16px,1.5vw,19px);max-width:66ch;margin-top:16px}
 .g{background:linear-gradient(135deg,#8a6318,#d4a84a 55%,#b8862b);-webkit-background-clip:text;background-clip:text;color:transparent}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:13px 20px;border-radius:999px;font:600 15px var(--sans);border:1px solid var(--line2);background:var(--sur);color:var(--ink);cursor:pointer;transition:transform .18s,box-shadow .18s,border-color .18s,background .18s;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:14px 22px;border-radius:999px;font:600 15px var(--sans);border:1px solid var(--line2);background:var(--sur);color:var(--ink);transition:transform .18s,box-shadow .18s,border-color .18s,background .18s;white-space:nowrap}
 .btn:hover{transform:translateY(-1px);border-color:#c9cdd9;box-shadow:var(--sh1)}
-.btn.p{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.p:hover{background:#1c2140;box-shadow:0 12px 30px rgba(15,18,34,.22)}
-.btn.gold{background:linear-gradient(135deg,#e9cc83,#c9972f);color:#1a1407;border-color:transparent;box-shadow:0 10px 26px rgba(201,151,47,.28)}.btn.gold:hover{box-shadow:0 14px 34px rgba(201,151,47,.36)}
-.btn.s{padding:9px 14px;font-size:13.5px}
+.btn.p{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.p:hover{background:#1c2140;box-shadow:0 14px 34px rgba(15,18,34,.24)}
+.btn.gold{background:linear-gradient(135deg,#ecd08a,#c9972f);color:#1a1407;border-color:transparent;box-shadow:0 12px 28px rgba(201,151,47,.30)}.btn.gold:hover{box-shadow:0 16px 38px rgba(201,151,47,.38)}
+.btn.s{padding:9px 14px;font-size:13.5px}.btn.ghost{background:transparent}
 .card{background:var(--sur);border:1px solid var(--line);border-radius:var(--r2);padding:26px;box-shadow:var(--sh1);transition:transform .22s,box-shadow .22s,border-color .22s}
 .card:hover{transform:translateY(-3px);box-shadow:var(--sh2);border-color:var(--line2)}
 .tag{display:inline-flex;align-items:center;gap:6px;font:600 11.5px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;padding:7px 11px;border-radius:999px;background:var(--sur2);color:var(--ink2);border:1px solid var(--line)}
-.tag.gold{background:var(--goldl);color:var(--gold);border-color:#eadbb0}.tag.indigo{background:var(--indigol);color:var(--indigo);border-color:#d6d2fb}.tag.teal{background:var(--teall);color:var(--teal);border-color:#bfe9e5}.tag.rose{background:var(--rosel);color:var(--rose);border-color:#f7c6d5}
-section{padding:92px 0;scroll-margin-top:80px}@media(max-width:720px){section{padding:60px 0}}
+.tag.gold{background:var(--goldl);color:var(--gold);border-color:#eadbb0}.tag.indigo{background:var(--indigol);color:var(--indigo);border-color:#d6d2fb}.tag.teal{background:var(--teall);color:var(--teal);border-color:#bfe9e5}.tag.rose{background:var(--rosel);color:var(--rose);border-color:#f7c6d5}.tag.ok{background:var(--okl);color:var(--ok);border-color:#bfe8cf}
+section{padding:100px 0;scroll-margin-top:84px}@media(max-width:720px){section{padding:64px 0}}
 .center{text-align:center}.center .sub{margin-left:auto;margin-right:auto}
+.alt{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 /* nav */
-.nav{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.78);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
-.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:70px;gap:16px}
+.nav{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.8);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:72px;gap:16px}
 .logo{display:flex;align-items:center;gap:11px;font:700 21px var(--serif);color:var(--ink)}
-.logo .em{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#f3dfa6,#c9972f);display:grid;place-items:center;color:#1a1407;font:700 18px var(--serif)}
+.logo .em{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#f3dfa6,#c9972f);display:grid;place-items:center;box-shadow:0 6px 16px rgba(201,151,47,.3)}
 .menu{display:flex;gap:26px;font:500 14.5px var(--sans);color:var(--ink2)}.menu a:hover{color:var(--ink)}
 .navr{display:flex;gap:10px;align-items:center}
-.lang{position:relative}.lang select{appearance:none;border:1px solid var(--line2);background:var(--sur);border-radius:999px;padding:9px 30px 9px 12px;font:600 13px var(--sans);color:var(--ink2);cursor:pointer}
-.lang::after{content:"▾";position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--mute);font-size:12px;pointer-events:none}
-.burger{display:none;width:40px;height:40px;border-radius:12px;border:1px solid var(--line2);background:var(--sur);align-items:center;justify-content:center;cursor:pointer}
-@media(max-width:900px){.menu{display:none}.menu.open{display:flex;position:absolute;top:70px;left:0;right:0;flex-direction:column;gap:0;background:#fff;border-bottom:1px solid var(--line);padding:8px 20px 16px}.menu.open a{padding:12px 0;border-bottom:1px solid var(--line)}.burger{display:flex}.navr .hide-m{display:none}}
+.burger{display:none;width:42px;height:42px;border-radius:12px;border:1px solid var(--line2);background:var(--sur);align-items:center;justify-content:center}
+@media(max-width:960px){.menu{display:none}.menu.open{display:flex;position:absolute;top:72px;left:0;right:0;flex-direction:column;gap:0;background:#fff;border-bottom:1px solid var(--line);padding:8px 20px 16px}.menu.open a{padding:13px 0;border-bottom:1px solid var(--line)}.burger{display:flex}.navr .hide-m{display:none}}
 /* hero */
-.hero{padding:76px 0 56px}
-.hero .wrap{display:grid;grid-template-columns:1.02fr .98fr;gap:52px;align-items:center}
-@media(max-width:980px){.hero .wrap{grid-template-columns:1fr}.hero{padding:44px 0 36px}}
-.hero h1{font-size:clamp(40px,5.6vw,68px);margin:18px 0 20px}
+.hero{padding:70px 0 40px;position:relative}
+.hero .wrap{display:grid;grid-template-columns:1fr 1.05fr;gap:50px;align-items:center}
+@media(max-width:1000px){.hero .wrap{grid-template-columns:1fr}.hero{padding:40px 0 30px}}
+.hero h1{font-size:clamp(42px,5.4vw,70px);margin:18px 0 20px}
 .hero .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
-.trust{display:flex;gap:18px 26px;flex-wrap:wrap;margin-top:30px;color:var(--mute);font-size:14px}
-.trust span{display:inline-flex;gap:8px;align-items:center}.trust i{width:18px;height:18px;border-radius:50%;background:#e4f5ea;color:var(--ok);display:grid;place-items:center;font:700 11px var(--sans);font-style:normal}
-/* concierge */
-.ai{background:var(--sur);border:1px solid var(--line);border-radius:28px;box-shadow:var(--sh2);overflow:hidden;display:flex;flex-direction:column;height:560px;max-height:78vh}
-.ai .hd{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fff,#fafafd)}
-.ai .av{width:40px;height:40px;border-radius:13px;background:linear-gradient(135deg,#f3dfa6,#c9972f);display:grid;place-items:center;font:700 16px var(--serif);color:#1a1407}
-.ai .hd b{display:block;font:700 15px var(--sans)}.ai .hd small{color:var(--mute);font-size:12.5px;display:flex;align-items:center;gap:6px}
+.trust{display:flex;gap:16px 24px;flex-wrap:wrap;margin-top:28px;color:var(--mute);font-size:14px}
+.trust span{display:inline-flex;gap:8px;align-items:center}.trust i{width:18px;height:18px;border-radius:50%;background:var(--okl);color:var(--ok);display:grid;place-items:center;font:700 11px var(--sans);font-style:normal}
+.vid{position:relative;border-radius:28px;overflow:hidden;box-shadow:var(--sh2);border:1px solid var(--line);background:#fff;aspect-ratio:16/9}
+.vid video{width:100%;height:100%;object-fit:cover}
+.vid .live{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.88);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font:600 12.5px var(--sans);color:var(--ink2);white-space:nowrap}
+.vid .cap{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;justify-content:center}
+.vid .cap span{background:rgba(15,18,34,.78);color:#fff;backdrop-filter:blur(8px);border-radius:12px;padding:8px 12px;font:500 12.5px var(--sans);white-space:nowrap}
+@media(max-width:560px){.vid .live,.vid .cap{display:none}}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(26,158,90,.5);animation:pulse 2s infinite}@keyframes pulse{70%{box-shadow:0 0 0 9px rgba(26,158,90,0)}100%{box-shadow:0 0 0 0 rgba(26,158,90,0)}}
-.ai .ms{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:12px;background:#fbfbfd}
-.ai .m{max-width:88%;padding:12px 15px;border-radius:18px;font-size:14.5px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word}
-.ai .m.a{align-self:flex-start;background:#fff;border:1px solid var(--line);border-top-left-radius:6px;box-shadow:0 2px 8px rgba(15,18,34,.04)}
-.ai .m.u{align-self:flex-end;background:var(--ink);color:#fff;border-top-right-radius:6px}
-.ai .m a{color:var(--gold);font-weight:600;text-decoration:underline;text-decoration-color:rgba(184,134,43,.35)}
-.ai .m.t{color:var(--mute);font-size:13px;background:transparent;border:0;box-shadow:none;padding:4px 6px}
-.ai .chips{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 10px;background:#fbfbfd}
-.ai .chip{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:7px 12px;font:500 12.5px var(--sans);color:var(--ink2);cursor:pointer;transition:.15s}.ai .chip:hover{border-color:var(--gold);color:var(--ink)}
-.ai form{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);background:#fff}
-.ai input{flex:1;border:1px solid var(--line2);border-radius:14px;padding:12px 14px;font:15px var(--sans);outline:0;background:#fff}.ai input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,43,.12)}
-.ai button.send{border:0;border-radius:14px;background:var(--ink);color:#fff;padding:0 16px;font:600 14px var(--sans);cursor:pointer}.ai button.send:disabled{opacity:.5}
-.ai .ft{font-size:11.5px;color:var(--mute2);text-align:center;padding:0 12px 10px;background:#fff}
-/* product lines */
-.lines{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:40px}@media(max-width:1000px){.lines{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.lines{grid-template-columns:1fr}}
-.line{display:flex;flex-direction:column;padding:24px}.line .ic{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;font-size:22px;margin-bottom:16px}
-.line h3{font-size:21px;margin-bottom:8px}.line p{color:var(--ink2);font-size:14.5px;flex:1}.line .more{margin-top:16px;font:600 14px var(--sans);color:var(--gold)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:56px}@media(max-width:860px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{padding:20px 22px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line);box-shadow:var(--sh1)}.stat b{display:block;font:800 30px/1.1 var(--sans)}.stat span{color:var(--mute);font-size:13.5px}
+/* demo theater */
+.dtabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:34px}
+.dtab{display:inline-flex;align-items:center;gap:8px;font:600 14px var(--sans);padding:11px 16px;border-radius:999px;border:1px solid var(--line2);color:var(--ink2);background:var(--sur);transition:.18s}.dtab:hover{border-color:var(--gold2)}.dtab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.theater{display:grid;grid-template-columns:1.05fr .95fr;gap:30px;margin-top:26px;align-items:stretch}@media(max-width:980px){.theater{grid-template-columns:1fr}}
+.stage{background:linear-gradient(160deg,#fff,#f6f6fb);border:1px solid var(--line);border-radius:30px;box-shadow:var(--sh2);padding:26px;min-height:560px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.stage::before{content:"";position:absolute;inset:0;background:radial-gradient(500px 300px at 20% 10%,rgba(212,168,74,.16),transparent 60%),radial-gradient(500px 300px at 90% 90%,rgba(79,70,229,.12),transparent 60%);pointer-events:none}
+/* phone device */
+.phone{position:relative;width:300px;height:600px;border-radius:44px;background:#0f1222;box-shadow:0 30px 70px rgba(15,18,34,.3),inset 0 0 0 2px #2a2f4a;padding:14px}
+.phone .scr{position:absolute;inset:14px;border-radius:34px;background:linear-gradient(180deg,#141830,#0f1222);overflow:hidden;display:flex;flex-direction:column;color:#fff}
+.phone .notch{width:110px;height:28px;background:#0f1222;border-radius:0 0 18px 18px;margin:0 auto}
+.phone .callhd{text-align:center;padding:16px 16px 8px}.phone .callhd b{display:block;font:700 17px var(--sans)}.phone .callhd small{color:#9aa0c0;font-size:12.5px}
+.phone .wave{display:flex;align-items:center;justify-content:center;gap:3px;height:38px;margin:6px 0}.phone .wave i{width:4px;border-radius:3px;background:#8b7cf6;height:8px;animation:wv .9s ease-in-out infinite}
+@keyframes wv{0%,100%{height:6px;opacity:.6}50%{height:30px;opacity:1}}
+.phone .tr{flex:1;overflow:auto;padding:8px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.phone .tr .m{max-width:92%;padding:9px 12px;border-radius:14px;font-size:13px;line-height:1.45}
+.phone .tr .m.a{align-self:flex-start;background:rgba(255,255,255,.1);border-top-left-radius:5px}.phone .tr .m.u{align-self:flex-end;background:#e3c27a;color:#1a1407;border-top-right-radius:5px}
+.phone .tr .m.sys{align-self:center;background:transparent;color:#9aa0c0;font-size:11.5px;text-align:center}
+.phone .ctl{display:flex;justify-content:center;gap:18px;padding:12px 0 18px}.phone .ctl i{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.12);font-style:normal;font-size:20px}.phone .ctl i.red{background:#e5484d}
+/* browser device */
+.browser{width:100%;max-width:560px;border-radius:18px;background:#fff;box-shadow:0 30px 70px rgba(15,18,34,.18);border:1px solid var(--line);overflow:hidden}
+.browser .bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:#f7f7fb}.browser .bar i{width:10px;height:10px;border-radius:50%;background:#e4e6ee}.browser .bar span{margin-left:8px;flex:1;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--mute)}
+.browser .site{height:420px;position:relative;background:linear-gradient(180deg,#fff,#f6f6fb);padding:20px}
+.browser .fake{height:14px;border-radius:7px;background:#e9ebf2;margin-bottom:10px}.browser .fake.w{width:60%}.browser .fake.h{height:28px;width:45%;background:#dfe2ec}
+.widget{position:absolute;right:16px;bottom:16px;width:290px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh2);overflow:hidden;display:flex;flex-direction:column;height:330px}
+.widget .wh{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}.widget .wh b{font:700 13px var(--sans)}.widget .wh small{display:block;color:var(--mute);font-size:11px}
+.widget .wh .av{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#f3dfa6,#c9972f)}
+.widget .tr{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:7px;background:#fbfbfd}
+.widget .tr .m{max-width:90%;padding:8px 11px;border-radius:13px;font-size:12.5px;line-height:1.45}.widget .tr .m.a{align-self:flex-start;background:#fff;border:1px solid var(--line);border-top-left-radius:4px}.widget .tr .m.u{align-self:flex-end;background:var(--ink);color:#fff;border-top-right-radius:4px}.widget .tr .m.sys{align-self:center;color:var(--mute);font-size:11px}
+.widget .in{border-top:1px solid var(--line);padding:8px;font-size:12px;color:var(--mute2)}
+/* dossier device */
+.dossier{width:100%;max-width:560px;background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 30px 70px rgba(15,18,34,.16);overflow:hidden}
+.dossier .dh{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);background:#f7f7fb}.dossier .dh b{font:700 14px var(--sans)}.dossier .dh span{font-size:12px;color:var(--mute)}
+.dossier .chat{padding:14px 18px;display:flex;flex-direction:column;gap:8px;border-bottom:1px dashed var(--line);min-height:120px}
+.dossier .chat .m{max-width:92%;padding:9px 12px;border-radius:14px;font-size:13px;line-height:1.45}.dossier .chat .m.u{align-self:flex-end;background:var(--ink);color:#fff;border-top-right-radius:5px}.dossier .chat .m.a{align-self:flex-start;background:var(--sur2);border-top-left-radius:5px}.dossier .chat .m.sys{align-self:center;color:var(--mute);font-size:11.5px}
+.dossier .out{padding:16px 18px 18px;background:linear-gradient(180deg,#fff,#fbfbfd)}
+.dossier .out .t{font:700 12px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.dossier table{width:100%;border-collapse:collapse;font-size:13px}.dossier td{padding:7px 0;border-bottom:1px solid var(--line);color:var(--ink2)}.dossier td:last-child{text-align:right;font-weight:600;color:var(--ink)}.dossier tr.tot td{border:0;font-weight:800;color:var(--ink);font-size:14px;padding-top:10px}
+.dossier .row{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}.dossier .row b{min-width:110px;color:var(--mute);font-weight:600}.dossier .row.hot{color:var(--rose);font-weight:700}
+.dossier .stamp{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font:700 11.5px var(--sans);color:var(--ok);background:var(--okl);border-radius:999px;padding:6px 10px}
+.typing::after{content:"▍";animation:bl 1s steps(1) infinite;color:var(--gold)}@keyframes bl{50%{opacity:0}}
+/* explain panel */
+.explain{display:flex;flex-direction:column;gap:14px}
+.explain .hd h3{font-size:30px}.explain .hd p{color:var(--ink2);margin-top:8px}
+.stepl{display:grid;gap:10px}.stepl .it{display:flex;gap:14px;padding:14px 16px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line);transition:.25s;opacity:.55}
+.stepl .it.on{opacity:1;border-color:var(--gold2);box-shadow:var(--sh1);transform:translateX(4px)}
+.stepl .it i{width:30px;height:30px;border-radius:10px;background:var(--goldl);color:var(--gold);display:grid;place-items:center;font:800 13px var(--sans);font-style:normal;flex:0 0 auto}
+.stepl .it b{display:block;font:700 14.5px var(--sans)}.stepl .it span{color:var(--ink2);font-size:13.5px}
+.dctl{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.live{display:none;background:var(--sur);border:1px solid var(--line);border-radius:var(--r2);padding:14px;box-shadow:var(--sh1)}
+.live.on{display:block}.live form{display:flex;gap:8px}.live input{flex:1;border:1px solid var(--line2);border-radius:14px;padding:12px 14px;font:15px var(--sans);outline:0}.live input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,43,.12)}
+.live .send{border:0;border-radius:14px;background:var(--ink);color:#fff;padding:0 16px;font:600 14px var(--sans)}.live .mic{border:1px solid var(--line2);border-radius:14px;background:#fff;padding:0 14px;font-size:18px}.live .mic.rec{background:var(--rosel);border-color:#f7c6d5;animation:pulse 1.4s infinite}
+.live small{display:block;color:var(--mute2);font-size:11.5px;margin-top:8px}
+/* professions */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}@media(max-width:1000px){.pgrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.pgrid{grid-template-columns:1fr}}
+.pro{display:flex;flex-direction:column;padding:26px;cursor:pointer}
+.pro .top{display:flex;align-items:center;justify-content:space-between}.pro .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font:700 22px var(--sans)}
+.pro h3{font-size:22px;margin:16px 0 4px}.pro .who{color:var(--mute);font-size:13px}.pro p{color:var(--ink2);font-size:14.5px;margin-top:10px}
+.pro ul{list-style:none;display:grid;gap:7px;margin:14px 0 14px;color:var(--ink2);font-size:14px}.pro li{display:flex;gap:9px}.pro li::before{content:"✓";color:var(--ok);font-weight:800;flex:0 0 auto}
+.pro .rules{display:flex;gap:6px;flex-wrap:wrap}.pro .rules span{font:600 11.5px var(--sans);padding:5px 9px;border-radius:999px;background:var(--sur2);border:1px solid var(--line);color:var(--ink2)}
+.pro .pr{margin-top:auto;padding-top:16px;display:flex;align-items:baseline;gap:6px}.pro .pr b{font:800 30px var(--sans)}.pro .pr small{color:var(--mute)}
+.pro .inc{color:var(--mute);font-size:12.5px;margin-top:2px}
+.pro .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.pro .acts .btn{padding:11px 12px;font-size:14px}
+.pro .more{margin-top:12px;font:600 13.5px var(--sans);color:var(--gold)}
+.chs{display:flex;gap:6px;margin-top:10px}.chs span{font:600 11px var(--sans);color:var(--mute);border:1px dashed var(--line2);border-radius:8px;padding:4px 8px}
+/* modal */
+.modal{position:fixed;inset:0;z-index:100;background:rgba(15,18,34,.55);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
+.modal.open{display:flex}.mbox{background:#fff;border-radius:30px;max-width:980px;width:100%;max-height:92vh;overflow:auto;box-shadow:var(--sh2);position:relative}
+.mbox .mh{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:30px 34px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:2}
+.mbox .mh h3{font-size:32px}.mbox .mh .who{color:var(--mute);margin-top:6px}
+.mbox .x{width:42px;height:42px;border-radius:50%;border:1px solid var(--line2);background:#fff;font-size:20px;flex:0 0 auto}
+.mbox .mb{padding:26px 34px 34px;display:grid;grid-template-columns:1.1fr .9fr;gap:30px}@media(max-width:800px){.mbox .mb{grid-template-columns:1fr}.mbox .mh{padding:22px}.mbox .mb{padding:22px}}
+.mbox h4{font:700 13px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:22px 0 10px}.mbox h4:first-child{margin-top:0}
+.mbox ul{list-style:none;display:grid;gap:8px}.mbox li{display:flex;gap:10px;color:var(--ink2);font-size:14.5px}.mbox li::before{content:"✓";color:var(--ok);font-weight:800}
+.mbox .ex{background:var(--sur2);border:1px solid var(--line);border-radius:18px;padding:16px}.mbox .ex .q{font:600 14px var(--sans);color:var(--ink);padding:10px 12px;background:var(--ink);color:#fff;border-radius:12px;border-top-right-radius:4px;display:inline-block;max-width:95%}
+.mbox .ex .a{margin-top:10px;font-size:14px;color:var(--ink2);white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:12px;border-top-left-radius:4px;padding:12px}
+.mbox .side{background:linear-gradient(160deg,#fffaf0,#fff);border:1px solid #eadbb0;border-radius:22px;padding:22px;height:max-content;position:sticky;top:110px}
+.mbox .side .pr b{font:800 38px var(--sans)}.mbox .side .pr small{color:var(--mute)}
+.mbox .side .btn{width:100%;margin-top:10px}
+.mbox .side .buy{margin-top:14px;padding:12px;border-radius:12px;background:#fff;border:1px dashed var(--line2);font-size:13.5px;color:var(--ink2)}
+.mbox .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.mbox .chips span{font:600 12px var(--sans);padding:6px 10px;border-radius:999px;background:#fff;border:1px solid var(--line2)}
+/* telefon feature */
+.tel{display:grid;grid-template-columns:.9fr 1.1fr;gap:50px;align-items:center}@media(max-width:960px){.tel{grid-template-columns:1fr}}
+.feat2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}@media(max-width:560px){.feat2{grid-template-columns:1fr}}
+.feat2 .it{padding:16px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line)}.feat2 .it b{display:block;font:700 15px var(--sans);margin-bottom:4px}.feat2 .it span{color:var(--ink2);font-size:13.5px}
+.flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:22px}.flow span{font:600 13px var(--sans);padding:9px 13px;border-radius:999px;background:var(--sur2);border:1px solid var(--line)}.flow i{color:var(--mute2);font-style:normal}
+/* how */
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px}@media(max-width:900px){.how{grid-template-columns:1fr}}
+.how .st{padding:26px;display:flex;flex-direction:column}.how .n{font:800 13px var(--sans);color:var(--gold);letter-spacing:.1em}.how h3{font-size:24px;margin:10px 0 8px}.how p{color:var(--ink2);font-size:14.5px}
+.ill{height:150px;border-radius:18px;background:var(--sur2);border:1px solid var(--line);margin-top:18px;position:relative;overflow:hidden}
+.ill svg{width:100%;height:100%}
 /* recht */
 .recht{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:start}@media(max-width:960px){.recht{grid-template-columns:1fr}}
-.why{display:grid;gap:12px;margin-top:26px}
-.why .it{display:flex;gap:14px;padding:16px 18px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line);box-shadow:var(--sh1)}
+.why{display:grid;gap:12px;margin-top:26px}.why .it{display:flex;gap:14px;padding:16px 18px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line);box-shadow:var(--sh1)}
 .why .it i{width:34px;height:34px;border-radius:11px;background:var(--goldl);color:var(--gold);display:grid;place-items:center;font-style:normal;font-weight:800;flex:0 0 auto}
 .why .it b{display:block;font:700 15px var(--sans);margin-bottom:3px}.why .it span{color:var(--ink2);font-size:14px}
 .docs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}@media(max-width:520px){.docs{grid-template-columns:1fr}}
 .doc{display:flex;align-items:center;gap:12px;padding:14px 15px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line);transition:.18s}.doc:hover{border-color:var(--gold2);box-shadow:var(--sh1);transform:translateY(-2px)}
-.doc .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:18px;background:var(--sur2);flex:0 0 auto}
-.doc b{display:block;font:600 14.5px var(--sans)}.doc small{color:var(--mute);font-size:12.5px}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}@media(max-width:700px){.steps{grid-template-columns:1fr}}
-.step{padding:18px;border-radius:var(--r);background:var(--sur2);border:1px solid var(--line)}.step b{display:block;font:700 15px var(--sans);margin:8px 0 4px}.step span{color:var(--ink2);font-size:14px}.step .n{font:700 13px var(--sans);color:var(--gold)}
+.doc .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:18px;background:var(--sur2);flex:0 0 auto}.doc b{display:block;font:600 14.5px var(--sans)}.doc small{color:var(--mute);font-size:12.5px}
 .flags{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.flags a{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border-radius:999px;border:1px solid var(--line2);background:var(--sur);font:600 13.5px var(--sans)}
-/* agents */
-.filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:30px}
-.fl{font:600 13px var(--sans);padding:9px 14px;border-radius:999px;border:1px solid var(--line2);color:var(--ink2);cursor:pointer;background:var(--sur);transition:.18s}.fl:hover{border-color:var(--indigo);color:var(--ink)}.fl.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.agrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:22px}@media(max-width:1000px){.agrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.agrid{grid-template-columns:1fr}}
-.ag{display:flex;flex-direction:column;padding:24px}.ag .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.ag .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:21px;background:var(--indigol)}
-.ag h3{font-size:20px;margin:14px 0 6px}.ag p{color:var(--ink2);font-size:14.5px}
-.ag ul{list-style:none;display:grid;gap:8px;margin:14px 0 18px;color:var(--ink2);font-size:14px}.ag li{display:flex;gap:9px}.ag li::before{content:"✓";color:var(--ok);font-weight:800;flex:0 0 auto}
-.ag .pr{margin-top:auto;display:flex;align-items:baseline;gap:6px}.ag .pr b{font:800 30px var(--sans)}.ag .pr small{color:var(--mute)}
-.ag .inc{color:var(--mute);font-size:12.5px;margin-top:3px}
-.ag .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.ag .acts .btn{padding:11px 12px;font-size:14px}
-.ag .buy{margin-top:10px;font-size:13px;color:var(--ink2);display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--sur2);border:1px dashed var(--line2)}.ag .buy a{font-weight:700;color:var(--indigo)}
-.how{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:40px}@media(max-width:900px){.how{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.how{grid-template-columns:1fr}}
-.how .step{background:var(--sur)}
-/* creator */
-.pk{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}@media(max-width:960px){.pk{grid-template-columns:1fr}}
-.pk .card{display:flex;flex-direction:column}.pk h3{font-size:22px;margin:14px 0 6px}.pk .de{color:var(--mute);font-size:13px;margin-bottom:12px}
-.pk ul{list-style:none;margin:14px 0 20px;display:grid;gap:9px}.pk li{display:flex;gap:10px;color:var(--ink2);font-size:14.5px}.pk li::before{content:"✓";color:var(--ok);font-weight:800}
-.price{margin-top:auto;display:flex;align-items:baseline;gap:6px}.price b{font:800 32px var(--sans)}.price small{color:var(--mute)}
-.pk .btn{margin-top:16px}
+/* pricing */
+.ptabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:34px;justify-content:center}
+.ptab{font:600 14px var(--sans);padding:11px 16px;border-radius:999px;border:1px solid var(--line2);color:var(--ink2);background:var(--sur);transition:.18s}.ptab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.pgrid2{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:26px}@media(max-width:960px){.pgrid2{grid-template-columns:1fr}}
+.pk{display:flex;flex-direction:column}.pk h3{font-size:21px;margin:12px 0 6px}.pk .d{color:var(--ink2);font-size:14.5px}
+.pk ul{list-style:none;display:grid;gap:8px;margin:14px 0 16px;color:var(--ink2);font-size:14px}.pk li::before{content:"✓ ";color:var(--ok);font-weight:800}
+.pk .pr{margin-top:auto;display:flex;align-items:baseline;gap:6px}.pk .pr b{font:800 30px var(--sans)}.pk .pr small{color:var(--mute)}.pk .inc{color:var(--mute);font-size:12.5px;margin-top:4px}
+.pk .acts{display:flex;gap:8px;margin-top:14px}.pk .acts .btn{flex:1;padding:11px 12px;font-size:14px}
 .feat{border-color:#eadbb0;background:linear-gradient(160deg,#fffaf0,#fff)}
-/* branchen */
-.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:34px}
-.tab{font:600 13px var(--sans);padding:9px 14px;border-radius:999px;border:1px solid var(--line2);color:var(--ink2);cursor:pointer;background:var(--sur);transition:.18s}.tab:hover{border-color:var(--gold2)}.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.pkgs{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:22px}@media(max-width:960px){.pkgs{grid-template-columns:1fr}}
-.pkg{display:flex;flex-direction:column}.pkg h3{font-size:20px;margin:12px 0 6px}.pkg .d{color:var(--ink2);font-size:14.5px}
-.pkg ul{list-style:none;display:grid;gap:8px;margin:14px 0 16px;color:var(--ink2);font-size:14px}.pkg li::before{content:"✓ ";color:var(--ok);font-weight:800}
-.pkg .pr{margin-top:auto;display:flex;align-items:baseline;gap:6px}.pkg .pr b{font:800 28px var(--sans)}.pkg .pr small{color:var(--mute)}
-.pkg .inc{color:var(--mute);font-size:12.5px;margin-top:4px}
-.pkg .acts{display:flex;gap:8px;margin-top:14px}.pkg .acts .btn{flex:1;padding:11px 12px;font-size:14px}
-/* tokens */
-.tk{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}@media(max-width:900px){.tk{grid-template-columns:1fr}}
-.tk .card{display:flex;flex-direction:column;padding:24px}.tk .price{margin:12px 0 2px}.tk .price b{font-size:30px}
-.tk .qty{font:700 16px var(--sans)}.tk .per{color:var(--mute);font-size:13px;margin-top:4px}
-.tk ul{list-style:none;display:grid;gap:8px;margin:14px 0 18px;color:var(--ink2);font-size:14px}.tk li::before{content:"✓ ";color:var(--ok);font-weight:800}
+.stabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px;justify-content:center}.stab{font:600 12.5px var(--sans);padding:8px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--ink2);background:var(--sur)}.stab.on{background:var(--gold);color:#fff;border-color:var(--gold)}
 .calc{margin-top:22px;border-radius:var(--r2);border:1px solid #eadbb0;background:linear-gradient(160deg,#fffaf0,#fff);padding:28px;display:grid;grid-template-columns:1.2fr .8fr;gap:28px;align-items:center;box-shadow:var(--sh1)}@media(max-width:860px){.calc{grid-template-columns:1fr}}
 .calc h3{font-size:24px}.calc input[type=range]{width:100%;margin:18px 0 10px;accent-color:var(--gold)}
 .calc .num{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.calc .num input{width:170px;padding:12px 14px;border-radius:12px;border:1px solid var(--line2);background:#fff;font:600 16px var(--sans)}
 .calc .out{text-align:right}.calc .out b{font:800 40px var(--sans)}.calc .out small{display:block;color:var(--mute);margin-top:4px}
 .calc .tiers{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.calc .tiers span{font-size:12px;color:var(--mute);border:1px solid var(--line2);border-radius:999px;padding:6px 10px;background:#fff}
 @media(max-width:860px){.calc .out{text-align:left}}
-/* api */
-.api{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:start}@media(max-width:960px){.api{grid-template-columns:1fr}}
-.tiers2{display:grid;gap:14px;margin-top:26px}.tier{display:flex;justify-content:space-between;gap:22px;align-items:flex-start}
-.tier ul{list-style:none;display:grid;gap:8px;color:var(--ink2);font-size:14.5px;margin-top:12px}.tier .right{text-align:right;flex:0 0 auto}
-@media(max-width:620px){.tier{flex-direction:column}.tier .right{text-align:left}}
-.code{border-radius:var(--r2);border:1px solid #1f2440;background:#0f1222;padding:22px;font:13.5px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#d7dbf0;white-space:pre;overflow:auto;box-shadow:var(--sh2);position:sticky;top:92px}
-.code .c{color:#8a90ad}.code .k{color:#7dd3c8}.code .s{color:#f0d998}
-@media(max-width:960px){.code{position:static;white-space:pre-wrap;word-break:break-all;font-size:12.5px;padding:18px}}
-/* faq */
+/* trust */
+.tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}@media(max-width:900px){.tgrid{grid-template-columns:1fr}}
+.tgrid .card{padding:24px}.tgrid h3{font-size:20px;margin:12px 0 6px}.tgrid p{color:var(--ink2);font-size:14.5px}.tgrid .ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:20px;background:var(--sur2)}
+/* faq, cta, footer */
 .faq{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:36px}@media(max-width:800px){.faq{grid-template-columns:1fr}}
 details{background:var(--sur);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh1)}summary{cursor:pointer;font:600 15px var(--sans);list-style:none;display:flex;justify-content:space-between;gap:12px}summary::after{content:"+";color:var(--mute)}details[open] summary::after{content:"–"}details p{color:var(--ink2);font-size:14.5px;margin-top:10px}
-/* cta + footer */
-.ctab{border-radius:32px;padding:60px 36px;text-align:center;background:var(--ink);color:#fff;box-shadow:var(--sh2)}
-.ctab h2{color:#fff}.ctab .sub{color:#c6c9d9}
-footer{border-top:1px solid var(--line);padding:40px 0;color:var(--mute);font-size:14px;background:#fff}
-footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}footer .cols{display:flex;gap:40px;flex-wrap:wrap}footer a:hover{color:var(--ink)}
-.reveal{opacity:0;transform:translateY(12px);animation:rv .7s ease forwards}@keyframes rv{to{opacity:1;transform:none}}.d1{animation-delay:.08s}.d2{animation-delay:.16s}.d3{animation-delay:.24s}
-@media(prefers-reduced-motion:reduce){.reveal{animation:none;opacity:1;transform:none}.dot{animation:none}}
+.ctab{border-radius:34px;padding:64px 36px;text-align:center;background:var(--ink);color:#fff;box-shadow:var(--sh2);position:relative;overflow:hidden}
+.ctab::before{content:"";position:absolute;inset:-40%;background:radial-gradient(600px 300px at 20% 30%,rgba(212,168,74,.28),transparent 60%),radial-gradient(600px 300px at 80% 70%,rgba(79,70,229,.3),transparent 60%)}
+.ctab>*{position:relative}.ctab h2{color:#fff}.ctab .sub{color:#c6c9d9}
+footer{border-top:1px solid var(--line);padding:44px 0;color:var(--mute);font-size:14px;background:#fff}
+footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}footer .cols{display:flex;gap:44px;flex-wrap:wrap}footer a:hover{color:var(--ink)}
+/* floating assistant */
+.fab{position:fixed;right:22px;bottom:22px;z-index:80;display:inline-flex;align-items:center;gap:10px;padding:13px 18px 13px 14px;border-radius:999px;background:var(--ink);color:#fff;border:0;box-shadow:0 16px 40px rgba(15,18,34,.3);font:600 14.5px var(--sans)}
+.fab .av{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#f3dfa6,#c9972f)}
+.ai{position:fixed;right:22px;bottom:84px;z-index:81;width:min(400px,calc(100vw - 32px));height:min(600px,calc(100vh - 110px));background:#fff;border:1px solid var(--line);border-radius:26px;box-shadow:var(--sh2);display:none;flex-direction:column;overflow:hidden}
+.ai.open{display:flex}
+.ai .hd{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fff,#fafafd)}
+.ai .av{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#f3dfa6,#c9972f)}.ai .hd b{display:block;font:700 14.5px var(--sans)}.ai .hd small{color:var(--mute);font-size:12px;display:flex;align-items:center;gap:6px}
+.ai .ms{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fbfbfd}
+.ai .m{max-width:90%;padding:11px 14px;border-radius:16px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+.ai .m.a{align-self:flex-start;background:#fff;border:1px solid var(--line);border-top-left-radius:6px}.ai .m.u{align-self:flex-end;background:var(--ink);color:#fff;border-top-right-radius:6px}.ai .m a{color:var(--gold);font-weight:600;text-decoration:underline}
+.ai .m.t{color:var(--mute);font-size:13px;background:transparent;border:0;padding:4px 6px}
+.ai .chips{display:flex;gap:8px;flex-wrap:wrap;padding:0 14px 10px;background:#fbfbfd}.ai .chip{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:7px 11px;font:500 12px var(--sans);color:var(--ink2)}.ai .chip:hover{border-color:var(--gold)}
+.ai form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);background:#fff}.ai input{flex:1;border:1px solid var(--line2);border-radius:12px;padding:11px 12px;font:14px var(--sans);outline:0}.ai input:focus{border-color:var(--gold)}
+.ai .send{border:0;border-radius:12px;background:var(--ink);color:#fff;padding:0 14px;font:600 13.5px var(--sans)}
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .7s ease}.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.dot,.phone .wave i{animation:none}}
 </style>
 </head>
 <body>
 
 <nav class="nav"><div class="wrap">
-  <a class="logo" href="/"><span class="em">§</span>ChatHelp</a>
-  <div class="menu" id="menu"><a href="#recht">Recht</a><a href="#agenten">Agenten</a><a href="#creator">Creator</a><a href="#branchen">Branchen</a><a href="#tokens">Tokens</a><a href="#api">API</a></div>
-  <div class="navr">
-    <span class="lang"><select id="lang" aria-label="Sprache"><option value="de">DE</option><option value="en">EN</option><option value="tr">TR</option><option value="fr">FR</option><option value="es">ES</option><option value="ru">RU</option></select></span>
-    <a class="btn s hide-m" href="/chat/agent.php">Studio</a><a class="btn s p" href="/chat/">Anmelden</a>
-    <button class="burger" id="burger" aria-label="Menü"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
-  </div>
+  <a class="logo" href="/"><span class="em"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp</a>
+  <div class="menu" id="menu"><a href="#demo">Live-Demo</a><a href="#berufe">Agenten nach Beruf</a><a href="#telefon">Telefon-Agent</a><a href="#how">So funktioniert's</a><a href="#recht">Recht</a><a href="#preise">Preise</a></div>
+  <div class="navr"><a class="btn s hide-m" href="/chat/">Recht-App</a><a class="btn s p" href="/chat/agent.php">Studio starten</a>
+    <button class="burger" id="burger" aria-label="Menü"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button></div>
 </div></nav>
 
 <header class="hero"><div class="wrap">
   <div>
-    <span class="tag gold reveal">Made in Europe · DSGVO-konform · EU-Server</span>
-    <h1 class="reveal d1">KI, die <span class="g">wirklich</span> arbeitet.</h1>
-    <p class="sub reveal d2">Geprüfte Rechtsschreiben mit echten Rechtsgrundlagen. Fertige KI-Agenten, die du mietest oder kaufst – mit deiner Wissensbasis und Website-Widget. Creator-Pakete, Tokens und API. <b style="color:var(--ink)">Eine Plattform, ein Konto.</b></p>
-    <div class="cta reveal d3"><a class="btn gold" href="#recht">Rechtsschreiben erstellen</a><a class="btn p" href="#agenten">Agenten mieten oder kaufen</a><a class="btn" href="#tokens">Tokens kaufen</a></div>
-    <div class="trust reveal d3"><span><i>✓</i> Zwei unabhängige KI-Prüfungen</span><span><i>✓</i> Nur echte §§ mit Quelle</span><span><i>✓</i> Monatlich kündbar</span><span><i>✓</i> Tokens verfallen nicht</span></div>
+    <span class="tag gold">KI-Agenten für Unternehmen · Made in Europe · DSGVO</span>
+    <h1>Dein Team arbeitet 8 Stunden.<br>Dein <span class="g">Agent 24.</span></h1>
+    <p class="sub">Fertige KI-Agenten, die <b style="color:var(--ink)">Anrufe annehmen, Kunden beantworten und Akten vorbereiten</b> – für Inkasso, Kanzleien, Steuerberater, Versicherungsmakler, Hausverwaltungen, Autohäuser, Praxen und Shops. Nur mit deinen Fakten. In 10 Minuten startklar.</p>
+    <div class="cta"><a class="btn gold" href="/chat/agent.php">Studio starten – 300 Tokens gratis</a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('phone'),300)">▶ Telefon-Agent live hören</a></div>
+    <div class="trust"><span><i>✓</i> Antwortet nur aus deiner Wissensbasis</span><span><i>✓</i> Übergabe an Menschen</span><span><i>✓</i> Transkripte &amp; Audit-Log</span><span><i>✓</i> Monatlich kündbar</span></div>
   </div>
-  <div class="ai reveal d2" id="ai" aria-label="ChatHelp Assistent">
-    <div class="hd"><div class="av">§</div><div><b>ChatHelp Assistent</b><small><span class="dot"></span> online · antwortet in deiner Sprache</small></div></div>
-    <div class="ms" id="aiMs"></div>
-    <div class="chips" id="aiChips"></div>
-    <form id="aiForm"><input id="aiIn" placeholder="Frag mich – z. B. „Ich brauche einen Widerspruch gegen eine Mieterhöhung“" autocomplete="off" maxlength="1500"><button class="send" type="submit" id="aiSend">Senden</button></form>
-    <div class="ft">Hilfe zu Produkten &amp; Orientierung · keine Rechtsberatung im Einzelfall · info@chat-help.com</div>
+  <div class="vid reveal in" id="heroVid">
+    <video autoplay muted loop playsinline poster="/media/hero-poster.jpg" preload="metadata"><source src="/media/hero.webm" type="video/webm"><source src="/media/hero.mp4" type="video/mp4"></video>
+    <span class="live"><span class="dot"></span> So arbeiten Agenten – Telefon · Chat · Akte</span>
+    <div class="cap"><span>Praxis · Shop · Kanzlei · Inkasso – ein Agent pro Beruf</span></div>
   </div>
-</div></header>
+</div>
+<div class="wrap"><div class="stats reveal"><div class="stat"><b>&lt; 2 s</b><span>Antwortzeit, rund um die Uhr</span></div><div class="stat"><b>24/7</b><span>Telefon · Website · E-Mail</span></div><div class="stat"><b>9+</b><span>Berufsgruppen mit eigenen Regeln</span></div><div class="stat"><b>0</b><span>erfundene Fakten – nur deine Wissensbasis</span></div></div></div>
+</header>
 
-<section id="linien" style="padding-top:30px"><div class="wrap center">
-  <span class="eyebrow">Eine Plattform · vier Produktlinien</span>
-  <h2 style="margin-top:12px">Was möchtest du heute <span class="g">erledigen?</span></h2>
-  <div class="lines" style="text-align:left">
-    <a class="card line" href="#recht"><div class="ic" style="background:var(--goldl)">⚖️</div><h3>ChatHelp Recht</h3><p>Widerspruch, Kündigung, Mieterhöhung, Behördenanträge, Visum-Unterlagen – geprüft, mit §§ und Quelle, versandfertig.</p><span class="more">Schreiben erstellen →</span></a>
-    <a class="card line" href="#agenten"><div class="ic" style="background:var(--indigol)">🤖</div><h3>KI-Agenten</h3><p>Support, Vertrieb, Content, Website, Backoffice: mieten ab 79 €/Monat oder einmal kaufen. Mit Wissensbasis &amp; Widget.</p><span class="more">Agenten ansehen →</span></a>
-    <a class="card line" href="#creator"><div class="ic" style="background:var(--teall)">🚀</div><h3>Creator &amp; Social Media</h3><p>Social-Media-Automatisierung, YouTube-Skripte &amp; SEO, Untertitel &amp; Übersetzung – fertig in Minuten.</p><span class="more">Pakete ansehen →</span></a>
-    <a class="card line" href="#api"><div class="ic" style="background:var(--rosel)">⚙️</div><h3>Tokens &amp; API</h3><p>Ein Guthaben für alles. REST-API mit Bearer-Key für Agenturen, Plattformen und Teams.</p><span class="more">API &amp; Tokens →</span></a>
+<section id="demo"><div class="wrap">
+  <span class="eyebrow">Live-Demo</span>
+  <h2 style="margin-top:12px">Sieh zu – <span class="g">oder sprich selbst</span> mit dem Agenten.</h2>
+  <p class="sub">Jede Demo ist ein echter ChatHelp-Agent mit einer Beispiel-Wissensbasis. Erst läuft ein typisches Gespräch ab, dann kannst du selbst schreiben – beim Telefon-Agenten sogar sprechen.</p>
+  <div class="dtabs" id="dtabs"></div>
+  <div class="theater">
+    <div class="stage" id="stage"></div>
+    <div class="explain">
+      <div class="hd"><span class="tag indigo" id="exTag">Telefon-Agent</span><h3 id="exTitle" style="margin-top:12px">Nimmt jeden Anruf an – auch um 23 Uhr.</h3><p id="exText"></p></div>
+      <div class="stepl" id="exSteps"></div>
+      <div class="dctl"><button class="btn" id="btnReplay">↻ Demo abspielen</button><button class="btn p" id="btnLive">Selbst testen – live</button><a class="btn ghost" id="btnRent" href="/chat/tokens-checkout.php?plan=agent-phone">Agent mieten →</a></div>
+      <div class="live" id="live"><form id="liveForm"><input id="liveIn" placeholder="Schreib dem Agenten …" maxlength="800" autocomplete="off"><button type="button" class="mic" id="liveMic" title="Sprechen" style="display:none">🎙️</button><button class="send" type="submit">Senden</button></form><small id="liveNote">Echter Agent, Beispiel-Firma. Deine eigene Wissensbasis fügst du im Studio ein.</small></div>
+    </div>
   </div>
 </div></section>
 
-<section id="recht" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap">
+<section id="berufe" class="alt"><div class="wrap">
+  <span class="eyebrow">Agenten nach Beruf</span>
+  <h2 style="margin-top:12px">Gebaut für deine Branche – <span class="g">mit ihren Regeln.</span></h2>
+  <p class="sub">Kein allgemeiner Chatbot: Jeder Agent kennt die Pflichten seines Berufs (RDG, RVG, VVG, StBerG, BGB …), arbeitet nur mit deiner Wissensbasis und übergibt an Menschen, wenn es darauf ankommt. Klick auf einen Agenten für Aufgaben, Beispiel-Dialog und Einrichtung.</p>
+  <div class="pgrid" id="pgrid"></div>
+  <p style="color:var(--mute);font-size:13.5px;margin-top:22px">Weitere fertige Agenten: Immobilien-Anfragen, Gastro-Buchung, HR-Screening, Mahnwesen, Logistik-Support, Content &amp; Website – siehe <a href="#preise" style="color:var(--gold);font-weight:600">Preise</a>. Dein Beruf fehlt? <a href="mailto:info@chat-help.com?subject=Individueller%20Agent" style="color:var(--gold);font-weight:600">Wir bauen ihn</a> – meist in 48 Stunden.</p>
+</div></section>
+
+<section id="telefon"><div class="wrap">
+  <div class="tel">
+    <div class="reveal" style="display:flex;justify-content:center"><div class="phone" id="telPhone"><div class="scr"><div class="notch"></div><div class="callhd"><b>Kanzlei Berger &amp; Partner</b><small>Telefon-Agent · <span id="telTimer">00:00</span></small></div><div class="wave" id="telWave"></div><div class="tr" id="telTr"></div><div class="ctl"><i>🔇</i><i class="red">📞</i><i>⌨️</i></div></div></div></div>
+    <div>
+      <span class="eyebrow">Telefon-Agent</span>
+      <h2 style="margin-top:12px">Kein Anruf geht mehr <span class="g">verloren.</span></h2>
+      <p class="sub">Der Telefon-Agent nimmt ab, versteht das Anliegen, beantwortet Fragen aus deiner Wissensbasis, nimmt Termine und Rückrufe auf – und verbindet zu einem Menschen, wenn es wichtig ist. Jedes Gespräch landet als Transkript im Studio.</p>
+      <div class="feat2">
+        <div class="it"><b>Eigene Rufnummer oder Umleitung</b><span>Neue Nummer in 24 h oder Rufumleitung bei Besetzt/außerhalb der Zeiten – ohne neue Hardware.</span></div>
+        <div class="it"><b>Natürliche Stimme, 10 Sprachen</b><span>Deutsch, Englisch, Türkisch, Französisch u. a. – der Agent wechselt, wenn der Anrufer wechselt.</span></div>
+        <div class="it"><b>Termin &amp; Rückruf mit Bestätigung</b><span>Name, Nummer, Anliegen, Wunschzeit – wiederholt, bestätigt, ins Studio.</span></div>
+        <div class="it"><b>Weiterleitung an Mensch</b><span>Auf Wunsch, bei Notfällen oder Unklarheit: direkte Durchstellung an deine Nummer.</span></div>
+      </div>
+      <div class="flow"><span>Anruf</span><i>→</i><span>Agent begrüßt</span><i>→</i><span>Anliegen &amp; Antwort</span><i>→</i><span>Termin · Rückruf · Weiterleitung</span><i>→</i><span>Transkript im Studio</span></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-phone">Telefon-Agent mieten · 149 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('phone');goLive(true);},300)">🎙️ Jetzt im Browser sprechen</a></div>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 40.000 Tokens/Monat (≈ 5.000 Gesprächsantworten) · Einmalkauf 1.490 € inkl. 200.000 Tokens · Telefonie über unseren Partner, Nummern für DE/AT/CH/TR/EU.</p>
+    </div>
+  </div>
+</div></section>
+
+<section id="how" class="alt"><div class="wrap center">
+  <span class="eyebrow">So funktioniert's</span>
+  <h2 style="margin-top:12px">In 10 Minuten <span class="g">startklar.</span></h2>
+  <p class="sub">Keine Programmierung, kein Projekt. Du gibst dem Agenten dein Wissen, verbindest die Kanäle – und behältst jederzeit die Kontrolle.</p>
+  <div class="how" style="text-align:left">
+    <div class="card st reveal"><span class="n">SCHRITT 01</span><h3>Wissensbasis einfügen</h3><p>Öffnungszeiten, Preise, Abläufe, FAQ, Textbausteine – einfach als Text einfügen. Der Agent nutzt <b>nur</b> diese Fakten und sagt ehrlich, wenn er etwas nicht weiß.</p>
+      <div class="ill"><svg viewBox="0 0 400 150"><rect x="30" y="22" width="150" height="106" rx="10" fill="#fff" stroke="#e6e8ef"/><rect x="46" y="40" width="100" height="8" rx="4" fill="#dfe2ec"><animate attributeName="width" values="0;100" dur="1.6s" repeatCount="indefinite"/></rect><rect x="46" y="58" width="118" height="8" rx="4" fill="#e9ebf2"><animate attributeName="width" values="0;118" dur="1.6s" begin=".2s" repeatCount="indefinite"/></rect><rect x="46" y="76" width="80" height="8" rx="4" fill="#e9ebf2"><animate attributeName="width" values="0;80" dur="1.6s" begin=".4s" repeatCount="indefinite"/></rect><rect x="46" y="94" width="110" height="8" rx="4" fill="#e9ebf2"><animate attributeName="width" values="0;110" dur="1.6s" begin=".6s" repeatCount="indefinite"/></rect><path d="M190 75 H 250" stroke="#b8862b" stroke-width="2" stroke-dasharray="6 6"><animate attributeName="stroke-dashoffset" values="24;0" dur="1s" repeatCount="indefinite"/></path><rect x="260" y="40" width="110" height="70" rx="18" fill="url(#gg)"/><defs><linearGradient id="gg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#f3dfa6"/><stop offset="1" stop-color="#c9972f"/></linearGradient></defs><circle cx="315" cy="75" r="16" fill="none" stroke="#1a1407" stroke-width="4" stroke-dasharray="80 20"/><circle cx="315" cy="75" r="4" fill="#1a1407"/></svg></div></div>
+    <div class="card st reveal"><span class="n">SCHRITT 02</span><h3>Kanäle verbinden</h3><p><b>Website:</b> eine Zeile Code. <b>Telefon:</b> Nummer oder Umleitung. <b>E-Mail/API:</b> ein Schlüssel. Alles im Studio, ohne Entwickler.</p>
+      <div class="ill"><svg viewBox="0 0 400 150"><rect x="150" y="45" width="100" height="60" rx="16" fill="url(#gg2)"/><defs><linearGradient id="gg2" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#f3dfa6"/><stop offset="1" stop-color="#c9972f"/></linearGradient></defs><g fill="#fff" stroke="#e6e8ef"><circle cx="60" cy="40" r="22"/><circle cx="60" cy="110" r="22"/><circle cx="340" cy="40" r="22"/><circle cx="340" cy="110" r="22"/></g><text x="60" y="45" font-size="14" text-anchor="middle" fill="#4f46e5" font-weight="700">☎</text><text x="60" y="115" font-size="12" text-anchor="middle" fill="#0f9f9c" font-weight="700">chat</text><text x="340" y="45" font-size="12" text-anchor="middle" fill="#d9336b" font-weight="700">mail</text><text x="340" y="115" font-size="12" text-anchor="middle" fill="#4f46e5" font-weight="700">API</text><g stroke="#c9cdd9" stroke-width="2" fill="none" stroke-dasharray="5 6"><path d="M82 46 Q120 60 150 70"><animate attributeName="stroke-dashoffset" values="22;0" dur="1.2s" repeatCount="indefinite"/></path><path d="M82 104 Q120 90 150 80"><animate attributeName="stroke-dashoffset" values="22;0" dur="1.2s" repeatCount="indefinite"/></path><path d="M318 46 Q280 60 250 70"><animate attributeName="stroke-dashoffset" values="22;0" dur="1.2s" repeatCount="indefinite"/></path><path d="M318 104 Q280 90 250 80"><animate attributeName="stroke-dashoffset" values="22;0" dur="1.2s" repeatCount="indefinite"/></path></g><circle cx="200" cy="75" r="4" fill="#1a1407"/><circle cx="200" cy="75" r="16" fill="none" stroke="#1a1407" stroke-width="4" stroke-dasharray="80 20"/></svg></div></div>
+    <div class="card st reveal"><span class="n">SCHRITT 03</span><h3>Agent arbeitet, du behältst Kontrolle</h3><p>Transkripte, Übergaben und Verbrauch siehst du live im Studio. Du änderst die Wissensbasis – der Agent weiß es sofort. Monatlich kündbar.</p>
+      <div class="ill"><svg viewBox="0 0 400 150"><g fill="#fff" stroke="#e6e8ef"><rect x="30" y="25" width="340" height="100" rx="12"/></g><g fill="#eceafe"><rect x="50" y="95" width="18" height="15" rx="4"><animate attributeName="height" values="10;40;10" dur="2.4s" repeatCount="indefinite"/><animate attributeName="y" values="100;70;100" dur="2.4s" repeatCount="indefinite"/></rect><rect x="78" y="80" width="18" height="30" rx="4"><animate attributeName="height" values="30;55;30" dur="2.4s" begin=".3s" repeatCount="indefinite"/><animate attributeName="y" values="80;55;80" dur="2.4s" begin=".3s" repeatCount="indefinite"/></rect><rect x="106" y="70" width="18" height="40" rx="4"><animate attributeName="height" values="40;20;40" dur="2.4s" begin=".6s" repeatCount="indefinite"/><animate attributeName="y" values="70;90;70" dur="2.4s" begin=".6s" repeatCount="indefinite"/></rect><rect x="134" y="60" width="18" height="50" rx="4" fill="#d4a84a"><animate attributeName="height" values="50;70;50" dur="2.4s" begin=".9s" repeatCount="indefinite"/><animate attributeName="y" values="60;40;60" dur="2.4s" begin=".9s" repeatCount="indefinite"/></rect></g><text x="190" y="52" font-size="11" fill="#6b7083" font-family="Inter,sans-serif">Gespräche heute</text><text x="190" y="80" font-size="24" font-weight="800" fill="#0f1222" font-family="Inter,sans-serif">148</text><text x="290" y="52" font-size="11" fill="#6b7083" font-family="Inter,sans-serif">Übergaben</text><text x="290" y="80" font-size="24" font-weight="800" fill="#0f1222" font-family="Inter,sans-serif">6</text><rect x="190" y="95" width="160" height="16" rx="8" fill="#e4f5ea"/><text x="270" y="107" font-size="10.5" text-anchor="middle" fill="#1a9e5a" font-weight="700" font-family="Inter,sans-serif">Alle Transkripte gespeichert ✓</text></svg></div></div>
+  </div>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px"><a class="btn gold" href="/chat/agent.php">Studio starten – kostenlos testen</a><a class="btn" href="mailto:info@chat-help.com?subject=Einrichtung%20durch%20ChatHelp">Einrichtung durch uns anfragen</a></div>
+</div></section>
+
+<section id="recht"><div class="wrap">
   <div class="recht">
     <div>
-      <span class="eyebrow">ChatHelp Recht</span>
-      <h2 style="margin-top:12px">Rechtsschreiben, die <span class="g">halten</span> – nicht nur gut klingen.</h2>
-      <p class="sub">Standard-KI erfindet Paragrafen und Fristen. ChatHelp Recht ist anders gebaut: jedes Dokument wird gegengeprüft, jede Rechtsgrundlage belegt – und das Schreiben geht direkt per Post, Einschreiben oder Fax raus.</p>
+      <span class="eyebrow">ChatHelp Recht · für Privatpersonen &amp; Betriebe</span>
+      <h2 style="margin-top:12px">Rechtsschreiben, die <span class="g">halten.</span></h2>
+      <p class="sub">Widerspruch, Kündigung, Mieterhöhung, Behördenanträge, Visum-Unterlagen: Standard-KI erfindet Paragrafen. ChatHelp Recht prüft jedes Dokument mit einer zweiten KI, belegt jede Rechtsgrundlage – und verschickt das Schreiben direkt per Post, Einschreiben oder Fax.</p>
       <div class="why">
         <div class="it"><i>2</i><div><b>Zwei unabhängige KI-Prüfungen pro Dokument</b><span>Ein Modell schreibt, ein zweites prüft Rechtsgrundlagen, Fristen und Form – erst dann ist das Schreiben freigegeben.</span></div></div>
-        <div class="it"><i>§</i><div><b>Nur echte Gesetze, jeder § mit Quelle</b><span>Keine erfundenen Paragrafen: Zitiert werden ausschließlich geltende Normen (BGB, VwGO, AufenthG …) mit Fundstelle.</span></div></div>
-        <div class="it"><i>✓</i><div><b>Vielfach getestet, auf den neuesten Spitzenmodellen</b><span>Wir testen laufend gegen Standard-KI-Antworten – und nutzen die jeweils leistungsstärksten verfügbaren Modelle.</span></div></div>
-        <div class="it"><i>✉</i><div><b>Versandfertig aus der App</b><span>PDF &amp; Word, Fristen-Erinnerung, Versand als Brief, Einschreiben oder Fax – für DE · AT · CH · FR · TR.</span></div></div>
+        <div class="it"><i>§</i><div><b>Nur echte Gesetze, jeder § mit Quelle</b><span>Zitiert werden ausschließlich geltende Normen (BGB, VwGO, AufenthG …) mit Fundstelle.</span></div></div>
+        <div class="it"><i>✓</i><div><b>Vielfach getestet, auf den neuesten Spitzenmodellen</b><span>Laufend gegen Standard-KI-Antworten getestet – mit den jeweils leistungsstärksten verfügbaren Modellen.</span></div></div>
+        <div class="it"><i>✉</i><div><b>Versandfertig aus der App</b><span>PDF &amp; Word, Fristen-Erinnerung, Versand als Brief, Einschreiben oder Fax – DE · AT · CH · FR · TR.</span></div></div>
       </div>
-      <div class="cta" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px"><a class="btn gold" href="/chat/">Zu ChatHelp Recht →</a><a class="btn" href="/chat/?plan=basic">Recht Basic · 13,99 €/Monat</a></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px"><a class="btn gold" href="/chat/">Zu ChatHelp Recht →</a><a class="btn" href="/chat/?plan=basic">Recht Basic · 13,99 €/Monat</a></div>
       <div class="flags"><a href="/chat/?cc=DE">🇩🇪 Deutschland</a><a href="/chat/?cc=AT">🇦🇹 Österreich</a><a href="/chat/?cc=CH">🇨🇭 Schweiz</a><a href="/chat/?cc=FR">🇫🇷 France</a><a href="/chat/?cc=TR">🇹🇷 Türkiye · Vize</a></div>
     </div>
     <div>
@@ -218,263 +320,316 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <a class="doc" href="/chat/?cat=geld"><div class="ic">💶</div><div><b>Forderungen &amp; Mahnung</b><small>Mahnung, Rückforderung, Inkasso-Abwehr</small></div></a>
         <a class="doc" href="/chat/?cc=TR"><div class="ic">🛂</div><div><b>Visum &amp; Aufenthalt</b><small>Unterlagen, Einladung, Anträge (TR/DE)</small></div></a>
       </div>
-      <div class="steps">
-        <div class="step"><span class="n">01</span><b>Anliegen schildern</b><span>Brief fotografieren oder in 2 Sätzen beschreiben.</span></div>
-        <div class="step"><span class="n">02</span><b>Prüfung &amp; Entwurf</b><span>Entwurf mit §§, Fristen und Form – von zweiter KI gegengeprüft.</span></div>
-        <div class="step"><span class="n">03</span><b>Senden</b><span>PDF/Word herunterladen oder direkt als Brief, Einschreiben, Fax versenden.</span></div>
-      </div>
+      <div class="dossier" style="margin-top:16px;max-width:none"><div class="dh"><b>Beispiel · Widerspruch Mieterhöhung</b><span>geprüft von 2 KIs</span></div>
+        <div class="out"><div class="row"><b>Rechtsgrundlage</b><span>§ 558 BGB (Kappungsgrenze 15 % in 3 Jahren, § 558 Abs. 3), § 558a BGB (Begründung)</span></div><div class="row"><b>Frist</b><span>Zustimmung bis Ende des 2. Monats nach Zugang (§ 558b Abs. 2 BGB)</span></div><div class="row"><b>Prüfung</b><span>Mietspiegel-Vergleich, Kappungsgrenze, Formfehler → 2 Beanstandungen gefunden</span></div><div class="row"><b>Versand</b><span>Einschreiben mit Rückschein, Fristen-Erinnerung aktiv</span></div><span class="stamp">✓ Rechtsgrundlagen belegt · versandfertig</span></div></div>
       <p style="color:var(--mute);font-size:13px;margin-top:14px">Einzeldokumente ab 1,99 € · Abos Basic 13,99 € / Pro 29,99 € pro Monat · Keine Rechtsberatung im Einzelfall – bei komplexen Fällen empfehlen wir einen Anwalt.</p>
     </div>
   </div>
 </div></section>
 
-<section id="agenten"><div class="wrap">
-  <span class="eyebrow">KI-Agenten · mieten oder kaufen</span>
-  <h2 style="margin-top:12px">Fertige Agenten, die <span class="g">ab morgen</span> für dich arbeiten.</h2>
-  <p class="sub">Jeder Agent kommt mit eigenem Arbeitsbereich (Studio), deiner Wissensbasis, Website-Chat-Widget und monatlichem Token-Guthaben. Mieten: monatlich kündbar. Kaufen: einmal zahlen, dauerhaft nutzen.</p>
-  <div class="filters" id="agFilters"></div>
-  <div class="agrid" id="agGrid"></div>
-  <div class="how">
-    <div class="step"><span class="n">01</span><b>Agent wählen</b><span>Mieten oder einmal kaufen – Zahlung sicher über Stripe.</span></div>
-    <div class="step"><span class="n">02</span><b>Key per E-Mail</b><span>Dein API-Key kommt sofort – damit meldest du dich im Studio an.</span></div>
-    <div class="step"><span class="n">03</span><b>Wissensbasis einfügen</b><span>FAQ, Produkte, Öffnungszeiten, Tonalität – der Agent nutzt nur deine Fakten.</span></div>
-    <div class="step"><span class="n">04</span><b>Einbinden</b><span>Widget-Code auf die Website, oder im Studio direkt arbeiten. Wir helfen bei der Einrichtung.</span></div>
-  </div>
-  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px"><a class="btn p" href="/chat/agent.php">Studio öffnen</a><a class="btn" href="mailto:info@chat-help.com?subject=Individueller%20KI-Agent">Individuellen Agenten anfragen</a></div>
+<section id="preise" class="alt"><div class="wrap center">
+  <span class="eyebrow">Preise</span>
+  <h2 style="margin-top:12px">Mieten, kaufen oder <span class="g">nach Verbrauch.</span></h2>
+  <p class="sub">Jeder Agent enthält Studio, Wissensbasis, Website-Widget und ein monatliches Token-Guthaben. Mieten: monatlich kündbar. Kaufen: einmal zahlen, dauerhaft nutzen. Tokens: ein Guthaben für alles, verfällt nicht.</p>
+  <div class="ptabs" id="ptabs"></div>
+  <div id="pbody" style="text-align:left"></div>
 </div></section>
 
-<section id="creator" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap">
-  <span class="eyebrow">Creator &amp; Social Media</span>
-  <h2 style="margin-top:12px">Drei Pakete. <span class="g">Null Leerlauf.</span></h2>
-  <p class="sub">Lizenzfreie Texte, fertige Skripte und Untertitel – von KI erstellt, auf deinen Kanal zugeschnitten, sofort nutzbar. Im Studio mit Vorlagen, oder per API.</p>
-  <div class="pk">
-    <div class="card"><span class="tag teal">Social Media</span><h3>KI-Social-Media-Automatisierung</h3><div class="de">Instagram · TikTok · LinkedIn · Website</div>
-      <p style="color:var(--ink2);font-size:15px">Wöchentlicher und monatlicher Content-Pool: fertige, lizenzfreie Posts, Captions in zwei Längen und Hashtag-Strategie für deine Nische.</p>
-      <ul><li>7 Posts pro Woche, Captions &amp; Hashtag-Sets</li><li>Redaktionsplan als Tabelle</li><li>In deiner Tonalität, 6 Sprachen</li><li>10.000 Tokens / Monat inklusive</li></ul>
-      <div class="price"><b>39 €</b><small>/ Monat</small></div><a class="btn p" href="/chat/tokens-checkout.php?plan=creator-social">Abonnieren</a></div>
-    <div class="card feat"><span class="tag gold">YouTube</span><h3>YouTube-Skript-Assistent &amp; SEO</h3><div class="de">Skript · Titel · Beschreibung · Tags · Kapitel</div>
-      <p style="color:var(--ink2);font-size:15px">Komplette Video-Skripte mit Hook, Struktur und Call-to-Action – plus Titel-Varianten, Beschreibungstexte und Tags, abgestimmt auf den YouTube-Algorithmus.</p>
-      <ul><li>Skripte für Shorts bis 20 Minuten</li><li>5 Titel-Varianten pro Video</li><li>Beschreibung, Tags &amp; Kapitelmarken</li><li>15.000 Tokens / Monat inklusive</li></ul>
-      <div class="price"><b>59 €</b><small>/ Monat</small></div><a class="btn gold" href="/chat/tokens-checkout.php?plan=creator-youtube">Abonnieren</a></div>
-    <div class="card"><span class="tag rose">Untertitel</span><h3>KI-Übersetzung &amp; Untertitel</h3><div class="de">Transkript → .SRT / .VTT in 12+ Sprachen</div>
-      <p style="color:var(--ink2);font-size:15px">Zeitgestempelte Untertitel und Übersetzungen aus deinem Transkript – zahle nur, was du nutzt. Video-Upload mit automatischer Transkription folgt.</p>
-      <ul><li>12+ Sprachen</li><li>.SRT / .VTT mit Zeitstempeln</li><li>≈ 2 Tokens pro Minute und Sprache</li><li>Ohne Abo, mit Tokens</li></ul>
-      <div class="price"><b>ab 19 €</b><small>/ 200 Minuten</small></div><a class="btn p" href="/chat/tokens-checkout.php?tokens=5000">Tokens kaufen</a></div>
+<section id="trust"><div class="wrap center">
+  <span class="eyebrow">Sicherheit &amp; Vertrauen</span>
+  <h2 style="margin-top:12px">Gebaut für Berufe mit <span class="g">Verantwortung.</span></h2>
+  <div class="tgrid" style="text-align:left">
+    <div class="card"><div class="ic">🇪🇺</div><h3>EU-Hosting, DSGVO, AVV</h3><p>Daten in der EU, Auftragsverarbeitungsvertrag für Geschäftskunden, keine Nutzung deiner Daten für Training.</p></div>
+    <div class="card"><div class="ic">🧭</div><h3>Nur deine Fakten</h3><p>Der Agent antwortet ausschließlich aus der Wissensbasis. Fehlt etwas, sagt er es – und übergibt an dein Team statt zu raten.</p></div>
+    <div class="card"><div class="ic">👤</div><h3>Mensch im Loop</h3><p>Weiterleitung am Telefon, Eskalation im Chat, Entwürfe statt Entscheidungen: Anwalt, Steuerberater, Sachbearbeiter behalten das letzte Wort.</p></div>
+    <div class="card"><div class="ic">🧾</div><h3>Transkripte &amp; Audit-Log</h3><p>Jedes Gespräch, jede Übergabe, jeder Verbrauch nachvollziehbar im Studio – exportierbar.</p></div>
+    <div class="card"><div class="ic">⚖️</div><h3>Berufsrecht eingebaut</h3><p>RDG-Informationspflichten, RVG-Rahmen, VVG-Obliegenheiten, StBerG-Grenzen, BGB-Fristen: als Regeln im Agenten verankert.</p></div>
+    <div class="card"><div class="ic">🧠</div><h3>Spitzenmodelle, laufend getestet</h3><p>Wir nutzen die jeweils leistungsstärksten verfügbaren Modelle und testen Antworten fortlaufend gegen Standard-KI.</p></div>
   </div>
 </div></section>
 
-<section id="branchen"><div class="wrap">
-  <span class="eyebrow">Für jede Branche</span>
-  <h2 style="margin-top:12px">Branchenpakete &amp; Agenten – <span class="g">zum Mieten.</span></h2>
-  <p class="sub">Ein Token-Konto, eine API, branchenfertige Pakete. Wähle deinen Sektor – jedes Paket enthält Tokens, weitere kaufst du jederzeit dazu.</p>
-  <div class="tabs" id="tabs"></div>
-  <div class="pkgs" id="pkgs"></div>
-</div></section>
-
-<section id="tokens" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap">
-  <span class="eyebrow">Tokens</span>
-  <h2 style="margin-top:12px">Ein Guthaben <span class="g">für alles.</span></h2>
-  <p class="sub">Kaufe Tokens einmalig – nutze sie in jedem Paket, jedem Agenten und per API. Kein Abo nötig, Tokens verfallen nicht. Mengenrabatt inklusive.</p>
-  <div class="tk">
-    <div class="card"><span class="tag">Starter</span><div class="price"><b>49 €</b></div><div class="qty">10.000 Tokens</div><div class="per">0,0049 € / Token</div><ul><li>Alle Dienste &amp; API</li><li>Verfallen nicht</li></ul><a class="btn" href="/chat/tokens-checkout.php?pack=10k">Kaufen</a></div>
-    <div class="card feat"><span class="tag gold">Pro</span><div class="price"><b>199 €</b></div><div class="qty">50.000 Tokens</div><div class="per">0,0040 € / Token · −18 %</div><ul><li>Alle Dienste &amp; API</li><li>Priorisierte Verarbeitung</li></ul><a class="btn gold" href="/chat/tokens-checkout.php?pack=50k">Kaufen</a></div>
-    <div class="card"><span class="tag indigo">Business</span><div class="price"><b>690 €</b></div><div class="qty">200.000 Tokens</div><div class="per">0,00345 € / Token · −30 %</div><ul><li>Alle Dienste &amp; API</li><li>Team-Seats · Dashboard</li></ul><a class="btn" href="/chat/tokens-checkout.php?pack=200k">Kaufen</a></div>
-  </div>
-  <div class="calc" id="calc">
-    <div><h3>Beliebige Menge kaufen</h3><p style="color:var(--ink2);margin-top:6px">Schiebe oder tippe die Menge – der Preis fällt automatisch mit der Staffel.</p>
-      <input type="range" id="tkRange" min="1000" max="500000" step="1000" value="25000">
-      <div class="num"><input type="number" id="tkNum" min="1000" max="5000000" step="1000" value="25000"><span style="color:var(--mute)">Tokens (ab 1.000, Schritt 1.000)</span></div>
-      <div class="tiers"><span>&lt; 10k: 0,0055 €</span><span>10k+: 0,0049 €</span><span>50k+: 0,0040 €</span><span>200k+: 0,00345 €</span><span>1 Mio+: 0,0025 €</span></div></div>
-    <div class="out"><b id="tkPrice">122,50 €</b><small id="tkUnit">0,0049 € / Token · zzgl. MwSt.</small><a class="btn gold" id="tkBuy" style="margin-top:16px" href="/chat/tokens-checkout.php?tokens=25000">Jetzt kaufen →</a></div>
-  </div>
-  <p style="color:var(--mute);font-size:13px;margin-top:14px">Richtwerte: Social-Post 5 Tokens · YouTube-Skript 50 · Agent-Antwort 6 · Übersetzung 2 je 100 Wörter · Alle Preise zzgl. MwSt.</p>
-</div></section>
-
-<section id="api"><div class="wrap">
-  <div class="api">
-    <div>
-      <span class="eyebrow">REST-API</span>
-      <h2 style="margin-top:12px">Alle Dienste <span class="g">per API.</span></h2>
-      <p class="sub">Social-Content, YouTube-Skripte, Übersetzung &amp; Untertitel, Branchen-Agenten – ein Bearer-Key, ein Guthaben. Für Agenturen, Plattformen und Teams: priorisierte Verarbeitung, Webhooks, SLA und AVV.</p>
-      <div class="tiers2">
-        <div class="card tier"><div><span class="tag indigo">API Pro</span><h3 style="font-size:22px;margin-top:12px">Für Agenturen &amp; Teams</h3><ul><li>✓ 50.000 Tokens / Monat inklusive</li><li>✓ Alle Endpunkte, Webhooks, 5 Team-Seats</li><li>✓ 99,9 % SLA, priorisierte Verarbeitung</li></ul></div><div class="right"><div class="price"><b>249 €</b><small>/ Monat</small></div><a class="btn p" style="margin-top:12px" href="mailto:api@chat-help.com?subject=API%20Pro">Zugang anfragen</a></div></div>
-        <div class="card tier"><div><span class="tag">Enterprise</span><h3 style="font-size:22px;margin-top:12px">White-Label &amp; Volumen</h3><ul><li>✓ Ab 500.000 Tokens / Monat</li><li>✓ Eigene Modelle/Prompts, dedizierter Support</li><li>✓ AVV, EU-Hosting, Rechnung</li></ul></div><div class="right"><div class="price"><b>ab 990 €</b><small>/ Monat</small></div><a class="btn" style="margin-top:12px" href="mailto:api@chat-help.com?subject=Enterprise">Gespräch vereinbaren</a></div></div>
-      </div>
-      <p style="color:var(--mute);font-size:13.5px;margin-top:16px">Darüber hinaus Pay-as-you-go über <a href="#tokens" style="color:var(--gold);font-weight:600">Token-Pakete</a> · Doku &amp; Sektoren: <a href="/chat/tokens-api.php/v1/sectors" style="color:var(--gold);font-weight:600">/v1/sectors</a></p>
-    </div>
-    <div class="code"><span class="c"># 1) Tokens kaufen → Key per E-Mail (ch_live_…)</span>
-<span class="c"># 2) Agent-Antwort mit deiner Wissensbasis</span>
-curl https://chat-help.com/chat/tokens-api.php/v1/agent \
-  -H <span class="s">"Authorization: Bearer ch_live_…"</span> \
-  -H <span class="s">"Content-Type: application/json"</span> \
-  -d <span class="s">'{"plan":"agent-support",
-       "messages":[{"role":"user","content":"Wann kommt Bestellung 4711?"}]}'</span>
-
-<span class="c"># 3) Content: 7 Posts für die Woche</span>
-curl https://chat-help.com/chat/tokens-api.php/v1/generate \
-  -H <span class="s">"Authorization: Bearer ch_live_…"</span> \
-  -d <span class="s">'{"task":"post","sector":"marketing","lang":"de",
-       "input":"Thema: Herbstkollektion, Zielgruppe: 25-40"}'</span>
-
-<span class="c"># Antwort</span>
-{ <span class="k">"result"</span>: "…", <span class="k">"tokens_used"</span>: 6, <span class="k">"balance"</span>: 24994 }</div>
-  </div>
-</div></section>
-
-<section id="faq" style="background:#fff;border-top:1px solid var(--line)"><div class="wrap">
+<section id="faq" class="alt"><div class="wrap">
   <span class="eyebrow">Fragen</span>
   <h2 style="margin-top:12px">Kurz erklärt.</h2>
   <div class="faq">
-    <details><summary>Warum sind ChatHelp-Rechtsschreiben besser als Standard-KI?</summary><p>Standard-Chatbots erfinden Paragrafen und Fristen. Bei ChatHelp schreibt ein Modell, ein zweites prüft Rechtsgrundlagen, Fristen und Form. Zitiert werden nur geltende Normen mit Fundstelle. Wir testen das laufend gegen Standard-Antworten und arbeiten mit den jeweils leistungsstärksten Modellen.</p></details>
-    <details><summary>Mieten oder kaufen – was ist der Unterschied?</summary><p>Mieten: monatliche Gebühr, monatlich kündbar, jeden Monat frisches Token-Guthaben. Kaufen: einmal zahlen, dauerhafter Zugang zum Agenten plus ein großes Token-Guthaben; weitere Tokens kaufst du bei Bedarf nach.</p></details>
-    <details><summary>Was ist ein Token?</summary><p>Die Abrechnungseinheit für alle Dienste. Richtwerte: ein Social-Post 5 Tokens, ein YouTube-Skript 50, eine Agent-Antwort 6. Tokens verfallen nicht und gelten für Web-App, Agenten und API.</p></details>
-    <details><summary>Wie binde ich einen Agenten auf meiner Website ein?</summary><p>Im Studio aktivierst du das Widget und kopierst eine Zeile Code vor das schließende body-Tag deiner Seite. Besucher chatten dann mit deinem Agenten, der nur auf deine Wissensbasis zugreift. Die Antworten werden von deinem Guthaben abgerechnet.</p></details>
+    <details><summary>Wie bekommt der Telefon-Agent eine Nummer?</summary><p>Nach der Buchung richten wir innerhalb von 24 Stunden eine Rufnummer (DE/AT/CH/TR/EU) über unseren Telefonie-Partner ein oder du leitest deine bestehende Nummer bei Besetzt/außerhalb der Zeiten um. Begrüßung, Stimme und Weiterleitungsnummer stellst du im Studio ein.</p></details>
+    <details><summary>Was passiert, wenn der Agent etwas nicht weiß?</summary><p>Er sagt es ehrlich, bietet Rückruf oder Weiterleitung an und übergibt an dein Team. Er erfindet keine Preise, Fristen oder Zusagen – das ist in jeder Rolle fest verankert.</p></details>
+    <details><summary>Darf eine KI für Inkasso, Kanzlei oder Steuerberatung arbeiten?</summary><p>Ja, als Assistenz: Der Agent nimmt auf, bereitet vor, erklärt Abläufe und erstellt Entwürfe. Entscheidungen, Rechtsrat, Steuerberatung und Zusagen bleiben beim Berufsträger – genau so sind die Rollen definiert.</p></details>
+    <details><summary>Mieten oder kaufen – was ist der Unterschied?</summary><p>Mieten: monatliche Gebühr, monatlich kündbar, jeden Monat frisches Token-Guthaben. Kaufen: einmal zahlen, dauerhafter Zugang plus großes Token-Guthaben; weitere Tokens kaufst du bei Bedarf nach.</p></details>
+    <details><summary>Was ist ein Token?</summary><p>Die Abrechnungseinheit für alle Dienste. Richtwerte: eine Chat-Antwort 6 Tokens, eine Telefon-Antwort 8, ein Social-Post 5, ein YouTube-Skript 50. Tokens verfallen nicht und gelten für Studio, Widget, Telefon und API.</p></details>
+    <details><summary>Wie binde ich den Agenten auf meiner Website ein?</summary><p>Im Studio das Widget aktivieren und eine Zeile Code vor das schließende body-Tag deiner Seite kopieren. Besucher chatten mit deinem Agenten, der nur auf deine Wissensbasis zugreift.</p></details>
+    <details><summary>Kann ich den Agenten vorher testen?</summary><p>Ja: oben in der Live-Demo mit Beispiel-Firmen – und im Studio mit deiner eigenen Wissensbasis, 300 Tokens geschenkt, ohne Zahlungsdaten.</p></details>
     <details><summary>Wo laufen die Daten?</summary><p>Hosting in der EU, DSGVO-konform, Auftragsverarbeitungsvertrag für Geschäftskunden. Wissensbasis und Gespräche gehören dir und werden nicht für Training verwendet.</p></details>
-    <details><summary>Ist das Rechtsberatung?</summary><p>Nein. ChatHelp Recht erstellt und prüft Dokumente auf Grundlage geltender Gesetze. Bei komplexen oder streitigen Fällen empfehlen wir einen Anwalt oder Mieterverein.</p></details>
   </div>
 </div></section>
 
 <section id="start"><div class="wrap">
   <div class="ctab">
     <span class="eyebrow" style="color:#e9cc83">Loslegen</span>
-    <h2 style="margin-top:12px">Ein Konto. Recht, Agenten, Creator, API.</h2>
-    <p class="sub" style="margin:14px auto 0">Starte mit einem Rechtsschreiben, miete einen Agenten oder kaufe Tokens – alles teilt sich dein ChatHelp-Konto.</p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px"><a class="btn gold" href="/chat/">Rechtsschreiben erstellen</a><a class="btn" style="background:#fff;color:var(--ink)" href="#agenten">Agenten ansehen</a><a class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.3)" href="#tokens">Tokens kaufen</a></div>
+    <h2 style="margin-top:12px">Dein erster Agent arbeitet heute noch.</h2>
+    <p class="sub" style="margin:14px auto 0">Studio öffnen, E-Mail bestätigen, Wissensbasis einfügen – fertig. 300 Tokens geschenkt, keine Zahlungsdaten.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px"><a class="btn gold" href="/chat/agent.php">Studio starten</a><a class="btn" style="background:#fff;color:var(--ink)" href="#berufe">Agenten ansehen</a><a class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.3)" href="/chat/">ChatHelp Recht</a></div>
   </div>
 </div></section>
 
 <footer><div class="wrap">
-  <div><a class="logo" href="/" style="font-size:18px"><span class="em" style="width:30px;height:30px;font-size:15px">§</span>ChatHelp</a><div style="margin-top:10px;max-width:40ch">KI-Plattform für Recht, Agenten, Creator und API. Made in Europe.</div></div>
-  <div class="cols"><div><a href="#recht">ChatHelp Recht</a><br><a href="#agenten">KI-Agenten</a><br><a href="#creator">Creator-Pakete</a><br><a href="/chat/agent.php">Studio</a></div><div><a href="/chat/?view=impressum">Impressum</a><br><a href="/chat/?view=datenschutz">Datenschutz</a><br><a href="/chat/?view=agb">AGB</a></div><div><a href="https://instagram.com/chathelpp" rel="noopener" target="_blank">Instagram</a><br><a href="mailto:info@chat-help.com">info@chat-help.com</a><br><a href="mailto:api@chat-help.com">api@chat-help.com</a></div></div>
+  <div><a class="logo" href="/" style="font-size:18px"><span class="em" style="width:30px;height:30px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp</a><div style="margin-top:10px;max-width:40ch">KI-Agenten für Telefon, Website und Backoffice. ChatHelp Recht für geprüfte Rechtsschreiben. Made in Europe.</div></div>
+  <div class="cols"><div><a href="#berufe">Agenten nach Beruf</a><br><a href="#telefon">Telefon-Agent</a><br><a href="#recht">ChatHelp Recht</a><br><a href="/chat/agent.php">Studio</a></div><div><a href="/chat/?view=impressum">Impressum</a><br><a href="/chat/?view=datenschutz">Datenschutz</a><br><a href="/chat/?view=agb">AGB</a><br><a href="/chat/tokens-api.php/v1/sectors">API</a></div><div><a href="https://instagram.com/chathelpp" rel="noopener" target="_blank">Instagram</a><br><a href="mailto:info@chat-help.com">info@chat-help.com</a><br><a href="mailto:api@chat-help.com">api@chat-help.com</a></div></div>
 </div></footer>
 
-<script>
-/* ===== Sprache / Menü ===== */
-(function(){const s=document.getElementById('lang');const l=document.documentElement.lang||'de';s.value=['de','en','tr','fr','es','ru'].includes(l)?l:'de';
-s.onchange=()=>{try{localStorage.setItem('ch_lang',s.value);}catch(e){}document.documentElement.lang=s.value;aiInit(true);};
-const b=document.getElementById('burger'),m=document.getElementById('menu');b.onclick=()=>m.classList.toggle('open');m.addEventListener('click',()=>m.classList.remove('open'));})();
+<!-- Beruf-Detail -->
+<div class="modal" id="modal" role="dialog" aria-modal="true"><div class="mbox" id="mbox"></div></div>
 
-/* ===== Konuşan asistan (concierge) ===== */
-const AI_API='/chat/concierge.php'; let aiHist=[];
-const $=s=>document.querySelector(s);
-function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+<!-- Assistent -->
+<button class="fab" id="fab"><span class="av"></span> Fragen? Assistent</button>
+<div class="ai" id="ai"><div class="hd"><div class="av"></div><div><b>ChatHelp Assistent</b><small><span class="dot"></span> online · antwortet in deiner Sprache</small></div><button class="btn s" id="aiClose" style="margin-left:auto">✕</button></div><div class="ms" id="aiMs"></div><div class="chips" id="aiChips"></div><form id="aiForm"><input id="aiIn" placeholder="Frag mich – z. B. „Welcher Agent passt zu meiner Kanzlei?“" autocomplete="off" maxlength="1500"><button class="send" type="submit" id="aiSend">Senden</button></form></div>
+
+<script>
+/* ===== Helpers ===== */
+const $=s=>document.querySelector(s);const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const eur=v=>v.toLocaleString('de-DE',{style:'currency',currency:'EUR',minimumFractionDigits:0});const de=n=>n.toLocaleString('de-DE');
+const CHECKOUT='/chat/tokens-checkout.php', DEMO_API='/chat/concierge.php', STUDIO='/chat/agent.php';
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+(function(){const b=$('#burger'),m=$('#menu');b.onclick=()=>m.classList.toggle('open');m.addEventListener('click',()=>m.classList.remove('open'));
+ const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+ document.addEventListener('click',e=>{const a=e.target.closest('a[href*="tokens-checkout.php"]');if(!a)return;try{const u=new URL(a.getAttribute('href'),location.origin);u.searchParams.set('_',Date.now().toString(36));a.href=u.pathname+u.search;}catch(_){}},true);})();
+
+/* ===== Berufe (Detail-Daten) ===== */
+const PRO=[
+ {id:'agent-inkasso',ic:'€',col:'teal',n:'Inkasso-Agent',who:'Inkassounternehmen · Debitorenbuchhaltung · Factoring',p:179,tk:45000,buy:{id:'buy-inkasso',p:1790,tk:250000},
+  tag:'Mahnläufe, Forderungsaufstellungen, Ratenpläne – rechtssicher, respektvoll, dokumentiert.',
+  does:['Forderungsaufstellung mit Zinsen & Kosten (mit Rechenweg)','Zahlungsaufforderung nach § 13a RDG + 3 Mahnstufen','Ratenzahlungs- & Vergleichsangebote','Einwandbehandlung: Verjährung, Zahlung, Bestreiten','Schuldner-Dialog am Telefon/Chat + Aktennotiz'],
+  rules:['§ 286/288 BGB','§ 13a/13e RDG','§ 195 BGB','RVG Nr. 2300','Kein Druck'],ch:['Telefon','Website','E-Mail'],
+  ex:{q:'Forderungsaufstellung: Rechnung 2026-118 über 2.450 € brutto, fällig seit 2. Juli, B2B',a:'Forderungsaufstellung Az. CF-2026-0912\nHauptforderung (Re. 2026-118 v. 17.06.2026) ……… 2.450,00 €\nVerzugszinsen 03.07.–16.10.2026 (106 Tage, 9 Pp. über Basiszins 1,27 % = 10,27 % p. a.) ……… 73,05 €\nPauschale § 288 Abs. 5 BGB ……… 40,00 €\nInkassokosten 0,9 Gebühr Nr. 2300 VV RVG (Wert bis 3.000 €) ……… 222,00 €\nAuslagenpauschale ……… 20,00 €\nGesamt ……… 2.805,05 €\nZahlungsfrist: 14 Tage · IBAN DE44 3705 0198 0000 7788 99 · Verwendungszweck CF-2026-0912\nInformationen nach § 13a RDG: Auftraggeber Nordlicht Outdoor GmbH; Grund: Lieferung lt. Lieferschein; Zinsberechnung s. o.'},
+  setup:'Gebührentabelle, Mahnstufen-Texte, Bankverbindung, Ratenregeln und Erreichbarkeit in die Wissensbasis – fertig. Telefon-Agent optional für Schuldner-Hotline.',
+  comp:'Informationspflichten § 13a RDG in jedem Erstschreiben; Kostenbegrenzung § 13e RDG; keine Kontaktaufnahme mit Dritten; keine Rechtsauskunft an Schuldner; Härtefälle an Sachbearbeiter.'},
+ {id:'agent-kanzlei',ic:'§',col:'gold',n:'Kanzlei-Agent',who:'Rechtsanwälte · Notare · Rechtsabteilungen',p:169,tk:45000,buy:{id:'buy-kanzlei',p:1690,tk:250000},
+  tag:'Mandantenaufnahme rund um die Uhr, Fristen-Vorprüfung, Aktennotizen und Entwürfe – der Anwalt entscheidet.',
+  does:['Mandantenaufnahme: Sachverhalt, Gegenseite, Fristen, Unterlagen','Dringlichkeit erkennen (Kündigung 3 Wochen, Urteil 1 Monat …)','Terminvergabe + Unterlagenliste + Honorarrahmen (RVG)','Aktennotiz & Fristenberechnung mit Rechtsgrundlage','Entwürfe: Vertretungsanzeige, Akteneinsicht, Fristverlängerung'],
+  rules:['§ 4 KSchG','§ 517 ZPO','§ 70 VwGO','§ 34 RVG','§ 43a BRAO'],ch:['Telefon','Website','E-Mail'],
+  ex:{q:'Ich habe gestern eine Kündigung von meinem Arbeitgeber bekommen.',a:'Das tut mir leid – und es ist zeitkritisch: Gegen eine Kündigung muss die Klage innerhalb von 3 Wochen ab Zugang beim Arbeitsgericht eingehen (§ 4 KSchG) – bei Zugang am 15.10. also bis 05.11.2026 (vom Anwalt zu prüfen). Ich markiere Ihr Anliegen als DRINGEND und bitte um:\n• Ihren Namen und Ihre Telefonnummer\n• Name des Arbeitgebers (für den Konfliktcheck)\n• Datum der Kündigung und wann sie Ihnen zuging\n• Seit wann Sie dort beschäftigt sind, Betriebsgröße\nRA Dr. Berger (Arbeitsrecht) ruft Sie heute bis 16 Uhr zurück. Erstberatung 30 Min 150 € netto; Rechtsschutz-Deckungsanfrage übernehmen wir.'},
+  setup:'Rechtsgebiete, Anwälte, Honorar-Rahmen, Terminslots, Unterlagenlisten und Fristenliste in die Wissensbasis. Telefon-Agent als Kanzlei-Empfang 24/7.',
+  comp:'Keine Rechtsberatung und keine Erfolgsprognose durch den Agenten; Konfliktcheck durch die Kanzlei vor Terminbestätigung; Verschwiegenheit § 43a BRAO; Fristen stets „vom Anwalt zu prüfen“.'},
+ {id:'agent-steuer',ic:'%',col:'indigo',n:'Steuerkanzlei-Agent',who:'Steuerberater · Buchhaltungsbüros · Lohnbüros',p:149,tk:40000,buy:{id:'buy-steuer',p:1490,tk:200000},
+  tag:'Belege anfordern, Fristen erinnern, Bescheide erklären, Mandanten onboarden – ohne Warteschleife.',
+  does:['Belegabfrage: fehlende Unterlagen als Liste mit Frist & Upload-Weg','Fristenkalender mit Erinnerungen 14/7/1 Tage vorher','Bescheide & Vorauszahlungen verständlich erklären (Einspruchsfrist § 355 AO)','Mandanten-Onboarding: Fragebogen, Vollmacht, SEPA, DATEV','E-Mail-fertige Mandantenkommunikation in einfacher Sprache'],
+  rules:['§ 355 AO','§ 122 AO','§ 33 StBerG','§ 57 StBerG','StBVV'],ch:['Website','E-Mail','Telefon'],
+  ex:{q:'Ich habe einen Bescheid über Einkommensteuer-Vorauszahlungen bekommen – was heißt das?',a:'Das Finanzamt setzt damit vierteljährliche Vorauszahlungen auf Ihre voraussichtliche Einkommensteuer fest – fällig am 10.03., 10.06., 10.09. und 10.12. Grundlage ist Ihre letzte Veranlagung.\nWichtig:\n• Fällt Ihr Gewinn 2026 niedriger aus, kann die Kanzlei eine Herabsetzung beantragen.\n• Einspruchsfrist: 1 Monat ab Bekanntgabe (§ 355 AO); Bekanntgabe gilt am 3. Tag nach Aufgabe zur Post (§ 122 AO).\nSoll ich den Bescheid zur Prüfung an Herrn Lindner geben? Dann laden Sie ihn bitte in DATEV Unternehmen online hoch oder antworten Sie mit dem Foto.'},
+  setup:'Fristenliste, Mandantenportal/Upload-Wege, Standard-Unterlagenlisten, Honorarmodell und Ansprechpartner in die Wissensbasis.',
+  comp:'Keine verbindliche Steuerauskunft, keine Gestaltungsberatung; Einzelfälle „zur Prüfung an Steuerberater“; Vertraulichkeit § 57 StBerG; keine Belege per WhatsApp, nur sichere Wege.'},
+ {id:'agent-versicherung',ic:'☂',col:'rose',n:'Versicherungsmakler-Agent',who:'Makler · Agenturen · Assekuradeure',p:129,tk:32000,
+  tag:'Schadenaufnahme in zwei Minuten, Vertragsfragen aus dem Bestand, Termine – 24/7 erreichbar.',
+  does:['Schadenaufnahme als vollständiges Protokoll (Sparte, Hergang, Beteiligte, Fotos)','Obliegenheiten erklären: unverzüglich melden, Schaden mindern','Vertragsfragen aus dem Bestand: Deckung, SB, Laufzeit, Kündigungsfrist','Unterlagenlisten je Vorgang (Kündigung, Fahrzeugwechsel, Umzug)','Beratungstermin statt Produktverkauf – dokumentationskonform'],
+  rules:['§ 30 VVG','§ 82 VVG','§§ 61/62 VVG','§ 34d GewO'],ch:['Telefon','Website','E-Mail'],
+  ex:{q:'Ich hatte gestern einen Auffahrunfall, der andere ist schuld.',a:'Erst einmal: Ist jemand verletzt? Falls ja, bitte zuerst 112. Dann nehme ich den Schaden auf:\n1) Ihre Versicherungsnummer (Kfz) und Kennzeichen\n2) Datum, Uhrzeit, Ort\n3) Kennzeichen und Versicherung des Unfallgegners, Zeugen\n4) Polizei vor Ort? Aktenzeichen?\n5) Fotos von beiden Fahrzeugen (Übersicht + Detail)\nWichtig: Schaden unverzüglich melden, nichts ohne Rücksprache reparieren lassen (Notsicherung ausgenommen), kein Schuldanerkenntnis. Bei Fremdverschulden rechnen wir über die gegnerische Haftpflicht ab – inkl. Mietwagen/Nutzungsausfall. Frau Hansen ruft Sie innerhalb von 2 Stunden zurück.'},
+  setup:'Bestandsdaten (oder Freigabe per Kundennummer), Schaden-Checklisten je Sparte, Notfall-Hotline, Terminslots in die Wissensbasis.',
+  comp:'Keine Produktempfehlung ohne dokumentiertes Beratungsgespräch (§§ 61, 62 VVG); keine Gesundheitsdaten im Chat; Obliegenheiten korrekt kommunizieren.'},
+ {id:'agent-hausverwaltung',ic:'⌂',col:'indigo',n:'Hausverwaltungs-Agent',who:'Hausverwaltungen · WEG-Verwalter · Wohnungsgesellschaften',p:119,tk:30000,
+  tag:'Schadensmeldungen, Handwerker-Koordination, Nebenkosten-Fragen und Notfälle – für Mieter und Eigentümer rund um die Uhr.',
+  does:['Schadensmeldung als Ticket: Objekt, Wohnung, Problem, Dringlichkeit, Zugang','Notfall-Erkennung → Notdienstnummer sofort','Handwerker-Koordination mit Terminvorschlag & Rückmeldung','Nebenkosten/Betriebskosten erklären (§ 556 BGB Fristen), Belegeinsicht','Hausordnung, Kündigungsfristen, Eigentümerversammlung aus der Wissensbasis'],
+  rules:['§ 556 BGB','§ 573c BGB','WEG','Neutralität'],ch:['Telefon','Website','E-Mail'],
+  ex:{q:'In meiner Wohnung tropft Wasser aus der Decke.',a:'Das klingt dringend – ich kümmere mich sofort. Bitte als Erstes: Wasser auffangen, Strom in dem Bereich abschalten, Nachbarn darüber informieren. Falls es stark läuft: Notdienst 0228 99 88 77 (24/7).\nFür das Ticket brauche ich:\n• Objekt/Adresse und Wohnungsnummer\n• Ihren Namen und eine Rückrufnummer\n• Seit wann tropft es, Fotos der Stelle\n• Wann sind Sie heute/morgen erreichbar (2 Zeitfenster)?\nIch beauftrage Sanitär Rohrfrei (Termin i. d. R. binnen 2 Werktagen) und informiere die Wohnung darüber. Sie erhalten die Ticketnummer per SMS.'},
+  setup:'Objektliste mit Hausmeistern, Notdienst-Nummern, Handwerker-Partner, Hausordnung, Abrechnungs-Infos und Versammlungstermine in die Wissensbasis.',
+  comp:'Neutral zwischen Mietern und Eigentümern; keine Kulanz- oder Rechtszusagen; datensparsam; Notfälle immer zuerst an Notdienst.'},
+ {id:'agent-autohaus',ic:'⚙',col:'teal',n:'Autohaus &amp; Werkstatt-Agent',who:'Autohäuser · freie Werkstätten · Reifenservice',p:119,tk:30000,
+  tag:'Werkstatttermine, Reparaturstatus, Fahrzeuganfragen und Probefahrten – am Telefon und auf der Website.',
+  does:['Werkstatttermin mit Fahrzeug, Kennzeichen, km, Anliegen, Ersatzwagen','Reparaturstatus & Abholung aus der Wissensbasis','Fahrzeuganfragen aus dem Bestand + Probefahrt-Termin','HU/AU-, Service- und Räderwechsel-Erinnerungen','Warnleuchten-Triage: rot = anhalten, gelb = zeitnah'],
+  rules:['Sicherheit zuerst','Preise nur nach Prüfung','DSGVO'],ch:['Telefon','Website','E-Mail'],
+  ex:{q:'Gelbe Motorkontrollleuchte – kann ich noch fahren?',a:'Gelb bedeutet: Weiterfahren ist meist möglich, aber mit reduzierter Leistung und zeitnah in die Werkstatt – nicht aufschieben. Würde die Leuchte rot oder blinkt sie, bitte sofort anhalten und uns anrufen (Abschleppdienst 0711 223345).\nIch kann Ihnen direkt einen Diagnose-Termin anbieten: morgen 9:00 oder Freitag 13:30 (ca. 45 Min, Fehlerspeicher auslesen 59 €, wird bei Reparatur verrechnet). Welches Fahrzeug und Kennzeichen? Brauchen Sie einen Ersatzwagen (29 €/Tag)?'},
+  setup:'Öffnungszeiten, Terminslots, Richtpreise, Bestandsliste, Partnernummern (Abschleppdienst) und Serviceintervalle in die Wissensbasis.',
+  comp:'Keine verbindlichen Ferndiagnosen; Preise verbindlich erst nach Prüfung; sicherheitsrelevante Symptome immer eskalieren.'},
+ {id:'praxis-agent',ic:'+',col:'rose',n:'Praxis-Agent (Rezeption)',who:'Arzt- & Zahnarztpraxen · Physiotherapie · MVZ',p:129,tk:32000,
+  tag:'Organisatorische Fragen 24/7: Termine, Unterlagen, Rezepte, Öffnungszeiten – ohne Medizin.',
+  does:['Terminwünsche aufnehmen & bestätigen (Art, Dauer, Unterlagen)','Rezept-/Überweisungs-Abholung, Anfahrt, Parken, Kassen','Akutsprechstunde & Notdienst-Hinweise','Mehrsprachig (DE/EN/TR/RU/AR)','Verweis an Praxisteam bei allem Medizinischen'],
+  rules:['Keine Diagnosen','112/116117','DSGVO'],ch:['Telefon','Website'],
+  ex:{q:'Ich hätte gern einen Termin zur Zahnreinigung.',a:'Gern. Eine professionelle Zahnreinigung dauert etwa 60 Minuten und kostet 89 Euro. Passt Ihnen Dienstag 9:30 oder Donnerstag 15:00 Uhr? Für die Bestätigung brauche ich Ihren Namen und Ihre Telefonnummer – und bitte bringen Sie Ihre Versichertenkarte mit.'},
+  setup:'Öffnungszeiten, Terminarten, Leistungen/Preise, Unterlagen, Notdienst und Team in die Wissensbasis. Telefon-Agent als Rezeption außerhalb der Zeiten.',
+  comp:'Keine medizinischen Auskünfte oder Diagnosen; Notfälle → 112/116117; keine Gesundheitsdaten über Chat erfragen.'},
+ {id:'ec-support',ic:'◎',col:'indigo',n:'Shop-Support-Agent',who:'Online-Shops · Marktplatz-Händler · D2C-Marken',p:99,tk:25000,buy:{id:'buy-support',p:990,tk:150000},
+  tag:'Lieferung, Retouren, Gewährleistung – EU-Verbraucherrecht korrekt, freundlich, 24/7.',
+  does:['Bestellstatus & Versandfragen aus deiner Wissensbasis','Retouren & Umtausch Schritt für Schritt','Widerruf 14 Tage, Gewährleistung 2 Jahre – korrekt erklärt','Größen-/Produktberatung aus Produktdaten','Eskalation an dein Team mit Bestellnummer'],
+  rules:['Widerruf 14 Tage','Gewährleistung 2 J.','EU-Recht'],ch:['Website','E-Mail'],
+  ex:{q:'Die Jacke ist zu klein – kann ich tauschen?',a:'Klar. Der schnellste Weg: Jacke innerhalb von 30 Tagen kostenlos über unser Retourenportal zurückschicken (Label oder QR-Code) und die passende Größe direkt neu bestellen – so ist sie sofort unterwegs. Die Rückerstattung kommt innerhalb von 5 Werktagen nach Eingang. Tipp: Die Größentabelle auf der Produktseite hilft bei der Wahl. Soll ich dir den Retourenlink senden? Dann brauche ich deine Bestellnummer.'},
+  setup:'Versand-, Retouren-, Zahlungs- und Garantieregeln plus Produktdaten in die Wissensbasis. Widget in einer Minute eingebunden.',
+  comp:'EU-Verbraucherrecht korrekt; keine Zusagen zu Lieferterminen ohne Grundlage; Beschwerden deeskalieren und übergeben.'},
+ {id:'agent-phone',ic:'☎',col:'gold',n:'Telefon-Agent (universal)',who:'Jedes Unternehmen mit Telefon – Empfang, Hotline, Terminannahme',p:149,tk:40000,buy:{id:'buy-phone',p:1490,tk:200000},
+  tag:'Nimmt jeden Anruf an, beantwortet aus deiner Wissensbasis, nimmt Termine und Rückrufe auf, verbindet bei Bedarf.',
+  does:['Begrüßung mit deinem Namen & Stimme','Fragen aus der Wissensbasis in kurzen, natürlichen Sätzen','Termin-/Rückrufaufnahme mit Bestätigung','Weiterleitung an Mensch, Notfallnummern','Transkript jedes Gesprächs im Studio'],
+  rules:['Mensch im Loop','10 Sprachen','Transkripte'],ch:['Telefon'],
+  ex:{q:'(Anruf) Wann haben Sie heute geöffnet?',a:'Heute haben wir bis achtzehn Uhr geöffnet. Kann ich sonst noch etwas für Sie tun – zum Beispiel einen Termin vormerken?'},
+  setup:'Begrüßung, Stimme/Sprache, Weiterleitungsnummer, Erreichbarkeit und Wissensbasis im Studio einstellen; Nummer in 24 h.',
+  comp:'Kurze gesprochene Sätze, höchstens eine Rückfrage; Weiterleitung bei Wunsch/Notfall/Unklarheit; keine Zusagen außerhalb der Wissensbasis.'}
+];
+const COL={teal:['var(--teall)','var(--teal)'],gold:['var(--goldl)','var(--gold)'],indigo:['var(--indigol)','var(--indigo)'],rose:['var(--rosel)','var(--rose)']};
+(function(){const g=$('#pgrid');PRO.forEach((p,i)=>{const c=document.createElement('div');c.className='card pro reveal';c.style.transitionDelay=(i%3)*0.08+'s';const [bg,fg]=COL[p.col];
+  c.innerHTML=`<div class="top"><div class="ic" style="background:${bg};color:${fg}">${p.ic}</div><span class="tag ${p.col}">${p.ch.join(' · ')}</span></div><h3>${p.n}</h3><div class="who">${p.who}</div><p>${p.tag}</p>
+   <ul>${p.does.slice(0,3).map(x=>`<li>${x}</li>`).join('')}</ul><div class="rules">${p.rules.slice(0,4).map(r=>`<span>${r}</span>`).join('')}</div>
+   <div class="pr"><b>${p.p} €</b><small>/ Monat</small></div><div class="inc">inkl. ${de(p.tk)} Tokens · Studio · Widget${p.ch.includes('Telefon')?' · Telefon':''} · monatlich kündbar</div>
+   <div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${p.id}" onclick="event.stopPropagation()">Mieten</a><button class="btn" type="button" onclick="event.stopPropagation();openPro('${p.id}')">Details &amp; Beispiel</button></div>
+   <span class="more">Aufgaben · Beispiel-Dialog · Regeln · Einrichtung →</span>`;c.onclick=()=>openPro(p.id);g.appendChild(c);});
+  document.querySelectorAll('#pgrid .reveal').forEach(el=>new IntersectionObserver((es,o)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');o.unobserve(e.target);}}),{threshold:.1}).observe(el));})();
+function openPro(id){const p=PRO.find(x=>x.id===id);if(!p)return;const [bg,fg]=COL[p.col];const demoId=DEMOS.find(d=>d.plan===p.id)?p.id:null;
+  $('#mbox').innerHTML=`<div class="mh"><div><div style="display:flex;gap:10px;align-items:center"><div class="ic" style="width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font:700 22px var(--sans);background:${bg};color:${fg}">${p.ic}</div><span class="tag ${p.col}">${p.ch.join(' · ')}</span></div><h3 style="margin-top:12px">${p.n}</h3><div class="who">${p.who}</div></div><button class="x" onclick="closePro()">✕</button></div>
+  <div class="mb"><div>
+    <p style="color:var(--ink2);font-size:16px">${p.tag}</p>
+    <h4>Was der Agent übernimmt</h4><ul>${p.does.map(x=>`<li>${x}</li>`).join('')}</ul>
+    <h4>Beispiel</h4><div class="ex"><div class="q">${esc(p.ex.q)}</div><div class="a">${esc(p.ex.a)}</div></div>
+    <h4>Berufsrecht &amp; Grenzen (eingebaut)</h4><p style="color:var(--ink2);font-size:14.5px">${p.comp}</p><div class="chips">${p.rules.map(r=>`<span>${r}</span>`).join('')}</div>
+    <h4>Einrichtung</h4><p style="color:var(--ink2);font-size:14.5px">${p.setup}</p>
+  </div><div class="side">
+    <span class="tag gold">Mieten · monatlich kündbar</span><div class="pr" style="margin-top:10px"><b>${p.p} €</b><small>/ Monat</small></div><div style="color:var(--mute);font-size:13px">inkl. ${de(p.tk)} Tokens/Monat ≈ ${de(Math.round(p.tk/6))} Chat- oder ${de(Math.round(p.tk/8))} Telefon-Antworten</div>
+    <a class="btn gold" href="${CHECKOUT}?plan=${p.id}">Agent mieten →</a>
+    ${demoId?`<button class="btn p" type="button" onclick="closePro();location.hash='#demo';setTimeout(()=>{demoSelect('${demoId}');goLive(true);},200)">Live testen (Demo)</button>`:''}
+    <a class="btn" href="${STUDIO}">Im Studio mit eigener Wissensbasis testen</a>
+    ${p.buy?`<div class="buy">Einmal kaufen: <b>${de(p.buy.p)} €</b> · dauerhaft, inkl. ${de(p.buy.tk)} Tokens, Einrichtung durch uns · <a href="${CHECKOUT}?plan=${p.buy.id}" style="color:var(--indigo);font-weight:700">Kaufen →</a></div>`:''}
+    <div style="color:var(--mute);font-size:12.5px;margin-top:14px">Alle Preise zzgl. MwSt. · Tokens verfallen nicht · AVV auf Anfrage · Einrichtung durch uns: info@chat-help.com</div>
+  </div></div>`;
+  $('#modal').classList.add('open');document.body.style.overflow='hidden';}
+function closePro(){$('#modal').classList.remove('open');document.body.style.overflow='';}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closePro();});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePro();}});
+
+/* ===== Live-Demo Theater ===== */
+const DEMOS=[
+ {key:'phone',plan:'agent-phone',tab:'☎ Telefon-Agent',tag:'Telefon-Agent',title:'Nimmt jeden Anruf an – auch um 23 Uhr.',text:'Beispiel: Zahnarztpraxis Dr. Weber. Der Agent begrüßt, beantwortet aus der Wissensbasis, nimmt den Termin auf und bestätigt – in natürlicher Sprache.',device:'phone',company:'Zahnarztpraxis Dr. Weber',
+  steps:[['Begrüßung in deinem Namen','Stimme, Name und Firma stellst du im Studio ein.'],['Antwort nur aus der Wissensbasis','Preise, Zeiten, Abläufe – nichts wird erfunden.'],['Termin aufnehmen & bestätigen','Name, Nummer, Wunschzeit – wiederholt und ins Studio geschrieben.'],['Übergabe, wenn nötig','Schmerzen/Notfall oder Wunsch → Mensch bzw. Notdienst.']],
+  script:[[0,'sys','Eingehender Anruf · +49 221 …'],[0,'a','Zahnarztpraxis Dr. Weber, hier spricht Lea, der digitale Assistent. Wie kann ich Ihnen helfen?'],[1,'u','Ich hätte gern einen Termin zur Zahnreinigung, am liebsten nachmittags.'],[1,'a','Gern. Eine Zahnreinigung dauert etwa sechzig Minuten und kostet neunundachtzig Euro. Passt Ihnen Donnerstag um fünfzehn Uhr?'],[2,'u','Ja, Donnerstag passt.'],[2,'a','Wunderbar. Darf ich Ihren Namen und Ihre Telefonnummer für die Bestätigung?'],[2,'u','Max Mustermann, null eins sieben null, eins zwei drei vier fünf sechs sieben.'],[3,'a','Danke, Herr Mustermann. Donnerstag, fünfzehn Uhr, Zahnreinigung – das Team bestätigt per SMS. Bitte bringen Sie Ihre Versichertenkarte mit. Auf Wiederhören!'],[3,'sys','Gespräch beendet · 0:48 · Termin angelegt ✓ · Transkript im Studio']]},
+ {key:'support',plan:'agent-support',tab:'💬 Support-Agent',tag:'Website-Chat',title:'Beantwortet Kundenfragen in Sekunden.',text:'Beispiel: Nordlicht Outdoor (Online-Shop). Widget auf der Website, Antworten aus Versand-, Retouren- und Bestellinfos.',device:'browser',company:'Nordlicht Outdoor',
+  steps:[['Widget mit einer Zeile Code','Erscheint auf jeder Seite deines Shops.'],['Bestell- & Versandfragen','Aus deiner Wissensbasis oder deinem Shopsystem.'],['Retoure Schritt für Schritt','Rechtssicher: 14 Tage Widerruf, 2 Jahre Gewährleistung.'],['Eskalation an dein Team','Mit Bestellnummer und Verlauf.']],
+  script:[[0,'a','Hallo! Ich bin der Assistent von Nordlicht Outdoor. Wobei kann ich helfen?'],[1,'u','Wo ist meine Bestellung 4711?'],[1,'a','Bestellung 4711 ist unterwegs mit DHL – Zustellung voraussichtlich morgen bis 18 Uhr. Die Sendungsnummer hast du per E-Mail bekommen.'],[2,'u','Und falls die Jacke nicht passt?'],[2,'a','Kein Problem: 30 Tage kostenlose Rückgabe über unser Retourenportal (Label oder QR-Code). Umtausch geht am schnellsten, wenn du die passende Größe direkt neu bestellst – die Erstattung kommt binnen 5 Werktagen.'],[3,'u','Super, danke!'],[3,'a','Gern! Wenn noch etwas ist, bin ich da – oder das Team: service@nordlicht-outdoor.de, Mo–Fr 9–17 Uhr. ✓']]},
+ {key:'kanzlei',plan:'agent-kanzlei',tab:'§ Kanzlei-Agent',tag:'Kanzlei · Mandantenaufnahme',title:'Nimmt Mandanten auf und erkennt Fristen.',text:'Beispiel: Kanzlei Berger & Partner. Der Agent erkennt Dringlichkeit, erhebt den Sachverhalt, nennt den Honorarrahmen – und schreibt die Aktennotiz für den Anwalt.',device:'dossier',company:'Kanzlei Berger & Partner',
+  steps:[['Dringlichkeit erkennen','Kündigung → 3 Wochen § 4 KSchG: sofort priorisiert.'],['Sachverhalt strukturiert erheben','Gegenseite, Daten, Unterlagen – für den Konfliktcheck.'],['Honorarrahmen & Termin','Erstberatung nach § 34 RVG, Rechtsschutz-Deckungsanfrage.'],['Aktennotiz für den Anwalt','Fristberechnung mit Rechtsgrundlage, „zu prüfen“.']],
+  script:[[0,'u','Ich habe gestern eine Kündigung von meinem Arbeitgeber bekommen.'],[0,'a','Das tut mir leid – und es ist zeitkritisch: Eine Klage muss innerhalb von 3 Wochen ab Zugang eingehen (§ 4 KSchG). Ich markiere Ihr Anliegen als DRINGEND. Wie heißen Sie, und wie heißt der Arbeitgeber?'],[1,'u','Max Mustermann, Arbeitgeber ist die Beta Logistik GmbH, seit 2019 dort, etwa 80 Mitarbeiter.'],[2,'a','Danke. Die Kündigung ging Ihnen gestern, am 15.10., zu – die Frist läuft damit voraussichtlich bis 05.11.2026 (vom Anwalt zu prüfen). RA Dr. Berger (Arbeitsrecht) ruft Sie heute bis 16 Uhr zurück. Erstberatung 30 Min 150 € netto; haben Sie eine Rechtsschutzversicherung? Dann übernehmen wir die Deckungsanfrage.'],[3,'sys','Aktennotiz erstellt ✓']],
+  dossier:{title:'Aktennotiz · Neu-Mandat',rows:[['Mandant','Max Mustermann · Rückruf 0170 1234567'],['Rechtsgebiet','Arbeitsrecht – Kündigungsschutz'],['Gegenseite','Beta Logistik GmbH (Konfliktcheck offen)'],['Zugang','15.10.2026 (Kündigungsschreiben)'],['Frist','04./05.11.2026 · § 4 KSchG · ZU PRÜFEN'],['Status','DRINGEND · Rückruf RA Dr. Berger bis 16:00']],hot:[4,5],stamp:'Entwurf für den Anwalt · keine Rechtsberatung durch Agent'}},
+ {key:'inkasso',plan:'agent-inkasso',tab:'€ Inkasso-Agent',tag:'Inkasso · Forderungsmanagement',title:'Rechnet richtig, mahnt rechtssicher, bleibt respektvoll.',text:'Beispiel: Collecta Forderungsmanagement. Aus Rechnungsdaten entsteht die Forderungsaufstellung mit Rechenweg – inklusive Informationspflichten nach § 13a RDG.',device:'dossier',company:'Collecta Forderungsmanagement',
+  steps:[['Forderungsdaten aufnehmen','Gläubiger, Schuldner, Rechnung, Fälligkeit, Status.'],['Zinsen & Kosten berechnen','§ 288 BGB, Pauschale, RVG-Gebühr – mit Rechenweg.'],['Schreiben je Mahnstufe','Mit Informationspflichten § 13a RDG und Zahlungsfrist.'],['Ratenplan statt Druck','Angebote, Einwandbehandlung, Aktennotiz.']],
+  script:[[0,'u','Forderungsaufstellung: Rechnung 2026-118 über 2.450 € brutto, fällig seit 2. Juli, B2B, Schuldner Bauer GmbH.'],[1,'a','Verstanden. Ich berechne Verzugszinsen seit 03.07.2026 mit 9 Prozentpunkten über Basiszins (B2B), die Pauschale nach § 288 Abs. 5 BGB und die Inkassokosten nach RVG – Aufstellung folgt.'],[3,'a','Die Forderungsaufstellung ist fertig; die Zahlungsaufforderung mit Informationspflichten nach § 13a RDG und 14-Tage-Frist habe ich als Entwurf angelegt. Soll ich zusätzlich ein Ratenzahlungsangebot (ab 50 €/Monat, max. 24 Raten) beifügen?'],[3,'sys','Aufstellung + Zahlungsaufforderung erstellt ✓']],
+  dossier:{title:'Forderungsaufstellung · Az. CF-2026-0912',table:[['Hauptforderung (Re. 2026-118)','2.450,00 €'],['Verzugszinsen 03.07.–16.10. (106 Tage, 10,27 % p. a.)','73,05 €'],['Pauschale § 288 Abs. 5 BGB','40,00 €'],['Inkassokosten 0,9 Gebühr Nr. 2300 VV RVG','222,00 €'],['Auslagenpauschale','20,00 €']],total:['Gesamt · Zahlungsfrist 14 Tage','2.805,05 €'],stamp:'Informationen nach § 13a RDG enthalten'}},
+ {key:'steuer',plan:'agent-steuer',tab:'% Steuerkanzlei-Agent',tag:'Steuerkanzlei · Mandantenservice',title:'Holt Belege ein und erklärt Bescheide – ohne Warteschleife.',text:'Beispiel: Steuerkanzlei Lindner. Der Agent kennt die Fristenliste und den Upload-Weg, erklärt den Bescheid und bereitet die Rückfrage an den Steuerberater vor.',device:'dossier',company:'Steuerkanzlei Lindner',
+  steps:[['Mandant erkennen','Mandantennummer → fehlende Unterlagen aus der Liste.'],['Belegabfrage mit Frist & Weg','DATEV Unternehmen online statt WhatsApp.'],['Bescheid erklären','Fälligkeiten, Einspruchsfrist § 355 AO – verständlich.'],['Übergabe an Steuerberater','Entscheidungen bleiben beim Berufsträger.']],
+  script:[[0,'u','Welche Belege fehlen noch für meinen Abschluss 2025? Mandantennummer 4471.'],[1,'a','Für Bergmann Design GmbH fehlen noch: Kontoauszüge Okt–Dez 2025 (Sparkasse), drei Eingangsrechnungen Papyrus GmbH (Q4), Fahrtenbuch M-BD 2025, Inventurliste 31.12.2025 und der Leasingvertrag Drucker. Bitte bis 30.09. in DATEV Unternehmen online hochladen – Fotos reichen.'],[2,'u','Und der Bescheid über Vorauszahlungen, den ich bekommen habe?'],[2,'a','Das Finanzamt setzt vierteljährliche Vorauszahlungen fest (10.03./10.06./10.09./10.12.) auf Basis Ihrer letzten Veranlagung. Fällt der Gewinn niedriger aus, beantragen wir eine Herabsetzung. Einspruchsfrist: 1 Monat ab Bekanntgabe (§ 355 AO). Soll ich den Bescheid zur Prüfung an Herrn Lindner weitergeben?'],[3,'sys','Belegliste gesendet · Bescheid zur Prüfung vorgemerkt ✓']],
+  dossier:{title:'Belegabfrage · Mandant 4471 · Bergmann Design GmbH',rows:[['Kontoauszüge','Okt–Dez 2025 (Sparkasse)'],['Eingangsrechnungen','Papyrus GmbH · 3 Rechnungen Q4'],['Fahrtenbuch','Firmenwagen M-BD 2025'],['Inventur','Liste zum 31.12.2025'],['Vertrag','Leasing Drucker'],['Frist · Weg','30.09.2026 · DATEV Unternehmen online']],hot:[5],stamp:'E-Mail an Mandant erstellt · Steuerberater informiert'}},
+ {key:'backoffice',plan:'agent-backoffice',tab:'📑 Backoffice-Agent',tag:'Backoffice · Mahnwesen & Fristen',title:'Rechnungen, Mahnungen, Fristen – in deinem Ton.',text:'Beispiel: Meyer Elektrotechnik. Zahlungserinnerung mit korrekten Verzugszinsen aus deinen Zahlungsbedingungen, Fristenliste für den Monat.',device:'dossier',company:'Meyer Elektrotechnik',
+  steps:[['Zahlungsbedingungen kennen','14 Tage netto, Skonto, Bankverbindung.'],['Mahnstufe wählen','Erinnerung → Mahnung → letzte Mahnung, § 288 BGB.'],['Text in deinem Ton','Sachlich, höflich, bestimmt – versandfertig.'],['Fristen im Blick','USt-VA, Lohnsteuer, SV – mit Erinnerungen.']],
+  script:[[0,'u','Zahlungserinnerung für Rechnung 2026-0142 über 1.840 €, 10 Tage überfällig, Kunde Firma Schulz GmbH.'],[2,'a','Hier die Zahlungserinnerung (Stufe 1): „Sehr geehrte Damen und Herren, zu unserer Rechnung 2026-0142 vom 20.09.2026 über 1.840,00 € konnten wir bislang keinen Zahlungseingang feststellen. Sicher ist das nur übersehen worden – wir bitten um Ausgleich bis 23.10.2026 auf IBAN DE12 4405 0199 0000 1234 56. Sollte sich die Zahlung überschnitten haben, betrachten Sie dieses Schreiben als gegenstandslos. Mit freundlichen Grüßen, Meyer Elektrotechnik GmbH“'],[3,'a','Bleibt die Zahlung aus, erstelle ich am 24.10. die 1. Mahnung mit Verzugszinsen (9 Pp. über Basiszins, B2B) und 40 € Pauschale nach § 288 Abs. 5 BGB.'],[3,'sys','Erinnerung erstellt · Wiedervorlage 24.10. ✓']],
+  dossier:{title:'Fristen November · Meyer Elektrotechnik',rows:[['10.11.','Umsatzsteuer-Voranmeldung Oktober'],['10.11.','Lohnsteuer-Anmeldung Oktober'],['15.11.','Gewerbesteuer-Vorauszahlung Q4'],['26.11.','Sozialversicherung (drittletzter Bankarbeitstag)'],['24.10.','Wiedervorlage: Mahnung Re. 2026-0142']],hot:[4],stamp:'Erinnerungen 14/7/1 Tage aktiv'}}
+];
+let cur=null,playId=0,liveHist=[],liveOn=false;
+(function(){const w=$('#dtabs');DEMOS.forEach(d=>{const b=document.createElement('button');b.type='button';b.className='dtab';b.dataset.k=d.key;b.textContent=d.tab;b.onclick=()=>demoSelect(d.key);w.appendChild(b);});})();
+function demoSelect(key){const d=DEMOS.find(x=>x.key===key)||DEMOS[0];cur=d;liveOn=false;liveHist=[];$('#live').classList.remove('on');$('#btnLive').textContent='Selbst testen – live';
+  document.querySelectorAll('.dtab').forEach(b=>b.classList.toggle('on',b.dataset.k===d.key));
+  $('#exTag').textContent=d.tag;$('#exTitle').textContent=d.title;$('#exText').textContent=d.text;$('#btnRent').href=CHECKOUT+'?plan='+d.plan;
+  $('#exSteps').innerHTML=d.steps.map((s,i)=>`<div class="it" data-i="${i}"><i>0${i+1}</i><div><b>${s[0]}</b><span>${s[1]}</span></div></div>`).join('');
+  buildDevice(d);playDemo();}
+function buildDevice(d){const st=$('#stage');
+  if(d.device==='phone'){st.innerHTML=`<div class="phone"><div class="scr"><div class="notch"></div><div class="callhd"><b>${d.company}</b><small>Telefon-Agent · <span id="dTimer">00:00</span></small></div><div class="wave" id="dWave">${'<i></i>'.repeat(26)}</div><div class="tr" id="dTr"></div><div class="ctl"><i>🔇</i><i class="red">📞</i><i>⌨️</i></div></div></div>`;
+    document.querySelectorAll('#dWave i').forEach((el,i)=>{el.style.animationDelay=(i*0.07)+'s';el.style.animationDuration=(0.7+((i*37)%5)/10)+'s';});}
+  else if(d.device==='browser'){st.innerHTML=`<div class="browser"><div class="bar"><i></i><i></i><i></i><span>nordlicht-outdoor.de/jacken/alpin-pro</span></div><div class="site"><div class="fake h"></div><div class="fake"></div><div class="fake w"></div><div class="fake"></div><div class="fake w"></div><div class="widget"><div class="wh"><div class="av"></div><div><b>${d.company}</b><small>Support-Agent · online</small></div></div><div class="tr" id="dTr"></div><div class="in">Nachricht schreiben …</div></div></div></div>`;}
+  else {const ds=d.dossier;let out='';
+    if(ds.table) out=`<table>${ds.table.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}<tr class="tot"><td>${ds.total[0]}</td><td>${ds.total[1]}</td></tr></table>`;
+    else out=ds.rows.map((r,i)=>`<div class="row${(ds.hot||[]).includes(i)?' hot':''}"><b>${r[0]}</b><span>${r[1]}</span></div>`).join('');
+    st.innerHTML=`<div class="dossier"><div class="dh"><b>${d.company}</b><span>${d.tag}</span></div><div class="chat" id="dTr"></div><div class="out" id="dOut" style="opacity:0;transition:opacity .6s"><div class="t">${ds.title}</div>${out}<span class="stamp">✓ ${ds.stamp}</span></div></div>`;}}
+function dmsg(role,text,typing){const tr=$('#dTr');if(!tr)return null;const m=document.createElement('div');m.className='m '+role;if(typing)m.classList.add('typing');m.textContent=text;tr.appendChild(m);tr.scrollTop=tr.scrollHeight;return m;}
+function stepOn(i){document.querySelectorAll('#exSteps .it').forEach(el=>el.classList.toggle('on',+el.dataset.i<=i));}
+async function playDemo(){const d=cur,my=++playId;const tr=$('#dTr');if(tr)tr.innerHTML='';stepOn(-1);const out=$('#dOut');if(out)out.style.opacity=0;
+  let sec=0;const timer=$('#dTimer');const tick=setInterval(()=>{if(my!==playId||liveOn){clearInterval(tick);return;}sec++;if(timer)timer.textContent='00:'+String(sec).padStart(2,'0');},1000);
+  for(const [step,role,text] of d.script){if(my!==playId||liveOn)return;stepOn(step);
+    if(role==='a'){const t=dmsg('a','',true);await sleep(600);if(my!==playId||liveOn)return;let s='';for(const ch of text){s+=ch;t.textContent=s;if(ch===' '&&Math.random()<.3)await sleep(14);if(my!==playId||liveOn)return;}t.classList.remove('typing');await sleep(900);}
+    else if(role==='u'){await sleep(500);dmsg('u',text);await sleep(700);}
+    else {await sleep(400);dmsg('sys',text);await sleep(600);}
+    if(text.includes('✓')&&out)out.style.opacity=1;}
+  clearInterval(tick);if(out)out.style.opacity=1;stepOn(3);}
+$('#btnReplay').onclick=()=>{liveOn=false;$('#live').classList.remove('on');$('#btnLive').textContent='Selbst testen – live';playDemo();};
+$('#btnLive').onclick=()=>goLive();
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+async function goLive(voice){if(liveOn&&!voice)return;liveOn=true;playId++;liveHist=[];const d=cur;$('#live').classList.add('on');$('#btnLive').textContent='Live-Modus aktiv';
+  const tr=$('#dTr');if(tr)tr.innerHTML='';stepOn(3);const out=$('#dOut');if(out)out.style.opacity=0;
+  $('#liveMic').style.display=(d.key==='phone'&&SR)?'inline-flex':'none';$('#liveNote').textContent=d.key==='phone'?'Echter Telefon-Agent (Beispiel-Praxis). Tippe – oder drück 🎙️ und sprich; die Antwort wird vorgelesen.':'Echter Agent mit Beispiel-Wissensbasis. Deine eigene fügst du im Studio ein.';
+  dmsg('sys','Live-Modus · echter Agent · Beispiel-Firma '+d.company);
+  try{const r=await fetch(DEMO_API+'?agent='+d.plan);const j=await r.json();dmsg('a',j.greeting);liveHist.push({role:'assistant',content:j.greeting});if(voice&&d.key==='phone')speak(j.greeting);}catch(e){dmsg('a','Hallo! Was kann ich für Sie tun?');}
+  if(voice&&d.key==='phone'&&SR)setTimeout(listen,1200);$('#liveIn').focus();}
+async function liveSend(text){text=(text||$('#liveIn').value).trim();if(!text||!cur)return;$('#liveIn').value='';dmsg('u',text);liveHist.push({role:'user',content:text});const t=dmsg('a','',true);
+  try{const r=await fetch(DEMO_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent:cur.plan,channel:cur.key==='phone'?'phone':'chat',messages:liveHist.slice(-10),lang:'de'})});const j=await r.json();
+    const a=j.reply||j.message||'Gerade nicht erreichbar – bitte gleich erneut versuchen.';t.textContent=a;t.classList.remove('typing');if(j.reply)liveHist.push({role:'assistant',content:a});
+    if(cur.key==='phone'&&micWanted)speak(a,()=>{if(micWanted&&!j.end)listen();});if(j.end)dmsg('sys','Gespräch beendet ✓');if(j.forward)dmsg('sys','→ Weiterleitung an Mitarbeiter');}
+  catch(e){t.textContent='Verbindungsfehler – bitte erneut versuchen.';t.classList.remove('typing');}}
+$('#liveForm').onsubmit=e=>{e.preventDefault();micWanted=false;liveSend();};
+let micWanted=false,rec=null;
+function speak(text,done){try{if(!window.speechSynthesis)return done&&done();window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='de-DE';const v=speechSynthesis.getVoices().find(v=>/de[-_]DE/i.test(v.lang)&&/female|anna|katja|petra|google|vicki|helena/i.test(v.name))||speechSynthesis.getVoices().find(v=>/de/i.test(v.lang));if(v)u.voice=v;u.rate=1.02;u.onend=()=>done&&done();speechSynthesis.speak(u);}catch(e){done&&done();}}
+function listen(){if(!SR)return;try{rec&&rec.abort();}catch(e){}rec=new SR();rec.lang='de-DE';rec.interimResults=false;rec.maxAlternatives=1;$('#liveMic').classList.add('rec');micWanted=true;
+  rec.onresult=e=>{const t=e.results[0][0].transcript;$('#liveMic').classList.remove('rec');liveSend(t);};rec.onerror=()=>{$('#liveMic').classList.remove('rec');};rec.onend=()=>{$('#liveMic').classList.remove('rec');};rec.start();}
+$('#liveMic').onclick=()=>{if($('#liveMic').classList.contains('rec')){try{rec&&rec.stop();}catch(e){}return;}speechSynthesis&&speechSynthesis.cancel();listen();};
+demoSelect('phone');
+
+/* ===== Telefon-Sektion: Endlos-Mini-Demo ===== */
+(async function telLoop(){const tr=$('#telTr');const wave=$('#telWave');wave.innerHTML='<i></i>'.repeat(26);document.querySelectorAll('#telWave i').forEach((el,i)=>{el.style.animationDelay=(i*0.07)+'s';el.style.animationDuration=(0.7+((i*37)%5)/10)+'s';});
+  const S=[['sys','Anruf 23:14 · Umleitung außerhalb der Zeiten'],['a','Kanzlei Berger und Partner, hier ist der digitale Assistent. Wie kann ich Ihnen helfen?'],['u','Ich habe einen Bußgeldbescheid bekommen, 2 Wochen Frist, glaube ich.'],['a','Richtig, der Einspruch muss innerhalb von zwei Wochen eingehen – das prüft Rechtsanwalt Krüger. Ich notiere Ihr Anliegen als dringend. Wie heißen Sie, und unter welcher Nummer erreichen wir Sie morgen früh?'],['u','Lena Berg, 0151 9876543.'],['a','Danke, Frau Berg. Herr Krüger ruft Sie morgen zwischen acht und neun Uhr an. Halten Sie den Bescheid bitte bereit. Auf Wiederhören!'],['sys','Transkript gespeichert · Rückruf 08:00 ✓']];
+  const timer=$('#telTimer');while(true){tr.innerHTML='';let sec=0;const tk=setInterval(()=>{sec++;timer.textContent='00:'+String(sec).padStart(2,'0');},1000);
+    for(const [r,t] of S){const m=document.createElement('div');m.className='m '+r;tr.appendChild(m);if(r==='a'){m.classList.add('typing');let s='';for(const ch of t){s+=ch;m.textContent=s;await sleep(16);}m.classList.remove('typing');}else m.textContent=t;tr.scrollTop=tr.scrollHeight;await sleep(r==='a'?1300:900);}
+    clearInterval(tk);await sleep(2600);}})();
+
+/* ===== Preise ===== */
+const AG=[
+ {id:'agent-phone',n:'Telefon-Agent 24/7',p:149,tk:40000,s:'service',d:'Anrufe, Termine, Rückrufe, Weiterleitung – mit eigener Nummer.',buy:{id:'buy-phone',p:1490,tk:200000}},
+ {id:'agent-inkasso',n:'Inkasso-Agent',p:179,tk:45000,s:'inkasso',d:'Forderungsaufstellung, Mahnstufen, Ratenpläne, Einwände – nach RDG/BGB.',buy:{id:'buy-inkasso',p:1790,tk:250000}},
+ {id:'agent-kanzlei',n:'Kanzlei-Agent',p:169,tk:45000,s:'kanzlei',d:'Mandantenaufnahme, Fristen-Vorprüfung, Aktennotizen, Entwürfe.',buy:{id:'buy-kanzlei',p:1690,tk:250000}},
+ {id:'agent-steuer',n:'Steuerkanzlei-Agent',p:149,tk:40000,s:'steuer',d:'Belegabfrage, Fristen, Bescheide erklären, Onboarding.',buy:{id:'buy-steuer',p:1490,tk:200000}},
+ {id:'agent-versicherung',n:'Versicherungsmakler-Agent',p:129,tk:32000,s:'versicherung',d:'Schadenaufnahme, Vertragsfragen, Unterlagen, Termine.'},
+ {id:'agent-hausverwaltung',n:'Hausverwaltungs-Agent',p:119,tk:30000,s:'hausverwaltung',d:'Schadensmeldungen, Handwerker, Nebenkosten, Notfälle.'},
+ {id:'agent-autohaus',n:'Autohaus & Werkstatt-Agent',p:119,tk:30000,s:'automotive',d:'Werkstatttermine, Status, Bestand, Probefahrten.'},
+ {id:'praxis-agent',n:'Praxis-Agent (Rezeption)',p:129,tk:32000,s:'praxis',d:'Organisatorische Fragen 24/7 – ohne Medizin.'},
+ {id:'agent-support',n:'Support-Agent 24/7',p:99,tk:25000,s:'ecommerce',d:'Kundenfragen aus deiner Wissensbasis – Widget, E-Mail, Chat.',buy:{id:'buy-support',p:990,tk:150000}},
+ {id:'ec-support',n:'Shop-Support-Agent',p:99,tk:25000,s:'ecommerce',d:'Lieferung, Retouren, Gewährleistung – EU-Recht korrekt.'},
+ {id:'agent-sales',n:'Vertriebs-Agent',p:119,tk:30000,s:'marketing',d:'Lead-Qualifizierung (BANT), Follow-ups, CRM-Notizen.'},
+ {id:'agent-website',n:'Website-Agent',p:129,tk:30000,s:'marketing',d:'Komplette Website-Texte, Struktur, SEO, WordPress-Checkliste.',buy:{id:'buy-website',p:490,tk:60000}},
+ {id:'agent-content',n:'Content-Planer',p:79,tk:20000,s:'marketing',d:'Redaktionsplan, Posts, Captions – alle Kanäle.',buy:{id:'buy-content',p:690,tk:100000}},
+ {id:'agent-backoffice',n:'Backoffice-Agent',p:89,tk:22000,s:'finanzen',d:'Rechnungstexte, Mahnwesen, Fristen, Belege.'},
+ {id:'immo-agent',n:'Anfragen-Agent Immobilien',p:79,tk:20000,s:'immobilien',d:'Interessenten 24/7 qualifizieren, Besichtigungen.'},
+ {id:'gastro-agent',n:'Buchungs-Agent Gastro',p:89,tk:22000,s:'gastro',d:'Reservierungen, Gästefragen, mehrsprachig.'},
+ {id:'hr-screening',n:'Screening-Assistent HR',p:89,tk:22000,s:'hr',d:'Vorauswahl, Interviewfragen, AGG-konforme Kommunikation.'},
+ {id:'fin-mahnung',n:'Mahnwesen-Agent',p:59,tk:15000,s:'finanzen',d:'3 Mahnstufen mit § 288 BGB – im Ton deines Unternehmens.'},
+ {id:'log-support',n:'Support-Agent Logistik',p:99,tk:25000,s:'logistik',d:'Kunden- und Partneranfragen aus deiner Doku.'}
+];
+const ABO=[
+ {id:'creator-social',n:'KI-Social-Media-Automatisierung',p:39,tk:10000,d:'7 Posts/Woche, Captions, Hashtag-Sets, Redaktionsplan – 6 Sprachen.'},
+ {id:'creator-youtube',n:'YouTube-Skript-Assistent & SEO',p:59,tk:15000,d:'Skripte mit Hook & CTA, 5 Titel, Beschreibung, Tags, Kapitel.'},
+ {id:'ec-texte',n:'Produkttext-Studio',p:49,tk:12000,d:'SEO-Produkttexte, Bullet Points, Meta – Shopify/Woo/Amazon.'},
+ {id:'mkt-seo',n:'SEO-Studio',p:59,tk:15000,d:'Keyword-Cluster, Blogartikel, Meta, interne Verlinkung.'},
+ {id:'immo-expose',n:'Exposé-Generator',p:39,tk:10000,d:'Portalfertige Exposés aus Eckdaten.'},
+ {id:'hr-anzeigen',n:'Stellenanzeigen-Studio',p:39,tk:10000,d:'AGG-konforme Anzeigen für Indeed/StepStone/LinkedIn.'},
+ {id:'hw-angebot',n:'Angebots-Generator Handwerk',p:39,tk:10000,d:'Angebote mit Positionen aus Aufmaß & Stichworten.'},
+ {id:'gastro-reviews',n:'Bewertungs-Antworten Gastro',p:39,tk:10000,d:'Google/Tripadvisor/Booking professionell beantwortet.'},
+ {id:'edu-kurs',n:'Kurs-Generator',p:49,tk:12000,d:'Lernziele, Module, Übungen, Quizze.'}
+];
+const PT=[['agents','Agenten mieten'],['buy','Einmal kaufen'],['tokens','Tokens'],['abo','Content-Pakete'],['recht','ChatHelp Recht']];
+(function(){const w=$('#ptabs');PT.forEach(([k,l])=>{const b=document.createElement('button');b.type='button';b.className='ptab';b.dataset.k=k;b.textContent=l;b.onclick=()=>renderPrice(k);w.appendChild(b);});renderPrice('agents');})();
+function renderPrice(k){document.querySelectorAll('.ptab').forEach(b=>b.classList.toggle('on',b.dataset.k===k));const el=$('#pbody');
+  if(k==='agents'){el.innerHTML=`<div class="pgrid2">${AG.map(a=>`<div class="card pk"><span class="tag indigo">Agent</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Studio · Wissensbasis · Widget${a.s==='service'||['inkasso','kanzlei','steuer','versicherung','hausverwaltung','automotive','praxis'].includes(a.s)?' · Telefon':''}</li><li>${de(a.tk)} Tokens / Monat inklusive</li><li>Monatlich kündbar</li></ul><div class="pr"><b>${a.p} €</b><small>/ Monat</small></div><div class="inc">zzgl. MwSt.${a.buy?' · Einmalkauf '+de(a.buy.p)+' €':''}</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Mieten</a>${PRO.find(p=>p.id===a.id)?`<button class="btn" type="button" onclick="openPro('${a.id}')">Details</button>`:`<a class="btn" href="${STUDIO}">Testen</a>`}</div></div>`).join('')}</div>`;}
+  else if(k==='buy'){el.innerHTML=`<p class="sub center" style="margin:26px auto 0">Einmal zahlen, dauerhaft nutzen: Agent + großes Token-Guthaben + Einrichtung durch uns. Keine Monatsgebühr; weitere Tokens kaufst du bei Bedarf nach.</p><div class="pgrid2">${AG.filter(a=>a.buy).map(a=>`<div class="card pk feat"><span class="tag gold">Lifetime</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Dauerhafter Zugang, keine Monatsgebühr</li><li>${de(a.buy.tk)} Tokens inklusive</li><li>Einrichtung durch uns (Video-Call)</li></ul><div class="pr"><b>${de(a.buy.p)} €</b><small>einmalig</small></div><div class="inc">zzgl. MwSt. · Rechnung</div><div class="acts"><a class="btn gold" href="${CHECKOUT}?plan=${a.buy.id}">Kaufen</a><a class="btn" href="${CHECKOUT}?plan=${a.id}">lieber mieten · ${a.p} €/M</a></div></div>`).join('')}</div>`;}
+  else if(k==='tokens'){el.innerHTML=`<div class="pgrid2">
+    <div class="card pk"><span class="tag">Starter</span><div class="pr" style="margin-top:12px"><b>49 €</b></div><div style="font:700 16px var(--sans)">10.000 Tokens</div><div class="inc">0,0049 € / Token</div><ul><li>Alle Agenten, Studio & API</li><li>Verfallen nicht</li></ul><a class="btn" href="${CHECKOUT}?pack=10k" style="margin-top:auto">Kaufen</a></div>
+    <div class="card pk feat"><span class="tag gold">Pro</span><div class="pr" style="margin-top:12px"><b>199 €</b></div><div style="font:700 16px var(--sans)">50.000 Tokens</div><div class="inc">0,0040 € / Token · −18 %</div><ul><li>Alle Agenten, Studio & API</li><li>Priorisierte Verarbeitung</li></ul><a class="btn gold" href="${CHECKOUT}?pack=50k" style="margin-top:auto">Kaufen</a></div>
+    <div class="card pk"><span class="tag indigo">Business</span><div class="pr" style="margin-top:12px"><b>690 €</b></div><div style="font:700 16px var(--sans)">200.000 Tokens</div><div class="inc">0,00345 € / Token · −30 %</div><ul><li>Alle Agenten, Studio & API</li><li>Team-Seats · Dashboard</li></ul><a class="btn" href="${CHECKOUT}?pack=200k" style="margin-top:auto">Kaufen</a></div></div>
+    <div class="calc" id="calc"><div><h3>Beliebige Menge kaufen</h3><p style="color:var(--ink2);margin-top:6px">Schiebe oder tippe die Menge – der Preis fällt automatisch mit der Staffel.</p><input type="range" id="tkRange" min="1000" max="500000" step="1000" value="25000"><div class="num"><input type="number" id="tkNum" min="1000" max="5000000" step="1000" value="25000"><span style="color:var(--mute)">Tokens (ab 1.000)</span></div><div class="tiers"><span>&lt; 10k: 0,0055 €</span><span>10k+: 0,0049 €</span><span>50k+: 0,0040 €</span><span>200k+: 0,00345 €</span><span>1 Mio+: 0,0025 €</span></div></div><div class="out"><b id="tkPrice">122,50 €</b><small id="tkUnit">0,0049 € / Token · zzgl. MwSt.</small><a class="btn gold" id="tkBuy" style="margin-top:16px" href="${CHECKOUT}?tokens=25000">Jetzt kaufen →</a></div></div>
+    <p style="color:var(--mute);font-size:13px;margin-top:14px">Richtwerte: Chat-Antwort 6 Tokens · Telefon-Antwort 8 · Social-Post 5 · YouTube-Skript 50 · Übersetzung 2 je 100 Wörter · API-Pro 249 €/Monat (50.000 Tokens, Webhooks, SLA) · Enterprise ab 990 €/Monat.</p>`;
+    $('#tkRange').addEventListener('input',e=>tkSet(+e.target.value));$('#tkNum').addEventListener('change',e=>tkSet(+e.target.value));tkSet(25000);}
+  else if(k==='abo'){el.innerHTML=`<div class="pgrid2">${ABO.map(a=>`<div class="card pk"><span class="tag teal">Paket</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>${de(a.tk)} Tokens / Monat inklusive</li><li>Studio mit Vorlagen · API</li><li>Monatlich kündbar</li></ul><div class="pr"><b>${a.p} €</b><small>/ Monat</small></div><div class="inc">zzgl. MwSt.</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Abonnieren</a><a class="btn" href="${STUDIO}">Testen</a></div></div>`).join('')}</div>`;}
+  else {el.innerHTML=`<div class="pgrid2">
+    <div class="card pk"><span class="tag gold">Einzeldokument</span><h3>Widerspruch / Einspruch / Antrag</h3><p class="d">Ein geprüftes, versandfertiges Schreiben – mit §§, Frist und Form.</p><ul><li>Zwei KI-Prüfungen</li><li>Versand: Brief · Einschreiben · Fax</li><li>PDF + Word</li></ul><div class="pr"><b>ab 1,99 €</b><small>/ Dokument</small></div><div class="acts"><a class="btn" href="/chat/">Starten</a></div></div>
+    <div class="card pk feat"><span class="tag gold">Abo</span><h3>Recht Basic</h3><p class="d">Für Mieter, Arbeitnehmer, Familien: alle Standard-Schreiben.</p><ul><li>Unbegrenzt Dokumente ansehen</li><li>5 Versände / Monat inklusive</li><li>Fristen-Erinnerungen</li></ul><div class="pr"><b>13,99 €</b><small>/ Monat</small></div><div class="acts"><a class="btn gold" href="/chat/?plan=basic">Abonnieren</a></div></div>
+    <div class="card pk"><span class="tag gold">Abo</span><h3>Recht Pro</h3><p class="d">Für Vielnutzer, Vermieter, kleine Betriebe: alles unbegrenzt.</p><ul><li>Unbegrenzt Dokumente & Versand</li><li>Vertrags-Check & Formulare (DE/FR/TR)</li><li>Priorisierte Prüfung</li></ul><div class="pr"><b>29,99 €</b><small>/ Monat</small></div><div class="acts"><a class="btn p" href="/chat/?plan=pro">Abonnieren</a></div></div></div>`;}}
+function tkUnit(n){return n>=1e6?0.0025:n>=200000?0.00345:n>=50000?0.0040:n>=10000?0.0049:0.0055;}
+function tkSet(n){n=Math.max(1000,Math.min(5e6,Math.round(n/1000)*1000));const r=$('#tkRange'),m=$('#tkNum');if(!r)return;r.value=Math.min(n,500000);m.value=n;const u=tkUnit(n);$('#tkPrice').textContent=(n*u).toLocaleString('de-DE',{style:'currency',currency:'EUR'});$('#tkUnit').textContent=u.toLocaleString('de-DE',{minimumFractionDigits:4})+' € / Token · zzgl. MwSt.';$('#tkBuy').href=CHECKOUT+'?tokens='+n;}
+
+/* ===== Schwebender Assistent (concierge) ===== */
+let aiHist=[],aiInit=false;
 function linkify(t){return esc(t).replace(/(https?:\/\/[^\s)]+)/g,u=>`<a href="${u}" target="_blank" rel="noopener">${u.replace('https://chat-help.com','chat-help.com')}</a>`);}
 function aiMsg(role,text){const d=document.createElement('div');d.className='m '+role;if(role==='a')d.innerHTML=linkify(text);else d.textContent=text;$('#aiMs').appendChild(d);$('#aiMs').scrollTop=$('#aiMs').scrollHeight;return d;}
-async function aiInit(reset){const lang=document.documentElement.lang||'de';if(reset){aiHist=[];$('#aiMs').innerHTML='';}
-  try{const r=await fetch(AI_API+'?lang='+lang);const j=await r.json();if(!aiHist.length){aiMsg('a',j.greeting);}
-    const c=$('#aiChips');c.innerHTML='';(j.chips||[]).forEach(t=>{const b=document.createElement('button');b.type='button';b.className='chip';b.textContent=t;b.onclick=()=>aiSend(t);c.appendChild(b);});}
-  catch(e){if(!aiHist.length)aiMsg('a','Hallo! Frag mich zu Rechtsschreiben, Agenten, Creator-Paketen, Tokens oder API.');}}
-async function aiSend(text){text=(text||$('#aiIn').value).trim();if(!text)return;$('#aiIn').value='';aiMsg('u',text);aiHist.push({role:'user',content:text});
-  const t=aiMsg('t','…');$('#aiSend').disabled=true;
-  try{const r=await fetch(AI_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:aiHist.slice(-10),lang:document.documentElement.lang||'de'})});const j=await r.json();t.remove();
-    const a=j.reply||j.message||'Gerade nicht erreichbar – bitte gleich erneut versuchen oder info@chat-help.com.';aiMsg('a',a);if(j.reply)aiHist.push({role:'assistant',content:a});}
-  catch(e){t.remove();aiMsg('a','Verbindungsfehler – bitte erneut versuchen.');}
-  $('#aiSend').disabled=false;$('#aiIn').focus();}
-$('#aiForm').onsubmit=e=>{e.preventDefault();aiSend();};aiInit(false);
-
-/* ===== Agenten-Marktplatz (mieten oder kaufen) ===== */
-const AGENTS=[
- {id:'agent-support',ic:'💬',n:'Support-Agent 24/7',s:'ecommerce',sn:'Support',p:99,tk:25000,d:'Beantwortet Kundenfragen aus deiner Wissensbasis – Website-Widget, E-Mail, Chat.',b:['Nur deine Fakten, keine Erfindungen','Eskalation an Mensch bei Unsicherheit','Widget in 1 Minute eingebunden'],buy:{id:'buy-support',p:990,tk:150000,l:'Lifetime inkl. 150.000 Tokens'}},
- {id:'agent-sales',ic:'📈',n:'Vertriebs-Agent',s:'marketing',sn:'Vertrieb',p:119,tk:30000,d:'Qualifiziert Leads (BANT), schreibt Follow-ups und bereitet CRM-Notizen vor.',b:['Lead-Qualifizierung mit 2 Fragen','Follow-up-E-Mails in deinem Ton','CRM-Notiz: Bedarf · nächster Schritt']},
- {id:'agent-content',ic:'🗓️',n:'Content-Planer',s:'marketing',sn:'Content',p:79,tk:20000,d:'Redaktionsplan, Posts und Captions nach deinem Kalender – für alle Kanäle.',b:['Redaktionsplan als Tabelle','Posts + Captions + Hashtags','Instagram · TikTok · LinkedIn'],buy:{id:'buy-content',p:690,tk:100000,l:'Lifetime inkl. 100.000 Tokens'}},
- {id:'agent-website',ic:'🌐',n:'Website-Agent',s:'marketing',sn:'Website',p:129,tk:30000,d:'Komplette Website-Texte, Seitenstruktur, SEO-Meta, Impressum-/Datenschutz-Entwurf, WordPress-Checkliste.',b:['Start, Leistungen, Über uns, FAQ, Kontakt','SEO-Title & -Description je Seite','Einrichtungs-Checkliste WordPress'],buy:{id:'buy-website',p:490,tk:60000,l:'Komplettpaket inkl. 60 Min Einrichtung'}},
- {id:'agent-backoffice',ic:'📑',n:'Backoffice-Agent',s:'finanzen',sn:'Backoffice',p:89,tk:22000,d:'Rechnungstexte, Belege erklären, Zahlungserinnerungen, Fristen mit Erinnerungen.',b:['3-stufiges Mahnwesen','Fristenliste 14/7/1 Tage','Belege & Bescheide verständlich']},
- {id:'ec-support',ic:'🛒',n:'Shop-Support-Agent',s:'ecommerce',sn:'E-Commerce',p:99,tk:25000,d:'Lieferung, Retouren, Gewährleistung – EU-Verbraucherrecht korrekt, freundlich, 24/7.',b:['Widerruf 14 Tage, Gewährleistung 2 Jahre','Fragt Bestellnummer ab','Eskalation an dein Team']},
- {id:'immo-agent',ic:'🏢',n:'Anfragen-Agent Immobilien',s:'immobilien',sn:'Immobilien',p:79,tk:20000,d:'Antwortet Interessenten 24/7, qualifiziert, schlägt Besichtigungstermine vor.',b:['Objektliste als Wissensbasis','Budget, Einzug, Personen abfragen','Lead-Zusammenfassung']},
- {id:'praxis-agent',ic:'🩺',n:'Rezeptions-Agent Praxis',s:'praxis',sn:'Praxis',p:129,tk:32000,d:'Organisatorische Fragen 24/7 – Öffnungszeiten, Unterlagen, Rezepte. Keine Medizin.',b:['Verweist bei Medizin ans Team','Terminarten & Unterlagen erklären','DSGVO-bewusst']},
- {id:'hr-screening',ic:'🧑‍💼',n:'Screening-Assistent HR',s:'hr',sn:'HR',p:89,tk:22000,d:'Strukturierte Vorauswahl, Interviewfragen, Absagen und Einladungen – AGG-konform.',b:['Muss-/Kann-Kriterien, Passung 1-5','8 Interviewfragen je Stelle','Wertschätzende Absagen']},
- {id:'fin-mahnung',ic:'💶',n:'Mahnwesen-Agent',s:'finanzen',sn:'Finanzen',p:59,tk:15000,d:'Zahlungserinnerung → Mahnung → Inkasso-Vorbereitung, rechtssicher mit § 288 BGB.',b:['3 Stufen mit Fristen','Verzugszinsen korrekt','Im Ton deines Unternehmens']},
- {id:'gastro-agent',ic:'🍽️',n:'Buchungs-Agent Gastro',s:'gastro',sn:'Gastro',p:89,tk:22000,d:'Reservierungen und Gästeanfragen 24/7 – Karte, Öffnungszeiten, Allergene, mehrsprachig.',b:['Reservierung mit allen Details','Antwortet in der Sprache des Gastes','Karte & Allergene aus Wissensbasis']},
- {id:'log-support',ic:'🚚',n:'Support-Agent Logistik',s:'logistik',sn:'Logistik',p:99,tk:25000,d:'Kunden- und Partneranfragen 24/7 aus deiner Dokumentation – präzise, mit Referenz.',b:['Antwort mit Dokument-Referenz','Keine Zusagen ohne Grundlage','Vorgangsnummer abfragen']}
-];
-const CHECKOUT='/chat/tokens-checkout.php';
-/* Ödeme bağlantıları: Stripe oturum yönlendirmesi (303) kenar önbelleğine girmesin → her tıklamada benzersiz parametre */
-document.addEventListener('click',e=>{const a=e.target.closest('a[href*="tokens-checkout.php"]');if(!a)return;try{const u=new URL(a.getAttribute('href'),location.origin);u.searchParams.set('_',Date.now().toString(36));a.href=u.pathname+u.search;}catch(_){}} ,true);
-const eur=v=>v.toLocaleString('de-DE',{style:'currency',currency:'EUR',minimumFractionDigits:0});const de=n=>n.toLocaleString('de-DE');
-function renderAgents(f){const g=document.getElementById('agGrid');g.innerHTML='';AGENTS.filter(a=>f==='all'||a.s===f).forEach(a=>{const c=document.createElement('div');c.className='card ag';
-  c.innerHTML=`<div class="top"><div class="ic">${a.ic}</div><span class="tag indigo">${a.sn}</span></div><h3>${a.n}</h3><p>${a.d}</p><ul>${a.b.map(x=>`<li>${x}</li>`).join('')}</ul>
-   <div class="pr"><b>${a.p} €</b><small>/ Monat</small></div><div class="inc">inkl. ${de(a.tk)} Tokens / Monat · Studio · Widget · monatlich kündbar</div>
-   <div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Mieten</a><a class="btn" href="/chat/agent.php">Studio ansehen</a></div>
-   ${a.buy?`<div class="buy"><span>Einmal kaufen: <b>${a.buy.p} €</b> · ${a.buy.l}</span><a href="${CHECKOUT}?plan=${a.buy.id}">Kaufen →</a></div>`:''}`;g.appendChild(c);});
-  document.querySelectorAll('.fl').forEach(x=>x.classList.toggle('on',x.dataset.f===f));}
-(function(){const F=[['all','Alle'],['ecommerce','E-Commerce'],['marketing','Marketing & Website'],['immobilien','Immobilien'],['praxis','Praxis'],['hr','HR'],['finanzen','Finanzen'],['gastro','Gastro'],['logistik','Logistik']];const w=document.getElementById('agFilters');
-  F.forEach(([k,l])=>{const b=document.createElement('button');b.type='button';b.className='fl';b.dataset.f=k;b.textContent=l;b.onclick=()=>renderAgents(k);w.appendChild(b);});renderAgents('all');})();
-
-/* ===== Branchen-Katalog ===== */
-const CATALOG = {
- recht:{n:"⚖️ Recht & Verwaltung",p:[
-  {t:"Einzeldokument",h:"Widerspruch / Einspruch / Antrag",d:"Ein geprüftes, versandfertiges Schreiben – mit §§, Frist und Form.",b:["§§ & Fristen geprüft (2 KIs)","Versand: Fax · Brief · Einschreiben","PDF + Word"],pr:"9,90 €",u:"/ Dokument",inc:"≈ 80 Tokens",plan:"",tk:2000},
-  {t:"Abo",h:"Recht Basic",d:"Für Mieter, Arbeitnehmer, Familien: alle Standard-Schreiben inklusive.",b:["Unbegrenzt Dokumente ansehen","5 Versände / Monat inklusive","Fristen-Erinnerungen"],pr:"13,99 €",u:"/ Monat",inc:"inkl. 3.500 Tokens",plan:"basic",tk:5000,f:1},
-  {t:"Abo",h:"Recht Pro",d:"Für Vielnutzer, Vermieter, kleine Betriebe: alles unbegrenzt.",b:["Unbegrenzt Dokumente & Versand","Vertrags-Check & Formulare (DE/FR/TR)","Priorisierte Prüfung"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.500 Tokens",plan:"pro",tk:10000}]},
- ecommerce:{n:"🛍️ E-Commerce & Handel",p:[
-  {t:"Abo",h:"Produkttext-Studio",d:"SEO-Produkttexte, Bullet Points und Meta-Daten für deinen Shop.",b:["300 Produkttexte / Monat","Shopify · WooCommerce · Amazon-Format","6 Sprachen"],pr:"49 €",u:"/ Monat",inc:"inkl. 12.000 Tokens",plan:"ec-texte",tk:10000},
-  {t:"Agent",h:"Support-Agent 24/7",d:"Beantwortet Kundenanfragen aus deiner Wissensbasis – E-Mail, Chat, WhatsApp.",b:["Bis 2.000 Anfragen / Monat","Lieferung, Gewährleistung, Retouren (EU-Recht)","Eskalation an Mensch"],pr:"99 €",u:"/ Monat",inc:"inkl. 25.000 Tokens",plan:"ec-support",tk:25000,f:1},
-  {t:"Abo",h:"Retouren-Assistent",d:"Retouren- und Reklamationsantworten, rechtssicher und freundlich.",b:["Widerrufsrecht & Gewährleistung korrekt","Vorlagen in deiner Tonalität","Statistik-Dashboard"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.000 Tokens",plan:"ec-retouren",tk:5000}]},
- immobilien:{n:"🏠 Immobilien",p:[
-  {t:"Abo",h:"Exposé-Generator",d:"Verkaufs- und Miet-Exposés aus Eckdaten – in Minuten, portalfertig.",b:["50 Exposés / Monat","ImmoScout- & Portal-Format","Energieausweis-Pflichtangaben"],pr:"39 €",u:"/ Monat",inc:"inkl. 10.000 Tokens",plan:"immo-expose",tk:10000,f:1},
-  {t:"Einzel",h:"Mietvertrag-Check",d:"Vertragsklauseln prüfen und verständlich erklären – mit §§ (BGB).",b:["Unwirksame Klauseln markiert","Handlungsempfehlung","PDF-Bericht"],pr:"19,90 €",u:"/ Dokument",inc:"≈ 120 Tokens",plan:"immo-check",tk:2000},
-  {t:"Agent",h:"Anfragen-Agent",d:"Antwortet Interessenten 24/7, qualifiziert und vereinbart Besichtigungen.",b:["Bis 1.000 Anfragen / Monat","Kalender-Anbindung","Mehrsprachig"],pr:"79 €",u:"/ Monat",inc:"inkl. 20.000 Tokens",plan:"immo-agent",tk:20000}]},
- praxis:{n:"🩺 Praxis & Gesundheit",p:[
-  {t:"Abo",h:"Termin-Kommunikation",d:"Erinnerungen, Absagen, Rückfragen – organisatorisch, DSGVO-konform.",b:["SMS/E-Mail-Vorlagen","Terminerinnerungen automatisch","Keine medizinischen Inhalte"],pr:"59 €",u:"/ Monat",inc:"inkl. 15.000 Tokens",plan:"praxis-termine",tk:15000,f:1},
-  {t:"Abo",h:"Patienteninfo-Texte",d:"Organisatorische Infoblätter, Anfahrt, Ablauf, Formulare – verständlich.",b:["Leichte Sprache","Mehrsprachig (DE/EN/TR/RU/AR)","Druckfertig"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.000 Tokens",plan:"praxis-info",tk:5000},
-  {t:"Agent",h:"Rezeptions-Agent",d:"Beantwortet Verwaltungsfragen (Öffnungszeiten, Unterlagen, Rezepte abholen).",b:["24/7 Telefon-/Chat-Entlastung","Übergabe an Praxisteam","Audit-Log"],pr:"129 €",u:"/ Monat",inc:"inkl. 32.000 Tokens",plan:"praxis-agent",tk:30000}]},
- hr:{n:"👥 HR & Recruiting",p:[
-  {t:"Abo",h:"Stellenanzeigen-Studio",d:"AGG-konforme Anzeigen für Job-Portale, in deinem Employer-Branding.",b:["30 Anzeigen / Monat","Indeed · StepStone · LinkedIn-Format","Gender-neutral & diskriminierungsfrei"],pr:"39 €",u:"/ Monat",inc:"inkl. 10.000 Tokens",plan:"hr-anzeigen",tk:10000},
-  {t:"Agent",h:"Screening-Assistent",d:"Strukturierte Vorauswahl, Interviewfragen, Bewerber-Kommunikation.",b:["Bis 500 Bewerbungen / Monat","Absagen & Einladungen automatisch","DSGVO-Löschfristen"],pr:"89 €",u:"/ Monat",inc:"inkl. 22.000 Tokens",plan:"hr-screening",tk:20000,f:1},
-  {t:"Abo",h:"Onboarding-Kit",d:"Willkommensmappen, Checklisten, 30-60-90-Tage-Pläne pro Rolle.",b:["Vorlagen pro Abteilung","Mehrsprachig","Export Word/PDF"],pr:"49 €",u:"/ Monat",inc:"inkl. 12.000 Tokens",plan:"hr-onboarding",tk:10000}]},
- finanzen:{n:"💶 Finanzen & Steuern",p:[
-  {t:"Abo",h:"Beleg-Erklärer",d:"Belege, Bescheide und Formulare verständlich erklärt – mit Fristen.",b:["Steuerbescheid-Check","Einspruchsfristen erkannt","Keine Steuerberatung im Einzelfall"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.000 Tokens",plan:"fin-belege",tk:5000},
-  {t:"Agent",h:"Mahnwesen-Agent",d:"Zahlungserinnerung → Mahnung → Inkasso-Vorbereitung, rechtssicher.",b:["3-stufig, automatisch","Verzugszinsen korrekt (§ 288 BGB)","Zahlungseingang-Abgleich"],pr:"59 €",u:"/ Monat",inc:"inkl. 15.000 Tokens",plan:"fin-mahnung",tk:15000,f:1},
-  {t:"Abo",h:"Fristen-Wächter",d:"Alle Steuer- und Abgabefristen im Blick, mit Erinnerungen.",b:["USt-VA, EÜR, Jahresabschluss","Erinnerung 14/7/1 Tage vorher","Team-Kalender"],pr:"19 €",u:"/ Monat",inc:"inkl. 4.000 Tokens",plan:"fin-fristen",tk:5000}]},
- gastro:{n:"🍽️ Gastronomie & Hotel",p:[
-  {t:"Abo",h:"Speisekarten & Übersetzung",d:"Karten, Allergene, Tagesangebote – in 6 Sprachen, druck- und QR-fertig.",b:["Allergen-Kennzeichnung (LMIV)","6 Sprachen","QR-Menü"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.000 Tokens",plan:"gastro-karte",tk:5000},
-  {t:"Abo",h:"Bewertungs-Antworten",d:"Google-, Tripadvisor- und Booking-Bewertungen professionell beantwortet.",b:["Deeskalierend bei Kritik","In deiner Stimme","Bis 300 Antworten / Monat"],pr:"39 €",u:"/ Monat",inc:"inkl. 10.000 Tokens",plan:"gastro-reviews",tk:10000,f:1},
-  {t:"Agent",h:"Buchungs-Agent",d:"Reservierungen und Gästeanfragen 24/7 – Tisch, Zimmer, Sonderwünsche.",b:["Bis 1.500 Anfragen / Monat","Kalender-/PMS-Anbindung","Mehrsprachig"],pr:"89 €",u:"/ Monat",inc:"inkl. 22.000 Tokens",plan:"gastro-agent",tk:20000}]},
- handwerk:{n:"🔧 Handwerk & Service",p:[
-  {t:"Abo",h:"Angebots-Generator",d:"Aus Aufmaß und Stichworten ein sauberes Angebot – mit Positionen und AGB.",b:["50 Angebote / Monat","Positionen & Material","Export PDF"],pr:"39 €",u:"/ Monat",inc:"inkl. 10.000 Tokens",plan:"hw-angebot",tk:10000,f:1},
-  {t:"Abo",h:"Kunden-Kommunikation",d:"Terminbestätigungen, Verzögerungen, Nachfassen – freundlich und schnell.",b:["SMS/E-Mail-Vorlagen","Automatische Erinnerungen","Bewertungs-Anfrage"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.000 Tokens",plan:"hw-kunden",tk:5000},
-  {t:"Abo",h:"Rechnungen & Reklamationen",d:"Rechnungstexte, Mahnungen, Reklamations-Antworten – rechtssicher.",b:["Gewährleistung (VOB/BGB) korrekt","Mahnstufen","Vorlagenbibliothek"],pr:"49 €",u:"/ Monat",inc:"inkl. 12.000 Tokens",plan:"hw-rechnung",tk:10000}]},
- bildung:{n:"🎓 Bildung & Coaching",p:[
-  {t:"Abo",h:"Kurs-Generator",d:"Lernziele, Module, Übungen und Quizze aus deinem Thema – komplett.",b:["10 Kurse / Monat","Didaktisch strukturiert","Export SCORM/PDF"],pr:"49 €",u:"/ Monat",inc:"inkl. 12.000 Tokens",plan:"edu-kurs",tk:10000,f:1},
-  {t:"Credits",h:"Untertitel & Übersetzung",d:"Kursvideos transkribiert, übersetzt und mit .SRT untertitelt.",b:["12+ Sprachen","Zeitgestempelte .SRT/.VTT","Zahle nur, was du nutzt"],pr:"ab 19 €",u:"/ 200 Min",inc:"≈ 2 Tokens / Min",plan:"creator-subtitles",tk:5000},
-  {t:"Abo",h:"Lernmaterial-Studio",d:"Arbeitsblätter, Zusammenfassungen, Karteikarten – pro Niveau.",b:["Leichte Sprache bis Experte","Mehrsprachig","Druckfertig"],pr:"29 €",u:"/ Monat",inc:"inkl. 7.000 Tokens",plan:"edu-material",tk:5000}]},
- marketing:{n:"📣 Marketing & Agenturen",p:[
-  {t:"Abo",h:"Social-Media-Automatisierung",d:"Wochen-/Monats-Content-Pool: Posts, Captions, Hashtag-Strategie.",b:["Instagram · TikTok · LinkedIn","Lizenzfrei, in deiner Tonalität","6 Sprachen"],pr:"39 €",u:"/ Monat",inc:"inkl. 10.000 Tokens",plan:"creator-social",tk:10000},
-  {t:"Abo",h:"SEO-Studio",d:"Keyword-Recherche, Blogartikel, Meta-Daten und interne Verlinkung.",b:["20 Artikel / Monat","Keyword-Cluster","Google-konform (E-E-A-T)"],pr:"59 €",u:"/ Monat",inc:"inkl. 15.000 Tokens",plan:"mkt-seo",tk:15000,f:1},
-  {t:"API",h:"Agentur-API",d:"Alle Dienste per API für deine Kunden – White-Label-fähig.",b:["50.000 Tokens / Monat","Webhooks · 99,9 % SLA","5 Team-Seats"],pr:"249 €",u:"/ Monat",inc:"inkl. 50.000 Tokens",href:"#api",tk:50000}]},
- logistik:{n:"🚚 Logistik & Industrie",p:[
-  {t:"Abo",h:"Doku-Übersetzung",d:"Technische Dokumentation, Datenblätter, Sicherheitshinweise – fachgerecht.",b:["12+ Sprachen","Terminologie-Glossar","Format bleibt erhalten"],pr:"49 €",u:"/ Monat",inc:"inkl. 12.000 Tokens",plan:"log-doku",tk:10000},
-  {t:"Abo",h:"Lieferkommunikation",d:"Lieferavis, Verzögerungen, Schadensmeldungen – automatisch, mehrsprachig.",b:["Vorlagen pro Ereignis","Tracking-Integration","B2B-Ton"],pr:"59 €",u:"/ Monat",inc:"inkl. 15.000 Tokens",plan:"log-liefer",tk:15000,f:1},
-  {t:"Agent",h:"Support-Agent",d:"Beantwortet Kunden- und Partneranfragen 24/7 aus deiner Doku.",b:["Bis 2.000 Anfragen / Monat","Eskalation an Mensch","Audit-Log"],pr:"99 €",u:"/ Monat",inc:"inkl. 25.000 Tokens",plan:"log-support",tk:25000}]},
- medien:{n:"🎬 Content & Medien",p:[
-  {t:"Abo",h:"YouTube-Skript & SEO",d:"Komplette Skripte mit Hook und CTA, Titel-Varianten, Beschreibung, Tags.",b:["Shorts bis 20 Min","5 Titel-Varianten","Kapitelmarken"],pr:"59 €",u:"/ Monat",inc:"inkl. 15.000 Tokens",plan:"creator-youtube",tk:15000,f:1},
-  {t:"Credits",h:"Untertitel & Übersetzung",d:"Video/Audio → zeitgestempelte .SRT in 12+ Sprachen.",b:["Automatische Transkription","12+ Sprachen",".SRT / .VTT"],pr:"ab 19 €",u:"/ 200 Min",inc:"≈ 2 Tokens / Min",plan:"creator-subtitles",tk:5000},
-  {t:"Abo",h:"Social-Media-Automatisierung",d:"Posts, Captions und Hashtags für alle Kanäle – wöchentlich frisch.",b:["Instagram · TikTok · YouTube Shorts","Lizenzfrei","6 Sprachen"],pr:"39 €",u:"/ Monat",inc:"inkl. 10.000 Tokens",plan:"creator-social",tk:10000}]}
-};
-
-function ctaFor(k,p){
-  if(k==='recht') return {h:p.plan?'/chat/?plan='+p.plan:'/chat/',l:'Starten'};
-  if(p.t==='API') return {h:'#api',l:'API ansehen'};
-  if(p.t==='Agent') return {h:CHECKOUT+'?plan='+p.plan,l:'Agent mieten'};
-  if(p.t==='Abo') return {h:CHECKOUT+'?plan='+p.plan,l:'Abonnieren'};
-  return {h:CHECKOUT+'?tokens='+p.tk,l:'Tokens kaufen'};
-}
-function renderSector(k){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.k===k));const el=document.getElementById('pkgs');el.innerHTML='';
-  CATALOG[k].p.forEach(p=>{const c=document.createElement('div');c.className='card pkg'+(p.f?' feat':'');const cta=ctaFor(k,p);
-    c.innerHTML=`<span class="tag ${p.t==='Agent'?'indigo':p.t==='API'?'rose':p.t==='Abo'?'gold':'teal'}">${p.t}</span><h3>${p.h}</h3><p class="d">${p.d}</p><ul>${p.b.map(x=>`<li>${x}</li>`).join('')}</ul>
-      <div class="pr"><b>${p.pr}</b><small>${p.u}</small></div><div class="inc">${p.inc}</div>
-      <div class="acts"><a class="btn ${p.f?'p':''}" href="${cta.h}">${cta.l}</a><button class="btn" type="button" onclick="pickTokens(${p.tk})">${p.t==='Agent'||p.t==='Abo'?'+ Tokens':'Menge wählen'}</button></div>`;el.appendChild(c);});
-  try{history.replaceState(null,'','#branchen-'+k);}catch(e){}}
-(function(){const tabs=document.getElementById('tabs');Object.keys(CATALOG).forEach(k=>{const b=document.createElement('button');b.type='button';b.className='tab';b.dataset.k=k;b.textContent=CATALOG[k].n;b.onclick=()=>renderSector(k);tabs.appendChild(b);});
-  const h=(location.hash.match(/^#branchen-(\w+)/)||[])[1];renderSector(CATALOG[h]?h:'ecommerce');})();
-
-/* ===== Token-Preisstaffel (Server identisch: tokens-checkout.php) ===== */
-function tkUnit(n){return n>=1e6?0.0025:n>=200000?0.00345:n>=50000?0.0040:n>=10000?0.0049:0.0055;}
-function tkSet(n){n=Math.max(1000,Math.min(5e6,Math.round(n/1000)*1000));const r=document.getElementById('tkRange'),m=document.getElementById('tkNum');r.value=Math.min(n,500000);m.value=n;const u=tkUnit(n);
-  document.getElementById('tkPrice').textContent=(n*u).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
-  document.getElementById('tkUnit').textContent=u.toLocaleString('de-DE',{minimumFractionDigits:4})+' € / Token · zzgl. MwSt.';
-  document.getElementById('tkBuy').href=CHECKOUT+'?tokens='+n;}
-function pickTokens(n){tkSet(n);document.getElementById('calc').scrollIntoView({behavior:'smooth',block:'center'});}
-document.getElementById('tkRange').addEventListener('input',e=>tkSet(+e.target.value));document.getElementById('tkNum').addEventListener('change',e=>tkSet(+e.target.value));tkSet(25000);
+async function aiOpen(){$('#ai').classList.add('open');$('#fab').style.display='none';if(aiInit)return;aiInit=true;
+  try{const r=await fetch(DEMO_API+'?lang=de');const j=await r.json();aiMsg('a',j.greeting);const c=$('#aiChips');(j.chips||[]).forEach(t=>{const b=document.createElement('button');b.type='button';b.className='chip';b.textContent=t;b.onclick=()=>aiSend(t);c.appendChild(b);});}
+  catch(e){aiMsg('a','Hallo! Frag mich zu Agenten, Telefon-Agent, Preisen oder ChatHelp Recht.');}}
+async function aiSend(text){text=(text||$('#aiIn').value).trim();if(!text)return;$('#aiIn').value='';aiMsg('u',text);aiHist.push({role:'user',content:text});const t=aiMsg('t','…');$('#aiSend').disabled=true;
+  try{const r=await fetch(DEMO_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:aiHist.slice(-10),lang:'de'})});const j=await r.json();t.remove();const a=j.reply||j.message||'Gerade nicht erreichbar – bitte gleich erneut versuchen oder info@chat-help.com.';aiMsg('a',a);if(j.reply)aiHist.push({role:'assistant',content:a});}
+  catch(e){t.remove();aiMsg('a','Verbindungsfehler – bitte erneut versuchen.');}$('#aiSend').disabled=false;$('#aiIn').focus();}
+$('#fab').onclick=aiOpen;$('#aiClose').onclick=()=>{$('#ai').classList.remove('open');$('#fab').style.display='';};$('#aiForm').onsubmit=e=>{e.preventDefault();aiSend();};
 </script>
 </body></html>

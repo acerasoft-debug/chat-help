@@ -12,5 +12,10 @@ chat/agent.php               chat/agent.php
 chat/widget.js               chat/widget.js
 chat/widget-api.php          chat/widget-api.php
 chat/concierge.php           chat/concierge.php
+chat/phone-webhook.php       chat/phone-webhook.php
 chat/skin.css                chat/skin.css
 chat/skin.js                 chat/skin.js
+# Ana sayfa videosu (hero): site/media-src ile üretildi
+site/media/hero.webm         media/hero.webm
+site/media/hero.mp4          media/hero.mp4
+site/media/hero-poster.jpg   media/hero-poster.jpg
