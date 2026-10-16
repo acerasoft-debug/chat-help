@@ -49,6 +49,12 @@ $tmp=tempnam(sys_get_temp_dir(),'cin'); file_put_contents($tmp,json_encode(['age
 $cmd='php -d display_errors=1 -d error_reporting=E_ALL -r '.escapeshellarg('$_SERVER["REQUEST_METHOD"]="POST"; $_SERVER["REMOTE_ADDR"]="127.0.0.1"; $GLOBALS["__in"]=file_get_contents("'.$tmp.'"); stream_wrapper_unregister("php"); stream_wrapper_register("php", "CHIn"); class CHIn { public $context; private $p=0; function stream_open($u,$m,$o,&$op){ return str_ends_with($u,"input"); } function stream_read($n){ $d=substr($GLOBALS["__in"],$this->p,$n); $this->p+=strlen($d); return $d; } function stream_eof(){ return $this->p>=strlen($GLOBALS["__in"]); } function stream_stat(){ return []; } } include "'.__DIR__.'/concierge.php";').' 2>&1';
 $out=(string)shell_exec($cmd); @unlink($tmp); echo "  ".mb_substr(trim($out),0,900)."\n";
 
+if (!empty($_GET['mail_to'])) {
+    echo "\n=== 5b) th_mail() Test → ".$_GET['mail_to']." ===\n";
+    $ok = th_mail((string)$_GET['mail_to'], 'ChatHelp Studio-Code Test ✅ '.date('H:i'), '<p>th_mail() aus dem Web-Kontext-Test (CLI) · '.date('c').'</p><p style="font:700 28px monospace">123456</p>');
+    echo "  mail(): ".($ok ? 'akzeptiert ✓' : 'FALSE ✗')."  sendmail_path=".ini_get('sendmail_path')."\n";
+}
+
 echo "\n=== 6) PHP error_log ===\n";
 $log=ini_get('error_log'); echo "  error_log ini: ".($log ?: '(leer → Server-Log)')."\n";
 foreach (array_filter([$log, __DIR__.'/error_log', dirname(__DIR__).'/error_log', '/var/log/php-fpm/error.log']) as $f) {
