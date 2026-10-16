@@ -60,9 +60,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CH_HOST: ${{ secrets[format('{0}_HOST', github.event.inputs.secrets_prefix)] }}
-      CH_USER: ${{ secrets[format('{0}_USER', github.event.inputs.secrets_prefix)] }}
-      CH_KEY:  ${{ secrets[format('{0}_SSH_KEY', github.event.inputs.secrets_prefix)] }}
-      CH_PASS: ${{ secrets[format('{0}_PASSWORD', github.event.inputs.secrets_prefix)] }}
+      CH_USER: ${{ secrets[format('{0}_USER', github.event.inputs.secrets_prefix)] || secrets[format('{0}_USERNAME', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SFTP_USER', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SSH_USER', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SFTP_USERNAME', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SSH_USERNAME', github.event.inputs.secrets_prefix)] || secrets[format('{0}_BENUTZER', github.event.inputs.secrets_prefix)] || secrets[format('{0}_BENUTZERNAME', github.event.inputs.secrets_prefix)] || secrets[format('{0}_KULLANICI', github.event.inputs.secrets_prefix)] }}
+      CH_KEY:  ${{ secrets[format('{0}_SSH_KEY', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SSH_PRIVATE_KEY', github.event.inputs.secrets_prefix)] || secrets[format('{0}_PRIVATE_KEY', github.event.inputs.secrets_prefix)] || secrets[format('{0}_KEY', github.event.inputs.secrets_prefix)] }}
+      CH_PASS: ${{ secrets[format('{0}_PASSWORD', github.event.inputs.secrets_prefix)] || secrets[format('{0}_PASS', github.event.inputs.secrets_prefix)] || secrets[format('{0}_PW', github.event.inputs.secrets_prefix)] || secrets[format('{0}_PWD', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SFTP_PASSWORD', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SSH_PASSWORD', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SFTP_PASS', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SSH_PASS', github.event.inputs.secrets_prefix)] || secrets[format('{0}_PASSWORT', github.event.inputs.secrets_prefix)] || secrets[format('{0}_SIFRE', github.event.inputs.secrets_prefix)] }}
       CH_PORT: ${{ secrets[format('{0}_PORT', github.event.inputs.secrets_prefix)] }}
       FTP_HOST: ${{ secrets[format('{0}_FTP_HOST', github.event.inputs.secrets_prefix)] }}
       FTP_USER: ${{ secrets[format('{0}_FTP_USER', github.event.inputs.secrets_prefix)] }}
@@ -74,6 +74,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
+
+      - name: Secret adları (yalnız isimler, değer yazılmaz)
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+        run: |
+          echo "Repo'daki secret adları:"; jq -r 'keys[] | select(. != "github_token")' <<<"$SECRETS_JSON" | sed 's/^/  - /'
+          echo "Beklenen: ${{ github.event.inputs.secrets_prefix }}_USER + ${{ github.event.inputs.secrets_prefix }}_PASSWORD (veya _SSH_KEY); isteğe bağlı _HOST, _PORT"
+          echo "Eşleşme: USER=$([ -n "$CH_USER" ] && echo var || echo YOK)  PASSWORD/KEY=$([ -n "$CH_PASS$CH_KEY" ] && echo var || echo YOK)  HOST=$([ -n "$CH_HOST" ] && echo var || echo 'yok (varsayılan kullanılır)')  PORT=$([ -n "$CH_PORT" ] && echo var || echo 'yok (22)')"
 
       - name: Dosyaları doğrula + PHP sözdizimi
         run: |
