@@ -2,6 +2,7 @@
 # biçim:  <repo-yolu>  <docroot-göreli-hedef>     (# ile başlayan satırlar yorum)
 # Mevcut uygulama dosyalarına (chat/auth.php, chat/db.php, chat/index.php, WordPress) ASLA yazılmaz.
 site/index.html              index.html
+site/home.php                home.php
 chat/plans.php               chat/plans.php
 chat/tokens-lib.php          chat/tokens-lib.php
 chat/api.php                 chat/api.php
