@@ -75,11 +75,8 @@ jobs:
         with:
           ref: ${{ github.event.inputs.ref }}
 
-      - name: Secret adları (yalnız isimler, değer yazılmaz)
-        env:
-          SECRETS_JSON: ${{ toJSON(secrets) }}
+      - name: Secret eşleşmesi (değer yazılmaz)
         run: |
-          echo "Repo'daki secret adları:"; jq -r 'keys[] | select(. != "github_token")' <<<"$SECRETS_JSON" | sed 's/^/  - /'
           echo "Beklenen: ${{ github.event.inputs.secrets_prefix }}_USER + ${{ github.event.inputs.secrets_prefix }}_PASSWORD (veya _SSH_KEY); isteğe bağlı _HOST, _PORT"
           echo "Eşleşme: USER=$([ -n "$CH_USER" ] && echo var || echo YOK)  PASSWORD/KEY=$([ -n "$CH_PASS$CH_KEY" ] && echo var || echo YOK)  HOST=$([ -n "$CH_HOST" ] && echo var || echo 'yok (varsayılan kullanılır)')  PORT=$([ -n "$CH_PORT" ] && echo var || echo 'yok (22)')"
 
