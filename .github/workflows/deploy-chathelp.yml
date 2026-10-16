@@ -398,13 +398,17 @@ jobs:
           cat > /tmp/flush.sh <<'REMOTE'
           cd "$1"
           echo ">> mu-plugins:"; ls wp-content/mu-plugins 2>/dev/null | head -8
-          echo ">> wp cache flush"; wp cache flush --path="$PWD" 2>&1 | head -3
+          U="--url=https://chat-help.com"
+          echo ">> wp cache flush"; wp cache flush --path="$PWD" $U 2>&1 | head -3
           echo ">> WPaaS Cache::ban (platform CDN/Varnish tam temizlik)"
-          wp eval 'if (class_exists("\WPaaS\Cache")) { $r = \WPaaS\Cache::ban(); echo "WPaaS Cache::ban cagrildi -> ", var_export($r, true), "\n"; } else { echo "WPaaS\Cache sinifi yok\n"; }' --path="$PWD" 2>&1 | head -6
+          wp eval 'if (class_exists("\WPaaS\Cache")) { $r = \WPaaS\Cache::ban(); echo "WPaaS Cache::ban -> ", var_export($r, true), "\n"; } else { echo "WPaaS\Cache sinifi yok\n"; }' --path="$PWD" $U 2>&1 | head -6
+          echo ">> WPaaS Cache_V2 ban/purge"
+          wp eval 'foreach (["\WPaaS\Cache_V2","\WPaaS\Cache\V1_Manager"] as $k){ if(!class_exists($k)) continue; foreach(["ban","purge","flush","clear","do_ban","do_purge"] as $m){ if(method_exists($k,$m)){ try{ $r=call_user_func([$k,$m]); echo "$k::$m -> ", var_export($r,true), "\n"; }catch(\Throwable $e){ echo "$k::$m hata: ", $e->getMessage(), "\n"; } } } }' --path="$PWD" $U 2>&1 | head -12
           echo ">> WPaaS Cache::purge(home)"
-          wp eval 'if (class_exists("\WPaaS\Cache") && method_exists("\WPaaS\Cache","purge")) { $r = \WPaaS\Cache::purge(home_url("/")); echo "purge(/) -> ", var_export($r, true), "\n"; } else { echo "purge yok\n"; }' --path="$PWD" 2>&1 | head -6
-          echo ">> wpaas_flush_cache action"; wp eval 'do_action("wpaas_flush_cache"); do_action("wpaas_cache_ban"); echo "actions fired\n";' --path="$PWD" 2>&1 | head -3
-          echo ">> WPaaS sinif listesi"; wp eval 'foreach (get_declared_classes() as $c) if (stripos($c,"WPaaS")!==false && stripos($c,"cache")!==false) echo $c, "\n";' --path="$PWD" 2>&1 | head -10
+          wp eval 'if (class_exists("\WPaaS\Cache") && method_exists("\WPaaS\Cache","purge")) { $r = \WPaaS\Cache::purge(home_url("/")); echo "purge(/) -> ", var_export($r, true), "\n"; } else { echo "purge yok\n"; }' --path="$PWD" $U 2>&1 | head -6
+          echo ">> wpaas_flush_cache action"; wp eval 'do_action("wpaas_flush_cache"); do_action("wpaas_cache_ban"); do_action("wpaas_cache_flush"); echo "actions fired\n";' --path="$PWD" $U 2>&1 | head -3
+          echo ">> gd-system-plugin cache sinifi (ban/purge kaynak ozeti)"
+          F=$(grep -rl "function ban" wp-content/mu-plugins/gd-system-plugin 2>/dev/null | head -2); for f in $F; do echo "--- $f"; grep -nE "function (ban|purge|flush|do_ban|request|api)|WPAAS_|getenv|_SERVER\[|wp_remote|admin_url|nonce" "$f" | head -30; done
           echo ">> wp rewrite flush"; wp rewrite flush --path="$PWD" 2>&1 | head -2
           touch index.html .htaccess; echo touched
           REMOTE
