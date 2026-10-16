@@ -349,12 +349,25 @@ jobs:
           REMOTE
           $SSHCMD "$SRV" "bash -s $DEST" < /tmp/fix-root.sh
 
-      - name: Önbellek temizle (WP-CLI, varsa)
+      - name: Önbellek temizle (WP-CLI + platform WPaaS Cache ban)
         if: ${{ steps.mode.outputs.mode == 'ssh' && github.event.inputs.flush_cache == 'true' }}
         run: |
           set +e
           DEST="${{ steps.disc.outputs.dest }}"; case "$DEST" in auto|"") echo "docroot yok"; exit 0;; esac
-          $SSHCMD "$SRV" "cd $DEST && for c in 'wp cache flush' 'wp gd cache flush' 'wp godaddy cache flush' 'wp gd-system-plugin cache flush' 'wp rewrite flush'; do echo \">> \$c\"; \$c --path=\$PWD 2>&1 | head -3; done; touch index.html .htaccess; echo touched"
+          cat > /tmp/flush.sh <<'REMOTE'
+          cd "$1"
+          echo ">> mu-plugins:"; ls wp-content/mu-plugins 2>/dev/null | head -8
+          echo ">> wp cache flush"; wp cache flush --path="$PWD" 2>&1 | head -3
+          echo ">> WPaaS Cache::ban (platform CDN/Varnish tam temizlik)"
+          wp eval 'if (class_exists("\WPaaS\Cache")) { $r = \WPaaS\Cache::ban(); echo "WPaaS Cache::ban cagrildi -> ", var_export($r, true), "\n"; } else { echo "WPaaS\Cache sinifi yok\n"; }' --path="$PWD" 2>&1 | head -6
+          echo ">> WPaaS Cache::purge(home)"
+          wp eval 'if (class_exists("\WPaaS\Cache") && method_exists("\WPaaS\Cache","purge")) { $r = \WPaaS\Cache::purge(home_url("/")); echo "purge(/) -> ", var_export($r, true), "\n"; } else { echo "purge yok\n"; }' --path="$PWD" 2>&1 | head -6
+          echo ">> wpaas_flush_cache action"; wp eval 'do_action("wpaas_flush_cache"); do_action("wpaas_cache_ban"); echo "actions fired\n";' --path="$PWD" 2>&1 | head -3
+          echo ">> WPaaS sinif listesi"; wp eval 'foreach (get_declared_classes() as $c) if (stripos($c,"WPaaS")!==false && stripos($c,"cache")!==false) echo $c, "\n";' --path="$PWD" 2>&1 | head -10
+          echo ">> wp rewrite flush"; wp rewrite flush --path="$PWD" 2>&1 | head -2
+          touch index.html .htaccess; echo touched
+          REMOTE
+          $SSHCMD "$SRV" "bash -s $DEST" < /tmp/flush.sh
 
       - name: Canlı doğrulama
         if: ${{ github.event.inputs.dry_run != 'true' || github.event.inputs.verify_only == 'true' }}
