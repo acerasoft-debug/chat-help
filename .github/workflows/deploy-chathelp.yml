@@ -113,6 +113,11 @@ jobs:
       - name: Bağlantı türü + kabuk testi
         id: mode
         run: |
+          # Secret değerlerinin başındaki/sonundaki boşluk, CR ve satır sonlarını temizle (panelden kopyalarken sık olur)
+          trim(){ local v="$1"; v="${v//$'\r'/}"; v="${v#"${v%%[![:space:]]*}"}"; v="${v%"${v##*[![:space:]]}"}"; printf '%s' "$v"; }
+          CH_USER=$(trim "$CH_USER"); CH_PASS=$(trim "$CH_PASS"); CH_HOST=$(trim "$CH_HOST"); CH_PORT=$(trim "$CH_PORT")
+          FTP_HOST=$(trim "$FTP_HOST"); FTP_USER=$(trim "$FTP_USER"); FTP_PASS=$(trim "$FTP_PASS")
+          case "$CH_USER$CH_PASS$CH_HOST$CH_PORT" in *[[:space:]]*) echo "::error::Kullanıcı adı/şifre/host/port içinde boşluk veya satır sonu var; secret'ı tek satır olarak yeniden kaydet."; exit 1;; esac
           MODE=none; P="${CH_PORT:-22}"
           if [ -z "$CH_USER" ] || [ -z "$CH_PASS$CH_KEY" ]; then
             IU=$(jq -r '.inputs.sftp_user // ""' "$GITHUB_EVENT_PATH"); IPW=$(jq -r '.inputs.sftp_password // ""' "$GITHUB_EVENT_PATH")
