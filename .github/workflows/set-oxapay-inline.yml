@@ -1,0 +1,79 @@
+name: OxaPay anahtarını gir (tek seferlik, girdi)
+
+# Anahtarı doğrudan girdi olarak alır, sunucudaki ~/data/oxapay_settings.json'a
+# (chmod 600) yazar ve OxaPay'in kabul ettiğini küçük bir test faturasıyla
+# doğrular. Anahtar log'da maskelenir; yine de dispatch girdisi Actions
+# arayüzünde görünür. Kullanım sonrası bu dosya silinebilir.
+on:
+  workflow_dispatch:
+    inputs:
+      key:
+        description: "OxaPay merchant anahtarı"
+        required: true
+      sandbox:
+        description: "Test modu (true/false)"
+        required: false
+        default: "false"
+      target:
+        description: "Kurulum klasörü"
+        required: false
+        default: "~/maxsales_de"
+
+permissions:
+  contents: read
+
+jobs:
+  set:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Anahtarı maskele
+        env:
+          K: ${{ github.event.inputs.key }}
+        run: |
+          echo "::add-mask::$K"
+          echo "Anahtar alındı, maskelendi."
+
+      - name: Sunucuya yaz + OxaPay doğrula
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          K: ${{ github.event.inputs.key }}
+          SB: ${{ github.event.inputs.sandbox }}
+          TARGET: ${{ github.event.inputs.target }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: K,SB,TARGET
+          script: |
+            set -e
+            DEST=$(eval echo "${TARGET:-~/maxsales_de}")
+            if [ -d "$DEST/../data" ]; then DATA=$(cd "$DEST/../data" && pwd); else mkdir -p "$DEST/data"; DATA=$(cd "$DEST/data" && pwd); fi
+            F="$DATA/oxapay_settings.json"
+            K="$K" SB="$SB" F="$F" php -r '
+              $f=getenv("F");
+              $cur=is_readable($f)?(json_decode((string)file_get_contents($f),true)?:[]):[];
+              if(!is_array($cur))$cur=[];
+              $cur["merchant_key"]=getenv("K");
+              $sb=strtolower((string)getenv("SB")); $cur["sandbox"]=in_array($sb,["1","true","yes"],true);
+              if(!isset($cur["lifetime"]))$cur["lifetime"]=60;
+              $cur["updated_at"]=date("c");
+              $t=$f.".tmp"; file_put_contents($t,json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
+              chmod($t,0600); rename($t,$f); chmod($f,0600);
+              echo "geschrieben: $f\n";
+              echo "sandbox: ".($cur["sandbox"]?"true (TEST)":"false (LIVE)")."\n";
+            '
+            echo "== OxaPay anahtarı geçerli mi? (1 EUR test faturası) =="
+            K="$K" php -r '
+              $ch=curl_init("https://api.oxapay.com/v1/payment/invoice");
+              curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>25,
+                CURLOPT_HTTPHEADER=>["Content-Type: application/json","merchant_api_key: ".getenv("K")],
+                CURLOPT_POSTFIELDS=>json_encode(["amount"=>1,"currency"=>"EUR","lifetime"=>15,"description"=>"SARVESTO Schlüsseltest"])]);
+              $r=curl_exec($ch); $h=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+              $d=json_decode((string)$r,true);
+              if($h===200 && !empty($d["data"]["payment_url"])){ echo "OK: OxaPay Schlüssel gültig (Test-Rechnung erstellt, läuft ungenutzt ab).\n"; }
+              else { echo "FEHLER: HTTP $h · ".substr((string)($d["message"]??$r),0,200)."\n"; }
+            '
+            echo "== Sarvesto kripto aktif mi? =="
+            cd "$DEST" && php -r 'require "inc/oxapay.php"; echo "oxapay_ready: ".(vr_oxapay_ready()?"ja":"nein")."\n";'
