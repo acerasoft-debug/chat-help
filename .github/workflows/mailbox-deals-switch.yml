@@ -12,6 +12,10 @@ on:
         description: "true = aç · false = kapat ve süren partiyi durdur"
         required: true
         default: "false"
+      start:
+        description: "Açarken: tomorrow = bugün yeniden başlamaz, yarın 08:30'dan (23:45 turu da bu gece yok) · now = bugünden"
+        required: false
+        default: "tomorrow"
 
 permissions:
   contents: read
@@ -23,12 +27,13 @@ jobs:
       - uses: appleboy/ssh-action@v1.0.3
         env:
           ON: ${{ github.event.inputs.enable }}
+          START: ${{ github.event.inputs.start }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: ON
+          envs: ON,START
           command_timeout: 2m
           script: |
             cd ~/public_html
@@ -38,6 +43,9 @@ jobs:
             require 'inc/products.php'; require_once 'inc/mailbox.php';
             $on = strtolower(trim((string)getenv('ON'))) === 'true';
             $cfg = vestra_mailbox_cfg(); $cfg['deals'] = $on; $cfg['followup'] = $on; $cfg['deals_switch_at'] = date('c');
+            if ($on && strtolower(trim((string)getenv('START'))) !== 'now') {   // bugünün denemeleri ve 23:45 turu tükenmiş sayılır
+              $cfg['deals_day'] = date('Y-m-d'); $cfg['deals_tries'] = defined('VESTRA_MAILBOX_DEALS_TRIES') ? VESTRA_MAILBOX_DEALS_TRIES : 3; $cfg['followup_day'] = date('Y-m-d');
+            }
             $f = vestra_mailbox_file('mailbox.json'); file_put_contents($f, json_encode($cfg, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), LOCK_EX); @chmod($f, 0600);
             $runs = vestra_mailbox_runs(); $kill = false; $c = 0;
             if (!$on) foreach ($runs as $i => $r) {
@@ -46,7 +54,8 @@ jobs:
               $runs[$i]['status'] = 'cancelled'; $runs[$i]['note'] = 'operator: indirim partisi durduruldu'; $runs[$i]['finished_at'] = date('c'); $c++;
             }
             vestra_mailbox_runs_save($runs);
-            echo ($on ? "INDIRIM PARTISI + 23:45 TURU ACIK" : "INDIRIM PARTISI + 23:45 TURU KAPALI")." · iptal edilen takip istegi: {$c}\n";
+            echo ($on ? "INDIRIM PARTISI + 23:45 TURU ACIK".(strtolower(trim((string)getenv('START'))) !== 'now' ? " (yarin 08:30'dan)" : " (bugunden)") : "INDIRIM PARTISI + 23:45 TURU KAPALI")." · iptal edilen takip istegi: {$c}\n";
+            if ($on && function_exists('vestra_mailbox_followup_targets')) echo "uygun indirim alicisi (yeni kurallarla): ".count(vestra_mailbox_followup_targets(5000))."\n";
             echo "bugun indirim mektubu: ".vestra_mailbox_followups_today('deals')." · bugun toplam: ".vestra_mailbox_sent_today()."\n";
             exit($kill ? 3 : 0);
             PHPEOF
