@@ -389,6 +389,11 @@ jobs:
             chmod 750 "$DIR/../data"
 
             cd "$DIR"
+            # Kripto (OxaPay): webhook gelmemis bekleyen faturalari OxaPay'e sorup
+            # kapat (paid -> odendi, expired -> failed). Idempotent; cron yedegi.
+            echo "== OxaPay bekleyen kripto faturalari =="
+            timeout 120 php tools/oxapay-sync.php --min-age=120 2>&1 | tail -8 || true
+            echo
             echo "== Urun fotograflari (Vestra uploads -> magaza, ustune yazmadan) =="
             php tools/sync-vestra-photos.php || true
             echo
