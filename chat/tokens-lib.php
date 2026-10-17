@@ -206,7 +206,9 @@ function th_charge(int $acc, int $amount, string $reason, ?string $ref=null): in
         $s=$p->prepare("SELECT COALESCE(SUM(delta),0) FROM token_ledger WHERE account_id=? FOR UPDATE"); $s->execute([$acc]);
         $amt=min($amount,max(0,(int)$s->fetchColumn()));
         if($amt>0) $p->prepare("INSERT INTO token_ledger(account_id,delta,reason,ref) VALUES(?,?,?,?)")->execute([$acc,-$amt,$reason,$ref ?: bin2hex(random_bytes(8))]);
-        $p->commit(); return $amt;
+        $p->commit();
+        if(function_exists('push_tokens_low')){ try{ push_tokens_low($acc,th_balance($acc)); }catch(Throwable $e){} }
+        return $amt;
     }catch(Throwable $e){ $p->rollBack(); if($e instanceof PDOException && $e->getCode()==='23000') return 0; throw $e; }
 }
 

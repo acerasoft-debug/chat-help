@@ -614,7 +614,8 @@ function cb_mail_card(array $r): string {
         .($rows!=='' ? '<table style="border-collapse:collapse;font-size:14px;margin-bottom:8px">'.$rows.'</table>' : '');
 }
 function cb_notify_new(array $r, array $s): void {
-    $acc=(int)$r['account_id']; if($acc<=0) return; $to=$s['notify_email'] ?: cb_owner_email($acc); if($to==='') return;
+    $acc=(int)$r['account_id']; if($acc<=0) return;
+    if(function_exists('ch_push')) ch_push($acc,in_array($r['source'] ?? '',['form','api'],true)?'lead_new':'callback_new',(($r['urgency'] ?? '')==='dringend'?'⚡ Dringender Rückruf: ':'Rückrufwunsch: ').$r['name'],mb_substr((string)$r['topic'],0,160).' · '.$r['phone'],'/chat/studio.php#rueckruf',['tag'=>'cb-'.$r['code']]); $to=$s['notify_email'] ?: cb_owner_email($acc); if($to==='') return;
     $now=cb_now($s); $pa=!empty($r['preferred_at']) ? new DateTimeImmutable((string)$r['preferred_at'],cb_tz($s)) : null; $when=$pa ? cb_when_label($pa,$now) : 'so schnell wie möglich';
     $ai=$r['mode']==='ai'; $wp=cb_when_phrase($r,$s);
     $info='<p style="font-size:14px;color:#3b4055;margin:6px 0">Wunschzeit: <b>'.cb_e($when).'</b> · Quelle: '.cb_e(CB_SOURCES[$r['source']] ?? (string)$r['source']).' · Code '.cb_e((string)$r['code'])

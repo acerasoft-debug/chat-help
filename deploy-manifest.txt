@@ -42,6 +42,34 @@ chat/hotel-api.php           chat/hotel-api.php
 chat/hotel-board.php         chat/hotel-board.php
 chat/studio-panels/hotel.html chat/studio-panels/hotel.html
 chat/studio-panels/hotel.js  chat/studio-panels/hotel.js
+# Studio-Assistent, Benachrichtigungen, Web-App-Grundlagen
+chat/assistant-lib.php       chat/assistant-lib.php
+chat/studio-panels/assistant.html chat/studio-panels/assistant.html
+chat/studio-panels/assistant.js chat/studio-panels/assistant.js
+chat/push-lib.php            chat/push-lib.php
+chat/push-sub.php            chat/push-sub.php
+chat/sw.js                   chat/sw.js
+chat/app.webmanifest         chat/app.webmanifest
+chat/offline.html            chat/offline.html
+chat/app-bridge.js           chat/app-bridge.js
+chat/studio-panels/benachrichtigungen.html chat/studio-panels/benachrichtigungen.html
+chat/studio-panels/benachrichtigungen.js chat/studio-panels/benachrichtigungen.js
+chat/icons/apple-touch-icon.png chat/icons/apple-touch-icon.png
+chat/icons/badge-96.png chat/icons/badge-96.png
+chat/icons/badge.svg chat/icons/badge.svg
+chat/icons/icon-192.png chat/icons/icon-192.png
+chat/icons/icon-32.png chat/icons/icon-32.png
+chat/icons/icon-512.png chat/icons/icon-512.png
+chat/icons/icon-maskable-192.png chat/icons/icon-maskable-192.png
+chat/icons/icon-maskable-512.png chat/icons/icon-maskable-512.png
+chat/icons/icon-maskable.svg chat/icons/icon-maskable.svg
+chat/icons/icon.svg chat/icons/icon.svg
+chat/icons/sc-assistant-96.png chat/icons/sc-assistant-96.png
+chat/icons/sc-assistant.svg chat/icons/sc-assistant.svg
+chat/icons/sc-bell-96.png chat/icons/sc-bell-96.png
+chat/icons/sc-bell.svg chat/icons/sc-bell.svg
+chat/icons/sc-studio-96.png chat/icons/sc-studio-96.png
+chat/icons/sc-studio.svg chat/icons/sc-studio.svg
 chat/skin.css                chat/skin.css
 chat/skin.js                 chat/skin.js
 # Ana sayfa videosu (hero): site/media-src ile üretildi

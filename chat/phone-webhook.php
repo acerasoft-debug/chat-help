@@ -111,6 +111,7 @@ $hints=implode(', ',array_filter([$cfg['company'],'Termin','Rückruf','Bestellun
 /* Anruf beendet (Status-Callback) */
 if(in_array($status,['completed','busy','failed','no-answer','canceled'],true) && !isset($_GET['dial'])){
     th_call_update($sid,['status'=>$status,'ended_at'=>'NOW()','pending'=>null]);
+    if(function_exists('ch_push') && !$cbId){ $c=th_call($sid); if($c && (int)$c['turns']>0){ $trx=json_decode((string)$c['transcript'],true) ?: []; $first=''; foreach($trx as $m){ if(($m['role']??'')==='user'){ $first=(string)$m['content']; break; } } ch_push($aid,'call_done','Anruf von '.($customer ?: 'unbekannt').' · '.(int)$c['turns'].' Antworten',mb_substr($first,0,160).(($c['outcome'] ?? '')==='callback'?' · Rückruf gewünscht':''),'/chat/studio.php#phone',['tag'=>'call-'.$sid,'urgency'=>($c['outcome'] ?? '')==='callback'?'high':'normal']); } }
     if($cbId && function_exists('cb_on_call_status')){ $c=th_call($sid); cb_on_call_status($cbId,$status,(string)($_POST['AnsweredBy'] ?? ''),(int)($c['turns'] ?? 0)); }
     ch_heartbeat(); twiml('');
 }

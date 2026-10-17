@@ -711,6 +711,7 @@ function ride_cancel_customer(int $acc, string $code): array {
     if($r['status']==='cancelled') return ['ok'=>true,'already'=>true,'ride'=>ride_public($r,$s)];
     if(!in_array($r['status'],['new','assigned','en_route'],true)) return ['error'=>'too_late','status'=>$r['status'],'hint'=>'Stornieren ist nicht mehr möglich (Status: '.(RIDE_LABELS[$r['status']] ?? $r['status']).'). Bitte direkt die Zentrale anrufen'.($s['phone']?' ('.$s['phone'].')':'').'.'];
     $res=ride_set_status($acc,(int)$r['id'],'cancelled',null,'Kunde');   // prüft unter Zeilensperre noch einmal den aktuellen Stand
+    if(!empty($res['ok']) && $acc!==0 && function_exists('ch_push')){ $pq=$res['ride'] ?? ride_public(ride_by_id($acc,(int)$r['id']),$s); ch_push($acc,'ride_cancel','Fahrt '.$pq['code'].' vom Kunden storniert',$pq['pickup'].(!empty($pq['destination'])?' → '.$pq['destination']:'').' · '.$pq['when'],'/chat/studio.php#taxi',['tag'=>'ride-'.$pq['code']]); }
     if(isset($res['error'])){
         $st=(string)($res['status'] ?? '');
         if($st==='cancelled') return ['ok'=>true,'already'=>true,'ride'=>ride_public(ride_by_id($acc,(int)$r['id']) ?: $r,$s)];
@@ -801,7 +802,8 @@ function ride_mail_rows(array $p): array {
         ['Fahrer',$p['driver'] ? $h($p['driver']['name'].' · '.$p['driver']['vehicle'].' · '.$p['driver']['plate']) : '']];
 }
 function ride_notify_zentrale(array $r, array $s, string $kind, string $extra=''): void {
-    $acc=(int)$r['account_id']; $to=ride_owner_email($acc,$s); if($to===''){ ride_notify_log(['kind'=>'zentrale_'.$kind,'via'=>'none','ok'=>false]); return; }
+    $acc=(int)$r['account_id'];
+    if(function_exists('ch_push') && in_array($kind,['new','cancel','cancelled','noshow','no_show'],true)){ $pq=ride_public($r,$s); ch_push($acc,$kind==='new'?'ride_new':'ride_cancel',($kind==='new'?'Neue Taxifahrt ':'Fahrt storniert ').$pq['code'].' · '.$pq['when'],$pq['pickup'].(!empty($pq['destination'])?' → '.$pq['destination']:'').' · '.$pq['passengers'].' Pers.'.(!empty($pq['price_text'])?' · '.$pq['price_text']:''),'/chat/studio.php#taxi',['tag'=>'ride-'.$pq['code']]); } $to=ride_owner_email($acc,$s); if($to===''){ ride_notify_log(['kind'=>'zentrale_'.$kind,'via'=>'none','ok'=>false]); return; }
     $p=ride_public($r,$s); $board=$s['board_token'] ? 'https://chat-help.com/chat/taxi-board.php?t='.$s['board_token'] : 'https://chat-help.com/chat/studio.php#taxi';
     $btn='<p style="margin:18px 0 0"><a href="'.htmlspecialchars($board,ENT_QUOTES).'" style="display:inline-block;background:#0f1222;color:#fff;text-decoration:none;padding:11px 16px;border-radius:12px;font-weight:600">Zum Dispositions-Board</a></p>';
     $chan=['phone'=>'Telefon','whatsapp'=>'WhatsApp','chat'=>'Chat','widget'=>'Website-Chat','studio'=>'Studio','hotel'=>'Hotel-Rezeption','demo'=>'Demo','phone-test'=>'Telefon-Test'][$p['channel']] ?? $p['channel'];
@@ -821,7 +823,8 @@ function ride_driver_text(array $p, array $s, array $drv, string $kind): string 
         ."\n💶 {$p['price_text']} · {$p['payment_label']}".($p['note']!=='' ? "\n📝 {$p['note']}" : '')."\n🗺 {$p['maps_pickup']}\n📱 Deine Fahrten: https://chat-help.com/chat/taxi-driver.php?t={$drv['token']}";
 }
 function ride_notify_driver(array $r, array $s, array $drv, string $kind): void {
-    $acc=(int)$r['account_id']; if($acc===0) return; $p=ride_public($r,$s); $txt=ride_driver_text($p,$s,$drv,$kind); $sent=false; $via='none';
+    $acc=(int)$r['account_id']; if($acc===0) return; $p=ride_public($r,$s);
+    if(function_exists('push_driver') && in_array($kind,['assign','assigned','new'],true)) push_driver('ride',(int)$drv['id'],'Neue Fahrt '.$p['code'].' · '.$p['when'],$p['pickup'].(!empty($p['destination'])?' → '.$p['destination']:'').' · '.$p['passengers'].' Pers.','',['tag'=>'ride-'.$p['code']]); $txt=ride_driver_text($p,$s,$drv,$kind); $sent=false; $via='none';
     if($drv['phone']!==''){
         /* WhatsApp nur im 24-h-Fenster zuverlässig (sonst nimmt Meta/Twilio an und verwirft später) → dann SMS, sonst E-Mail an die Zentrale */
         $to=ride_e164($drv['phone'],$s); $os=ord_settings($acc); $win=function_exists('ord_wa_window_open') ? ord_wa_window_open($acc,$to) : true;

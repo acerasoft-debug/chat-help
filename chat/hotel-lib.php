@@ -533,6 +533,7 @@ function hotel_request_insert(int $acc, array $d, string $channel, string $from=
       ->execute([$acc,$room,$name,$kind,$details,$due,$status,$channel,$contact,mb_substr($ref,0,40),$bookingId]);
     $id=(int)th_db()->lastInsertId(); $st=th_db()->prepare("SELECT * FROM hotel_requests WHERE id=? AND account_id=?"); $st->execute([$id,$acc]); $pub=hotel_request_public($st->fetch(PDO::FETCH_ASSOC),$s);
     if(in_array($kind,['other','maintenance'],true)) hotel_notify_request($pub,$s,$acc);
+    elseif($acc>0 && function_exists('ch_push')) ch_push($acc,'hotel_request',($pub['kind_label'] ?? 'Gästewunsch').(!empty($pub['room_no'])?' · Zimmer '.$pub['room_no']:''),mb_substr((string)($pub['details'] ?? ''),0,200),'/chat/studio.php#hotel',['tag'=>'hotelreq-'.(int)$pub['id']]);   // Board/Studio: alle Wünsche, E-Mail nur für Sonstiges/Technik
     $pub['guest_name']=$given;   // Name aus der Zimmerbelegung nie an den Anfragenden zurückgeben (Datenschutz) – Board/Studio sehen ihn
     $what=$kind==='wakeup' ? 'Weckruf'.($room!=='' ? ' für Zimmer '.$room : '').' '.$pub['due_human'].' eingetragen.' : (HOTEL_KINDS[$kind].($room!=='' ? ' für Zimmer '.$room : '').' an die Rezeption übermittelt'.($pub['due_human'] ? ' (für '.$pub['due_human'].')' : '').'.');
     return ['ok'=>true,'request'=>$pub,'message'=>$what];
@@ -621,6 +622,7 @@ function hotel_msg_guest(array $b, string $text): bool {
 }
 /** Ereignisse: new · confirmed · declined · cancelled_guest · cancelled_hotel. Konto 0 und Demo-Kanäle: nie. */
 function hotel_notify(array $b, array $s, string $event): void {
+    if(function_exists('ch_push') && in_array($event,['new','cancelled_guest'],true)) ch_push((int)$b['account_id'],'hotel_booking',($event==='new'?(($b['status']??'')==='confirmed'?'Neue Buchung ':'Neue Buchungsanfrage '):'Stornierung durch Gast ').$b['code'],(string)$b['room_name'].' · '.$b['checkin'].' – '.$b['checkout'].' · '.$b['guest_name'],'/chat/studio.php#hotel',['tag'=>'hotel-'.$b['code']]);
     $acc=(int)$b['account_id']; if(hotel_silent($acc,(string)$b['channel'])) return;
     $pub=hotel_public($b,$s); $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8'); $hello='<p>Guten Tag '.$e($b['guest_name']).',</p>';
     $hotelTo=$s['notify_email'] ?: hotel_owner_email($acc); $hn=$s['name'] ?: 'Hotel'; $dates=hotel_human($b['checkin']).' – '.hotel_human($b['checkout']);
@@ -647,6 +649,7 @@ function hotel_notify(array $b, array $s, string $event): void {
     }catch(Throwable $ex){ error_log('CH hotel_notify: '.$ex->getMessage()); }
 }
 function hotel_notify_request(array $r, array $s, int $acc): void {
+    if(function_exists('ch_push')) ch_push($acc,'hotel_request','Gästewunsch'.(!empty($r['room_no'])?' Zimmer '.$r['room_no']:''),mb_substr((string)($r['details'] ?? ''),0,200),'/chat/studio.php#hotel',['tag'=>'hotelreq-'.(int)($r['id'] ?? 0)]);
     if(hotel_silent($acc,(string)$r['channel'])) return; $to=$s['notify_email'] ?: hotel_owner_email($acc); if(!$to) return; $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
     th_mail($to,'🛎️ '.$r['kind_label'].($r['room_no']!=='' ? ' · Zimmer '.$r['room_no'] : '').' · '.mb_substr($r['details'],0,60),
         hotel_mail_html($s,$e($r['kind_label']).($r['room_no']!=='' ? ' · Zimmer '.$e($r['room_no']) : ''),'<p style="font-size:16px">'.$e($r['details']).'</p><p>'.($r['guest_name'] ? $e($r['guest_name']).' · ' : '').($r['contact'] ? $e($r['contact']).' · ' : '').'Kanal: '.$e($r['channel']).' · '.$e($r['created']).' Uhr</p><p style="font-size:14px">Bitte kurzfristig kümmern bzw. den Gast zurückrufen. Status auf dem Rezeptions-Board setzen.</p>',null));
