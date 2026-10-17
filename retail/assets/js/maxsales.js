@@ -1085,3 +1085,37 @@ document.addEventListener('error', function (e) {
     });
   }, { passive: true });
 })();
+
+/* Kasa — ödeme yöntemi geçişi (kart ⇄ kripto). Satır içi script CSP'ye
+   takıldığı için burada; sayfada ilgili alanlar yoksa hiçbir şey yapmaz. */
+(function () {
+  var radios = document.querySelectorAll('[data-paym]');
+  var fields = document.querySelector('[data-crypto-fields]');
+  var cardOnly = document.querySelector('[data-card-only]');
+  var btn = document.querySelector('[data-paybtn]');
+  if (!fields && !btn) return;
+
+  function sync() {
+    var checked = document.querySelector('[data-paym]:checked');
+    // Tek yöntem varsa radio yok: alanların zaten görünür olduğu hâli koru.
+    var isCrypto = checked ? checked.value === 'crypto' : (fields && !fields.hidden);
+    if (fields) {
+      fields.hidden = !isCrypto;
+      fields.querySelectorAll('[data-crypto-req]').forEach(function (i) { i.required = isCrypto; });
+    }
+    if (cardOnly) cardOnly.hidden = isCrypto;
+    if (btn) {
+      var span = btn.querySelector('span');
+      var lbl = btn.getAttribute(isCrypto ? 'data-label-crypto' : 'data-label-card');
+      if (span && lbl) span.textContent = lbl;
+    }
+  }
+  radios.forEach(function (r) { r.addEventListener('change', sync); });
+  // Tek yöntem (yalnız kripto) hâlinde alanlar baştan zorunlu olsun.
+  if (!radios.length && fields) {
+    fields.hidden = false;
+    fields.querySelectorAll('[data-crypto-req]').forEach(function (i) { i.required = true; });
+  } else {
+    sync();
+  }
+})();

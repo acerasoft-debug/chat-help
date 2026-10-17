@@ -1,0 +1,78 @@
+name: OxaPay anahtarını Sarvesto sunucusuna yaz
+
+# Elle tetiklenir: Actions → bu workflow → Run workflow.
+#
+# Gerekli repo secret (Settings → Secrets and variables → Actions):
+#   OXAPAY_MERCHANT_KEY   OxaPay > Merchant Service > "Sarvesto" anahtarı  (zorunlu)
+#   OXAPAY_SANDBOX        "true" = test modu (opsiyonel, varsayılan false)
+#
+# Anahtar hiçbir dosyaya commit edilmez, log'a yazılmaz; yalnızca sunucudaki
+# ~/data/oxapay_settings.json dosyasına (chmod 600) yazılır. Sarvesto bunu
+# inc/oxapay.php (vr_oxapay_settings) ile okur. Ayrıca sunucuda curl açık mı
+# kontrol eder (kripto fatura çağrısı curl kullanır; pdo_sqlite GEREKMEZ,
+# siparişler Sarvesto'nun kendi JSON deposunda tutulur).
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Kurulum klasörü (sunucuda)"
+        required: false
+        default: "~/maxsales_de"
+
+permissions:
+  contents: read
+
+jobs:
+  set-key:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Secret var mı
+        env:
+          OK: ${{ secrets.OXAPAY_MERCHANT_KEY }}
+        run: |
+          if [ -z "$OK" ]; then
+            echo "::error::OXAPAY_MERCHANT_KEY tanımlı değil. Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+          case "$OK" in *BURAYA*|*MERCHANT_API_KEY*) echo "::error::Yer tutucu değer; gerçek anahtarı girin."; exit 1;; esac
+          echo "Anahtar tanımlı."
+
+      - name: Sunucuya yaz + curl/pdo kontrolü
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          OK: ${{ secrets.OXAPAY_MERCHANT_KEY }}
+          SB: ${{ secrets.OXAPAY_SANDBOX }}
+          TARGET: ${{ github.event.inputs.target }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: OK,SB,TARGET
+          script: |
+            set -e
+            DEST=$(eval echo "${TARGET:-~/maxsales_de}")
+            if [ -d "$DEST/../data" ]; then DATA=$(cd "$DEST/../data" && pwd); else mkdir -p "$DEST/data"; DATA=$(cd "$DEST/data" && pwd); fi
+            F="$DATA/oxapay_settings.json"
+            OK="$OK" SB="$SB" F="$F" php -r '
+              $f = getenv("F");
+              $cur = is_readable($f) ? (json_decode((string)file_get_contents($f), true) ?: []) : [];
+              if (!is_array($cur)) $cur = [];
+              $cur["merchant_key"] = getenv("OK");
+              $sb = strtolower((string)getenv("SB"));
+              $cur["sandbox"] = in_array($sb, ["1","true","yes"], true);
+              if (!isset($cur["lifetime"])) $cur["lifetime"] = 60;
+              $cur["updated_at"] = date("c");
+              $tmp = $f . ".tmp";
+              file_put_contents($tmp, json_encode($cur, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+              chmod($tmp, 0600); rename($tmp, $f); chmod($f, 0600);
+              echo "geschrieben: $f\n";
+              echo "merchant_key: gesetzt (" . substr($cur["merchant_key"], 0, 4) . "…)\n";
+              echo "sandbox: " . ($cur["sandbox"] ? "true (TEST)" : "false (LIVE)") . "\n";
+            '
+            echo "== PHP-Erweiterungen =="
+            php -r 'echo "curl: ", (function_exists("curl_init")?"OK":"FEHLT — Krypto-Rechnung schlägt fehl"), "\n";'
+            php -r 'echo "pdo_sqlite: ", (extension_loaded("pdo_sqlite")?"OK":"nicht nötig (JSON-Speicher)"), "\n";'
+            echo "== Data-Verzeichnis beschreibbar? =="
+            php -r '$d=getenv("HOME"); echo is_writable("'"$DATA"'")?"data/ beschreibbar OK\n":"data/ NICHT beschreibbar\n";'

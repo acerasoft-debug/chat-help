@@ -16,6 +16,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/inc/view.php';
 require_once __DIR__ . '/inc/orders.php';
+require_once __DIR__ . '/inc/oxapay.php';
+
+// Ödeme yolları: kart (Stripe Checkout) ve kripto (OxaPay). Hangisi
+// yapılandırılmışsa o sunulur; ikisi de varsa müşteri seçer.
+$canCard   = vr_stripe_ready();
+$canCrypto = vr_oxapay_enabled();
+$anyPay    = $canCard || $canCrypto;
+$method    = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
+    ? ((($_POST['pay_method'] ?? '') === 'crypto' && $canCrypto) ? 'crypto' : ($canCard ? 'card' : 'crypto'))
+    : ($canCard ? 'card' : 'crypto');
 
 $allowed = vr_shipping_countries();
 $country = strtoupper(trim((string)($_POST['country'] ?? $_GET['country'] ?? '')));
@@ -41,8 +51,25 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     if (empty($_POST['terms']))                       $errors['terms']   = t('must_accept');
     if (!empty($t['has_private']) && empty($_POST['private_ack'])) $errors['private'] = t('must_accept');
-    if (!vr_stripe_ready())                           $errors['stripe']  = t('pay_unavailable');
+    if (!$anyPay)                                     $errors['stripe']  = t('pay_unavailable');
     if (!vr_rate_ok('checkout', 20, 600))             $errors['rate']    = t('login_throttled');
+
+    // Kripto: OxaPay teslimat adresi toplamıyor — fiziksel ürün göndereceğimiz
+    // için adı, e-postayı ve adresi burada alıyoruz. Kartta bunu Stripe soruyor.
+    $buyer = [];
+    if ($method === 'crypto') {
+        $buyer = [
+            'name'   => mb_substr(trim((string)($_POST['co_name'] ?? '')), 0, 120),
+            'email'  => mb_substr(strtolower(trim((string)($_POST['co_email'] ?? ''))), 0, 160),
+            'street' => mb_substr(trim((string)($_POST['co_street'] ?? '')), 0, 160),
+            'zip'    => mb_substr(trim((string)($_POST['co_zip'] ?? '')), 0, 20),
+            'city'   => mb_substr(trim((string)($_POST['co_city'] ?? '')), 0, 100),
+        ];
+        if ($buyer['name'] === '' || !filter_var($buyer['email'], FILTER_VALIDATE_EMAIL)
+            || $buyer['street'] === '' || $buyer['zip'] === '' || $buyer['city'] === '') {
+            $errors['addr'] = t('contact_err');
+        }
+    }
 
     if (!$errors) {
         [$ok, $order] = vr_order_build($country);
@@ -59,7 +86,39 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             'ip_hash'       => substr(hash('sha256', vr_client_ip() . vr_member_secret()), 0, 24),
             'private_ack'   => !empty($_POST['private_ack']),
         ];
+        $order['payment_method'] = $method;
 
+        // ---------------------------------------------------- kripto (OxaPay)
+        if ($method === 'crypto') {
+            $order['customer'] = [
+                'email'   => $buyer['email'],
+                'name'    => $buyer['name'],
+                'address' => [
+                    'name'        => $buyer['name'],
+                    'line1'       => $buyer['street'],
+                    'postal_code' => $buyer['zip'],
+                    'city'        => $buyer['city'],
+                    'country'     => $country,
+                ],
+            ];
+            $order['oxapay'] = ['track_id' => '', 'status' => 'new'];
+            vr_order_save($order);
+
+            [$iOk, $inv] = vr_oxapay_create_invoice($order);
+            if (!$iOk) {
+                vr_log('checkout_crypto_failed', ['order' => $order['id'], 'err' => (string)$inv]);
+                vr_order_mark_failed((string)$order['id'], 'oxapay: ' . (string)$inv);
+                vr_flash(t('pay_unavailable'), 'err');
+                vr_redirect('checkout.php', ['country' => $country]);
+            }
+            vr_order_update((string)$order['id'], ['oxapay' => ['track_id' => (string)$inv['track_id'], 'status' => 'new']]);
+
+            // OxaPay'in ödeme sayfasına çıkış (coin ve ağ orada seçiliyor).
+            header('Location: ' . (string)$inv['payment_url'], true, 303);
+            exit;
+        }
+
+        // ------------------------------------------------------- kart (Stripe)
         vr_order_save($order);
 
         [$sOk, $session] = vr_stripe_create_checkout($order);
@@ -100,7 +159,7 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
     <div class="cart">
       <!-- ------------------------------------------------------- onay formu -->
       <div>
-        <?php if (!vr_stripe_ready()): ?>
+        <?php if (!$anyPay): ?>
       <?php
         // Ödeme anahtarı yokken müşteriye işletme dili değil, hizmet dili:
         // sepet saklanıyor, parça e-postayla ayırtılabiliyor. Konu satırı ve
@@ -145,6 +204,40 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
             </label>
           <?php endif; ?>
 
+          <?php if ($canCard && $canCrypto): ?>
+            <fieldset class="paym">
+              <legend><?= te('pay_method') ?></legend>
+              <label class="paym__opt">
+                <input type="radio" name="pay_method" value="card" <?= $method === 'card' ? 'checked' : '' ?> data-paym>
+                <span class="paym__t"><b><?= te('pay_card') ?></b><small><?= te('pay_card_sub') ?></small></span>
+              </label>
+              <label class="paym__opt">
+                <input type="radio" name="pay_method" value="crypto" <?= $method === 'crypto' ? 'checked' : '' ?> data-paym>
+                <span class="paym__t"><b><?= te('pay_crypto') ?></b><small><?= te('pay_crypto_sub') ?></small></span>
+              </label>
+            </fieldset>
+          <?php else: ?>
+            <input type="hidden" name="pay_method" value="<?= h($method) ?>">
+          <?php endif; ?>
+
+          <?php if ($canCrypto): ?>
+            <div class="paym__crypto<?= isset($errors['addr']) ? ' field--err' : '' ?>" data-crypto-fields<?= $method === 'crypto' ? '' : ' hidden' ?>>
+              <p class="paym__note"><?= te('crypto_note') ?></p>
+              <div class="field"><label for="co_name"><?= te('co_name') ?></label>
+                <input id="co_name" name="co_name" autocomplete="name" maxlength="120" value="<?= h((string)($_POST['co_name'] ?? '')) ?>" data-crypto-req></div>
+              <div class="field"><label for="co_email"><?= te('co_email') ?></label>
+                <input id="co_email" name="co_email" type="email" autocomplete="email" maxlength="160" value="<?= h((string)($_POST['co_email'] ?? '')) ?>" data-crypto-req></div>
+              <div class="field"><label for="co_street"><?= te('acc_street') ?></label>
+                <input id="co_street" name="co_street" autocomplete="shipping address-line1" maxlength="160" value="<?= h((string)($_POST['co_street'] ?? '')) ?>" data-crypto-req></div>
+              <div class="paym__row">
+                <div class="field"><label for="co_zip"><?= te('acc_zip') ?></label>
+                  <input id="co_zip" name="co_zip" autocomplete="shipping postal-code" maxlength="20" value="<?= h((string)($_POST['co_zip'] ?? '')) ?>" data-crypto-req></div>
+                <div class="field"><label for="co_city"><?= te('acc_city') ?></label>
+                  <input id="co_city" name="co_city" autocomplete="shipping address-level2" maxlength="100" value="<?= h((string)($_POST['co_city'] ?? '')) ?>" data-crypto-req></div>
+              </div>
+            </div>
+          <?php endif; ?>
+
           <label class="check<?= isset($errors['terms']) ? ' field--err' : '' ?>">
             <input type="checkbox" name="terms" value="1" required <?= !empty($_POST['terms']) ? 'checked' : '' ?>>
             <span><?php
@@ -157,8 +250,9 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
             ?></span>
           </label>
 
-          <button class="btn btn--lg" type="submit" <?= vr_stripe_ready() ? '' : 'disabled' ?>>
-            <span><?= te('checkout_go') ?></span><?= vr_icon('arrow', 16) ?>
+          <button class="btn btn--lg" type="submit" data-paybtn
+                  data-label-card="<?= te('checkout_go') ?>" data-label-crypto="<?= te('crypto_pay_btn') ?>">
+            <span><?= $method === 'crypto' ? te('crypto_pay_btn') : te('checkout_go') ?></span><?= vr_icon('arrow', 16) ?>
           </button>
 
           <!-- START: ACERASOFT HOLDING SECURE PAYMENT NOTICE -->
@@ -172,13 +266,16 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
           </div>
           <!-- END: ACERASOFT HOLDING SECURE PAYMENT NOTICE -->
 
-          <p style="font-size:12px;color:var(--muted)">
+          <?php if ($canCard): ?>
+          <p style="font-size:12px;color:var(--muted)" data-card-only<?= $method === 'card' ? '' : ' hidden' ?>>
             <?= vr_icon('lock', 13) ?> <?= te('checkout_stripe') ?>
             <?php if (vr_stripe_settings()['mode'] === 'test'): ?>
               <br><?= te('checkout_test_mode') ?>
             <?php endif; ?>
           </p>
+          <?php endif; ?>
         </form>
+        <?php // Ödeme yöntemi geçişi assets/js/maxsales.js içinde (CSP: script-src 'self', satır içi script yok). ?>
         <?php endif; ?>
       </div>
 
