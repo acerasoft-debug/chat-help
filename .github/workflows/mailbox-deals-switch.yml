@@ -8,7 +8,7 @@ name: (Posta kutusu) İndirim partisi + 23:45 turu — aç / ACİL DURDUR
 on:
   workflow_dispatch:
     inputs:
-      on:
+      enable:
         description: "true = aç · false = kapat ve süren partiyi durdur"
         required: true
         default: "false"
@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: appleboy/ssh-action@v1.0.3
         env:
-          ON: ${{ github.event.inputs.on }}
+          ON: ${{ github.event.inputs.enable }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
