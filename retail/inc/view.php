@@ -124,6 +124,9 @@ function vr_layout_start(array $o = []): void
 <meta name="apple-mobile-web-app-title" content="<?= h($brand) ?>">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
+<?php // Kritik yazı tipleri (self-host, OFL) — latin alt kümesi önceden yüklenir, FOUT azalır. ?>
+<link rel="preload" href="<?= h(vr_url('assets/fonts/cormorant-600-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="<?= h(vr_url('assets/fonts/jost-400-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="<?= h(vr_url('assets/css/maxsales.css', ['v' => vr_asset_v()])) ?>">
 <?php // Eşzamanlı ve küçük: cihaz türü ilk boyamadan önce belli olsun (bkz. assets/js/boot.js). ?>
 <script src="<?= h(vr_url('assets/js/boot.js', ['v' => vr_asset_v()])) ?>"></script>

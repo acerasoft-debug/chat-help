@@ -72,6 +72,7 @@ function vr_security_headers(): void
         "Content-Security-Policy: "
         . "default-src 'self'; "
         . "img-src 'self' data:; "
+        . "font-src 'self'; "
         . "style-src 'self' 'unsafe-inline'; "
         . "script-src 'self'; "
         . "frame-src https://js.stripe.com https://hooks.stripe.com; "

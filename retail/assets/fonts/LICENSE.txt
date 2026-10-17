@@ -1,0 +1,13 @@
+SARVESTO — self-hosted web fonts
+================================
+Cormorant (display serif) — © The Cormorant Project Authors
+  https://github.com/CatharsisFonts/Cormorant
+Jost (grotesque sans) — © 2020 The Jost Project Authors
+  https://github.com/indestructible-type/Jost
+
+Both are licensed under the SIL Open Font License, Version 1.1.
+Full text: https://openfontlicense.org (OFL-1.1)
+
+Self-hosted (not loaded from Google) for privacy: serving fonts from a
+third party transmits the visitor's IP (LG München 3 O 17493/20). These
+woff2 subsets (latin, latin-ext, cyrillic) are served from this origin only.
