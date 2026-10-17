@@ -1,6 +1,0 @@
-01 200 image/jpeg 38674 https://sarvesto.com/uploads/casablanca/casaway-white.jpg
-01.src https://sarvesto.com/uploads/casablanca/casaway-white.jpg
-02 200 text/html; charset=UTF-8 5786 https://html.duckduckgo.com/html/?q=casablanca+casa+way+t-shirt+white+tennis
-02.src https://html.duckduckgo.com/html/?q=casablanca+casa+way+t-shirt+white+tennis
-03 200 text/html; charset=UTF-8 4628 https://html.duckduckgo.com/html/?q=casablanca+%22casa+way%22+t-shirt+off-white
-03.src https://html.duckduckgo.com/html/?q=casablanca+%22casa+way%22+t-shirt+off-white

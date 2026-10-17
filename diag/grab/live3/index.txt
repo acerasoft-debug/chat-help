@@ -1,4 +1,0 @@
-01 200 text/html; charset=utf-8 17585 https://sarvesto.com/
-01.src https://sarvesto.com/
-02 200 video/mp4 873822 https://sarvesto.com/assets/media/hero-portrait.mp4
-02.src https://sarvesto.com/assets/media/hero-portrait.mp4

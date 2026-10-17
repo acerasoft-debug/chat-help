@@ -1,6 +1,0 @@
-01 200 text/html; charset=UTF-8 5510 https://html.duckduckgo.com/html/?q=casablanca+MS22-JTS-001+casa+way
-01.src https://html.duckduckgo.com/html/?q=casablanca+MS22-JTS-001+casa+way
-02 200 text/html; charset=UTF-8 6752 https://html.duckduckgo.com/html/?q=casablanca+%22casaway+tennis+club%22+t-shirt
-02.src https://html.duckduckgo.com/html/?q=casablanca+%22casaway+tennis+club%22+t-shirt
-03 200 application/json; charset=utf-8 1230 https://www.precasuals.com/products/casablanca-casa-way-short-sleeve-t-shirt.json
-03.src https://www.precasuals.com/products/casablanca-casa-way-short-sleeve-t-shirt.json

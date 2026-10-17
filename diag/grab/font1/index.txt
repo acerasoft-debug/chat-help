@@ -1,6 +1,0 @@
-01 200 font/woff2 35340 https://sarvesto.com/assets/fonts/cormorant-600-latin.woff2
-01.src https://sarvesto.com/assets/fonts/cormorant-600-latin.woff2
-02 200 font/woff2 26576 https://sarvesto.com/assets/fonts/jost-400-latin.woff2
-02.src https://sarvesto.com/assets/fonts/jost-400-latin.woff2
-03 200 text/html; charset=utf-8 18024 https://sarvesto.com/
-03.src https://sarvesto.com/

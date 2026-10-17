@@ -1,8 +1,0 @@
-01 400 text/plain; charset=utf-8 17 https://sarvesto.com/odeme/oxapay-callback.php
-01.src https://sarvesto.com/odeme/oxapay-callback.php
-02 200 text/html; charset=utf-8 5623 https://sarvesto.com/order.php
-02.src https://sarvesto.com/odeme/tesekkurler.php
-03 200 text/html; charset=utf-8 6641 https://sarvesto.com/cart.php
-03.src https://sarvesto.com/checkout.php
-04 200 text/plain; charset=utf-8 171 https://sarvesto.com/robots.txt
-04.src https://sarvesto.com/robots.txt

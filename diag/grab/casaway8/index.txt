@@ -1,6 +1,0 @@
-01 200 application/json; charset=utf-8 1318 https://feature.com/products/casablanca-casa-way-printed-t-shirt-casa-way.json
-01.src https://feature.com/products/casablanca-casa-way-printed-t-shirt-casa-way.json
-02 200 text/html; charset=utf-8 13422 https://www.outbacksylt.com/en/casablanca-casa-way-t-shirt-white-45823
-02.src https://www.outbacksylt.com/en/casablanca-casa-way-t-shirt-white-45823
-03 404 text/html; charset=utf-8 123433 https://www.endclothing.com/row/casablanca-casa-way-t-shirt-mf22-jts-001-16.html
-03.src https://www.endclothing.com/row/casablanca-casa-way-t-shirt-mf22-jts-001-16.html

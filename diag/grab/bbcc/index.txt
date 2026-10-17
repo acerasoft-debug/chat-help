@@ -1,8 +1,0 @@
-01 200 text/html; charset=utf-8 184502 https://int.burberry.com/check-collar-cotton-polo-shirt-p81269651
-01.src https://uk.burberry.com/check-collar-cotton-polo-shirt-p81269651/
-02 200 text/html; charset=utf-8 184966 https://int.burberry.com/check-collar-cotton-polo-shirt-p81269661
-02.src https://uk.burberry.com/check-collar-cotton-polo-shirt-p81269661/
-03 200 text/html; charset=utf-8 184909 https://int.burberry.com/check-collar-cotton-polo-shirt-p81269671
-03.src https://uk.burberry.com/check-collar-cotton-polo-shirt-p81269671/
-04 200 text/html; charset=utf-8 184879 https://int.burberry.com/check-collar-cotton-polo-shirt-p81269641
-04.src https://uk.burberry.com/check-collar-cotton-polo-shirt-p81269641/
