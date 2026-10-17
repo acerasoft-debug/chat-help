@@ -81,6 +81,28 @@ if (is_readable($log)) {
 }
 
 // ------------------------------------------------- 4) kripto siparişleri (PII yok)
+/**
+ * Tarayıcı ailesi (UA'dan, kişisel veri değil). Neden: CSP form-action'ı
+ * POST sonrası yönlendirmeye Chromium ve WebKit uygular, Firefox uygulamaz —
+ * "müşteri OxaPay'e varamadı" teşhisi tarayıcıya bağlı.
+ */
+function diag_browser(string $ua): string
+{
+    if ($ua === '') return '';
+    $m = static fn (string $re): bool => preg_match($re, $ua) === 1;
+    $b = $m('/FxiOS\//') ? 'Firefox-iOS(WebKit)'
+       : ($m('/CriOS\//') ? 'Chrome-iOS(WebKit)'
+       : ($m('/Firefox\//') ? 'Firefox'
+       : ($m('/Edg\//') ? 'Edge(Chromium)'
+       : ($m('/SamsungBrowser\//') ? 'Samsung(Chromium)'
+       : ($m('/OPR\//') ? 'Opera(Chromium)'
+       : ($m('/Chrome\//') ? 'Chrome(Chromium)'
+       : ($m('/Version\/.*Safari\//') ? 'Safari(WebKit)' : 'other')))))));
+    $os = $m('/iPhone|iPad/') ? 'iOS' : ($m('/Android/') ? 'Android'
+        : ($m('/Windows/') ? 'Windows' : ($m('/Mac OS X/') ? 'macOS' : ($m('/Linux/') ? 'Linux' : ''))));
+    $wv = $m('/; wv\)|FBAN|FBAV|Instagram/') ? ' +webview' : '';
+    return trim($b . ' ' . $os . $wv);
+}
 $orders = (array)vr_store_read('retail-orders.json', []);
 $co = [];
 foreach ($orders as $o) {
@@ -96,6 +118,8 @@ foreach ($orders as $o) {
         'oxapay_status' => (string)($o['oxapay']['status'] ?? ''),
         'has_track_id'  => (string)($o['oxapay']['track_id'] ?? '') !== '',
         'country'       => (string)($o['customer']['address']['country'] ?? ''),
+        'browser'       => diag_browser((string)($o['client']['ua'] ?? '')),
+        'failed_at'     => isset($o['failed_at']) ? gmdate('c', (int)$o['failed_at']) : null,
     ];
 }
 $out['orders_total']  = count($orders);
