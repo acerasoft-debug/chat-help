@@ -228,6 +228,7 @@ return [
     'pay_crypto'    => 'Krypto',
     'pay_crypto_sub' => 'Bitcoin, USDT, Ethereum und mehr',
     'crypto_note'   => 'Coin und Netzwerk wählen Sie auf der sicheren OxaPay-Seite. Der Betrag ist in Euro festgelegt; es werden keine Kartendaten verlangt.',
+    'crypto_addr_err' => 'Bitte Name, E-Mail und vollständige Lieferadresse angeben.',
     'crypto_pay_btn' => 'Mit Krypto bezahlen',
     'co_name'       => 'Vollständiger Name',
     'co_email'      => 'E-Mail für die Bestellbestätigung',

@@ -319,7 +319,18 @@
     var sel = e.target.closest('[data-autosubmit]');
     if (!sel) return;
     var form = sel.closest('form');
-    if (form) form.requestSubmit ? form.requestSubmit() : form.submit();
+    if (!form) return;
+    /* Kasa formunda (data-recalc) ülke değişimi bir ödeme DEĞİL: doğrulama
+       balonu çıkmasın, sipariş yazılmasın. recalc=1 ile işaretleyip
+       doğrulamasız gönderiyoruz; sunucu yalnız toplamı yeniden hesaplar. */
+    if (form.hasAttribute('data-recalc')) {
+      var r = document.createElement('input');
+      r.type = 'hidden'; r.name = 'recalc'; r.value = '1';
+      form.appendChild(r);
+      form.submit();
+      return;
+    }
+    form.requestSubmit ? form.requestSubmit() : form.submit();
   });
 
   /* --------------------------------------------------------- sahne kampanya filmi
@@ -1130,17 +1141,21 @@ document.addEventListener('error', function (e) {
      eksiksiz gitsin; geri tuşuyla dönüşte (bfcache) yeniden açılır. */
   var payForm = btn && btn.form;
   if (payForm) {
-    var paySent = false;
+    var paySent = false, payTimer = null;
+    var payUnlock = function () {
+      paySent = false;
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+      if (payTimer) { clearTimeout(payTimer); payTimer = null; }
+    };
     payForm.addEventListener('submit', function (e) {
       if (paySent) { e.preventDefault(); return; }
       paySent = true;
       btn.setAttribute('aria-busy', 'true');
       setTimeout(function () { btn.disabled = true; }, 0);
+      // Geçiş gerçekleşmezse (engellendi/iptal edildi) düğme kilitli kalmasın.
+      payTimer = setTimeout(payUnlock, 15000);
     });
-    window.addEventListener('pageshow', function () {
-      paySent = false;
-      btn.disabled = false;
-      btn.removeAttribute('aria-busy');
-    });
+    window.addEventListener('pageshow', payUnlock);
   }
 })();

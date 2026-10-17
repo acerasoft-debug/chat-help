@@ -105,9 +105,13 @@ function diag_browser(string $ua): string
 }
 $orders = (array)vr_store_read('retail-orders.json', []);
 $co = [];
+$pendingTracks = [];                                   // bekleyenler için OxaPay'e durum sorusu
 foreach ($orders as $o) {
     if (!is_array($o)) continue;
     if ((string)($o['payment_method'] ?? '') !== 'crypto' && !isset($o['oxapay'])) continue;
+    if ((string)($o['status'] ?? '') === 'pending' && (string)($o['oxapay']['track_id'] ?? '') !== '') {
+        $pendingTracks[(string)$o['number']] = (string)$o['oxapay']['track_id'];
+    }
     $co[] = [
         'id'            => (string)($o['id'] ?? ''),
         'number'        => (string)($o['number'] ?? ''),
@@ -147,6 +151,61 @@ if ($doInvoice && $cfg['configured']) {
 } else {
     $out['invoice_test'] = ['skipped' => true, 'reason' => $cfg['configured'] ? 'flag' : 'not_configured'];
 }
+
+// --------------------------- 6b) OxaPay'in gözüyle bekleyen faturalar (salt okunur)
+// Webhook gelmediyse fatura OxaPay'de ne durumda? (v1: GET payment/{track_id})
+function diag_oxapay_info(string $trackId, string $key): array
+{
+    $ch = curl_init(VR_OXAPAY_API . 'payment/' . rawurlencode($trackId));
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20,
+        CURLOPT_HTTPHEADER     => ['merchant_api_key: ' . $key, 'Content-Type: application/json'],
+    ]);
+    $raw  = curl_exec($ch);
+    $http = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err  = curl_error($ch);
+    curl_close($ch);
+    $j = is_string($raw) ? json_decode($raw, true) : null;
+    $d = (is_array($j) && is_array($j['data'] ?? null)) ? $j['data'] : [];
+    return [
+        'http'       => $http,
+        'err'        => $err,
+        'message'    => (string)($j['message'] ?? ''),
+        'status'     => (string)($d['status'] ?? ''),
+        'amount'     => $d['amount'] ?? null,
+        'currency'   => $d['currency'] ?? null,
+        'date'       => $d['date'] ?? null,
+        'expired_at' => $d['expired_at'] ?? ($d['expiredAt'] ?? null),
+        'keys'       => array_slice(array_keys($d), 0, 24),
+        'raw'        => $http !== 200 ? mb_substr((string)$raw, 0, 300) : null,
+    ];
+}
+$out['oxapay_view'] = [];
+if ($cfg['configured']) {
+    foreach (array_slice($pendingTracks, -6, 6, true) as $num => $tid) {
+        $out['oxapay_view'][$num] = diag_oxapay_info($tid, $cfg['merchant_key']);
+    }
+}
+
+// --------------------------------- 6c) erişim günlüğü: callback/dönüş gerçekten geldi mi?
+// OxaPay'in POST'u PHP'ye ulaşmadan (WAF/403) düşüyorsa yalnız burada görünür.
+// IP'lerin son sekizlisi maskelenir.
+$out['access_log'] = ['files' => [], 'hits' => []];
+$home = (string)(getenv('HOME') ?: dirname(vr_data_dir()));
+foreach (array_merge(glob($home . '/access-logs/*') ?: [], glob($home . '/logs/*') ?: []) as $lf) {
+    if (!is_file($lf) || !is_readable($lf)) continue;
+    $out['access_log']['files'][] = basename($lf) . ' (' . filesize($lf) . ' B)';
+    if (filesize($lf) > 300 * 1024 * 1024) continue;
+    $fh = fopen($lf, 'r');
+    if (!$fh) continue;
+    while (($ln = fgets($fh)) !== false) {
+        if (strpos($ln, 'oxapay-callback') === false && strpos($ln, 'tesekkurler') === false) continue;
+        $ln = preg_replace('/(\d+\.\d+\.\d+)\.\d+/', '$1.x', trim($ln)) ?? '';
+        $out['access_log']['hits'][] = mb_substr($ln, 0, 260);
+    }
+    fclose($fh);
+}
+$out['access_log']['hits'] = array_slice($out['access_log']['hits'], -30);
 
 // ------------------------------------ 7) dışarıdan erişim (sunucudan kendine)
 function diag_http(string $method, string $url, string $body = ''): array

@@ -222,6 +222,7 @@ return [
     'pay_crypto'    => 'Krypto',
     'pay_crypto_sub' => 'Bitcoin, USDT, Ethereum og mere',
     'crypto_note'   => 'Du vælger mønt og netværk på den sikre OxaPay-side. Beløbet er fast i euro; der bedes ikke om kortoplysninger.',
+    'crypto_addr_err' => 'Angiv venligst navn, e-mail og fuld leveringsadresse.',
     'crypto_pay_btn' => 'Betal med krypto',
     'co_name'       => 'Fulde navn',
     'co_email'      => 'E-mail til ordrebekræftelsen',

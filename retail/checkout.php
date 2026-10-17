@@ -23,9 +23,13 @@ require_once __DIR__ . '/inc/oxapay.php';
 $canCard   = vr_stripe_ready();
 $canCrypto = vr_oxapay_enabled();
 $anyPay    = $canCard || $canCrypto;
-$method    = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
-    ? ((($_POST['pay_method'] ?? '') === 'crypto' && $canCrypto) ? 'crypto' : ($canCard ? 'card' : 'crypto'))
-    : ($canCard ? 'card' : 'crypto');
+// Ülke seçimi aynı formun içinde ve değişince formu gönderiyor (data-autosubmit).
+// O gönderim bir ÖDEME değil, yalnız kargo/toplamı yeniden hesaplama: recalc=1
+// ile işaretlenir, sipariş yazılmaz, seçili yöntem ve girilen alanlar korunur.
+$recalc     = !empty($_POST['recalc']);
+$isPay      = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !$recalc;
+$wantCrypto = (($_POST['pay_method'] ?? $_GET['pay'] ?? '') === 'crypto') && $canCrypto;
+$method     = $wantCrypto ? 'crypto' : ($canCard ? 'card' : 'crypto');
 
 $allowed = vr_shipping_countries();
 $country = strtoupper(trim((string)($_POST['country'] ?? $_GET['country'] ?? '')));
@@ -46,13 +50,12 @@ if (!$t['lines']) {
 $errors = [];
 
 // --------------------------------------------------------------- POST: öde
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+if ($isPay) {
     vr_csrf_check();
 
     if (empty($_POST['terms']))                       $errors['terms']   = t('must_accept');
     if (!empty($t['has_private']) && empty($_POST['private_ack'])) $errors['private'] = t('must_accept');
     if (!$anyPay)                                     $errors['stripe']  = t('pay_unavailable');
-    if (!vr_rate_ok('checkout', 20, 600))             $errors['rate']    = t('login_throttled');
 
     // Kripto: OxaPay teslimat adresi toplamıyor — fiziksel ürün göndereceğimiz
     // için adı, e-postayı ve adresi burada alıyoruz. Kartta bunu Stripe soruyor.
@@ -67,9 +70,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         ];
         if ($buyer['name'] === '' || !filter_var($buyer['email'], FILTER_VALIDATE_EMAIL)
             || $buyer['street'] === '' || $buyer['zip'] === '' || $buyer['city'] === '') {
-            $errors['addr'] = t('contact_err');
+            $errors['addr'] = t('crypto_addr_err');
         }
     }
+
+    // Hız sınırı yalnız gerçek ödeme denemelerini saysın; eksik onay/adres
+    // gönderimleri 20'lik hakkı tüketmesin.
+    if (!$errors && !vr_rate_ok('checkout', 20, 600)) $errors['rate'] = t('login_throttled');
 
     if (!$errors) {
         [$ok, $order] = vr_order_build($country);
@@ -108,8 +115,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             if (!$iOk) {
                 vr_log('checkout_crypto_failed', ['order' => $order['id'], 'err' => (string)$inv]);
                 vr_order_mark_failed((string)$order['id'], 'oxapay: ' . (string)$inv);
-                vr_flash(t('pay_unavailable'), 'err');
-                vr_redirect('checkout.php', ['country' => $country]);
+                // Geçici sağlayıcı hatası: "kasa kapalı" değil "tekrar deneyin";
+                // kripto seçimi korunur (pay=crypto).
+                vr_flash(t('push_err'), 'err');
+                vr_redirect('checkout.php', ['country' => $country, 'pay' => 'crypto']);
             }
             vr_order_update((string)$order['id'], ['oxapay' => ['track_id' => (string)$inv['track_id'], 'status' => 'new']]);
 
@@ -184,7 +193,7 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
         <?php endif; ?>
       </div>
         <?php else: ?>
-        <form class="form form--wide" method="post" action="<?= h(vr_url('checkout.php')) ?>">
+        <form class="form form--wide" method="post" action="<?= h(vr_url('checkout.php')) ?>" data-recalc>
           <?= vr_csrf_field() ?>
 
           <div class="field">
@@ -221,6 +230,8 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
           <?php endif; ?>
 
           <?php if ($canCrypto): ?>
+            <?php // JS yoksa alanlar gizli kalmasın: kripto seçen müşteri adresi görsün. ?>
+            <noscript><style>.paym__crypto[hidden]{display:grid}</style></noscript>
             <div class="paym__crypto<?= isset($errors['addr']) ? ' field--err' : '' ?>" data-crypto-fields<?= $method === 'crypto' ? '' : ' hidden' ?>>
               <p class="paym__note"><?= te('crypto_note') ?></p>
               <div class="field"><label for="co_name"><?= te('co_name') ?></label>

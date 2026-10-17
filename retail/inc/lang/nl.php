@@ -228,6 +228,7 @@ return [
     'pay_crypto'    => 'Crypto',
     'pay_crypto_sub' => 'Bitcoin, USDT, Ethereum en meer',
     'crypto_note'   => 'Je kiest de munt en het netwerk op de beveiligde OxaPay-pagina. Het bedrag staat vast in euro; er worden geen kaartgegevens gevraagd.',
+    'crypto_addr_err' => 'Vul je naam, e-mailadres en volledige bezorgadres in.',
     'crypto_pay_btn' => 'Betaal met crypto',
     'co_name'       => 'Volledige naam',
     'co_email'      => 'E-mail voor de orderbevestiging',

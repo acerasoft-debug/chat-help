@@ -222,6 +222,7 @@ return [
     'pay_crypto'    => 'Kripto',
     'pay_crypto_sub' => 'Bitcoin, USDT, Ethereum və daha çox',
     'crypto_note'   => 'Coin və şəbəkəni təhlükəsiz OxaPay səhifəsində seçirsiniz. Məbləğ avro ilə sabitdir; kart məlumatı soruşulmur.',
+    'crypto_addr_err' => 'Zəhmət olmasa ad, e-poçt və tam çatdırılma ünvanını daxil edin.',
     'crypto_pay_btn' => 'Kripto ilə ödə',
     'co_name'       => 'Ad Soyad',
     'co_email'      => 'Sifariş təsdiqi üçün e-poçt',
