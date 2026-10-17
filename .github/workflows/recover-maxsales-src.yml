@@ -1,0 +1,84 @@
+name: (Kurtarma) MAXSALES kaynak kodunu sunucudan geri al
+
+# NİYE VAR
+# ========
+# claude/vestra-premium-retail-site-rxj4va dalı başka bir oturum tarafından
+# üzerine yazıldı ve Sarvesto retail kaynağı (retail/*.php, inc/, admin/, api/,
+# assets/, tools/, legal/, lang/) depodan silindi. Canlı site sunucuda
+# ~/maxsales_de kökünde sağlam duruyor. Bu iş o kaynağı SALT OKUNUR çekip
+# depoya diag/recover/maxsales-src.tar.gz olarak işler.
+#
+# GÜVENLİK
+# ========
+#  • Sunucuya HİÇBİR ŞEY YAZMAZ: yalnızca `tar -czf -` ile okur.
+#  • data/ HARİÇ: canlı siparişler, müşteriler, istatistik ve sırlar
+#    (stripe_settings.json, email_settings.json, admin.json, stats-secret.txt)
+#    depoya ASLA girmez.
+#  • uploads/ HARİÇ: büyük ikili dosyalar.
+#  • Çıkan arşiv yalnızca kaynak kod; inceleme depoda yapılıp kaynak elle
+#    retail/ altına yerleştirilecek.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Sunucudaki kurulum klasörü"
+        required: false
+        default: "~/maxsales_de"
+
+permissions:
+  contents: write
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sunucudan kaynağı çek (salt okunur)
+        env:
+          TARGET: ${{ github.event.inputs.target }}
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          SSHOPT="-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          SRV="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          DEST="${TARGET:-~/maxsales_de}"
+          mkdir -p diag/recover
+
+          # Sunucuda salt okuma: tar'ı stdout'a akıtır, data/ ve uploads/ hariç.
+          ssh $SSHOPT "$SRV" "cd $DEST && tar -czf - \
+            --exclude='./data' --exclude='./uploads' \
+            --exclude='./.git' --exclude='./.thumbs' \
+            --exclude='*/.thumbs' --exclude='./node_modules' \
+            --exclude='./vendor' --exclude='*.log' ." > diag/recover/maxsales-src.tar.gz
+
+          echo "== arşiv boyutu =="
+          ls -lh diag/recover/maxsales-src.tar.gz
+          echo "== içerik özeti (ilk 60 dosya) =="
+          tar -tzf diag/recover/maxsales-src.tar.gz | head -60
+          echo "== toplam dosya / php sayısı =="
+          tar -tzf diag/recover/maxsales-src.tar.gz | grep -c . || true
+          echo "php:"; tar -tzf diag/recover/maxsales-src.tar.gz | grep -c '\.php$' || true
+          echo "== güvenlik kontrolü: data/ veya sır dosyası sızmış mı? =="
+          if tar -tzf diag/recover/maxsales-src.tar.gz | grep -E '(^|/)data/|stripe_settings|email_settings|admin\.json|stats-secret|_settings\.json'; then
+            echo "::error::Arşivde veri/sır dosyası var, işlenmeyecek."
+            rm -f diag/recover/maxsales-src.tar.gz
+            exit 1
+          fi
+          echo "temiz: yalnızca kaynak kod."
+
+      - name: Arşivi dala işle
+        run: |
+          set -e
+          git config user.name "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add -f diag/recover/maxsales-src.tar.gz
+          git diff --cached --quiet && { echo "değişiklik yok"; exit 0; }
+          git commit -q -m "Kurtarma: MAXSALES kaynak kodu sunucudan alındı (salt okunur)"
+          for i in 1 2 3 4; do
+            git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && break
+            sleep $((i*3))
+          done

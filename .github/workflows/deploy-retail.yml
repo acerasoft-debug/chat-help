@@ -50,6 +50,31 @@ jobs:
             */../*|/*|*..*) echo "HATA: gecersiz hedef yol"; exit 1 ;;
           esac
           [ -d retail ] || { echo "HATA: retail/ klasoru repoda yok"; exit 1; }
+
+          # CANLI SITE KORUMASI
+          # ===================
+          # rsync --delete, hedefteki kodu depodakiyle birebir eslestirir.
+          # Eger depodaki retail/ kaynagi (kazara force-push, yanlis dal, bozuk
+          # checkout) eksikse, bu deploy CANLI SITENIN TUM PHP KAYNAGINI SILER.
+          # Bu yuzden kritik dosyalar ve asgari PHP sayisi dogrulanmadan
+          # KOPYALAMA YAPILMAZ. 17 Eki 2026: dal baska bir oturum tarafindan
+          # uzerine yazilinca retail/ bosalmisti; bu kilit onu yakalar.
+          MISSING=""
+          for f in index.php checkout.php cart.php product.php shop.php \
+                   inc/config.php inc/view.php inc/orders.php inc/stripe.php \
+                   inc/catalog.php api/webhook.php; do
+            [ -f "retail/$f" ] || MISSING="$MISSING retail/$f"
+          done
+          PHPCOUNT=$(find retail -name '*.php' | wc -l)
+          if [ -n "$MISSING" ] || [ "$PHPCOUNT" -lt 40 ]; then
+            echo "::error::CANLI SITE KORUMASI: retail/ kaynagi eksik, deploy durduruldu."
+            echo "Eksik kritik dosyalar:$MISSING"
+            echo "Bulunan PHP dosyasi: $PHPCOUNT (asgari 40 gerekir)"
+            echo "Dal bozuk ya da uzerine yazilmis olabilir. Deploy edilirse canli site silinir."
+            echo "Once kaynagi geri getirin (recover-maxsales-src.yml), sonra tekrar deneyin."
+            exit 1
+          fi
+          echo "kaynak butunlugu OK: $PHPCOUNT PHP dosyasi, kritik dosyalar tam"
           echo "kopyalanacak dosya sayisi: $(find retail -type f | wc -l)"
 
       - name: PHP sözdizimi kontrolü (tüm dosyalar)
