@@ -9,6 +9,10 @@ on:
       email_b64:
         description: "Hesabin e-postasi, base64"
         required: true
+      parts:
+        description: "Bolumler (1-6), orn. 1356 = yedek gecmisi ve dosya taramasi haric"
+        required: false
+        default: "123456"
 permissions:
   contents: read
 jobs:
@@ -19,12 +23,13 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           EMAIL_B64: ${{ github.event.inputs.email_b64 }}
+          PARTS: ${{ github.event.inputs.parts }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: EMAIL_B64
+          envs: EMAIL_B64,PARTS
           command_timeout: 5m
           script: |
             cd ~/public_html
@@ -36,6 +41,7 @@ jobs:
             require_once $home."/public_html/inc/auth.php";
             require_once $home."/public_html/inc/security.php";
             $email = strtolower(trim((string)base64_decode((string)getenv('EMAIL_B64'), true)));
+            $P = trim((string)getenv('PARTS')) ?: '123456';
             $mIp = static fn(string $ip): string => $ip === '' ? '-' : implode('.', array_slice(explode('.', $ip), 0, 2)).'.x.x';
             $st = static function (array $a): string {
               $o = [];
@@ -66,6 +72,8 @@ jobs:
               if (($acc['last_ip'] ?? '') !== '' && (($a['last_ip'] ?? '') === $acc['last_ip'] || ($a['reg_ip'] ?? '') === $acc['last_ip'])) $why[] = 'ayni IP';
               if ($why) echo "   - BAGLI hesap id ".$a['id']." (".implode(', ', $why).") · e-posta ".substr((string)($a['email'] ?? ''), 0, 1)."***@".substr(strrchr((string)($a['email'] ?? ''), '@') ?: '', 1)." · ".$st($a)."\n";
             }
+            $dir = vestra_data_dir();
+            if (!str_contains($P, '2')) goto s3;
             echo "== 2. Yedeklerde bu hesabin durum gecmisi ==\n";
             $dir = vestra_data_dir();
             $files = array_merge(glob($dir.'/accounts.json*') ?: [], glob($dir.'/*/accounts*.json*') ?: [], glob($dir.'/deleted-accounts/*') ?: []);
@@ -80,6 +88,7 @@ jobs:
               $prev = $line;
             }
             echo "   (".count($files)." yedek dosyasi tarandi; yalniz degisen satirlar)\n";
+            s3:
             echo "== 3. IP / ulke engeli ==\n";
             $ips = array_values(array_unique(array_filter([(string)($acc['reg_ip'] ?? ''), (string)($acc['last_ip'] ?? '')])));
             $log = _vsec_read('security_log.json'); $logHits = [];
@@ -90,6 +99,7 @@ jobs:
             $cb = vestra_country_blocks(); echo "   engelli ulkeler: ".(implode(',', array_keys($cb['countries'])) ?: 'yok')."\n";
             echo "   guvenlik kutugu (son 15): \n";
             foreach (array_slice($logHits, -15) as $e) echo "     ".($e['ts'] ?? '')." ".($e['event'] ?? '')." cc=".($e['cc'] ?? '')." vpn=".json_encode($e['vpn'] ?? null)."\n";
+            if (!str_contains($P, '4')) goto s5;
             echo "== 4. data/ altinda gecisler (E=e-posta U=hesap id I=IP) ==\n";
             $needles = ['E' => $email, 'U' => $uid];
             foreach ($ips as $i => $ip) $needles['I'.$i] = $ip;
@@ -105,5 +115,30 @@ jobs:
               if ($c) echo "   ".$p." (".date('Y-m-d H:i', $f->getMTime()).") → ".implode(' ', $c)."\n";
             }
             echo "   ($n dosya tarandi)\n";
+            s5:
+            echo "== 5. Mesaj konusmalari (metin BASILMAZ) ==\n";
+            $th = json_decode((string)@file_get_contents($dir.'/messages.json'), true) ?: [];
+            $rx = '/restr|limit|suspen|bloqu|block|sperr|kisitl|kısıtl|interdit|ferm|clos|accès|acces|access/iu';
+            foreach ((array)$th as $t) {
+              if (!is_array($t) || !in_array($uid, [(string)($t['buyer_uid'] ?? ''), (string)($t['seller_uid'] ?? '')], true)) continue;
+              $ms = (array)($t['messages'] ?? []); $mine = 0; $last = end($ms) ?: [];
+              foreach ($ms as $mm) if ((string)($mm['from'] ?? '') === $uid) $mine++;
+              $keys = array_values(array_diff(array_keys($t), ['messages']));
+              echo "   konu ".substr((string)($t['id'] ?? ''), 0, 12)." · karsi taraf ".(((string)($t['seller_uid'] ?? '')) === $uid ? 'alici' : (((string)($t['seller_uid'] ?? '')) === 'vestra-support' ? 'DESTEK' : 'satici'))
+                ." · ".count($ms)." mesaj (musteri ".$mine.") · son ".($last['at'] ?? '?')." ".(((string)($last['from'] ?? '')) === $uid ? 'musteriden' : 'karsi taraftan')
+                ." · alanlar: ".implode(',', $keys)."\n";
+              foreach ($ms as $mm) if ((string)($mm['from'] ?? '') !== $uid && preg_match($rx, (string)($mm['text'] ?? ''), $mt))
+                echo "     ".($mm['at'] ?? '?')." karsi taraf mesajinda '".mb_strtolower($mt[0])."' gecti\n";
+              foreach ($t as $k => $v) if ($k !== 'messages' && preg_match('/block|lock|clos|mute|ban|restrict|hidden|archiv/i', (string)$k)) echo "     ALAN $k = ".json_encode($v)."\n";
+            }
+            echo "== 6. Siparisler (gecmis olaylari) ==\n";
+            $os = vestra_read_json('order_statuses.json');
+            foreach (vestra_read_csv('orders.csv') as $r) {
+              if (strtolower(trim((string)($r['email'] ?? ''))) !== $email) continue;
+              $ref = (string)($r['ref'] ?? ''); $e = (array)($os[$ref] ?? []);
+              echo "   ".$ref." · ".substr((string)($r['timestamp'] ?? ''), 0, 16)." · durum ".($e['status'] ?? 'pending')." · odeme ".(preg_match('/Payment:\s*([^.]+)/', (string)($r['notes'] ?? ''), $pm) ? mb_substr($pm[1], 0, 30) : '?')."\n";
+              foreach ((array)($e['history'] ?? []) as $h) echo "     ".($h['at'] ?? $h['ts'] ?? '')." ".($h['status'] ?? $h['event'] ?? '')." · ".($h['by'] ?? '')." · ".mb_substr(preg_replace('/\S+@\S+/', '[adres]', (string)($h['note'] ?? '')), 0, 90)."\n";
+              foreach ($e as $k => $v) if (preg_match('/block|hold|restrict|freeze|lock|risk/i', (string)$k)) echo "     ALAN $k = ".mb_substr(json_encode($v), 0, 80)."\n";
+            }
             PHPEOF
             php /tmp/vestra_acc_diag.php 2>&1; rc=$?; rm -f /tmp/vestra_acc_diag.php; exit $rc
