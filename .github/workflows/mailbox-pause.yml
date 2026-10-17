@@ -10,9 +10,9 @@ on:
         required: false
         default: "true"
       followup:
-        description: "Açarken gece takip turu da açılsın mı (true/false)"
+        description: "Açarken 23:45 tamamlama turu (artan pay → eski müşterilere indirim mektubu) da açılsın mı (true/false)"
         required: false
-        default: "false"
+        default: "true"
 permissions:
   contents: read
 jobs:

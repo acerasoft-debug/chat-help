@@ -30,6 +30,8 @@ if ($cmd === 'list') {
   $campKey = (string)($argv[3] ?? 'edit');
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$campKey])) { fwrite(STDERR, "bilinmeyen kampanya: {$campKey}\n"); echo json_encode(['ok'=>false,'error'=>'campaign']); exit(1); }
+  /* 17 Eki 2026: indirim mektubu ("size daha önce yazmıştık") yalnız takip — bu yedek yol ilk mektup gönderir. */
+  if ($campKey === 'deals') { fwrite(STDERR, "deals yalniz takip mektubu\n"); echo json_encode(['ok'=>false,'error'=>'campaign']); exit(1); }
   $builder = $camps[$campKey][2];
   /* Günlük tavan (inc/mailbox.php, varsayılan 50): elle, panelden ya da kuyruktan — hepsi sayılır. */
   if (function_exists('vestra_mailbox_left_today')) {
@@ -63,6 +65,8 @@ if ($cmd === 'list') {
     if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || isset($seenAddr[$email])) continue;
     $seenAddr[$email] = true;
     [$subject, $body, $opts, $from] = $builder($l);
+    if (trim((string)$subject) === '' || trim((string)$body) === '') continue;   // boş mektup gitmez
+    if (function_exists('vestra_mailbox_still_sendable') && !vestra_mailbox_still_sendable((string)($l['id'] ?? ''), $email)) continue;   // çıkmış / kayıtlı / dükkânına yeni yazılmış
     if ($from !== '') $fromName = $from;
     $token = (string)($l['unsub_token'] ?? '');
     $unsubUrl = $token !== '' ? 'https://vestrasales.com/lead-unsubscribe?token='.rawurlencode($token) : 'https://vestrasales.com/lead-unsubscribe';
