@@ -1010,6 +1010,21 @@ file_put_contents(VESTRA_DATA_DIR.'/leads.json', '[{"id":"K1","email":"a@k.examp
 $rB = vestra_leads_update(function (array &$L) { $L[] = ['id' => 'K9']; return true; });
 $t('bozuk dosyada yazım İPTAL (boş listeyle üzerine yazılmaz)', $rB === false && str_starts_with((string)file_get_contents(VESTRA_DATA_DIR.'/leads.json'), '[{"id":"K1"'));
 vestra_write_json('leads.json', []);
+/* Üç yönlü birleştirme: bu iş okudu → başka bir iş arada yazdı → bu iş eski kopyadan değiştirip kaydetti. */
+vestra_write_json('leads.json', [['id' => 'M1', 'email' => 'a@m.example', 'status' => 'contacted'], ['id' => 'M2', 'email' => 'b@m.example', 'status' => 'contacted'], ['id' => 'M3', 'email' => 'c@m.example', 'status' => 'new', 'notes' => 'x']]);
+$mine = vestra_leads();                                                     // panel okudu
+file_put_contents(VESTRA_DATA_DIR.'/leads.json', json_encode([['id' => 'M1', 'email' => 'a@m.example', 'status' => 'bounced', 'bounce_reason' => 'brevo hardBounces'],
+  ['id' => 'M2', 'email' => 'b@m.example', 'status' => 'contacted', 'last_contacted_at' => '2026-10-17T10:00:00+00:00'], ['id' => 'M3', 'email' => 'c@m.example', 'status' => 'new', 'notes' => 'x'],
+  ['id' => 'M4', 'email' => 'new@m.example', 'status' => 'new']]));          // arada geri dönme taraması + sunucu damgası + bulucu
+foreach ($mine as &$mx) if ($mx['id'] === 'M3') $mx['notes'] = 'x · panel notu'; unset($mx);
+$mine = array_values(array_filter($mine, fn($x) => $x['id'] !== 'M2'));     // panel M2'yi sildi
+vestra_save_leads($mine);
+$mm = array_column(vestra_leads(), null, 'id');
+$t('üç yönlü birleştirme: arada yazılan "geri döndü" ve yeni kayıt korunur, panelin notu ve silmesi uygulanır', ($mm['M1']['status'] ?? '') === 'bounced' && isset($mm['M4'])
+   && ($mm['M3']['notes'] ?? '') === 'x · panel notu' && !isset($mm['M2']));
+$plain = vestra_leads(); $plain[0]['status'] = 'replied'; vestra_save_leads($plain);
+$t('arada yazım yoksa düz kayıt', (array_column(vestra_leads(), null, 'id')['M1']['status'] ?? '') === 'replied');
+vestra_write_json('leads.json', []);
 $t('iç içe çağrı kilitlenmez', vestra_leads_update(fn(array &$L) => vestra_leads_update(function (array &$M) { $M[] = ['id' => 'N1']; return true; }) && false) === false && count(vestra_leads()) === 1);
 if ($accFile !== '') @unlink($accFile);
 @unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); vestra_write_json('leads.json', []); @unlink(VESTRA_DATA_DIR.'/listings.json');

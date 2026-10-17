@@ -12896,3 +12896,10 @@ sonra Brevo ile devam et … günlük kendi serverdan 500, Brevo'dan 150 e-mail 
   `deals`'ı ilk mektup olarak reddeder, boş mektup ve `still_sendable` kontrolü; `mailbox-pause.yml` açarken gece
   tamamlama turu varsayılan AÇIK. Admin / satıcı panelindeki elle düzenlemeler (insan hızında, ms'lik pencere) hâlâ
   doğrudan `vestra_save_leads` — artık atomik rename ile yazıldığı için yarım dosya okunmaz.
+- **leads.json üç yönlü birleştirme (17 Eki 2026, akşam):** `vestra_leads()` okunan kopyayı ve dosya kimliğini
+  (inode|mtime|boyut) saklar; `vestra_save_leads()` dosya bu okumadan beri değiştiyse ÜZERİNE YAZMAZ —
+  `vestra_leads_merge(base, ours, fresh)` ile bu işin değiştirdiği alanları / eklediği / sildiği kayıtları kilit altında
+  taze listeye uygular, arada başkasının yazdığını (geri dönme işareti, sunucu damgası, yeni kayıt) korur. Kimliksiz ya
+  da çift kimlikli kayıtta eski davranış (düz yazım). Yönetim / satıcı paneli, block-lead / suppress / purge betikleri
+  dahil BÜTÜN `vestra_save_leads` çağıranlar böylece korunur. Canlı ölçüm (16:43 UTC): Brevo eşitlemesinin ilk koşusu
+  347 adresi geri dönmüş, ~37'sini çıkmış işaretledi; indirim partisi 300 limitle başladı; yeni kurallarla takip hedefi 2.441.

@@ -14,42 +14,95 @@
  * vestra_read_json/vestra_write_json), matching inc/orders.php/inc/invoice.php.
  */
 
-function vestra_leads(): array { return vestra_read_json('leads.json'); }
+/* Son okunan leads.json'un kopyası ve dosya kimliği (inode|mtime|boyut). vestra_save_leads() dosya bu okumadan beri
+ * değiştiyse (başka bir iş yazdıysa) üzerine YAZMAZ, bu işin değişikliklerini taze listeye birleştirir. */
+function vestra_leads_snapshot(?array $set = null, bool $clear = false): ?array {
+  static $snap = null;
+  if ($clear) { $snap = null; return null; }
+  if ($set !== null) $snap = $set;
+  return $snap;
+}
+function vestra_leads_file_key(): string {
+  $f = vestra_data_dir().'/leads.json'; clearstatcache(true, $f);
+  return is_file($f) ? ((int)@fileinode($f)).'|'.((int)@filemtime($f)).'|'.((int)@filesize($f)) : '-';
+}
+function vestra_leads(): array {
+  $key = vestra_leads_file_key();
+  $list = vestra_read_json('leads.json');
+  vestra_leads_snapshot(['key' => $key, 'list' => $list]);
+  return $list;
+}
 
 /* leads.json'a AYNI ANDA yazan işler (17 Eki 2026 incelemesi): sunucunun kendi gönderimi (mektup başına damga, 8–11 sn),
- * Brevo partisi (send-outreach, mektup başına damga), saatlik geri dönme taraması, Brevo geri dönüş eşitlemesi ve bulucu.
- * Hepsi "oku → değiştir → yaz" yapıyordu, kilitsiz: biri ötekinin arada yazdığını eski kopyasıyla ezebiliyordu (damga
- * kaybı = aynı dükkâna ikinci mektup; "geri döndü" kaybı = ölü adrese yeniden mektup). Ayrıca yazım dosyayı önce
- * kesip sonra dolduruyordu: o anda okuyan [] görüp boş listeyle çalışabiliyordu.
- * Artık: kayıt yazımı geçici dosya + rename (okuyan ya eskiyi ya yeniyi görür) ve sıcak yollar
- * vestra_leads_update() ile data/leads.lock altında okur-değiştirir-yazar. */
+ * Brevo partisi (send-outreach, mektup başına damga), saatlik geri dönme taraması, Brevo geri dönüş eşitlemesi, bulucu,
+ * yönetim / satıcı paneli. Hepsi "oku → değiştir → yaz" yapıyordu, kilitsiz: biri ötekinin arada yazdığını eski kopyasıyla
+ * ezebiliyordu (damga kaybı = aynı dükkâna ikinci mektup; "geri döndü" / "çıktı" kaybı = ölü ya da çıkmış adrese yeniden
+ * mektup). Ayrıca yazım dosyayı önce kesip sonra dolduruyordu: o anda okuyan [] görüp boş listeyle çalışabiliyordu.
+ * Artık: (1) yazım geçici dosya + rename (okuyan ya eskiyi ya yeniyi görür); (2) sıcak yollar vestra_leads_update() ile
+ * data/leads.lock altında okur-değiştirir-yazar; (3) geri kalan her yazıcı için vestra_save_leads(): dosya son okumadan
+ * beri değiştiyse ÜÇ YÖNLÜ BİRLEŞTİRME — bu işin okuduğu kopyaya göre yaptığı değişiklikler (alan, eklenen / silinen
+ * kayıt) kilit altında taze listeye uygulanır, başkasının arada yazdıkları korunur. */
+function vestra_leads_merge(array $base, array $ours, array $fresh): ?array {
+  $byId = static function (array $L): ?array { $o = []; foreach ($L as $x) { $id = (string)($x['id'] ?? ''); if ($id === '' || isset($o[$id])) return null; $o[$id] = $x; } return $o; };
+  $B = $byId($base); $O = $byId($ours); $F = $byId($fresh);
+  if ($B === null || $O === null || $F === null) return null;   // kimliksiz / çift kimlikli kayıt: birleştirilemez
+  foreach ($O as $id => $o) {
+    if (!isset($B[$id])) { if (!isset($F[$id])) $F[$id] = $o; continue; }        // bu işin eklediği
+    if (!isset($F[$id])) continue;                                               // arada başkası sildi
+    foreach ($o as $k => $v) if (!array_key_exists($k, $B[$id]) || $B[$id][$k] !== $v) $F[$id][$k] = $v;   // bu işin değiştirdiği alan
+    foreach ($B[$id] as $k => $v) if (!array_key_exists($k, $o)) unset($F[$id][$k]);                        // bu işin kaldırdığı alan
+  }
+  foreach ($B as $id => $_) if (!isset($O[$id])) unset($F[$id]);                 // bu işin sildiği
+  return array_values($F);
+}
 function vestra_save_leads(array $list): void {
+  $snap = vestra_leads_snapshot();
+  if ($snap !== null && !vestra_leads_lock_held() && $snap['key'] !== vestra_leads_file_key()) {
+    $lk = @fopen(vestra_data_dir().'/leads.lock', 'c'); if ($lk) flock($lk, LOCK_EX);
+    try {
+      $fresh = vestra_read_json('leads.json');
+      $m = vestra_leads_merge((array)$snap['list'], array_values($list), $fresh);
+      if ($m !== null) $list = $m;
+      vestra_leads_write($list);
+    } finally { if ($lk) { flock($lk, LOCK_UN); fclose($lk); } }
+    return;
+  }
+  vestra_leads_write($list);
+}
+function vestra_leads_write(array $list): void {
   $f = vestra_data_dir().'/leads.json';
   $tmp = $f.'.tmp-'.getmypid().'-'.bin2hex(random_bytes(3));
   $json = json_encode(array_values($list), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE);
-  if ($json === false || @file_put_contents($tmp, $json) === false) { @unlink($tmp); vestra_write_json('leads.json', array_values($list)); return; }
-  if (is_file($f)) @chmod($tmp, fileperms($f) & 0777);
-  if (!@rename($tmp, $f)) { @unlink($tmp); vestra_write_json('leads.json', array_values($list)); }
+  if ($json === false || @file_put_contents($tmp, $json) === false) { @unlink($tmp); vestra_write_json('leads.json', array_values($list)); }
+  else {
+    if (is_file($f)) @chmod($tmp, fileperms($f) & 0777);
+    if (!@rename($tmp, $f)) { @unlink($tmp); vestra_write_json('leads.json', array_values($list)); }
+  }
+  vestra_leads_snapshot(['key' => vestra_leads_file_key(), 'list' => array_values($list)]);
+}
+function vestra_leads_lock_held(?int $delta = null): bool {
+  static $depth = 0;
+  if ($delta !== null) $depth += $delta;
+  return $depth > 0;
 }
 
 /** leads.json'u kilit altında oku → $fn(&$leads) → yaz. $fn false dönerse yazılmaz. Dosya dolu ama okunamıyorsa
  *  (bozuk JSON) hiçbir şey yazılmaz — boş listeyle üzerine yazmak bütün müşteri kaydını silerdi. Kilit iç içe
  *  çağrıda yeniden alınmaz. Döner: $fn'in dönüşü. */
 function vestra_leads_update(callable $fn) {
-  static $depth = 0;
   $lk = null;
-  if ($depth === 0) { $lk = @fopen(vestra_data_dir().'/leads.lock', 'c'); if ($lk) flock($lk, LOCK_EX); }
-  $depth++;
+  if (!vestra_leads_lock_held()) { $lk = @fopen(vestra_data_dir().'/leads.lock', 'c'); if ($lk) flock($lk, LOCK_EX); }
+  vestra_leads_lock_held(1);
   try {
     $f = vestra_data_dir().'/leads.json';
     clearstatcache(true, $f);
     $leads = vestra_leads();
     if (!$leads && is_file($f) && filesize($f) > 2) { error_log('[VESTRA leads] leads.json okunamadi -- yazim iptal'); return false; }
     $r = $fn($leads);
-    if ($r !== false) vestra_save_leads($leads);
+    if ($r !== false) vestra_leads_write($leads);
     return $r;
   } finally {
-    $depth--;
+    vestra_leads_lock_held(-1);
     if ($lk) { flock($lk, LOCK_UN); fclose($lk); }
   }
 }
