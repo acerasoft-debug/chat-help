@@ -163,7 +163,10 @@ function vestra_email_is_junk(string $email): bool {
        // support addresses sat in two Winter 26/27 candidates ("INTRO", "Mi.na") in
        // place of the boutique's own -- a wholesale letter to either reaches a
        // software vendor, wastes a daily credit and invites a spam complaint.
-       .'|@glood\.|@virtualminds\.)#i';
+       .'|@glood\.|@virtualminds\.'
+       // 17 Eki 2026: İtalyan sertifikalı e-posta (PEC: @pec.ascom.bo.it — dernek / resmi kutu, dükkân değil) ve
+       // barındırma firmasının adresi (@hypernode.com, bir dükkân sitesinin alt bilgisinden kazınmış).
+       .'|@pec\.|\.pec\.|@legalmail\.|@postacert\.|@arubapec\.|@cert\.legalmail|@hypernode\.)#i';
   return (bool)preg_match($junk,$e);
 }
 
@@ -509,6 +512,16 @@ function vestra_discover_blocklist(): array {
        secimde kendiliginden dussunler. Kategoriler yine ayni: magaza zinciri /
        department store, kanalda rakip dev e-tailer, marka sahibi, AVM/duty-free
        isletmecisi. */
+    /* 17 Eki 2026 (operatör: "noreply@g-star.com buna neden e-mail gönderiyorsun? distribütör ve büyük zincir butiklere
+       ya da marketlere göndermemen gerektiğini söylemiştim"): indirim takip partisinin ilk 93 alıcısı Tem/Ağu OSM listesindendi
+       ve içinde KENDİ MARKASINI satan zincir mağazaları ile çok şubeli zincirler vardı. Kısa / günlük kelime olanlar alan
+       adında yalnız TAM eşleşir (vestra_blocklist_exact_only). */
+    'g-star','g-star raw','gstar','sessun','sessùn','lola casademunt','wam denim','wamdenim','buissonniere','buissonnière',
+    'hanro','patagonia','crocs','secrid','schott nyc','schott-store','ao76','stormberg','mothwurf','cop.copine','cop copine',
+    'ministry of supply','dk company','dkcompany','sinsay','paris londres','parislondres','koopera','le slip français',
+    'le slip francais','leslipfrancais','les petites bombes','lespetitesbombes','liviana conti','livianaconti','pointcarré',
+    'pointcarre','just brands','justbrands','pig&hen','pig & hen','pigandhen','dstrezzed','magazzini nico',
+    'einwaller','helmestore','swann paris','swann-paris','urbanjunglestore',
     // department store / magaza zinciri
     'b&m bargains','b&m stores','bmstores','arnotts','mcelhinneys','shaws',
     'kastner & öhler','kastner & oehler','kastner und öhler','kastner-oehler','kastneroehler',
@@ -1222,6 +1235,7 @@ function vestra_blocklist_exact_only(): array {
              /* 6 harften uzun ama gunluk kelime: alan adinda alt dizi aranirsa
                 "dynamiteboutique.it" gibi gercek bir dukkani elerdi. */
              'dynamite','herschel',
+
              /* 5 Eki 2026: 'sayitwith' -> "sayitwithstyle.com" gibi bir butigin
                 alan adinin icinde gecer; yalniz Say It With'in kendi alan adi. */
              'sayitwith',
@@ -1330,9 +1344,32 @@ function vestra_campaign_optout(string $email): bool {
  * the recorded brand, AND the address's own domain -- any one of them matching is enough.
  * Callers should use this rather than vestra_name_is_blocked() directly: the name alone
  * was the hole that let a batch of Gulf retail groups through a hand-curated send. */
+/* MAĞAZA BULUCU SAYFASI = ZİNCİR (17 Eki 2026 denetimi). Kaydın sitesi bir zincirin şube sayfasıysa (g-star.com/…/stores/…,
+ * tbs.fr/fr/boutiques/bordeaux, parislondres.be/nl/winkels/124, nico.it/punti-vendita/009, wamdenim.be/storelocator) dükkân
+ * bağımsız butik değil, zincirin ya da markanın şubesidir. Tekil "/boutique/" (bir butiğin kendi "mağazamız" sayfası) SAYILMAZ. */
+function vestra_lead_is_chain_url(string $website): bool {
+  $w=strtolower(trim($website)); if($w==='') return false;
+  $path=(string)parse_url(preg_match('#^https?://#',$w)?$w:'https://'.$w, PHP_URL_PATH);
+  return (bool)preg_match('#/(stores?|store-?locator|storelocator|store-?finder|find-a-store|winkels?|filialen?|filiali|standorte|punti-?vendita|negozi|tiendas|lojas|magasins|boutiques|butikker|butiker|myymalat|sklepy|prodejny)(/|$|\?|\.html)#',$path);
+}
+/* Adı günlük bir kelime olan zincirler (Brooklyn, Comma, TBS, Formen…): ad listesine girerse "Brooklyn Vintage" gibi gerçek
+ * butikleri de elerdi — yalnız zincirin KENDİ alan adı (e-posta ya da site) TAM eşleşir. 17 Eki 2026 denetimi. */
+function vestra_chain_domains(): array {
+  return array_flip(['tbs.fr','comma-store.com','comma-store.eu','brooklyn.be','giks.be','close-up.be','formen.be','carmi.be',
+    'kitchener.ch','olmo.ch','li-vy.com','gea.at','gea-waldviertler.at','waltherapparelwebshop.nl','nico.it','vijgeblad.be',
+    'bertoni.com','g-star.com','sessun.com','hanro.com','patagonia.com','crocs.eu','crocs.com','secrid.com','schott-store.com',
+    'ao76.com','stormberg.com','mothwurf.com','cop-copineus.com','cop-copine.com','ministryofsupply.com','dkcompany.com',
+    'sinsay.com','parislondres.be','koopera.org','leslipfrancais.fr','lespetitesbombes.com','livianaconti.com','pointcarre.be',
+    'justbrands.nl','pigandhen.nl','dstrezzed.com','urbanjunglestore.com','einwaller.com','helmestore.com','swann-paris.fr',
+    'wamdenim.com','wamdenim.be','buissonniere.com','lolacasademunt.com']);
+}
 function vestra_lead_is_blocked(array $lead): bool {
   $co=(string)($lead['company'] ?? ''); $em=(string)($lead['email'] ?? ''); $ws=(string)($lead['website'] ?? '');
   if(vestra_campaign_optout($em)) return true;
+  if(vestra_lead_is_chain_url($ws)) return true;
+  $cd=vestra_chain_domains();
+  foreach([strtolower((string)substr((string)strrchr($em,'@'),1)), strtolower((string)preg_replace('/^www\d*\./','',(string)vestra_domain_of($ws)))] as $h)
+    if($h!=='' && (isset($cd[$h]) || isset($cd[(string)preg_replace('/^[a-z]{2}\./','',$h)]))) return true;   // fr.sessun.com -> sessun.com
   if(vestra_name_is_blocked($co, (string)($lead['brand'] ?? ''))) return true;
   if(vestra_email_is_service_vendor($em)) return true;
   if(vestra_domain_is_blocked($em, $ws)) return true;

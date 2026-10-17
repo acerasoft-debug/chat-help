@@ -141,7 +141,8 @@ vestra_write_json('leads.json', [
   ['id' => 'L5', 'company' => 'Manual Lead', 'email' => 'c@funf.example', 'country' => 'Germany', 'source' => 'Manual', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok5'],
   ['id' => 'L6', 'company' => 'Kein Email', 'email' => '', 'country' => 'Germany', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok6'],
   ['id' => 'L7', 'company' => 'Laden Sieben', 'email' => 'INFO@una.example', 'country' => 'Germany', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok7'],
-  ['id' => 'L8', 'company' => 'OSM Acht', 'email' => 'osm@acht.example', 'country' => 'Italy', 'source' => 'OpenStreetMap', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok8'],
+  ['id' => 'L8', 'company' => 'OSM Acht', 'email' => 'osm@acht.example', 'country' => 'Italy', 'source' => 'OpenStreetMap', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok8', 'premium_brands' => ['Lacoste']],
+  ['id' => 'L12', 'company' => 'OSM Ohne Marke', 'email' => 'osm@zwoelf.example', 'country' => 'Italy', 'source' => 'OpenStreetMap', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok12'],
   ['id' => 'L9', 'company' => 'Amazon Store', 'email' => 'amz@neun.example', 'country' => 'Germany', 'source' => 'Amazon Seller', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok9'],
   ['id' => 'L10', 'company' => 'Suppressed', 'email' => 'sup@zehn.example', 'country' => 'Germany', 'source' => 'suppression', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok10'],
   ['id' => 'L11', 'company' => 'Deux Bis', 'email' => 'Contact@Deux.example', 'country' => 'France', 'source' => 'OpenStreetMap', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'tok11'],
@@ -154,6 +155,7 @@ $ia = array_column(array_values(vestra_finder_send_targets(100, 'all')), 'id');
 /* 15 Eki 2026: 'manual' (L5) artik tahmin listesi sayilir ve otomatik havuzdan DUSER (%49 geri donus) -- email_verified ile geri girer. */
 $t('havuz "all": OSM + web; elle eklenen (manual) YOK; pazaryeri satıcısı / bastırma YOK', in_array('L8', $ia, true) && !in_array('L5', $ia, true) && (in_array('L1', $ia, true) || in_array('L7', $ia, true))
    && !in_array('L9', $ia, true) && !in_array('L10', $ia, true));
+$t('17 Eki (G-Star olayı): taranmamış kaynak (OSM) sitesinde premium marka görülmemişse ilk mektubu da almaz', !in_array('L12', $ia, true));
 $t('havuz "all": başka kayıttan DAHA ÖNCE yazılmış adres atlanır; satıcının/çıkmışın/yazılmışın yok', !in_array('L11', $ia, true) && !array_intersect(['L2', 'L3', 'L4', 'L6'], $ia));
 $t('havuz "web" (varsayılan) OSM almaz', !in_array('L8', $ids, true));
 [, , $linesAll] = vestra_finder_send('standard', 50, true, 'all');
@@ -513,9 +515,9 @@ foreach ([['company' => 'Showroom Boutique Milano', 'email' => 'info@showroom-bo
           ['company' => 'Henry Concept Store', 'email' => 'hello@henry.example'], ['company' => 'セレクトショップ 東京', 'email' => 'info@select.jp']] as $x)
   $t('butik yanlışlıkla ayrılmaz: '.$x['company'], !vestra_lead_off_target($x));
 vestra_write_json('leads.json', [
-  ['id' => 'OT1', 'company' => 'Schuhkonzept', 'email' => 'n@schuhkonzept.de', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't'],
-  ['id' => 'OT2', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't2'],
-  ['id' => 'OT3', 'company' => 'Moda Ingrosso Napoli', 'email' => 'info@mi-napoli.example', 'country' => 'Italy', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't3']]);
+  ['id' => 'OT1', 'company' => 'Schuhkonzept', 'email' => 'n@schuhkonzept.de', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't', 'premium_brands' => ['Lacoste']],
+  ['id' => 'OT2', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't2', 'premium_brands' => ['Lacoste']],
+  ['id' => 'OT3', 'company' => 'Moda Ingrosso Napoli', 'email' => 'info@mi-napoli.example', 'country' => 'Italy', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 't3', 'premium_brands' => ['Lacoste']]]);
 $otIds = array_column(array_values(vestra_finder_send_targets(50, 'all')), 'id');
 $t('gönderim listesi (tüm havuz): ayakkabı dükkânı ve butik var, toptancı yok', in_array('OT1', $otIds, true) && in_array('OT2', $otIds, true) && !in_array('OT3', $otIds, true));
 require_once $root.'/inc/mailbox.php';
@@ -531,7 +533,7 @@ $am = vestra_mailbox_auto();
 $t('varsayılan: otomatik açık, VESTRA Edit, 500, yeni bulunanlar', $am === ['auto_send' => true, 'auto_campaign' => 'edit', 'auto_limit' => 500, 'auto_pool' => 'web']);
 vestra_write_json('leads.json', [
   ['id' => 'W1', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'a'],
-  ['id' => 'O1', 'company' => 'Mode Alt', 'email' => 'info@alt.example', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'b']]);
+  ['id' => 'O1', 'company' => 'Mode Alt', 'email' => 'info@alt.example', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'b', 'premium_brands' => ['Lacoste']]]);
 $keys = array_keys(vestra_finder_campaigns());
 vestra_mailbox_auto_save(false, 'polos', 12, 'web');
 [$okM, $msgM] = vestra_mailbox_auto_request($keys);
@@ -813,7 +815,7 @@ $t('mektup sayımı: ilk (10 Eki sonrası sunucu → edit) + Brevo Winter = 2, s
 $ltB = vestra_lead_letters(['last_contacted_at' => '2026-10-05T10:00:00+00:00', 'contact_via' => 'brevo', 'followups' => [['at' => '2026-10-08T22:00:00+00:00', 'campaign' => 'polos']], 'offer_bur2909_at' => '2026-10-07T00:00:00+00:00']);
 $t('eski ilk mektup lesgarage sayılır; teklif ve eski polo takibi de sayılır; sıradaki indirim', $ltB['count'] === 3 && in_array('lesgarage', $ltB['camps'], true) && in_array('brevo:offer_bur2909_at', $ltB['camps'], true) && vestra_mailbox_followup_next($ltB['camps']) === 'deals');
 $t('indirimi almış dükkâna sıradaki yok; indirim kampanyası yoksa da yok', vestra_mailbox_followup_next(['deals']) === '' && vestra_mailbox_followup_next([], ['edit' => 1]) === '');
-$fuBase = ['country' => 'France', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'contacted', 'contact_via' => 'mailbox', 'added_at' => $ago(12)];
+$fuBase = ['country' => 'France', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'contacted', 'contact_via' => 'mailbox', 'added_at' => $ago(12), 'premium_brands' => ['Lacoste', 'Fred Perry']];
 vestra_write_json('leads.json', [
   ['id' => 'F1', 'company' => 'Boutique Une', 'email' => 'info@boutique-une.example', 'last_contacted_at' => $ago(10), 'unsub_token' => 'f1'] + $fuBase,
   ['id' => 'F2', 'company' => 'Boutique Deux', 'email' => 'info@boutique-deux.example', 'last_contacted_at' => $ago(10), 'last_newcollection_at' => $ago(6), 'unsub_token' => 'f2'] + $fuBase,
@@ -990,6 +992,23 @@ $t('Brevo anahtarı varken indirim partisi o günün Brevo eşitlemesini bekler;
 vestra_write_json('ops_tick.json', ['brevo_sync_am' => '2026-10-20']);
 $t('eşitleme yapıldıysa 09:00\'da çıkar', vestra_mailbox_brevo_synced($b0900, true));
 @unlink(VESTRA_DATA_DIR.'/ops_tick.json');
+echo "\n  -- G-Star olayı (17 Eki 2026): marka mağazası / zincir / market / moda dışı hiçbir yoldan mektup almaz --\n";
+$gstar = ['id' => 'GS', 'company' => 'G-Star', 'email' => 'store.gent@g-star.com', 'website' => 'https://www.g-star.com/nl_be/stores/be/g-star-store-gent', 'source' => 'OpenStreetMap'] + $fuBase;
+$t('G-Star mağazası: ad, alan adı ve mağaza bulucu sayfası ayrı ayrı engeller', vestra_lead_is_blocked($gstar) && vestra_lead_is_blocked(['company' => 'X', 'email' => 'a@g-star.com'])
+   && vestra_lead_is_chain_url('https://www.g-star.com/nl_be/stores/be/g-star-store-gent'));
+foreach ([['TBS', 'a@tbs.fr', 'https://www.tbs.fr/fr/boutiques/bordeaux'], ['Paris Londres', 'a@parislondres.be', 'parislondres.be/nl/winkels/124'], ['Magazzini Nico', 'a@nico.it', 'nico.it/punti-vendita/009'],
+          ['WAM Denim', 'a@wamdenim.com', 'wamdenim.be/storelocator/index'], ['Comma', 'a@comma-store.com', 'comma-store.eu'], ['Sessùn', 'a@sessun.com', 'fr.sessun.com'], ['Hanro', 'a@hanro.com', 'hanro.com'],
+          ['Brooklyn', 'a@brooklyn.be', 'brooklyn.be/nl/winkels/brooklyn'], ['Koopera Store', 'a@koopera.org', 'koopera.org']] as [$co, $em, $ws])
+  $t('zincir / marka mağazası engellenir: '.$co, vestra_lead_is_blocked(['company' => $co, 'email' => $em, 'website' => $ws]) || vestra_lead_off_target(['company' => $co, 'email' => $em, 'website' => $ws]));
+foreach ([['Brooklyn Vintage', 'a@brooklynvintage.it', 'brooklynvintage.it'], ['Comma Boutique Wien', 'a@comma-boutique.at', 'comma-boutique.at'], ['Patmouille - La boutique', 'a@patmouille.fr', 'patmouille.fr/boutique/#nos-horaires'],
+          ['Boutique Lipp', 'a@boutique-lipp.ch', 'boutique-lipp.ch']] as [$co, $em, $ws])
+  $t('gerçek butik engellenmez: '.$co, !vestra_lead_is_blocked(['company' => $co, 'email' => $em, 'website' => $ws]));
+$t('PEC (sertifikalı e-posta) ve barındırma firması adresi çöp sayılır', vestra_email_is_junk('fini@pec.ascom.bo.it') && vestra_email_is_junk('x@legalmail.it') && vestra_email_is_junk('info@hypernode.com') && !vestra_email_is_junk('info@pecora-moda.it'));
+$t('moda dışı: nalbur, tişört baskı', vestra_lead_off_target(['company' => 'Ferramenta', 'email' => 'a@laferramentabologna.com']) && vestra_lead_off_target(['company' => 'Solydel - Magliette personalizzate', 'email' => 'a@gmail.com']));
+vestra_write_json('leads.json', [$gstar, ['premium_brands' => []] + $sx('NB', 'info@nobrands.example', 30), $sx('YB', 'info@withbrands.example', 30)]);
+$ftG = array_column(vestra_mailbox_followup_targets(50), null, 'id');
+$t('indirim takibi: G-Star yok, sitesinde premium marka görülmemiş dükkân yok, marka kanıtlı dükkân var', !isset($ftG['GS']) && !isset($ftG['NB']) && isset($ftG['YB']) && !vestra_mailbox_followup_still_ok('NB') && !vestra_mailbox_followup_still_ok('GS'));
+
 echo "\n  -- indirim seçkisi: satılmış ilan, katalog adı bağlantıda, tek marka --\n";
 $dl2 = $dealsListings; $dl2[] = ['id' => 'D8', 'brand' => 'Burberry', 'name' => 'Sold Coat', 'mode' => 'sale', 'list' => 100, 'tiers' => [['min' => 3, 'price' => 40]], 'images' => ['/uploads/d8.jpg'], 'status' => 'approved', 'sold_out' => true];
 $pk = vestra_deals_pick(6, $dl2);

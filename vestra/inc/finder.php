@@ -572,7 +572,7 @@ function vestra_lead_not_retail(array $l): bool {
   /* 17 Eki 2026: Rumence / Moldovaca "magazin" = DÜKKÂN (Magazin Haine Bella); Almancadaki "dergi" anlamı orada geçerli değil. */
   $hay = $co.' '.$ed.' '.$wd;
   if (preg_match('/^(romania|românia|moldova|republic of moldova|ro|md)$/u', mb_strtolower(trim((string)($l['country'] ?? '')))) || preg_match('/\.(ro|md)$/', $ed)) $hay = preg_replace('/magazin/u', '', $hay);
-  return (bool)preg_match('/touris|turism|tourist|office de tourisme|fremdenverkehr|stadtmarketing|city ?marketing|zeitung|anzeiger|morgenpost|tagblatt|nachrichten|\bnews\b|news\.|magazin|journal\b|\bpresse\b|verlag|rundfunk|fernseh|\btv\b|\bradio\b|mediathek|feuerwehr|behörden|gemeinde|\bmairie\b|ville de |ayuntamiento|\bcomune\b|\bhotel\b|campingplatz|camping municipal|campground|campsite|camping village|\bmuseum\b|brauerei|bier(?![a-zäöü])|weingut|immobili|versicherung|\bbank\b|safety shoes|scrubs|kostüm|costumes?\b|orthop|sanitätshaus|\barmy\b|surplus|jagd|waidmann|moto\b|motorrad|embroider|stickerei|broderie|uniform|workwear|berufsbekleidung|arbeitskleidung|teamwear|clubwear|club ?fashion|vereinsbedarf|vereinsausstatter|gundog|airsoft|paintball|farmers|landhandel|promotional|werbemittel|textil-?druck|publi-?sport|sportzeitung|gazzetta|kicker\b|eurosport/u', $hay);
+  return (bool)preg_match('/touris|turism|tourist|office de tourisme|fremdenverkehr|stadtmarketing|city ?marketing|zeitung|anzeiger|morgenpost|tagblatt|nachrichten|\bnews\b|news\.|magazin|journal\b|\bpresse\b|verlag|rundfunk|fernseh|\btv\b|\bradio\b|mediathek|feuerwehr|behörden|gemeinde|\bmairie\b|ville de |ayuntamiento|\bcomune\b|\bhotel\b|campingplatz|camping municipal|campground|campsite|camping village|\bmuseum\b|brauerei|bier(?![a-zäöü])|weingut|immobili|versicherung|\bbank\b|safety shoes|scrubs|kostüm|costumes?\b|orthop|sanitätshaus|\barmy\b|surplus|jagd|waidmann|moto\b|motorrad|embroider|stickerei|broderie|uniform|workwear|berufsbekleidung|arbeitskleidung|teamwear|clubwear|club ?fashion|vereinsbedarf|vereinsausstatter|gundog|airsoft|paintball|farmers|landhandel|promotional|werbemittel|textil-?druck|publi-?sport|sportzeitung|gazzetta|kicker\b|eurosport|ferrament|personalizzat|stampa magliette|tshirt-?druck|koopera/u', $hay);
 }
 const VESTRA_NOT_RETAIL_DOMAINS = ['rtl', 'ksta', 'morgenpost', 'sueddeutsche', 'bunte', 'news', 'wp', 'manager-magazin', 'spiegel', 'bild',
   'focus', 'welt', 'faz', 'stern', 'zeit', 'tagesschau', 'zdf', 'ard', 'n-tv', 'ntv', 'sat1', 'prosieben', 'vox', 't-online.de', 'gmx', 'web.de',
@@ -648,6 +648,9 @@ function vestra_finder_send_targets(int $limit = 1000, string $pool = 'web'): ar
     if (vestra_lead_looks_dead($l) || vestra_lead_off_target($l)) continue;
     if (vestra_lead_send_paused($l)) continue;   // 14 Eki 2026: Almanya şimdilik durduruldu
     if (vestra_lead_source_guessed($l)) continue;   // 15 Eki 2026: tahmin listeleri (%49 geri donus) otomatik gonderime girmez
+    /* 17 Eki 2026 (G-Star olayı): bulucunun taramasından GEÇMEMİŞ kaynaklar (OSM / eski listeler) ilk mektubu da yalnız
+       sitesinde en az bir premium marka görülmüşse alır; bulucunun kendi kayıtları ('web-search') zaten marka kanıtıyla gelir. */
+    if (strtolower($src) !== 'web-search' && !count(array_filter((array)($l['premium_brands'] ?? [])))) continue;
     $seen[$e] = true; $out[$i] = $l;
   }
   return $out;

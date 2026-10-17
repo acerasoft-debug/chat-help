@@ -12903,3 +12903,26 @@ sonra Brevo ile devam et … günlük kendi serverdan 500, Brevo'dan 150 e-mail 
   da çift kimlikli kayıtta eski davranış (düz yazım). Yönetim / satıcı paneli, block-lead / suppress / purge betikleri
   dahil BÜTÜN `vestra_save_leads` çağıranlar böylece korunur. Canlı ölçüm (16:43 UTC): Brevo eşitlemesinin ilk koşusu
   347 adresi geri dönmüş, ~37'sini çıkmış işaretledi; indirim partisi 300 limitle başladı; yeni kurallarla takip hedefi 2.441.
+
+## G-Star olayı: indirim takibi zincir / marka mağazalarına gitti (operatör, 17 Eki 2026 akşam)
+
+Operatör: *"noreply@g-star.com buna neden e-mail gönderiyorsun? daha önce distribütör ve büyük zincir butiklere ya da
+marketlere göndermemen gerektiğini söylemiştim"*. Ölçüm (diag-lead-lookup / diag-chain-audit): kayıt "G-Star" (Gent
+mağazası, site g-star.com/…/stores/…) 31 Tem OSM listesinden; 31 Tem ilk mektup, 17 Eki 16:55 indirim mektubu; noreply@ =
+G-Star'ın otomatik yanıtı. İndirim partisinin ilk 93 alıcısının hepsi Tem/Ağu OSM'dendi; ~20'si marka mağazası (TBS,
+Sessùn, Comma, WAM Denim, Hanro, Patagonia, Lola Casademunt, Livy, AO76…), zincir (Paris Londres, Brooklyn, Giks, Close-up,
+Magazzini Nico, Koopera) ya da moda dışıydı (nalbur, tişört baskı, iş kıyafeti, PEC adresi). Takip havuzunun %95'i bu eski,
+bulucu süzgecinden (marka kanıtı) hiç geçmemiş OSM kayıtları.
+- **Acil:** chat-help `mailbox-deals-switch.yml enable=false` — indirim partisi + 23:45 turu kapatıldı, süren parti
+  durduruldu (93'te). Yeni butiklere gönderim açık kaldı. (Girdi adı `on` değil `enable`: YAML `on:` anahtarını true okur;
+  süreç yalnız gerçek `php cron_mailbox.php` komut satırıyla seçilir — `pkill -f` kendi SSH kabuğunu da öldürüyordu.)
+- **Yapısal:** takip (indirim) mektubu artık yalnız `premium_brands` ≥ 1 (sitesinde bizim sattığımız en az bir premium
+  marka görülmüş) dükkâna (`VESTRA_MAILBOX_FOLLOWUP_MIN_BRANDS`, Brevo'nun min_brands=1 kuralı); bulucudan geçmemiş
+  kaynaklar (OSM / listeler) ilk mektubu da yalnız bu kanıtla alır (`vestra_finder_send_targets`).
+- **Zincir işareti (`vestra_lead_is_chain_url`):** site yolu mağaza bulucu ise (/stores/, /store-locator, /winkels/,
+  /filialen/, /punti-vendita/, /negozi/, /magasins, /boutiques (çoğul), /standorte…) `vestra_lead_is_blocked` → her yol.
+  Tekil "/boutique/" sayılmaz.
+- **Liste:** ayırt edici marka/zincir adları blocklist'e; adı günlük kelime olanlar (Brooklyn, Comma, TBS, Formen…) yalnız
+  kendi alan adlarıyla TAM (`vestra_chain_domains()`; "Brooklyn Vintage" elenmez). PEC (@pec., legalmail, postacert,
+  arubapec) ve barındırma firması (@hypernode.) adresleri çöp; nalbur / baskı / Koopera moda dışı.
+- Testler: finder_test 8s "G-Star olayı" (+17 iddia), havuz all'da markasız OSM yok.
