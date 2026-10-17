@@ -1,0 +1,8 @@
+01 200 text/html; charset=utf-8 9700 https://sarvesto.com/product.php?id=blm-ah0eg000bc27
+01.src https://sarvesto.com/product.php?id=blm-ah0eg000bc27
+02 200 text/html; charset=utf-8 10441 https://sarvesto.com/shop.php?brand=BALMAIN
+02.src https://sarvesto.com/shop.php?brand=BALMAIN
+03 200 text/html; charset=utf-8 17968 https://sarvesto.com/
+03.src https://sarvesto.com/
+04 200 text/plain; charset=utf-8 167 https://sarvesto.com/robots.txt
+04.src https://sarvesto.com/robots.txt
