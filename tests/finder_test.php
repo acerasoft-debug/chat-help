@@ -1007,6 +1007,14 @@ $t('PEC (sertifikalı e-posta) ve barındırma firması adresi çöp sayılır',
 $t('moda dışı: nalbur, tişört baskı', vestra_lead_off_target(['company' => 'Ferramenta', 'email' => 'a@laferramentabologna.com']) && vestra_lead_off_target(['company' => 'Solydel - Magliette personalizzate', 'email' => 'a@gmail.com']));
 vestra_write_json('leads.json', [$gstar, ['premium_brands' => []] + $sx('NB', 'info@nobrands.example', 30), $sx('YB', 'info@withbrands.example', 30)]);
 $ftG = array_column(vestra_mailbox_followup_targets(50), null, 'id');
+vestra_write_json('leads.json', [['premium_brands' => ['Dsquared2', 'Versace'], 'company' => 'Brýle Fielmann. Vaše oční optika'] + $sx('FI', 'info@fielmann-x.example', 30),
+  ['premium_brands' => ['Ralph Lauren', 'Woolrich'], 'company' => 'Scalpers'] + $sx('SC', 'info@scalpers-x.example', 30),
+  ['premium_brands' => ['Lacoste'], 'source' => 'OpenStreetMap'] + $sx('O1B', 'info@osm-one.example', 30),
+  ['premium_brands' => ['Lacoste', 'Hugo Boss'], 'source' => 'OpenStreetMap'] + $sx('O2B', 'info@osm-two.example', 30)]);
+$ftK = array_column(vestra_mailbox_followup_targets(50), null, 'id');
+$t('operatörün Brevo için ayıkladığı adlar (Fielmann, Scalpers…) indirim de almaz; gözlükçü moda dışı', !isset($ftK['FI']) && !isset($ftK['SC']) && vestra_lead_off_target(['company' => 'Optik Muster', 'email' => 'a@optik-muster.example']));
+$t('eski OSM kaydında tek marka yetmez, iki marka gerekir', !isset($ftK['O1B']) && isset($ftK['O2B']));
+vestra_write_json('leads.json', [$gstar, ['premium_brands' => []] + $sx('NB', 'info@nobrands.example', 30), $sx('YB', 'info@withbrands.example', 30)]);
 $t('indirim takibi: G-Star yok, sitesinde premium marka görülmemiş dükkân yok, marka kanıtlı dükkân var', !isset($ftG['GS']) && !isset($ftG['NB']) && isset($ftG['YB']) && !vestra_mailbox_followup_still_ok('NB') && !vestra_mailbox_followup_still_ok('GS'));
 
 echo "\n  -- indirim seçkisi: satılmış ilan, katalog adı bağlantıda, tek marka --\n";

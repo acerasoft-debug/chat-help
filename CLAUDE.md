@@ -12926,3 +12926,9 @@ bulucu süzgecinden (marka kanıtı) hiç geçmemiş OSM kayıtları.
   kendi alan adlarıyla TAM (`vestra_chain_domains()`; "Brooklyn Vintage" elenmez). PEC (@pec., legalmail, postacert,
   arubapec) ve barındırma firması (@hypernode.) adresleri çöp; nalbur / baskı / Koopera moda dışı.
 - Testler: finder_test 8s "G-Star olayı" (+17 iddia), havuz all'da markasız OSM yok.
+- **İkinci ölçüm (17:15 UTC, yeni kurallarla havuz 342):** ilk sıralarda hâlâ operatörün 13 Eki'de Brevo için elle ayıkladığı
+  adlar vardı (Fielmann, Capel, Scalpers, Kicks, Hatstore, Joseph, Mackintosh, Kaotiko, Racing Club…) — sunucunun indirim
+  yolu `skip_names` listesini uygulamıyordu. Artık `VESTRA_CAMPAIGN_SKIP_NAMES` (brevo-daily.yml ile aynı liste) takipte de;
+  bulucudan geçmemiş kaynaklarda (OSM / listeler) EN AZ İKİ premium marka şartı (`vestra_mailbox_brand_evidence_ok`);
+  gözlükçü / fan-kulüp mağazası moda dışı; bu zincirlerin alan adları `vestra_chain_domains()`'te.
+- **İndirim partisi KAPALI bırakıldı** (operatör onayı olmadan yeniden açılmaz): `mailbox-deals-switch.yml enable=true`.

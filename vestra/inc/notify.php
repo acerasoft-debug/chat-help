@@ -1361,7 +1361,10 @@ function vestra_chain_domains(): array {
     'ao76.com','stormberg.com','mothwurf.com','cop-copineus.com','cop-copine.com','ministryofsupply.com','dkcompany.com',
     'sinsay.com','parislondres.be','koopera.org','leslipfrancais.fr','lespetitesbombes.com','livianaconti.com','pointcarre.be',
     'justbrands.nl','pigandhen.nl','dstrezzed.com','urbanjunglestore.com','einwaller.com','helmestore.com','swann-paris.fr',
-    'wamdenim.com','wamdenim.be','buissonniere.com','lolacasademunt.com']);
+    'wamdenim.com','wamdenim.be','buissonniere.com','lolacasademunt.com','kicks.se','hatstore.se','kidsbrandstore.se','capelstore.fr',
+    'altermundi.com','scalperscompany.com','pedrodelhierro.com','claudiastrater.com','mackintosh.com','joseph-fashion.com','joseph.co.uk',
+    'lapinkids.com','fielmann.cz','fielmann.de','fielmann.com','rcstrasbourg.eu','soccerfanshop.nl','oktshirt.co.uk','kaotikobcn.com','kaotikobcn.eu',
+    'glamcult.com','glamcultstudio.com']);
 }
 function vestra_lead_is_blocked(array $lead): bool {
   $co=(string)($lead['company'] ?? ''); $em=(string)($lead['email'] ?? ''); $ws=(string)($lead['website'] ?? '');
