@@ -103,7 +103,9 @@ if ($cmd === 'stamp') {
     $id = (string)($r['leadId'] ?? ''); $em = strtolower(trim((string)($r['email'] ?? '')));
     if ($id !== '') $byId[$id] = $r; if ($em !== '') $byEmail[$em] = $r;
   }
-  $leads = vestra_leads(); $sent = 0; $bounced = 0; $unsub = 0;
+  $sent = 0; $bounced = 0; $unsub = 0;
+  /* 17 Eki 2026: kilit altında taze listeye (sunucu / Brevo aynı anda damgalıyor); eski sunucu kodunda düz okuma-yazma. */
+  $stampFn = static function (array &$leads) use ($byId, $byEmail, &$sent, &$bounced, &$unsub) {
   foreach ($leads as &$l) {
     $id = (string)($l['id'] ?? ''); $em = strtolower(trim((string)($l['email'] ?? '')));
     $r = $byId[$id] ?? ($em !== '' ? ($byEmail[$em] ?? null) : null);
@@ -126,7 +128,10 @@ if ($cmd === 'stamp') {
     }
   }
   unset($l);
-  if ($sent || $bounced || $unsub) vestra_save_leads($leads);
+  return ($sent || $bounced || $unsub) ? true : false;
+  };
+  if (function_exists('vestra_leads_update')) vestra_leads_update($stampFn);
+  else { $leads = vestra_leads(); if ($stampFn($leads)) vestra_save_leads($leads); }
   echo json_encode(['ok'=>true, 'stamped_sent'=>$sent, 'bounced'=>$bounced, 'unsub'=>$unsub]);
   exit(0);
 }

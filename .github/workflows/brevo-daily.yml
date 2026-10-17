@@ -15,7 +15,8 @@ name: (Zamanlı) Brevo ikinci mektup — günde 150 (2 × 50 + 23:45 tamamlama)
 # atlıyordu; aşağıdaki cron'lar yalnız yedek. "Çift koşu" adımı: son 100 dk içinde başka bir brevo-daily koşusu varsa atlar.
 #
 # 17 Eki 2026 (operatör: "Brevo'dan günde 150 e-mail gitmeli, hak kalırsa 23.45'te tamamlanmalı … hataları en aza
-# indir"): GÜNLÜK SINIR 150 — her parti member_spec "daily=150" taşır; send-outreach bugün (sunucu günü) Brevo'dan
+# indir"): GÜNLÜK SINIR 150 — her parti member_spec "daily=150" taşır (ikinci mektup için dinlenme artık 5 gün,
+# newcoll_min_days=5: sunucunun takip kuralıyla aynı; dükkânın herhangi bir adresine son 5 günde yazıldıysa atlanır); send-outreach bugün (sunucu günü) Brevo'dan
 # gideni sayar ve partiyi kalanla kırpar. 09:12 ve 15:12'de 50'şer, 23:45 gece taraması günün kalanını (150'ye kadar)
 # tamamlar; sınır dolunca parti "gonderildi: 0" yazar ve tarama durur. Kota partiden azsa parti artık küçülür (eskiden
 # bütünüyle reddediliyordu). Seçim artık geri dönmüş adresleri, tahmin listelerini, hedef dışı ve durdurulan ülke
@@ -77,7 +78,7 @@ jobs:
           gh workflow run send-outreach.yml --repo "${{ github.repository }}" --ref claude/wizardly-planck-7ylnmk \
             -f count="${{ github.event.inputs.count || '50' }}" \
             -f dry_run="${{ github.event.inputs.dry_run || 'false' }}" \
-            -f new_collection=true -f newcoll_letter=winter -f min_brands=1 -f newcoll_min_days=2 \
+            -f new_collection=true -f newcoll_letter=winter -f min_brands=1 -f newcoll_min_days=5 \
             -f exclude_countries="United States,Canada,South Korea,Germany,Deutschland" -f quota_reserve=100 -f member_spec="daily=150" \
             -f skip_names="Fielmann,BSTN,CNCPTS,Altermundi,Capel,Kaotiko,Oktshirt,Team Store,targetcenter,Racing Club,Strasbourg,Loretxiki,Fantasía Kids,Lola Jiménez,Mandarina,Black in Black,Piluka,Glamcult,Mackintosh,Joseph,Lyle & Scott,Kicks,Hatstore,Kids Brand Store,Limoneti,Lapin House,Klamöttchen,Petit Ilu,W&G,Shi Cashmere,Kindermode,kids,Scalpers,Pedro del Hierro,Claudia Sträter,Soccerfanshop,Lesage Bridal,Ashley Stewart,Bealls,Tuckernuck,260 Sample Sale,StofShop,Atlas Stoked,Milk,Golf Club"
           echo "Brevo partisi dağıtım dalında başlatıldı (send-outreach.yml, count=${{ github.event.inputs.count || '50' }})."
@@ -109,7 +110,7 @@ jobs:
             since=$(date -u +%Y-%m-%dT%H:%M:%SZ); sleep 2
             gh workflow run send-outreach.yml --repo "$REPO" --ref claude/wizardly-planck-7ylnmk \
               -f count=50 -f dry_run="$DRY" \
-              -f new_collection=true -f newcoll_letter=winter -f min_brands=1 -f newcoll_min_days=2 \
+              -f new_collection=true -f newcoll_letter=winter -f min_brands=1 -f newcoll_min_days=5 \
               -f exclude_countries="United States,Canada,South Korea,Germany,Deutschland" -f quota_reserve=100 -f member_spec="daily=150" -f skip_names="$SKIP" || { echo "parti $n başlatılamadı"; break; }
             # başlattığımız koşuyu bul (bizden sonra yaratılan, bu dalda, workflow_dispatch)
             rid=""
@@ -139,8 +140,14 @@ jobs:
             if [ -z "$sent" ]; then echo "parti $n: kütük okunamadı (sayı bilinmiyor)"; sent=0; known=0; else known=1; echo "parti $n: gönderildi $sent"; fi
             total=$((total + sent))
             case "$st" in completed/success) ;; *) echo "parti $n başarısız/kota bitti — tarama durdu"; break;; esac
-            # sayı biliniyorsa ve parti dolmadıysa uygun lead ya da kota bitmiştir; bilinmiyorsa koşu başarılı olduğu sürece sürer (0 gönderen parti zararsız)
-            [ "$known" = 1 ] && [ "$sent" -lt 50 ] && { echo "parti $n 50'den az gönderdi — uygun lead ya da kota bitti"; break; }
+            # 17 Eki 2026: dur kararı SEÇİLENE göre (gönderilene değil) — taze kontrol bu arada yazılmış 1-2 kaydı atlayınca
+            # 49 gönderen parti "uygun kalmadı" sayılıp günün kalanı boş kalıyordu. Dur: günlük sınır / kota doldu, ya da
+            # parti 50'den az kişi seçti (uygun kayıt bitti). Seçilen okunamazsa eski kural (gönderilen < 50).
+            picked=$(printf '%s' "$logtxt" | grep -a -o 'uygun secilen: [0-9]*' | tail -1 | grep -o '[0-9]*$' || true)
+            if printf '%s' "$logtxt" | grep -a -q -e 'Brevo siniri (.*) doldu' -e 'DURDURULDU'; then echo "parti $n: günlük sınır / kota doldu — tarama bitti"; break; fi
+            if [ -n "$picked" ]; then
+              [ "$picked" -lt 50 ] && { echo "parti $n yalnız $picked seçti — uygun kayıt bitti"; break; }
+            elif [ "$known" = 1 ] && [ "$sent" -lt 50 ]; then echo "parti $n 50'den az gönderdi — uygun lead ya da kota bitti"; break; fi
           done
           echo "GECE TARAMASI BİTTİ · toplam gönderildi: $total"
           echo "### Brevo gece taraması · toplam gönderildi: $total" >> "$GITHUB_STEP_SUMMARY"

@@ -36,7 +36,9 @@ function vws_domain(string $u): string {
   return (string)preg_replace('/^www\d*\./', '', $h);
 }
 
-$leads = vestra_leads();
+/* Kütük herkese açık iş akışına düşer (find-customers.yml | tee): adres MASKELİ basılır (17 Eki 2026). */
+$vwsMask = static function (string $e): string { $p = strpos($e, '@'); return $p === false ? '***' : substr($e, 0, 1).'***'.substr($e, $p); };
+$leads = vestra_leads(); $newRows = [];
 $byMail = []; $byDom = [];
 foreach ($leads as $l) {
   $e = strtolower(trim((string)($l['email'] ?? '')));   if ($e !== '') $byMail[$e] = true;
@@ -48,7 +50,7 @@ foreach ($in as $r) {
   if (!is_array($r)) continue;
   $email = function_exists('vestra_email_clean') ? vestra_email_clean((string)($r['email'] ?? '')) : strtolower(trim((string)($r['email'] ?? '')));
   if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { $bad++; continue; }
-  if (function_exists('vestra_email_is_junk') && vestra_email_is_junk($email)) { $junk++; echo "  ~ junk adres atlandi: {$email}\n"; continue; }
+  if (function_exists('vestra_email_is_junk') && vestra_email_is_junk($email)) { $junk++; echo "  ~ junk adres atlandi: ".$vwsMask($email)."\n"; continue; }
   if (function_exists('vestra_mailbox_dns_status') && vestra_mailbox_dns_status(substr((string)strrchr($email, '@'), 1)) === 'dead') {
     $dead++; echo "  - e-posta sunucusu yok (kapali alan adi), eklenmedi: ".substr((string)strrchr($email, '@'), 1)."\n"; continue;
   }
@@ -60,7 +62,7 @@ foreach ($in as $r) {
   $probe = ['company'=>$company, 'email'=>$email, 'website'=>$website];
   if ((function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($probe))
       || (function_exists('vestra_name_is_parked_domain') && vestra_name_is_parked_domain($company))) {
-    $blocked++; echo "  x KURAL 1 / park: {$company} <{$email}>\n"; continue;
+    $blocked++; echo "  x KURAL 1 / park: {$company} <".$vwsMask($email).">\n"; continue;
   }
 
   $pb = array_values(array_filter(array_map('strval', (array)($r['premium_brands'] ?? []))));
@@ -68,7 +70,7 @@ foreach ($in as $r) {
   if (!empty($r['query']))  $notes .= ' · sorgu: '.mb_substr((string)$r['query'], 0, 80);
   if (!empty($r['alt_emails']) && is_array($r['alt_emails'])) $notes .= ' · alt: '.implode(', ', array_map('strval', $r['alt_emails']));
 
-  $leads[] = [
+  $leads[] = $newRows[] = [
     'id'=>'LD'.strtoupper(bin2hex(random_bytes(4))), 'added_at'=>date('c'), 'owner_uid'=>$owner,
     'company'=>$company, 'contact_name'=>'',
     'email'=>$email, 'country'=>trim((string)($r['country'] ?? '')),
@@ -79,13 +81,21 @@ foreach ($in as $r) {
   ];
   $byMail[$email] = true; if ($d !== '') $byDom[$d] = true;
   $added++;
-  echo "  + {$company} <{$email}> | ".((string)($r['country'] ?? '') ?: '-')." | ".implode(', ', array_slice($pb, 0, 4))."\n";
+  echo "  + {$company} <".$vwsMask($email)."> | ".((string)($r['country'] ?? '') ?: '-')." | ".implode(', ', array_slice($pb, 0, 4))."\n";
 }
 
 if ($added > 0) {
   $lf = vestra_data_dir()."/leads.json";
   if (is_readable($lf)) @copy($lf, $lf.".bak-ws-".date("Ymd_His"));
-  vestra_save_leads($leads);
+  /* 17 Eki 2026: yalnız YENİ satırlar, kilit altında TAZE listeye eklenir (sunucunun gönderim damgaları ve geri dönme
+     işaretleri bu arada yazılmış olabilir; eski kopyanın tamamını geri yazmak onları silerdi). */
+  if (function_exists('vestra_leads_update')) {
+    vestra_leads_update(static function (array &$L) use ($newRows) {
+      $have = []; foreach ($L as $x) { $e = strtolower(trim((string)($x['email'] ?? ''))); if ($e !== '') $have[$e] = true; }
+      foreach ($newRows as $r) if (!isset($have[strtolower((string)$r['email'])])) $L[] = $r;
+      return true;
+    });
+  } else vestra_save_leads($leads);
 }
 
 if ($sfile !== '' && is_readable($sfile)) {
