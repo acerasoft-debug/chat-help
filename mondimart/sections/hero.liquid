@@ -1,0 +1,223 @@
+{%- comment -%}
+  MONDIMART PREMIUM HERO
+  Replaces the original sections/hero.liquid
+  Schema setting IDs are preserved — user's existing customizer values
+  (image, badge, title, description, buttons, stats) carry over unchanged.
+{%- endcomment -%}
+
+<style>
+  .mmh {
+    --mmh-green-900: #142d1d;
+    --mmh-green-800: #1A3C1A;
+    --mmh-gold: #d4a64a;
+    --mmh-gold-soft: #e8c97a;
+    --mmh-cream: #f5efe3;
+    position: relative;
+    min-height: 540px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 40px 24px;
+    color: var(--mmh-cream);
+    overflow: hidden;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  @media (min-width: 768px) {
+    .mmh { min-height: 580px; padding: 60px 8vw; }
+  }
+  .mmh-bg { position: absolute; inset: 0; z-index: 0; }
+  .mmh-bg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mmh::before {
+    content: ''; position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(180deg,
+      rgba(20, 45, 29, 0.78) 0%,
+      rgba(20, 45, 29, 0.68) 45%,
+      rgba(20, 45, 29, 0.88) 100%);
+  }
+  .mmh::after {
+    content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background:
+      radial-gradient(circle at 18% 28%, rgba(212, 166, 74, 0.14), transparent 55%),
+      radial-gradient(circle at 82% 72%, rgba(74, 140, 63, 0.18), transparent 55%);
+  }
+  .mmh-inner { position: relative; z-index: 3; max-width: 720px; width: 100%; }
+  .mmh-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--mmh-gold);
+    background: rgba(212, 166, 74, 0.08);
+    padding: 8px 16px; border-radius: 999px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    color: var(--mmh-gold-soft); margin-bottom: 18px;
+    width: fit-content; text-transform: uppercase;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    opacity: 0; animation: mmh-fadeUp 0.65s ease 0.1s forwards;
+  }
+  .mmh-pulse {
+    width: 6px; height: 6px; background: var(--mmh-gold);
+    border-radius: 50%; animation: mmh-pulse 2s infinite;
+  }
+  @keyframes mmh-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(212, 166, 74, 0.6); }
+    70% { box-shadow: 0 0 0 8px rgba(212, 166, 74, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(212, 166, 74, 0); }
+  }
+  .mmh-title {
+    font-family: 'Fraunces', 'Playfair Display', Georgia, serif;
+    font-weight: 500; font-size: clamp(38px, 9vw, 64px);
+    line-height: 1.04; letter-spacing: -0.02em;
+    margin: 0 0 18px; color: var(--mmh-cream);
+    opacity: 0; animation: mmh-fadeUp 0.75s ease 0.2s forwards;
+  }
+  .mmh-title em { font-style: italic; font-weight: 400; color: var(--mmh-gold-soft); }
+  .mmh-desc {
+    font-size: clamp(14px, 1.6vw, 16px); line-height: 1.55;
+    color: rgba(245, 239, 227, 0.85);
+    margin: 0 0 26px; max-width: 540px;
+    opacity: 0; animation: mmh-fadeUp 0.75s ease 0.3s forwards;
+  }
+  .mmh-cta {
+    display: flex; gap: 10px; margin-bottom: 32px; flex-wrap: wrap;
+    opacity: 0; animation: mmh-fadeUp 0.75s ease 0.4s forwards;
+  }
+  .mmh-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px; padding: 14px 22px; border-radius: 12px;
+    font-size: 14px; font-weight: 600; text-decoration: none;
+    border: none; cursor: pointer; font-family: inherit;
+    transition: all 0.25s cubic-bezier(.4,0,.2,1);
+  }
+  .mmh-btn-primary {
+    background: var(--mmh-gold); color: var(--mmh-green-900);
+    box-shadow: 0 4px 20px rgba(212, 166, 74, 0.3);
+  }
+  .mmh-btn-primary:hover {
+    background: var(--mmh-gold-soft); transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(212, 166, 74, 0.42);
+  }
+  .mmh-btn-ghost {
+    background: rgba(255,255,255,0.06); color: var(--mmh-cream);
+    border: 1px solid rgba(245, 239, 227, 0.3);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  .mmh-btn-ghost:hover {
+    border-color: var(--mmh-gold); color: var(--mmh-gold-soft);
+    background: rgba(212, 166, 74, 0.12);
+  }
+  .mmh-btn svg {
+    width: 16px; height: 16px; fill: none; stroke: currentColor;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .mmh-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    padding-top: 24px; border-top: 1px solid rgba(212, 166, 74, 0.22);
+    opacity: 0; animation: mmh-fadeUp 0.75s ease 0.5s forwards;
+  }
+  @media (max-width: 480px) { .mmh-stats { gap: 10px; } }
+  .mmh-stat-num {
+    font-family: 'Fraunces', 'Playfair Display', Georgia, serif;
+    font-weight: 600; font-size: clamp(18px, 5vw, 26px);
+    color: var(--mmh-gold-soft); letter-spacing: -0.02em; line-height: 1.1;
+  }
+  .mmh-stat-label {
+    font-size: 9px; letter-spacing: 0.12em;
+    color: rgba(245, 239, 227, 0.6); text-transform: uppercase;
+    font-weight: 600; margin-top: 4px;
+  }
+  @keyframes mmh-fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+<section class="mmh">
+  <div class="mmh-bg">
+    {% if section.settings.image %}
+      <img src="{{ section.settings.image | image_url: width: 1600 }}" alt="{{ section.settings.title | escape }}" loading="eager">
+    {% else %}
+      <img src="https://images.unsplash.com/photo-1596797038530-2c107229654b?w=1600&q=85" alt="Épices du monde">
+    {% endif %}
+  </div>
+
+  <div class="mmh-inner">
+    {% if section.settings.badge != blank %}
+      <div class="mmh-pill"><span class="mmh-pulse"></span>{{ section.settings.badge }}</div>
+    {% endif %}
+
+    {%- assign t = section.settings.title | default: 'Le monde dans votre assiette' -%}
+    <h1 class="mmh-title">
+      {%- if t contains ' dans votre ' -%}
+        {%- assign parts = t | split: ' dans votre ' -%}
+        {{ parts[0] }}<br><em>dans votre</em> {{ parts[1] }}
+      {%- else -%}
+        {{ t }}
+      {%- endif -%}
+    </h1>
+
+    {% if section.settings.description != blank %}
+      <p class="mmh-desc">{{ section.settings.description }}</p>
+    {% endif %}
+
+    <div class="mmh-cta">
+      {% if section.settings.btn1_label != blank %}
+        <a class="mmh-btn mmh-btn-primary" href="{{ section.settings.btn1_url }}">
+          {{ section.settings.btn1_label | replace: '→', '' | strip }}
+          <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+        </a>
+      {% endif %}
+      {% if section.settings.btn2_label != blank %}
+        <a class="mmh-btn mmh-btn-ghost" href="{{ section.settings.btn2_url }}">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          {{ section.settings.btn2_label | replace: '🔥', '' | strip }}
+        </a>
+      {% endif %}
+    </div>
+
+    {% if section.blocks.size > 0 %}
+      <div class="mmh-stats">
+        {% for block in section.blocks %}
+          <div>
+            <div class="mmh-stat-num">{{ block.settings.value }}</div>
+            <div class="mmh-stat-label">{{ block.settings.label }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Hero",
+  "settings": [
+    { "type": "image_picker", "id": "image", "label": "Image de fond" },
+    { "type": "text", "id": "badge", "label": "Badge", "default": "Supermarché Mondial · Paris · Livraison 24h" },
+    { "type": "textarea", "id": "title", "label": "Titre (italique pour 'dans votre')", "default": "Le monde dans votre assiette" },
+    { "type": "textarea", "id": "description", "label": "Description", "default": "+10 000 produits authentiques de 10 cuisines du monde. Épicerie, boucherie halal, hygiène. Livraison Express 24h partout en France." },
+    { "type": "text", "id": "btn1_label", "label": "Bouton 1 texte", "default": "Nos produits" },
+    { "type": "url", "id": "btn1_url", "label": "Bouton 1 lien" },
+    { "type": "text", "id": "btn2_label", "label": "Bouton 2 texte", "default": "Promotions" },
+    { "type": "url", "id": "btn2_url", "label": "Bouton 2 lien" }
+  ],
+  "blocks": [
+    {
+      "type": "stat",
+      "name": "Statistique",
+      "settings": [
+        { "type": "text", "id": "value", "label": "Valeur", "default": "+10 000" },
+        { "type": "text", "id": "label", "label": "Label", "default": "Produits" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Hero principal",
+      "blocks": [
+        { "type": "stat", "settings": { "value": "+10 000", "label": "Produits" } },
+        { "type": "stat", "settings": { "value": "10", "label": "Cuisines" } },
+        { "type": "stat", "settings": { "value": "24h", "label": "Livraison" } },
+        { "type": "stat", "settings": { "value": "100%", "label": "Halal" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

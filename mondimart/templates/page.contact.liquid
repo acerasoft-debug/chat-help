@@ -1,0 +1,191 @@
+<style>
+.contact-page { max-width: 980px; margin: 0 auto; padding: 52px 24px 80px; }
+.contact-hero { text-align: center; margin-bottom: 52px; }
+.contact-hero h1 { font-family: 'Playfair Display', serif; font-size: 40px; font-weight: 700; color: var(--td); margin-bottom: 12px; }
+.contact-hero p { font-size: 16px; color: var(--tl); max-width: 520px; margin: 0 auto; line-height: 1.7; }
+
+.contact-layout { display: grid; grid-template-columns: 1fr 380px; gap: 32px; align-items: start; }
+
+/* FORM */
+.contact-form-wrap { background: #fff; border: 1px solid var(--bo); border-radius: 20px; padding: 36px; }
+.contact-form-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: var(--td); margin-bottom: 24px; }
+.cf-field { margin-bottom: 18px; }
+.cf-label { display: block; font-size: 13px; font-weight: 600; color: var(--tm); margin-bottom: 7px; }
+.cf-label span { color: var(--rp); }
+.cf-input { width: 100%; height: 48px; padding: 0 16px; border: 1.5px solid var(--bo); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color .2s, box-shadow .2s; }
+.cf-input:focus { border-color: var(--gl); box-shadow: 0 0 0 3px rgba(74,140,63,.1); }
+.cf-select { width: 100%; height: 48px; padding: 0 16px; border: 1.5px solid var(--bo); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color .2s; background: #fff; cursor: pointer; }
+.cf-select:focus { border-color: var(--gl); }
+.cf-textarea { width: 100%; padding: 14px 16px; border: 1.5px solid var(--bo); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; resize: vertical; min-height: 130px; transition: border-color .2s; line-height: 1.6; }
+.cf-textarea:focus { border-color: var(--gl); box-shadow: 0 0 0 3px rgba(74,140,63,.1); }
+.cf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cf-submit { width: 100%; height: 52px; background: var(--gd); color: #fff; border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .2s, transform .1s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.cf-submit:hover { background: var(--gm); }
+.cf-submit:active { transform: scale(.99); }
+.cf-success { background: #E8F5E3; border: 1px solid #A8D8A0; color: #2D6A2D; padding: 16px; border-radius: 10px; font-size: 14px; font-weight: 600; margin-bottom: 20px; display: none; }
+
+/* SIDEBAR */
+.contact-sidebar { display: flex; flex-direction: column; gap: 16px; }
+.contact-info-card { background: #fff; border: 1px solid var(--bo); border-radius: 16px; padding: 24px; }
+.contact-info-title { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; color: var(--td); margin-bottom: 18px; }
+.contact-info-item { display: flex; gap: 14px; margin-bottom: 16px; align-items: flex-start; }
+.contact-info-item:last-child { margin-bottom: 0; }
+.contact-info-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.contact-info-icon svg { width: 18px; height: 18px; }
+.contact-info-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--tl); margin-bottom: 3px; }
+.contact-info-val { font-size: 14px; font-weight: 600; color: var(--td); }
+.contact-info-val a { color: var(--gl); text-decoration: none; }
+.contact-info-val a:hover { text-decoration: underline; }
+
+.contact-hours { background: var(--cr); border: 1px solid var(--bo); border-radius: 16px; padding: 22px; }
+.contact-hours h4 { font-size: 14px; font-weight: 700; color: var(--td); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.contact-hours-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--tm); margin-bottom: 8px; }
+.contact-hours-row:last-child { margin-bottom: 0; }
+.contact-hours-row.today { font-weight: 700; color: var(--gd); }
+.contact-hours span:last-child { font-weight: 600; }
+
+.contact-social { background: var(--gd); border-radius: 16px; padding: 22px; }
+.contact-social h4 { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 14px; }
+.contact-social-links { display: flex; gap: 10px; flex-wrap: wrap; }
+.contact-social-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 10px; color: rgba(255,255,255,.9); font-size: 13px; font-weight: 600; text-decoration: none; transition: background .2s; }
+.contact-social-btn:hover { background: rgba(255,255,255,.22); }
+
+@media(max-width: 768px) {
+  .contact-layout { grid-template-columns: 1fr; }
+  .cf-row { grid-template-columns: 1fr; gap: 0; }
+  .contact-hero h1 { font-size: 28px; }
+  .contact-form-wrap { padding: 24px 18px; }
+  .contact-page { padding: 32px 16px 60px; }
+}
+</style>
+
+<div class="contact-page">
+  <div class="contact-hero">
+    <h1>Contactez-nous</h1>
+    <p>Une question, une suggestion ou besoin d'aide ? Notre équipe vous répond sous 24h, du lundi au samedi.</p>
+  </div>
+
+  <div class="contact-layout">
+
+    <!-- FORM -->
+    <div class="contact-form-wrap">
+      <div class="contact-form-title">✉️ Envoyer un message</div>
+
+      {% if form.posted_successfully? %}
+        <div class="cf-success" style="display:block">✓ Votre message a été envoyé ! Nous vous répondrons dans les 24h.</div>
+      {% endif %}
+
+      {% form 'contact' %}
+        {% if form.errors %}
+          <div style="background:#FDEDEC;color:#A93226;padding:12px 16px;border-radius:10px;margin-bottom:18px;font-size:13px;border:1px solid #F5C6C6">{{ form.errors | default_errors }}</div>
+        {% endif %}
+
+        <div class="cf-row">
+          <div class="cf-field">
+            <label class="cf-label" for="cf-name">Prénom & Nom <span>*</span></label>
+            <input class="cf-input" type="text" id="cf-name" name="contact[name]" value="{{ form.name }}" placeholder="Marie Dupont" required autocomplete="name">
+          </div>
+          <div class="cf-field">
+            <label class="cf-label" for="cf-email">Email <span>*</span></label>
+            <input class="cf-input" type="email" id="cf-email" name="contact[email]" value="{{ form.email }}" placeholder="votre@email.com" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="cf-field">
+          <label class="cf-label" for="cf-phone">Téléphone</label>
+          <input class="cf-input" type="tel" id="cf-phone" name="contact[phone]" placeholder="+33 6 00 00 00 00" autocomplete="tel">
+        </div>
+
+        <div class="cf-field">
+          <label class="cf-label" for="cf-subject">Sujet <span>*</span></label>
+          <select class="cf-select" id="cf-subject" name="contact[subject]" required>
+            <option value="">Choisir un sujet...</option>
+            <option value="Commande">📦 Ma commande</option>
+            <option value="Livraison">🚚 Livraison & Suivi</option>
+            <option value="Produit">🥗 Question produit</option>
+            <option value="Retour">↩️ Retour & Remboursement</option>
+            <option value="Halal">✅ Certification Halal</option>
+            <option value="Professionnel">🏢 Commande professionnelle</option>
+            <option value="Autre">💬 Autre</option>
+          </select>
+        </div>
+
+        <div class="cf-field">
+          <label class="cf-label" for="cf-order">Numéro de commande (si applicable)</label>
+          <input class="cf-input" type="text" id="cf-order" name="contact[order_number]" placeholder="#1001">
+        </div>
+
+        <div class="cf-field">
+          <label class="cf-label" for="cf-message">Message <span>*</span></label>
+          <textarea class="cf-textarea" id="cf-message" name="contact[body]" placeholder="Décrivez votre demande en détail..." required>{{ form.body }}</textarea>
+        </div>
+
+        <button type="submit" class="cf-submit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          Envoyer le message
+        </button>
+      {% endform %}
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="contact-sidebar">
+
+      <div class="contact-info-card">
+        <div class="contact-info-title">📞 Informations de contact</div>
+        <div class="contact-info-item">
+          <div class="contact-info-icon" style="background:#E8F5E3">
+            <svg viewBox="0 0 24 24" fill="#2D6A2D"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+          <div>
+            <div class="contact-info-lbl">Email</div>
+            <div class="contact-info-val"><a href="mailto:contact@mondimart.fr">contact@mondimart.fr</a></div>
+          </div>
+        </div>
+        <div class="contact-info-item">
+          <div class="contact-info-icon" style="background:#EAF4FB">
+            <svg viewBox="0 0 24 24" fill="#2471A3"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          </div>
+          <div>
+            <div class="contact-info-lbl">Boutique Paris</div>
+            <div class="contact-info-val">Paris, France</div>
+          </div>
+        </div>
+        <div class="contact-info-item">
+          <div class="contact-info-icon" style="background:#FEF9E7">
+            <svg viewBox="0 0 24 24" fill="#B8860B"><path d="M11.5 2C6.81 2 3 5.81 3 10.5S6.81 19 11.5 19h.5v3c4.86-2.34 8-7 8-11.5C20 5.81 16.19 2 11.5 2zm1 14.5h-2v-2h2v2zm0-4h-2c0-3.25 3-3 3-5 0-1.1-.9-2-2-2s-2 .9-2 2h-2c0-2.21 1.79-4 4-4s4 1.79 4 4c0 2.5-3 2.75-3 5z"/></svg>
+          </div>
+          <div>
+            <div class="contact-info-lbl">Délai de réponse</div>
+            <div class="contact-info-val">Sous 24h ouvrées</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-hours">
+        <h4>🕐 Horaires du service client</h4>
+        <div class="contact-hours-row"><span>Lundi – Vendredi</span><span>9h – 18h</span></div>
+        <div class="contact-hours-row"><span>Samedi</span><span>10h – 16h</span></div>
+        <div class="contact-hours-row"><span>Dimanche</span><span style="color:var(--rp)">Fermé</span></div>
+      </div>
+
+      <div class="contact-social">
+        <h4>Retrouvez-nous</h4>
+        <div class="contact-social-links">
+          <a href="#" class="contact-social-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            Facebook
+          </a>
+          <a href="#" class="contact-social-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+            Instagram
+          </a>
+          <a href="#" class="contact-social-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+            WhatsApp
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -1,0 +1,103 @@
+<div style="max-width:var(--lw,1440px);margin:0 auto">
+
+  <!-- Blog Header -->
+  <div style="background:var(--gd);padding:36px 20px 28px">
+    <div style="font-size:11px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px">Blog</div>
+    <h1 style="font-family:'Playfair Display',serif;font-size:30px;font-weight:700;color:#fff;margin-bottom:6px">{{ blog.title }}</h1>
+    <p style="font-size:14px;color:rgba(255,255,255,.65)">Recettes authentiques, conseils et inspirations du monde entier</p>
+  </div>
+
+  <!-- Articles Grid -->
+  <div style="padding:28px 16px">
+    <div class="blog-grid">
+      {% for article in blog.articles %}
+        <a href="{{ article.url }}" style="background:#fff;border:1px solid #DDD8CC;border-radius:16px;overflow:hidden;display:block;text-decoration:none;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+
+          <!-- Image -->
+          <div style="aspect-ratio:4/3;overflow:hidden;background:#F8F4EC;position:relative">
+            {% if article.image %}
+              <img src="{{ article.image | image_url: width: 600 }}" alt="{{ article.title }}" loading="lazy"
+                   style="width:100%;height:100%;object-fit:cover;transition:transform .4s">
+            {% else %}
+              <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:48px;background:var(--cr)">🍽️</div>
+            {% endif %}
+            <!-- Date badge -->
+            <div style="position:absolute;top:12px;left:12px;background:rgba(26,60,26,.85);color:#A8D8A0;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;backdrop-filter:blur(4px)">
+              {{ article.published_at | date: '%d %b %Y' }}
+            </div>
+          </div>
+
+          <!-- Info -->
+          <div style="padding:14px 16px 18px">
+            <!-- Max 2 tags -->
+            {% if article.tags.size > 0 %}
+              <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">
+                {% for tag in article.tags limit: 2 %}
+                  <span style="font-size:10px;font-weight:700;color:#4A8C3F;background:#E8F2E3;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px">{{ tag }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <h2 style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#1C1C1C;line-height:1.35;margin-bottom:8px">
+              {{ article.title }}
+            </h2>
+
+            {% if article.excerpt != blank %}
+              <p style="font-size:13px;color:#7A7A7A;line-height:1.6;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+                {{ article.excerpt | strip_html }}
+              </p>
+            {% endif %}
+
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:12px;color:#aaa">{{ article.author }}</span>
+              <span style="font-size:12px;font-weight:700;color:#4A8C3F;display:flex;align-items:center;gap:4px">
+                Lire →
+              </span>
+            </div>
+          </div>
+        </a>
+      {% else %}
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#7A7A7A">
+          <div style="font-size:48px;margin-bottom:12px">📖</div>
+          <p style="font-size:16px">Aucun article pour le moment.</p>
+          <p style="font-size:13px;margin-top:6px">Revenez bientôt pour des recettes du monde entier !</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if paginate.pages > 1 %}
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:36px;flex-wrap:wrap">
+        {% if paginate.previous %}
+          <a href="{{ paginate.previous.url }}" style="padding:9px 18px;border:1.5px solid #DDD8CC;border-radius:8px;font-size:13px;color:#4A4A4A;text-decoration:none">← Précédent</a>
+        {% endif %}
+        {% for part in paginate.parts %}
+          {% if part.is_link %}
+            <a href="{{ part.url }}" style="padding:9px 14px;border:1.5px solid #DDD8CC;border-radius:8px;font-size:13px;color:#4A4A4A;text-decoration:none">{{ part.title }}</a>
+          {% elsif part.title == paginate.current_page %}
+            <span style="padding:9px 14px;background:#4A8C3F;border:1.5px solid #4A8C3F;border-radius:8px;font-size:13px;color:#fff">{{ part.title }}</span>
+          {% else %}
+            <span style="padding:9px 14px;font-size:13px;color:#7A7A7A">{{ part.title }}</span>
+          {% endif %}
+        {% endfor %}
+        {% if paginate.next %}
+          <a href="{{ paginate.next.url }}" style="padding:9px 18px;border:1.5px solid #DDD8CC;border-radius:8px;font-size:13px;color:#4A4A4A;text-decoration:none">Suivant →</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 768px) {
+  .blog-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+@media (max-width: 400px) {
+  .blog-grid { grid-template-columns: 1fr; }
+}
+</style>

@@ -1,0 +1,5 @@
+{
+  "general": { "meta": { "page": "Страница" } },
+  "products": { "add_to_cart": "В корзину", "sold_out": "Нет в наличии", "unavailable": "Недоступно", "from": "От" },
+  "cart": { "title": "Корзина", "empty": "Ваша корзина пуста", "checkout": "Оформить заказ", "subtotal": "Подытог", "total": "Итого", "shipping": "Доставка" }
+}

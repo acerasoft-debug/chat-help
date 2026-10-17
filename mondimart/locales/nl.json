@@ -1,0 +1,5 @@
+{
+  "general": { "meta": { "page": "Pagina" } },
+  "products": { "add_to_cart": "In winkelwagen", "sold_out": "Uitverkocht", "unavailable": "Niet beschikbaar", "from": "Vanaf" },
+  "cart": { "title": "Winkelwagen", "empty": "Uw winkelwagen is leeg", "checkout": "Afrekenen", "subtotal": "Subtotaal", "total": "Totaal", "shipping": "Verzending" }
+}
