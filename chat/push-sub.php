@@ -38,12 +38,11 @@ if(isset($_GET['resub'])){
     $old=trim((string)($b['old_endpoint'] ?? '')); $sub=is_array($b['subscription'] ?? null) ? $b['subscription'] : null;
     if($old==='' || !$sub) th_json(422,['error'=>'subscription_required','message'=>'Altes und neues Abo werden benötigt.']);
     if(!push_endpoint_sendable($old)) th_json(422,['error'=>'endpoint_invalid']);
-    $oldAuth=trim((string)($b['old_auth'] ?? ''));
-    if($oldAuth!==''){   // wenn der Browser das alte Auth-Secret kennt, muss es zum gespeicherten Abo passen
-        $s=th_db()->prepare("SELECT auth FROM push_devices WHERE raw_hash=? AND type='webpush'"); $s->execute([hash('sha256',$old)]); $auths=$s->fetchAll(PDO::FETCH_COLUMN);
-        $match=false; foreach($auths as $a){ $x=push_b64u_dec((string)$a); $y=push_b64u_dec($oldAuth); if($x!==null && $y!==null && hash_equals($x,$y)) $match=true; }
-        if($auths && !$match) th_json(403,['error'=>'auth_mismatch']);
-    }
+    /* Nachweis Pflicht: nur wer das Auth-Secret des alten Abos kennt (der Browser selbst), darf es umziehen – sonst könnte jeder mit der Endpoint-URL fremde Geräte kapern */
+    $oldAuth=trim((string)($b['old_auth'] ?? '')); if($oldAuth==='') th_json(403,['error'=>'auth_required','message'=>'Ohne Nachweis des alten Abos ist kein Umzug möglich – bitte neu anmelden.']);
+    $s=th_db()->prepare("SELECT auth FROM push_devices WHERE raw_hash=? AND type='webpush'"); $s->execute([hash('sha256',$old)]); $auths=$s->fetchAll(PDO::FETCH_COLUMN);
+    $match=false; foreach($auths as $a){ $x=push_b64u_dec((string)$a); $y=push_b64u_dec($oldAuth); if($x!==null && $y!==null && hash_equals($x,$y)) $match=true; }
+    if(!$auths || !$match) th_json(403,['error'=>'auth_mismatch']);
     $parsed=push_parse_subscription(['type'=>'webpush','subscription'=>$sub]); if(isset($parsed['error'])) th_json(422,$parsed);
     th_json(200,['ok'=>true,'moved'=>push_resubscribe($old,$sub)]);
 }

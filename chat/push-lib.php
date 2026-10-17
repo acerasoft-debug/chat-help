@@ -556,7 +556,7 @@ function ch_push(int $acc, string $event, string $title, string $body, string $u
         if($scope==='owner') $pl['badge']=push_unread($acc);
         /* E-Mail: email=true erzwingt, email=false verbietet; sonst nur mit E-Mail-Ersatz an – kritische Ereignisse immer, andere nur ohne erreichtes Gerät und außerhalb der Ruhezeiten */
         $email=$opt['email'] ?? null;
-        $mailPossible=$scope==='owner' && $email!==false && ($email===true || ($eventOn && $prefs['email_fallback'] && ($meta['critical'] || !$quiet)));
+        $mailPossible=$scope==='owner' && $email!==false && ($email===true || ($eventOn && $prefs['email_fallback'] && !$quiet));   // Ruhezeit: auch keine E-Mail (Postfach bleibt)
         if(!$devices && !$mailPossible) return false;
         $job=function() use($acc,$event,$meta,$devices,$pl,$ttl,$email,$mailPossible,$tag,$title,$body,$url): bool {
             $delivered=0;

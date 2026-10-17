@@ -121,7 +121,7 @@ async function showPush(p) {
     data: { url: safeUrl(p.url), event: p.event, id: p.id, tag: p.tag },
     actions: [{ action: 'open', title: 'Öffnen' }]
   };
-  if (tag) { opts.tag = tag; opts.renotify = urgent; }   // renotify ist nur mit tag erlaubt
+  if (tag) { opts.tag = tag; opts.renotify = true; }   // mit tag immer erneut melden – sonst ersetzt die zweite Meldung die erste lautlos
   if (!p.silent) opts.vibrate = urgent ? [260, 120, 260, 120, 520] : [180, 90, 180];
   try {
     await self.registration.showNotification(p.title, opts);
@@ -236,7 +236,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
       try { sub = await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(key) }); } catch (e) { return; }
     }
     const json = sub.toJSON ? sub.toJSON() : sub;
-    if (oldEndpoint && oldEndpoint !== json.endpoint) {
+    if (oldEndpoint && oldAuth && oldEndpoint !== json.endpoint) {   // ohne bekanntes Auth-Secret kein Umzug – die App meldet das Gerät dann neu an
       try {
         await fetch('/chat/push-sub.php?resub=1', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',

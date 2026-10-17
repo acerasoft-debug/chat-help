@@ -6,7 +6,7 @@
 (function () {
   'use strict';
   var PANEL = 'panel-benachrichtigungen';
-  var BRIDGE = '/chat/app-bridge.js?v=2026-10-17.1';
+  var BRIDGE = (window.CH_BRIDGE_SRC || '/chat/app-bridge.js?v=2026-10-17.1');   // studio.php setzt den versionierten Pfad (Cache)
   var CFG = null, ITEMS = [], MAXID = 0, MORE = false, FILTER = 'all', UNREAD = 0, HASH = '', STATE = '', TEST = {};
   var timer = null, saveT = null, bridgeP = null, bound = false, polling = false;
   var g = function (id) { return document.getElementById(id); };
