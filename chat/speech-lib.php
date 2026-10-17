@@ -285,7 +285,8 @@ function ch_speech_codes(string $s, array &$P): string {
 function ch_speech_de(string $s, array &$P): string {
     $D=CH_SPEECH_DAYS; $wd='(Mo|Di|Mi|Do|Fr|Sa|So)'; $months=implode('|',CH_SPEECH_MONTHS);
     /* feste Wendungen */
-    $s=strtr($s,['24/7'=>'rund um die Uhr','m/w/d'=>'männlich, weiblich, divers','HU/AU'=>'HU und AU','und/oder'=>'oder']);
+    $s=strtr($s,['24/7'=>'rund um die Uhr','m/w/d'=>'männlich, weiblich, divers','HU/AU'=>'HU und AU','und/oder'=>'oder',
+        'Köln/Bonn'=>'Köln Bonn','Frankfurt/Main'=>'Frankfurt am Main','Frankfurt/M.'=>'Frankfurt am Main','Frankfurt/Oder'=>'Frankfurt an der Oder','Halle/Saale'=>'Halle an der Saale','Mülheim/Ruhr'=>'Mülheim an der Ruhr','Freiburg/Breisgau'=>'Freiburg im Breisgau']);
     $s=ch_speech_R('/kWh\s?\/\s?\(?\s?m²\s?a\s?\)?/u','Kilowattstunden pro Quadratmeter und Jahr',$s);
     /* Zeiteinheiten mit Zahl (Einzahl/Mehrzahl) */
     $s=ch_speech_rx($s,'/(?<![\p{L}\p{N}])(\d+(?:,\d+)?|eine|einer|ein)\s?(Std|Min|min|Sek|h)\b(\.)?(?![\p{L}])/u', function($m,$a){
@@ -328,6 +329,11 @@ function ch_speech_de(string $s, array &$P): string {
     $one=function($m) use(&$P){ return (int)$m[1]>24 ? $m[0] : ch_speech_p($P, ch_speech_time((int)$m[1],(int)$m[2])); };
     $s=ch_speech_RC('/(?<![\p{N}:.,])(\d{1,2}):([0-5]\d)(?:\s?Uhr\b)?(?![\p{N}:])/u',$one,$s);
     $s=ch_speech_RC('/(?<![\p{N}:.,])(\d{1,2})\.([0-5]\d)\s?Uhr\b/u',$one,$s);
+    /* Kunden-, Vertrags-, Bestell- und Aktennummern nicht als große Zahl sprechen: "Kundennummer 4402187" → "4, 40, 21, 87", "Bestellung 4711" → "47, 11" */
+    $s=ch_speech_RC('/\b((?:Kunden|Mandanten|Vertrags|Versicherungs|Bestell|Rechnungs|Auftrags|Vorgangs|Buchungs|Ticket|Zähler|Mitglieds|Personal|Fall|Objekt|Fahrzeug|Referenz)nummer|Kunden-Nr\.?|Nummer|Nr\.|Auftrag|Bestellung|Rechnung|Aktenzeichen|Code|Fahrcode|Buchungscode)(\s+)(\d{4,12})(?![\p{N}.,:\/-]\d|[\p{L}\x{E100}-\x{F8FF}])/u',
+        function($m) use(&$P){
+            if(strlen($m[3])===4 && preg_match('/^(?:19|20)\d\d$/',$m[3]) && in_array($m[1],['Rechnung','Bestellung','Auftrag','Nummer'],true)) return $m[0];   // „die Rechnung 2025“ = Jahr
+            return $m[1].$m[2].ch_speech_p($P,ch_speech_pairs($m[3])); }, $s);
     /* Nummern mit Bindestrich: "2026-0142" → "2026 Strich 0 1 4 2", Jahresspanne "2025-2026" → "2025 bis 2026" */
     $s=ch_speech_RC('/(?<![\p{L}\p{N}\x{E100}-\x{F8FF}.,-])(\d{3,4})-(\d{2,6})(?![\p{N}-])/u', function($m) use(&$P){
         $y1=preg_match('/^(?:19|20)\d\d$/',$m[1]); $y2=preg_match('/^(?:19|20)\d\d$/',$m[2]);
@@ -437,7 +443,7 @@ function ch_speech_split(string $s, array $P): array {
     if(preg_match_all('/[.!?…]+(?=\s|$)/u',$s,$mm,PREG_OFFSET_CAPTURE)){
         foreach($mm[0] as [$p,$off]){
             $end=$off+strlen($p); $before=substr($s,$start,$off-$start); $after=substr($s,$end);
-            if($p==='.' && preg_match('/(?:^|\s)\d{1,4}$/',$before) && preg_match('/^\s+(?:'.CH_SPEECH_ORD_NOUNS.')\b/u',$after)) continue;
+            if($p==='.' && preg_match('/(?:^|\s)\d{1,4}$/',$before) && preg_match('/^\s+(?:'.CH_SPEECH_ORD_NOUNS.'|'.implode('|',CH_SPEECH_MONTHS).')\b/u',$after)) continue;   // „am 22. November“, „im 2. Stock“
             if(trim($after)!=='' && !preg_match('/^\s+[\p{Lu}\p{N}\x{E100}-\x{F8FF}„"»«(]/u',$after)) continue;
             $sent[]=trim(substr($s,$start,$end-$start)); $start=$end;
         }

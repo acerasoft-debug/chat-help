@@ -42,8 +42,10 @@ function concierge_persona_prompt(array $d, bool $phone): string {
 }
 /** Demo-Werkzeuge (Konto 0): Taxi → ride, Hotel → hotel, … ; beim Telefon-Agenten je Branche (CH_PHONE_SECTORS tools). */
 const CONCIERGE_DEMO_MODS=['agent-termine'=>['appt'],'agent-bestellung'=>['order'],'agent-taxi'=>['ride'],'agent-hotel'=>['hotel','callback'],'immo-agent'=>['callback'],'agent-phone'=>['callback']];
+/** Werkzeug-Register laden – in einer Funktion, damit die Schleifenvariablen von agent-tools.php ($f, $p) keine Variablen dieses Skripts (PDO $p) überschreiben. */
+function concierge_load_tools(): void { require_once __DIR__.'/agent-tools.php'; }
 function concierge_toolkit(string $demo, array $d): ?array {
-    require_once __DIR__.'/agent-tools.php';
+    concierge_load_tools();
     $want=$demo==='agent-phone' ? (array)($d['tools'] ?? ['callback']) : (CONCIERGE_DEMO_MODS[$demo] ?? []);
     $have=ch_modules(); $only=array_values(array_filter($want,fn($k)=>is_string($k) && isset($have[$k])));
     if(!$only) return null;
@@ -170,7 +172,7 @@ if($demo!==''){
     $sys=ch_agent_system($pl,$d,'de').concierge_persona_prompt($d,$phone).($phone?CH_PHONE_RULES:'')
         ."\n\nDEMO-HINWEIS (nur intern): Dies ist eine öffentliche Live-Demo auf chat-help.com mit der Beispiel-Firma „".$d['company']."“".($sector!=='' ? ' (Branche: '.$d['label'].')' : '').". Bleibe vollständig in der Rolle. Wenn jemand fragt, wie er so einen Agenten bekommt oder etwas über ChatHelp wissen will: Ein Satz – Studio auf chat-help.com, eigene Wissensbasis einfügen, in 10 Minuten startklar – dann zurück in die Rolle.";
     /* Demos arbeiten mit ECHTEN Werkzeugen auf Konto 0 (Termine, Bestellungen, Taxi, Hotel, Rückruf): echte Slot- und Adressprüfung, echte Buchung – keine Benachrichtigungen */
-    require_once __DIR__.'/agent-tools.php'; ch_heartbeat();
+    concierge_load_tools(); ch_heartbeat();
     $tk=concierge_toolkit($demo,$d);
     if($tk) $sys.=$tk['hint']."\nDEMO-MODUS: Kundendaten dürfen Platzhalter sein (z. B. Name „Demo“, Telefon „0170 0000000“), Bestellungen auch außerhalb der Öffnungszeiten annehmen; es wird keine echte Nachricht verschickt – sage, dass im echten Betrieb Bestätigung per E-Mail/WhatsApp/SMS kommt.";
     $answer=concierge_ai($sys,$msgs,$tk,$phone);

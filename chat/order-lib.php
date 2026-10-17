@@ -411,7 +411,7 @@ function ord_create(int $acc, array $d, string $channel, string $waFrom=''): arr
     th_db()->prepare("INSERT INTO orders(account_id,code,channel,type,status,customer_name,phone,wa_from,address_text,plz,city,lat,lon,zone_name,distance_km,items,subtotal_cents,fee_cents,total_cents,payment,note,eta_at,discount_cents) VALUES(?,?,?,?,'new',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
       ->execute([$acc,$code,mb_substr($channel,0,12),$type,$name,$phone,mb_substr($waFrom,0,40),$type==='delivery'?mb_substr((string)$d['address'],0,240):'',(string)($addr['plz']??''),mb_substr((string)($addr['parsed']['city']??''),0,80),$addr['geo']['lat']??null,$addr['geo']['lon']??null,(string)($addr['zone']??''),$addr['distance_km'],json_encode($items,JSON_UNESCAPED_UNICODE),$sub,$fee,$total,$pay,mb_substr(trim((string)($d['note']??'')),0,400),$eta->format('Y-m-d H:i:s'),$disc]);
     $o=ord_by_code($code); if($acc!==0){ ord_notify_restaurant($o,$s);
-        if(function_exists('ch_push')){ $pp=ord_public($o,$s); ch_push($acc,'order_new','Neue Bestellung '.$pp['code'].' · '.$pp['total'],($pp['type']==='delivery'?'Lieferung: '.$pp['address']:'Abholung').' · '.mb_substr((string)$pp['items_text'],0,160),'/chat/studio.php#bestellungen',['tag'=>'order-'.$pp['code']]); } }
+        if(function_exists('ch_push')){ $pp=ord_public($o,$s); ch_push($acc,'order_new','Neue Bestellung '.$pp['code'].' · '.$pp['total'],($pp['type']==='delivery'?'Lieferung: '.$pp['address']:'Abholung').' · '.mb_substr((string)$pp['items_text'],0,160),'/chat/studio.php#bestellungen',['tag'=>'order-'.$pp['code'],'email'=>false]); } }
     return ['ok'=>true,'order'=>ord_public($o,$s),'problems'=>$problems ?: null];
 }
 function ord_by_code(string $code): ?array { ord_bootstrap(); $code=strtoupper(preg_replace('/[^A-Z0-9]/i','',$code)); if($code==='') return null; $s=th_db()->prepare("SELECT * FROM orders WHERE code=?"); $s->execute([$code]); return $s->fetch(PDO::FETCH_ASSOC) ?: null; }
@@ -490,7 +490,7 @@ function ord_notify_restaurant(array $o, array $s): void {
 /** Kunde hat storniert (Statusseite order.php oder cancel_order) → E-Mail an notify_email bzw. Inhaber (die Bestellung verschwindet sonst nur vom Board). */
 function ord_notify_restaurant_cancel(array $o, array $s): void {
     $p=ord_public($o,$s);
-    if(function_exists('ch_push')) ch_push((int)$o['account_id'],'order_cancel','Bestellung '.$p['code'].' vom Kunden storniert',$p['name'].' · '.$p['total'],'/chat/studio.php#bestellungen',['tag'=>'order-'.$p['code']]); $to=$s['notify_email'] ?: ord_owner_email((int)$o['account_id']); if(!$to) return;
+    if(function_exists('ch_push')) ch_push((int)$o['account_id'],'order_cancel','Bestellung '.$p['code'].' vom Kunden storniert',$p['name'].' · '.$p['total'],'/chat/studio.php#bestellungen',['tag'=>'order-'.$p['code'],'email'=>false]); $to=$s['notify_email'] ?: ord_owner_email((int)$o['account_id']); if(!$to) return;
     th_mail($to,'❌ Bestellung '.$p['code'].' vom Kunden storniert',
       '<div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;padding:26px;border:1px solid #e6e8ef;border-radius:18px"><h2 style="margin:0 0 6px">Bestellung '.$p['code'].' storniert</h2>'
       .'<p>Der Kunde hat die Bestellung storniert – bitte nicht mehr zubereiten'.($p['type']==='delivery'?' bzw. ausliefern':'').'.</p>'
@@ -503,7 +503,7 @@ function ord_recent_cancelled(int $acc): array {
 }
 function ord_notify_driver(array $o, array $s): void {
     $p=ord_public($o,$s); $drv=null; foreach(ord_drivers((int)$o['account_id']) as $d) if((int)$d['id']===(int)$o['driver_id']) $drv=$d; if(!$drv) return;
-    if(function_exists('push_driver')) push_driver('order',(int)$drv['id'],'Neue Fahrt '.$p['code'],'📍 '.$p['address'].' · '.$p['name'].' · '.$p['total'],'',['tag'=>'order-'.$p['code']]);
+    if(function_exists('push_driver')) push_driver('order',(int)$drv['id'],'Neue Fahrt '.$p['code'],'📍 '.$p['address'].' · '.$p['name'].' · '.$p['total'],'',['tag'=>'order-'.$p['code'],'email'=>false]);
     $txt="Neue Fahrt {$p['code']} · ".($s['name']?:'Restaurant')."\n{$p['items_text']}\n📍 {$p['address']}\n👤 {$p['name']} · {$p['phone']}\n💶 {$p['total']} ({$p['payment']})".($p['note']?"\n📝 {$p['note']}":'')."\n🗺 {$p['maps']}\n✅ Zugestellt melden: https://chat-help.com/chat/driver.php?t={$drv['token']}";
     /* WhatsApp nur im 24-h-Fenster zuverlässig (sonst nimmt Meta/Twilio an und verwirft später) → dann zuerst SMS, danach E-Mail an das Restaurant */
     $acc=(int)$o['account_id']; $sent=false;
