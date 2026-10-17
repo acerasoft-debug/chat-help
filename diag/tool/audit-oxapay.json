@@ -1,5 +1,5 @@
 {
-    "at": "2026-10-17T22:56:20+00:00",
+    "at": "2026-10-17T23:01:49+00:00",
     "root": "/home/hhdwis4qiijc/maxsales_de",
     "php": "8.3.33",
     "config": {
@@ -53,10 +53,11 @@
         "lines": [
             "{\"at\":\"2026-10-17T16:48:21+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":0}}",
             "{\"at\":\"2026-10-17T17:21:36+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":2}}",
-            "{\"at\":\"2026-10-17T17:34:59+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":2}}"
+            "{\"at\":\"2026-10-17T17:34:59+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":2}}",
+            "{\"at\":\"2026-10-17T22:56:20+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":2}}"
         ],
-        "total_lines": 6,
-        "hits": 3
+        "total_lines": 7,
+        "hits": 4
     },
     "orders_total": 27,
     "crypto_orders": {
@@ -133,7 +134,179 @@
     "invoice_test": {
         "ok": true,
         "payment_host": "pay.oxapay.com",
-        "track_id": "171069706"
+        "track_id": "153747559"
+    },
+    "oxapay_view": {
+        "VS-2610-B8955": {
+            "http": 200,
+            "err": "",
+            "message": "Operation completed successfully!",
+            "status": "expired",
+            "amount": 220,
+            "currency": "EUR",
+            "date": 1792257272,
+            "expired_at": 1792260872,
+            "keys": [
+                "track_id",
+                "type",
+                "amount",
+                "currency",
+                "status",
+                "mixed_payment",
+                "fee_paid_by_payer",
+                "under_paid_coverage",
+                "lifetime",
+                "callback_url",
+                "return_url",
+                "email",
+                "order_id",
+                "description",
+                "thanks_message",
+                "expired_at",
+                "sandbox",
+                "date",
+                "txs"
+            ],
+            "raw": null
+        },
+        "VS-2610-3D02C": {
+            "http": 200,
+            "err": "",
+            "message": "Operation completed successfully!",
+            "status": "expired",
+            "amount": 220,
+            "currency": "EUR",
+            "date": 1792257277,
+            "expired_at": 1792260877,
+            "keys": [
+                "track_id",
+                "type",
+                "amount",
+                "currency",
+                "status",
+                "mixed_payment",
+                "fee_paid_by_payer",
+                "under_paid_coverage",
+                "lifetime",
+                "callback_url",
+                "return_url",
+                "email",
+                "order_id",
+                "description",
+                "thanks_message",
+                "expired_at",
+                "sandbox",
+                "date",
+                "txs"
+            ],
+            "raw": null
+        },
+        "VS-2610-635E7": {
+            "http": 200,
+            "err": "",
+            "message": "Operation completed successfully!",
+            "status": "expired",
+            "amount": 220,
+            "currency": "EUR",
+            "date": 1792257288,
+            "expired_at": 1792260888,
+            "keys": [
+                "track_id",
+                "type",
+                "amount",
+                "currency",
+                "status",
+                "mixed_payment",
+                "fee_paid_by_payer",
+                "under_paid_coverage",
+                "lifetime",
+                "callback_url",
+                "return_url",
+                "email",
+                "order_id",
+                "description",
+                "thanks_message",
+                "expired_at",
+                "sandbox",
+                "date",
+                "txs"
+            ],
+            "raw": null
+        },
+        "VS-2610-70A79": {
+            "http": 200,
+            "err": "",
+            "message": "Operation completed successfully!",
+            "status": "expired",
+            "amount": 220,
+            "currency": "EUR",
+            "date": 1792257290,
+            "expired_at": 1792260890,
+            "keys": [
+                "track_id",
+                "type",
+                "amount",
+                "currency",
+                "status",
+                "mixed_payment",
+                "fee_paid_by_payer",
+                "under_paid_coverage",
+                "lifetime",
+                "callback_url",
+                "return_url",
+                "email",
+                "order_id",
+                "description",
+                "thanks_message",
+                "expired_at",
+                "sandbox",
+                "date",
+                "txs"
+            ],
+            "raw": null
+        },
+        "VS-2610-CF4FC": {
+            "http": 200,
+            "err": "",
+            "message": "Operation completed successfully!",
+            "status": "expired",
+            "amount": 220,
+            "currency": "EUR",
+            "date": 1792259247,
+            "expired_at": 1792262847,
+            "keys": [
+                "track_id",
+                "type",
+                "amount",
+                "currency",
+                "status",
+                "mixed_payment",
+                "fee_paid_by_payer",
+                "under_paid_coverage",
+                "lifetime",
+                "callback_url",
+                "return_url",
+                "email",
+                "order_id",
+                "description",
+                "thanks_message",
+                "expired_at",
+                "sandbox",
+                "date",
+                "txs"
+            ],
+            "raw": null
+        }
+    },
+    "access_log": {
+        "files": [
+            "maxsales-test.vestrasales.com-Oct-2026.gz (492 B)",
+            "sarvesto.vestrasales.com-Oct-2026.gz (195961 B)",
+            "sarvesto.vestrasales.com-ssl_log-Oct-2026.gz (4995093 B)",
+            "vestrasales.com-Oct-2026.gz (61804 B)",
+            "vestrasales.com-ssl_log-Oct-2026.gz (7635128 B)"
+        ],
+        "hits": []
     },
     "reach": {
         "callback_post_empty": {
