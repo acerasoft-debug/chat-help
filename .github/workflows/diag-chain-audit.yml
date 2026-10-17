@@ -42,6 +42,8 @@ jobs:
             }
             $pool = vestra_mailbox_followup_targets(5000);
             echo "\n== TAKIP HAVUZU: ".count($pool)." kayit ==\n";
+            echo "ornek (ilk 40, gonderim sirasi):\n"; $q = 0;
+            foreach ($pool as $l) { if (++$q > 40) break; $w = (string)($l['website'] ?? ''); printf("  %-32s @%-26s %-26s %s · %s\n", mb_substr((string)($l['company'] ?? ''), 0, 32), mb_substr($dom((string)($l['email'] ?? '')), 0, 26), mb_substr($host($w), 0, 26), mb_substr((string)($l['country'] ?? ''), 0, 10), implode(',', array_slice((array)($l['premium_brands'] ?? []), 0, 3))); }
             $src = []; $mon = []; $byDom = []; $loc = 0; $locRows = [];
             foreach ($leads as $l) { $d = vestra_mailbox_shop_domain(vestra_email_clean((string)($l['email'] ?? ''))); if ($d !== '') $byDom[$d][] = $l; $h = $host((string)($l['website'] ?? '')); if ($h !== '' && $h !== $d) $byDom['site:'.$h][] = $l; }
             foreach ($pool as $l) {
