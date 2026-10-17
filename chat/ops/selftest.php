@@ -50,7 +50,7 @@ $cleanup=function() use(&$ACCS,$KEEP){
     if($KEEP){ echo "\n(keep=1: Testdaten bleiben: Konten ".implode(',',$ACCS).")\n"; return; }
     $p=th_db(); $n=0;
     foreach($ACCS as $aid){
-        foreach(['orders','menu_items','drivers','order_settings','wa_sessions','appt_bookings','appt_services','appt_settings','appt_blocks','phone_calls','agent_configs','api_keys','token_ledger','api_usage','token_plans','acct_secrets'] as $t){
+        foreach(['orders','menu_items','drivers','order_settings','wa_sessions','appt_bookings','appt_services','appt_settings','appt_blocks','phone_calls','agent_configs','api_keys','token_ledger','api_usage','token_plans','acct_secrets','rides','taxi_drivers','ride_settings','hotel_bookings','hotel_rooms','hotel_requests','hotel_settings','callbacks','callback_settings'] as $t){
             try{ $s=$p->prepare("DELETE FROM $t WHERE account_id=?"); $s->execute([$aid]); $n+=$s->rowCount(); }catch(Throwable $e){ echo "  cleanup $t: ".$e->getMessage()."\n"; }
         }
         $p->prepare("DELETE FROM token_accounts WHERE id=?")->execute([$aid]); $n++;
@@ -257,6 +257,65 @@ if($AI){
     $g3=$turn(['CallSid'=>'CA'.rnd(16)]+$base); ok(str_contains(implode(' ',$g3['said']),'asistan') && str_contains($g3['twiml'],'language="tr-TR"'),'Türkische Stimme: Begrüßung auf Türkisch',$g3['voice'].' · „'.short(implode(' ',$g3['said']),120).'“');
 }
 } catch(Throwable $e){ ok(false,'Unerwarteter Fehler: '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
+
+/* ---------- Taxi-Zentrale ---------- */
+if(function_exists('ride_api')) try {
+    sec('Taxi-Zentrale: Studio-API, Preis, Buchung, Disposition, Seiten');
+    $dem=RIDE_DEMO; $r=$api('POST','ride/settings',['ride_on'=>1,'name'=>'Selftest Taxi Köln','phone'=>'0221 1234567','address'=>$dem['address'],'tz'=>'Europe/Berlin','area_km'=>25,
+        'tariff'=>$dem['tariff'],'vehicles'=>$dem['vehicles'],'fixed_routes'=>$dem['fixed_routes'],'stands'=>$dem['stands'],'payment_methods'=>'bar,karte',
+        'drivers'=>[['name'=>'Selftest Fahrer','phone'=>'+491700000101','vehicle'=>'Mercedes E-Klasse, schwarz','plate'=>'K-ST 100','seats'=>4,'stand'=>'Hauptbahnhof']]]);
+    $rs=$r['json'] ?? []; $drv=$rs['drivers'][0] ?? null; $board=$rs['links']['board'] ?? ''; $drvUrl=$rs['links']['drivers'][0]['url'] ?? '';
+    ok($r['code']===200 && (int)($rs['settings']['ride_on'] ?? 0)===1 && $drv && $board && $drvUrl,'Taxi-Einstellungen gespeichert (Tarif, Stände, Fahrer mit Link)',count($rs['settings']['stands'] ?? []).' Stände');
+    $r=$api('GET','ride/estimate?pickup='.rawurlencode('Trankgasse 11, 50667 Köln').'&destination='.rawurlencode('Neumarkt 1, 50667 Köln').'&time=sofort');
+    ok($r['code']===200 && str_contains(json_encode($r['json'],JSON_UNESCAPED_UNICODE),'€'),'Preisrechner: Richtpreis Hbf → Neumarkt',short($r['json']['price_text'] ?? ($r['json']['price'] ?? $r['body']),120));
+    $r=$api('POST','ride/create',['name'=>'Selftest Fahrgast','phone'=>'0170 5555555','pickup'=>'Trankgasse 11, 50667 Köln','destination'=>'Neumarkt 1, 50667 Köln','time'=>'sofort','passengers'=>2]);
+    $ride=$r['json']['ride'] ?? null; $rc=$ride['code'] ?? '';
+    ok($r['code']===200 && $rc!=='','Fahrt manuell angelegt',$rc.' · '.short($ride['price_text'] ?? '',60));
+    $r=$api('GET','ride/rides?scope=open'); $rid=0; foreach(($r['json']['rides'] ?? []) as $x) if(($x['code'] ?? '')===$rc) $rid=(int)$x['id'];
+    ok($rid>0,'Fahrt in der Live-Liste der Zentrale');
+    $r=$api('POST','ride/status',['id'=>$rid,'status'=>'assigned','driver_id'=>(int)$drv['id']]); ok($r['code']===200,'Fahrer zugeteilt',short($r['json']['ride']['status_label'] ?? $r['body'],80));
+    $r=http('GET',"$BASE/chat/ride.php?c=$rc",null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],$rc) && str_contains($r['body'],'K-ST 100'),'Kunden-Statusseite zeigt Fahrer + Kennzeichen');
+    $r=http('GET',$board,null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'Selftest Taxi'),'Dispositions-Board erreichbar');
+    $bt=preg_match('/t=([a-f0-9]{24})/',$board,$mm)?$mm[1]:''; $r=http('GET',"$BASE/chat/ride-api.php?a=board&t=$bt&_=".rnd());
+    ok($r['code']===200 && str_contains($r['body'],$rc),'Board-API liefert die Fahrt');
+    $r=http('GET',$drvUrl,null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],$rc),'Fahrer-App zeigt den Auftrag');
+    if(function_exists('ch_toolkit')){ $tkw=ch_toolkit($aid,'widget','',['ride']); $x=($tkw['exec'])('get_ride_status',['phone'=>'0170 5555555']);
+        ok(empty($x['rides']),'Datenschutz: Website-Chat bekommt zu fremder Nummer keine Fahrt',short(json_encode($x,JSON_UNESCAPED_UNICODE),140)); }
+    $r=$api('POST','ride/status',['id'=>$rid,'status'=>'cancelled']); ok($r['code']===200,'Fahrt storniert (Fahrer wieder frei)');
+    if($AI){
+        th_plan_upsert($aid,'agent-taxi','','active',date('Y-m-d H:i:s',time()+86400));
+        $r=$api('POST','agent',['plan'=>'agent-taxi','messages'=>[['role'=>'user','content'=>'Bitte ein Taxi sofort von Trankgasse 11, 50667 Köln zum Neumarkt 1, 50667 Köln, 1 Person. Name KI Test, Telefon 0170 4444444, bar. Ich bestätige – bitte direkt bestellen.']],'lang'=>'de']);
+        $tools=array_map(fn($t)=>$t['name'].($t['ok']?'✓':'✗'),$r['json']['tools'] ?? []);
+        ok($r['code']===200 && in_array('book_ride✓',$tools,true),'Taxi-Agent bucht über Werkzeuge',implode(', ',$tools).' · „'.short($r['json']['result'] ?? $r['body'],200).'“');
+    }
+} catch(Throwable $e){ ok(false,'Taxi: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
+
+/* ---------- Hotel ---------- */
+if(function_exists('hotel_api')) try {
+    sec('Hotel: Studio-API, Verfügbarkeit, Buchung, Gastseite, Rezeption');
+    $rooms=array_map(function($x){ unset($x['id']); return $x; },HOTEL_DEMO['rooms']);
+    $r=$api('POST','hotel/settings',['hotel_on'=>1,'name'=>'Selftest Hotel Hamburg','address'=>'Alsterufer 1, 20354 Hamburg','phone'=>'040 1234567','tz'=>'Europe/Berlin','auto_confirm'=>1,'breakfast_mode'=>'optional','breakfast_cents'=>1800,'city_tax_pct'=>5,'cancel_hours'=>48,'rooms'=>$rooms]);
+    $hs=$r['json'] ?? []; $hb=$hs['links']['board'] ?? '';
+    ok($r['code']===200 && count($hs['rooms'] ?? [])>=2 && $hb,'Hotel-Einstellungen + Zimmerkategorien gespeichert',count($hs['rooms'] ?? []).' Kategorien');
+    $ci=(new DateTimeImmutable('+10 days'))->format('Y-m-d'); $co=(new DateTimeImmutable('+12 days'))->format('Y-m-d');
+    $r=$api('GET',"hotel/availability?checkin=$ci&checkout=$co&guests=2"); $opt=$r['json']['options'][0] ?? null;
+    ok($r['code']===200 && $opt,'Verfügbarkeit mit Gesamtpreis',short(($opt['room'] ?? '').' · '.($opt['total'] ?? ''),100));
+    $r=$api('POST','hotel/book',['room_id'=>(int)($opt['room_id'] ?? 0),'checkin'=>$ci,'checkout'=>$co,'guests'=>2,'name'=>'Selftest Gast','email'=>'gast@selftest.invalid','phone'=>'0170 6666666','breakfast'=>true]);
+    $bk=$r['json']['booking'] ?? null; $hc=$bk['code'] ?? '';
+    ok($r['code']===200 && $hc!=='','Zimmer gebucht (Studio)',$hc.' · '.short($bk['total'] ?? '',40));
+    $r=http('GET',"$BASE/chat/stay.php?c=$hc",null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],$hc),'Gast-Seite zur Buchung');
+    $r=http('GET',$hb,null,[],'json',true); ok($r['code']===200,'Rezeptions-Board erreichbar');
+    $r=$api('POST','hotel/request/new',['room_no'=>'214','details'=>'Zwei zusätzliche Handtücher bitte','kind'=>'housekeeping']); ok($r['code']===200,'Gästewunsch angelegt',short($r['body'],100));
+    $r=$api('GET','hotel/requests?scope=open'); ok($r['code']===200 && count($r['json']['requests'] ?? [])>=1,'Gästewunsch in der offenen Liste');
+    if(function_exists('ch_toolkit')){ $tkw=ch_toolkit($aid,'widget','',['hotel']); $x=($tkw['exec'])('get_booking',['code'=>$hc]);
+        ok(empty($x['booking']) || isset($x['error']),'Datenschutz: Buchung nur mit Code UND Name/Kontakt',short(json_encode($x,JSON_UNESCAPED_UNICODE),120)); }
+    if($AI){
+        th_plan_upsert($aid,'agent-hotel','','active',date('Y-m-d H:i:s',time()+86400));
+        $r=$api('POST','agent',['plan'=>'agent-hotel','messages'=>[['role'=>'user','content'=>"Habt ihr vom $ci bis $co ein Doppelzimmer für 2 Personen frei? Wenn ja, bitte direkt buchen auf KI Gast, gast2@selftest.invalid, ohne Frühstück. Ich bestätige die Buchung."]],'lang'=>'de']);
+        $tools=array_map(fn($t)=>$t['name'].($t['ok']?'✓':'✗'),$r['json']['tools'] ?? []);
+        ok($r['code']===200 && in_array('check_room_availability✓',$tools,true),'Hotel-Agent prüft Verfügbarkeit'.(in_array('book_room✓',$tools,true)?' und bucht':''),implode(', ',$tools).' · „'.short($r['json']['result'] ?? $r['body'],200).'“');
+    }
+} catch(Throwable $e){ ok(false,'Hotel: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
 
 /* ---------- Twilio-Doku (vom Server geladen) ---------- */
 if($DOCS){

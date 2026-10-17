@@ -27,6 +27,21 @@ chat/board.php               chat/board.php
 chat/driver.php              chat/driver.php
 chat/order-api.php           chat/order-api.php
 chat/order.php               chat/order.php
+# Taxi-Zentrale (Disposition, Fahrer-App, Kunden-Status, Taxistände)
+chat/ride-lib.php            chat/ride-lib.php
+chat/ride.php                chat/ride.php
+chat/ride-api.php            chat/ride-api.php
+chat/taxi-board.php          chat/taxi-board.php
+chat/taxi-driver.php         chat/taxi-driver.php
+chat/studio-panels/taxi.html chat/studio-panels/taxi.html
+chat/studio-panels/taxi.js   chat/studio-panels/taxi.js
+# Hotel (Rezeption, Buchungen, Gästewünsche)
+chat/hotel-lib.php           chat/hotel-lib.php
+chat/stay.php                chat/stay.php
+chat/hotel-api.php           chat/hotel-api.php
+chat/hotel-board.php         chat/hotel-board.php
+chat/studio-panels/hotel.html chat/studio-panels/hotel.html
+chat/studio-panels/hotel.js  chat/studio-panels/hotel.js
 chat/skin.css                chat/skin.css
 chat/skin.js                 chat/skin.js
 # Ana sayfa videosu (hero): site/media-src ile üretildi

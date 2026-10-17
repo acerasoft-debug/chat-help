@@ -1,6 +1,6 @@
 <div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h2 style="font-size:26px">Taxi-Zentrale</h2><p class="mute" style="margin:4px 0 0">Dein Taxi-Agent nimmt Fahrten am Telefon, per WhatsApp und im Website-Chat an: Abholort, sofort oder Vorbestellung, Personen, Gepäck, Kindersitz, Rollstuhl – mit Richtpreis nach deinem Tarif, Festpreisen und Wartezeit ab dem nächsten Taxistand. Die Zentrale disponiert live auf dem Board, der Fahrer bekommt die Fahrt aufs Handy, der Kunde „Ihr Taxi ist da: schwarzer Mercedes, K-TX 123“.</p></div><a class="btn gold" id="txRent" href="/chat/tokens-checkout.php?plan=agent-taxi" target="_blank">Taxi-Agent mieten · 129 €/Monat</a></div>
 
-<div class="grid g4" style="margin-bottom:16px">
+<div class="grid g4" style="margin-bottom:16px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
   <div class="card"><span class="tag gold">Heute</span><div class="num" style="margin-top:8px" id="txKToday">–</div><div class="mute small">Fahrten mit Abholung heute</div></div>
   <div class="card"><span class="tag indigo">Offen</span><div class="num" style="margin-top:8px" id="txKOpen">–</div><div class="mute small" id="txKPre">davon vorbestellt: –</div></div>
   <div class="card"><span class="tag ok">Erledigt</span><div class="num" style="margin-top:8px" id="txKDone">–</div><div class="mute small" id="txKLost">storniert / nicht angetroffen: –</div></div>
@@ -14,13 +14,15 @@
       <label for="txName">Unternehmen</label><input type="text" id="txName" placeholder="z. B. Taxi Rheinland · Köln" maxlength="120">
       <label for="txAddress">Adresse der Zentrale (Mittelpunkt des Einsatzgebiets)</label><input type="text" id="txAddress" placeholder="Straße Nr., PLZ Ort" maxlength="200"><div class="mute small" id="txGeo" style="margin-top:6px"></div>
       <div class="grid g2" style="gap:10px"><div><label for="txPhone">Telefon der Zentrale (für Kunden)</label><input type="tel" id="txPhone" placeholder="0221 …" maxlength="40"></div><div><label for="txNotify">Fahrt-Mails an</label><input type="email" id="txNotify" placeholder="zentrale@… (leer = Konto-E-Mail)" maxlength="190"></div></div>
-      <div class="grid g4" style="gap:10px">
+      <div class="grid g3" style="gap:10px">
         <div><label for="txArea">Einsatz-Radius km</label><input type="text" id="txArea" inputmode="numeric" value="25"></div>
         <div><label for="txEta">Grund-Wartezeit Min</label><input type="text" id="txEta" inputmode="numeric" value="8" title="Anfahrt-Grundzeit; dazu kommen 2 Min je km vom nächsten Taxistand mit freiem Fahrer"></div>
         <div><label for="txPre">Vorbestellung bis Tage</label><input type="text" id="txPre" inputmode="numeric" value="14" title="0 = nur Sofortfahrten"></div>
+      </div>
+      <div class="grid g2" style="gap:10px">
+        <div><label for="txPlz">Zusätzliche PLZ im Einsatzgebiet (optional)</label><input type="text" id="txPlz" placeholder="z. B. 50667, 51149 – Abholung hier immer erlaubt"></div>
         <div><label for="txTz">Zeitzone</label><select id="txTz"><option>Europe/Berlin</option><option>Europe/Vienna</option><option>Europe/Zurich</option><option>Europe/Istanbul</option><option>Europe/Paris</option><option>Europe/London</option></select></div>
       </div>
-      <label for="txPlz">Zusätzliche Postleitzahlen im Einsatzgebiet (optional)</label><input type="text" id="txPlz" placeholder="z. B. 50667, 50668, 51149 – Abholung hier immer erlaubt, auch außerhalb des Radius">
 
       <div class="sec"><h3>Tarif</h3><p class="mute small" style="margin:4px 0 8px">Daraus berechnet der Agent den Richtpreis („ca. … €, es gilt der Taxameter“). Beträge in Euro.</p>
         <div class="grid g4" style="gap:10px">

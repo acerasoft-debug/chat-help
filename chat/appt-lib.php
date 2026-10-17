@@ -99,7 +99,7 @@ function appt_service(int $acc, ?int $id): ?array { foreach(appt_services($acc) 
 function appt_resolve_service(int $acc, ?int $id, ?array $s=null, bool $need=false): array {
     $s=$s ?: appt_settings($acc); $all=appt_services($acc); $list=array_map(fn($x)=>['id'=>(int)$x['id'],'name'=>$x['name'],'duration_min'=>(int)$x['duration_min']],$all);
     if($id!==null && $id>0){ foreach($all as $x) if((int)$x['id']===$id) return [$x,(int)$x['duration_min'],null];
-        return [null,0,['error'=>'unknown_service','service_id'=>$id,'hint'=>'Diese Leistung gibt es nicht (mehr). Bitte eine der angebotenen Leistungen wählen und deren service_id verwenden.','services'=>$list]]; }
+        return [null,0,['error'=>'unknown_service','service_id'=>$id,'hint'=>$all ? 'Diese Leistung gibt es nicht (mehr). Bitte eine der angebotenen Leistungen wählen und deren service_id verwenden.' : 'Es sind keine Leistungen hinterlegt – bitte ohne service_id anfragen bzw. buchen.','message'=>'Diese Leistung ist nicht (mehr) buchbar.','services'=>$list]]; }
     if(count($all)===1) return [$all[0],(int)$all[0]['duration_min'],null];
     if($all && $need) return [null,0,['error'=>'service_required','hint'=>'Bitte zuerst die gewünschte Leistung wählen (service_id aus der Liste).','services'=>$list]];
     return [null,(int)$s['slot_min'],null];
@@ -197,11 +197,11 @@ function appt_public(array $b, ?array $s=null): array {
 /** Absagen per Buchungscode (öffentlich, Agent, Studio). Nur Status 'booked' mit Beginn in der Zukunft (Wanduhr der Konto-Zeitzone);
  *  $force (Betreiber) erlaubt auch bereits begonnene/vergangene gebuchte Termine. Fehler: not_found | not_cancellable | too_late (+ deutscher hint). */
 function appt_cancel(string $code, int $acc=-1, bool $force=false): array {
-    $b=appt_by_code($code); if(!$b || ($acc>=0 && (int)$b['account_id']!==$acc)) return ['error'=>'not_found','hint'=>'Kein Termin mit diesem Buchungscode gefunden.'];
+    $b=appt_by_code($code); if(!$b || ($acc>=0 && (int)$b['account_id']!==$acc)) return ['error'=>'not_found','hint'=>'Kein Termin mit diesem Buchungscode gefunden.','message'=>'Kein Termin mit diesem Buchungscode gefunden.'];
     $s=appt_settings((int)$b['account_id']); $tz=appt_tz($s); $now=appt_now($s);
     if($b['status']==='cancelled') return ['ok'=>true,'already'=>true,'booking'=>appt_public($b,$s)];
-    $bad=fn($b)=>['error'=>'not_cancellable','status'=>$b['status'],'hint'=>'Dieser Termin ist bereits abgeschlossen ('.(['done'=>'wahrgenommen','noshow'=>'als nicht erschienen vermerkt'][$b['status']] ?? $b['status']).') und kann nicht mehr abgesagt werden.','booking'=>appt_public($b,$s)];
-    $late=fn($b)=>['error'=>'too_late','hint'=>'Der Termin hat bereits begonnen oder liegt in der Vergangenheit – eine Absage ist nicht mehr möglich. Bitte wenden Sie sich direkt an den Betrieb.','booking'=>appt_public($b,$s)];
+    $bad=fn($b)=>['error'=>'not_cancellable','status'=>$b['status'],'hint'=>$h=('Dieser Termin ist bereits abgeschlossen ('.(['done'=>'wahrgenommen','noshow'=>'als nicht erschienen vermerkt'][$b['status']] ?? $b['status']).') und kann nicht mehr abgesagt werden.'),'message'=>$h,'booking'=>appt_public($b,$s)];
+    $late=fn($b)=>['error'=>'too_late','hint'=>$h='Der Termin hat bereits begonnen oder liegt in der Vergangenheit – eine Absage ist nicht mehr möglich. Bitte wenden Sie sich direkt an den Betrieb.','message'=>$h,'booking'=>appt_public($b,$s)];
     if($b['status']!=='booked') return $bad($b);
     if(!$force && new DateTimeImmutable($b['start_at'],$tz) <= $now) return $late($b);
     $u=th_db()->prepare("UPDATE appt_bookings SET status='cancelled' WHERE id=? AND status='booked'".($force?'':' AND start_at > ?')); $u->execute($force?[$b['id']]:[$b['id'],$now->format('Y-m-d H:i:s')]);
@@ -221,22 +221,28 @@ function appt_bookings(int $acc, string $from, string $to): array {
 }
 /** Status setzen (Studio) → ['ok'=>true] | ['error'=>'invalid_status'|'not_found'|'slot_conflict'|'db','hint'=>…]. Wieder auf 'booked' nur, wenn der Zeitraum (inkl. Puffer/Sperrzeiten) frei ist. */
 function appt_status_update(int $acc, int $id, string $status): array {
-    if(!in_array($status,['booked','done','noshow','cancelled'],true)) return ['error'=>'invalid_status','hint'=>'Erlaubt: booked, done, noshow, cancelled.'];
+    $e=fn(string $c,string $h)=>['error'=>$c,'hint'=>$h,'message'=>$h];
+    if(!in_array($status,['booked','done','noshow','cancelled'],true)) return $e('invalid_status','Ungültiger Status – erlaubt: booked, done, noshow, cancelled.');
     appt_bootstrap(); $p=th_db(); $s=appt_settings($acc); $tz=appt_tz($s); $lk=th_lock('appt_book:'.$acc,8);
     try{
         $p->beginTransaction();
         $q=$p->prepare("SELECT * FROM appt_bookings WHERE id=? AND account_id=? FOR UPDATE"); $q->execute([$id,$acc]); $b=$q->fetch(PDO::FETCH_ASSOC);
-        if(!$b){ $p->rollBack(); return ['error'=>'not_found','hint'=>'Termin nicht gefunden.']; }
+        if(!$b){ $p->rollBack(); return $e('not_found','Termin nicht gefunden.'); }
         if($b['status']===$status){ $p->commit(); return ['ok'=>true,'unchanged'=>true]; }
         if($status==='booked' && !in_array($b['status'],['booked','done'],true) && appt_conflicts($acc,new DateTimeImmutable($b['start_at'],$tz),new DateTimeImmutable($b['end_at'],$tz),(int)$s['buffer_min'],(int)$b['id'],true)>0){
-            $p->rollBack(); return ['error'=>'slot_conflict','hint'=>'Der Zeitraum ist inzwischen anderweitig belegt – der Termin kann nicht wieder aktiviert werden.']; }
+            $p->rollBack(); return $e('slot_conflict','Der Zeitraum ist inzwischen anderweitig belegt (inkl. Puffer/Sperrzeit) – der Termin kann nicht wieder aktiviert werden.'); }
         $p->prepare("UPDATE appt_bookings SET status=? WHERE id=? AND account_id=?")->execute([$status,$id,$acc]); $p->commit();
         return ['ok'=>true];
-    }catch(Throwable $e){ try{ if($p->inTransaction()) $p->rollBack(); }catch(Throwable $e2){} error_log('CH appt_status acc='.$acc.': '.$e->getMessage()); return ['error'=>'db','hint'=>'Bitte erneut versuchen.']; }
+    }catch(Throwable $x){ try{ if($p->inTransaction()) $p->rollBack(); }catch(Throwable $x2){} error_log('CH appt_status acc='.$acc.': '.$x->getMessage()); return $e('db','Status konnte gerade nicht gespeichert werden – bitte erneut versuchen.'); }
     finally{ if($lk) th_unlock('appt_book:'.$acc); }
 }
-/** Kompatibel: true nur bei Erfolg; false bei ungültigem Status, unbekannter ID (not_found) oder Überschneidung – Details in $res. */
-function appt_set_status(int $acc, int $id, string $status, ?array &$res=null): bool { $res=appt_status_update($acc,$id,$status); return !empty($res['ok']); }
+/** Kompatibel: true nur bei Erfolg; false bei ungültigem Status, unbekannter ID (not_found) oder Überschneidung – Details in $res.
+ *  Altaufruf aus dem Web ohne $res (tokens-api /v1/appt/status): Fehler werden direkt als JSON beantwortet (400/404/409/500), statt „ok“ zu melden. */
+function appt_set_status(int $acc, int $id, string $status, ?array &$res=null): bool {
+    $res=appt_status_update($acc,$id,$status); if(!empty($res['ok'])) return true;
+    if(func_num_args()<4 && PHP_SAPI!=='cli') th_json(['invalid_status'=>400,'not_found'=>404,'slot_conflict'=>409][$res['error'] ?? ''] ?? 500,$res);
+    return false;
+}
 function appt_ics(array $b, array $s): string {
     $tz=appt_tz($s); $st=(new DateTimeImmutable($b['start_at'],$tz))->setTimezone(new DateTimeZone('UTC')); $en=(new DateTimeImmutable($b['end_at'],$tz))->setTimezone(new DateTimeZone('UTC'));
     $esc=fn($t)=>str_replace([',',';',"\n"],['\,','\;','\n'],(string)$t);

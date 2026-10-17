@@ -293,7 +293,7 @@ function ord_find_item(array $menu, $ref, ?array &$amb=null): ?array {
 function ord_options_text(array $grps): string { return mb_substr(implode('; ',array_map(fn($g)=>$g['name'].': '.implode(', ',array_map(fn($c)=>$c['label'].(!empty($c['delta'])?' ('.($c['delta']>0?'+':'').number_format($c['delta']/100,2,',','.').' €)':''),(array)$g['choices'])),$grps)),0,400); }
 /**
  * Wunschzeit (requested_time): 'HH:MM' (heute) oder 'YYYY-MM-DD HH:MM' (auch 'TT.MM.[JJJJ] HH:MM'); leer/„sofort“ = so schnell wie möglich.
- * 'HH:MM' schon vorbei → morgen nur, wenn gerade geschlossen ist oder die Zeit noch ins laufende Nacht-Fenster fällt (jetzt 23:50, Wunsch 00:30); sonst Fehler mit Hinweis.
+ * 'HH:MM' schon vorbei → Folgetag nur, wenn gerade geschlossen ist oder die Zeit ins laufende Nacht-Fenster bzw. die nächsten 6 h fällt (jetzt 23:50, Wunsch 00:30); sonst Fehler mit Hinweis.
  * Rückgabe ['at'=>DateTimeImmutable|null] oder ['error'=>…,'hint'=>…].
  */
 function ord_requested_time(array $s, string $raw, ?DateTimeImmutable $now=null): array {
@@ -307,7 +307,7 @@ function ord_requested_time(array $s, string $raw, ?DateTimeImmutable $now=null)
     if($y!==null){ $at=(new DateTimeImmutable(sprintf('%04d-%02d-%02d',$y,$mo,$dd),$tz))->setTime($h,$i); if($at<$now->modify('-15 minutes')) return ['error'=>'requested_time_past','hint'=>'Die Wunschzeit '.$at->format('d.m.Y H:i').' liegt in der Vergangenheit.']; }
     else { $at=$now->setTime($h,$i);
         if($at<$now->modify('-15 minutes')){ $cur=ord_is_open($s,$now); $t=$at->modify('+1 day');
-            if(!$cur['open'] || $t<new DateTimeImmutable($cur['until_at'],$tz)) $at=$t;
+            if(!$cur['open'] || $t<new DateTimeImmutable($cur['until_at'],$tz) || $t<=$now->modify('+6 hours')) $at=$t;   // spät abends „01:45“ = heute Nacht
             else return ['error'=>'requested_time_past','hint'=>$raw.' Uhr ist heute schon vorbei. Für einen anderen Tag die Wunschzeit mit Datum angeben (YYYY-MM-DD HH:MM).']; } }
     if($at<$now) $at=$now;   // knapp vorbei = so schnell wie möglich
     if($at>$now->modify('+7 days')) return ['error'=>'requested_time_too_far','hint'=>'Vorbestellungen höchstens 7 Tage im Voraus.'];

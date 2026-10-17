@@ -63,7 +63,7 @@ h3{font:700 12px Inter;letter-spacing:.12em;text-transform:uppercase;color:var(-
 .foot{display:flex;justify-content:space-between;gap:10px;color:var(--mute);font-size:12.5px;margin-top:18px}.foot a{color:var(--gold);text-decoration:none}
 </style></head>
 <body><div class="w">
-<div class="hd"><div><b>🚖 <?= $e($drv['name']) ?></b><small><?= $e(trim($drv['vehicle'].($drv['plate']!=='' ? ' · '.$drv['plate'] : ''),' ·') ?: ($s['name'] ?: 'Taxi')) ?></small></div><div class="tm"><?= $e($s['name'] ?: 'Zentrale') ?><br>heute erledigt: <b style="color:#fff"><?= $done ?></b> · <?= $e($now->format('H:i')) ?></div></div>
+<div class="hd"><div><b>🚖 <?= $e($drv['name']) ?></b><small><?= $e($drv['vehicle'] ?: ($s['name'] ?: 'Taxi')) ?><?= $drv['plate']!=='' ? ' · <span style="white-space:nowrap">'.$e($drv['plate']).'</span>' : '' ?></small></div><div class="tm"><?= $e($s['name'] ?: 'Zentrale') ?><br>heute erledigt: <b style="color:#fff"><?= $done ?></b> · <?= $e($now->format('H:i')) ?></div></div>
 <?php if($flash!==''): ?><div class="fl <?= ($_GET['m'] ?? '')==='err' ? 'err' : '' ?>"><?= $e($flash) ?></div><?php endif; ?>
 <div class="sw">
   <?php foreach(['frei'=>'🟢 Frei','pause'=>'⏸ Pause'] as $k=>$lbl): ?><form method="post" action="<?= $e($self) ?>" onsubmit="this.classList.add('busy')"><input type="hidden" name="do" value="me"><input type="hidden" name="s" value="<?= $k ?>"><button type="submit" class="<?= $k ?><?= $drv['status']===$k ? ' on' : '' ?>" style="width:100%"><?= $lbl ?></button></form><?php endforeach; ?>

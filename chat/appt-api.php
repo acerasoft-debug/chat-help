@@ -22,7 +22,7 @@ $s=$p->prepare("SELECT COUNT(*) FROM concierge_log WHERE ip_hash=? AND created_a
 if((int)$s->fetchColumn() >= 40) th_json(429,['error'=>'rate_limited','message'=>'Bitte einen Moment warten.']);
 if(in_array($a,['book','cancel'],true)) $p->prepare("INSERT INTO concierge_log(ip_hash) VALUES(?)")->execute([$h]);
 /* Termin-Erinnerungen lazy mitlaufen lassen (höchstens alle 10 Min, atomar) – erst nach Auslieferung der Antwort, damit die Buchungsseite nicht wartet */
-if(in_array($a,['info','slots','days'],true)) register_shutdown_function(function(){ if(function_exists('fastcgi_finish_request')) @fastcgi_finish_request(); try{ appt_reminders_lazy(); }catch(Throwable $e){ error_log('CH appt reminders: '.$e->getMessage()); } });
+if(in_array($a,['info','slots','days'],true)) register_shutdown_function(function(){ ignore_user_abort(true); if(function_exists('fastcgi_finish_request')) @fastcgi_finish_request(); elseif(function_exists('litespeed_finish_request')) @litespeed_finish_request(); try{ appt_reminders_lazy(); }catch(Throwable $e){ error_log('CH appt reminders: '.$e->getMessage()); } });
 
 if($a==='booking'){ $b=appt_by_code((string)($_GET['c'] ?? $in['c'] ?? '')); if(!$b) th_json(404,['error'=>'not_found']); $st=appt_settings((int)$b['account_id']); th_json(200,['booking'=>appt_public($b,$st),'ics_url'=>'https://chat-help.com/chat/appt.php?c='.$b['code'].'&ics=1']); }
 if($a==='cancel'){ $res=appt_cancel((string)($in['code'] ?? $_GET['c'] ?? '')); th_json(!isset($res['error'])?200:($res['error']==='not_found'?404:409),$res); }   // too_late / not_cancellable → 409 mit hint
