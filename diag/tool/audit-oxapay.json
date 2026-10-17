@@ -1,5 +1,5 @@
 {
-    "at": "2026-10-17T17:21:35+00:00",
+    "at": "2026-10-17T17:34:58+00:00",
     "root": "/home/hhdwis4qiijc/maxsales_de",
     "php": "8.3.33",
     "config": {
@@ -25,23 +25,23 @@
     "files": {
         "odeme/oxapay-callback.php": {
             "size": 2834,
-            "mtime": "2026-10-17T17:15:39+00:00"
+            "mtime": "2026-10-17T17:28:55+00:00"
         },
         "odeme/tesekkurler.php": {
             "size": 711,
-            "mtime": "2026-10-17T17:15:39+00:00"
+            "mtime": "2026-10-17T17:28:55+00:00"
         },
         "inc/oxapay.php": {
             "size": 5567,
-            "mtime": "2026-10-17T17:15:39+00:00"
+            "mtime": "2026-10-17T17:28:55+00:00"
         },
         "checkout.php": {
             "size": 17825,
-            "mtime": "2026-10-17T17:15:39+00:00"
+            "mtime": "2026-10-17T17:28:55+00:00"
         },
         ".htaccess": {
             "size": 3658,
-            "mtime": "2026-10-17T17:15:39+00:00"
+            "mtime": "2026-10-17T17:28:55+00:00"
         },
         "odeme/.htaccess": null
     },
@@ -51,10 +51,11 @@
         "exists": true,
         "readable": true,
         "lines": [
-            "{\"at\":\"2026-10-17T16:48:21+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":0}}"
+            "{\"at\":\"2026-10-17T16:48:21+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":0}}",
+            "{\"at\":\"2026-10-17T17:21:36+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":2}}"
         ],
-        "total_lines": 4,
-        "hits": 1
+        "total_lines": 5,
+        "hits": 2
     },
     "orders_total": 26,
     "crypto_orders": {
@@ -110,25 +111,28 @@
     "invoice_test": {
         "ok": true,
         "payment_host": "pay.oxapay.com",
-        "track_id": "110664857"
+        "track_id": "123751453"
     },
     "reach": {
         "callback_post_empty": {
             "code": 400,
             "redirect": "",
             "err": "",
+            "csp_form_action": "form-action 'self' https://checkout.stripe.com https://pay.oxapay.com https://*.oxapay.com",
             "body": "invalid signature"
         },
         "tesekkurler_get": {
             "code": 303,
             "redirect": "https://sarvesto.com/order.php?lang=de",
             "err": "",
+            "csp_form_action": "form-action 'self' https://checkout.stripe.com https://pay.oxapay.com https://*.oxapay.com",
             "body": ""
         },
         "checkout_get": {
             "code": 303,
             "redirect": "https://sarvesto.com/cart.php?lang=de",
             "err": "",
+            "csp_form_action": "form-action 'self' https://checkout.stripe.com https://pay.oxapay.com https://*.oxapay.com",
             "body": ""
         }
     }
