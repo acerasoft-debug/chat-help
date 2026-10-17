@@ -29,7 +29,7 @@ $asapNote=$instant ? 'In der Regel innerhalb von 60 Sekunden' : ($inWin ? 'Wir m
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600&display=swap">
 <style>
 :root{--ink:#0f1222;--ink2:#3b4055;--mute:#6b7083;--line:#e4e6ee;--line2:#d6d9e4;--gold:#b8862b;--goldl:#f6ecd3;--ok:#1a9e5a;--okl:#e4f5ea;--rose:#9f2448;--rosel:#fde7ee;--indigo:#4f46e5;--indigol:#eceafe}
-*{box-sizing:border-box}html,body{margin:0;background:#f6f7fb;font:15px/1.55 Inter,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}[hidden]{display:none !important}html,body{margin:0;background:#f6f7fb;font:15px/1.55 Inter,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
 .w{max-width:640px;margin:26px auto 60px;padding:0 16px}.hd{text-align:center;margin:10px 0 20px}.hd .eb{font:700 12px Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .hd h1{font:600 clamp(26px,5vw,36px)/1.15 Fraunces,Georgia,serif;margin:8px 0 6px;overflow-wrap:anywhere}.hd p{color:var(--ink2);margin:0}
 .c{background:#fff;border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 10px 30px rgba(15,18,34,.07)}

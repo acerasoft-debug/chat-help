@@ -282,7 +282,7 @@ function cb_slots(array $s, ?DateTimeImmutable $now=null, int $maxDays=10, int $
         $day=$now->setTime(0,0)->modify('+'.$i.' day'); $slots=[];
         foreach(cb_day_ranges($s,$day) as [$a,$b]){ for($t=$a;$t<$b;$t=$t->modify('+'.$step.' minutes')){ if($t>=$min) $slots[]=$t->format('H:i'); } }
         if(!$slots) continue;
-        $w=cb_day_word($day,$now); $out[]=['date'=>$day->format('Y-m-d'),'label'=>in_array($w,['heute','morgen','übermorgen'],true) ? ucfirst($w).', '.$day->format('d.m.') : CB_WDL[(int)$day->format('w')].', '.$day->format('d.m.'),'today'=>$i===0,'slots'=>array_values(array_unique($slots))];
+        $w=cb_day_word($day,$now); $out[]=['date'=>$day->format('Y-m-d'),'label'=>in_array($w,['heute','morgen','übermorgen'],true) ? mb_strtoupper(mb_substr($w,0,1)).mb_substr($w,1).', '.$day->format('d.m.') : CB_WDL[(int)$day->format('w')].', '.$day->format('d.m.'),'today'=>$i===0,'slots'=>array_values(array_unique($slots))];
     }
     return $out;
 }
@@ -301,7 +301,8 @@ function cb_public_ok(int $acc, string $cfgPlan): bool {
     foreach(th_plans($acc) as $p) if(in_array($p['status'],['active','trialing','past_due'],true)) return true;
     return false;
 }
-function cb_plan_name(string $plan): string { $p=function_exists('ch_plan') ? ch_plan($plan) : null; return $p ? (string)$p['name'] : $plan; }
+/** Anzeigename eines Plans ohne Klammerzusatz („Immobilien-Agent (Makler & Verwaltung)“ → „Immobilien-Agent“). */
+function cb_plan_name(string $plan): string { $p=function_exists('ch_plan') ? ch_plan($plan) : null; return $p ? trim(preg_replace('/\s*\(.*\)\s*$/u','',(string)$p['name']) ?? (string)$p['name']) : $plan; }
 /** Firmenname für Begrüßung, Formular und Mails: Konfiguration des Schlüssels → anrufender Agent → irgendeine Konfiguration. */
 function cb_company(int $acc, ?array $s=null, ?array $cfg=null): string {
     if($acc===0) return CB_DEMO['name'];
@@ -417,15 +418,19 @@ function cb_due_at(array $r, array $s): ?DateTimeImmutable {
 }
 /** Was passiert jetzt? „Unser Team ruft Sie heute um 16:00 Uhr zurück.“ / „Unser digitaler Assistent ruft Sie in etwa einer Minute zurück.“ */
 function cb_promise(array $r, array $s): string {
+    $who=$r['mode']==='ai' ? 'Unser digitaler Assistent' : 'Unser Team'; $w=cb_when_phrase($r,$s);
+    return $who.' ruft Sie '.$w['when'].' zurück'.($w['tail']!=='' ? ' – '.$w['tail'] : '').'.';
+}
+/** Zeitangabe zur Zusage: when = „heute um 16:00 Uhr“ / „in etwa einer Minute“ / „so schnell wie möglich“; tail = Zusatz außerhalb der Rückrufzeiten. */
+function cb_when_phrase(array $r, array $s): array {
     $now=cb_now($s); $pa=!empty($r['preferred_at']) ? new DateTimeImmutable((string)$r['preferred_at'],cb_tz($s)) : null;
-    $who=$r['mode']==='ai' ? 'Unser digitaler Assistent' : 'Unser Team';
-    if($pa && $pa>$now) return $who.' ruft Sie '.cb_when_label($pa,$now).' zurück.';
+    if($pa && $pa>$now) return ['when'=>cb_when_label($pa,$now),'tail'=>''];
     if(!cb_has_window($s) || cb_in_window($s,$now)){
-        if($r['mode']==='ai') return $who.' ruft Sie '.((in_array($r['source'],['form','api','demo'],true) && $s['lead_instant']===1) ? 'in etwa einer Minute' : 'in wenigen Minuten').' zurück.';
-        return $who.' ruft Sie so schnell wie möglich zurück.';
+        if($r['mode']==='ai') return ['when'=>(in_array($r['source'],['form','api','demo'],true) && $s['lead_instant']===1) ? 'in etwa einer Minute' : 'in wenigen Minuten','tail'=>''];
+        return ['when'=>'so schnell wie möglich','tail'=>''];
     }
     $nx=cb_next_window($s,$now);
-    return $who.' ruft Sie so schnell wie möglich zurück – frühestens '.($nx ? cb_when_label($nx,$now) : 'zu den nächsten Rückrufzeiten').' (Rückrufzeiten: '.cb_window_text($s).').';
+    return ['when'=>'so schnell wie möglich','tail'=>'frühestens '.($nx ? cb_when_label($nx,$now) : 'zu den nächsten Rückrufzeiten').' (Rückrufzeiten: '.cb_window_text($s).')'];
 }
 /** Öffentliche Form (Formular, Lead-API, Werkzeug): Nummer maskiert, keine internen Felder. */
 function cb_public(array $r, ?array $s=null): array {
@@ -488,7 +493,8 @@ function cb_create(int $acc, array $d, string $source, string $from=''): array {
     $p=th_db();
     /* Bestehende Bitte: über eine verifizierte Nummer aktualisieren, sonst exakte Wiederholung (gleiche Nummer + gleicher Name, 15 Min) nicht doppelt anlegen */
     $ver=null;
-    if($channel!==''){ $vp=function_exists('ch_verified_phone') ? ch_verified_phone($acc,$channel,$from,$phone) : (in_array($channel,['phone','whatsapp'],true) && $from!=='' ? $from : null); if($vp!==null){ $vv=cb_phone(preg_match('/^\d+$/',(string)$vp) ? '+'.$vp : (string)$vp); if($vv!==null && th_same_phone($vv,$phone)) $ver=$vv; } }
+    /* Demo (Konto 0): Besucher teilen sich Platzhalter-Nummern → dort nie Einträge verschiedener Besucher zusammenführen */
+    if($channel!=='' && $acc>0){ $vp=function_exists('ch_verified_phone') ? ch_verified_phone($acc,$channel,$from,$phone) : (in_array($channel,['phone','whatsapp'],true) && $from!=='' ? $from : null); if($vp!==null){ $vv=cb_phone(preg_match('/^\d+$/',(string)$vp) ? '+'.$vp : (string)$vp); if($vv!==null && th_same_phone($vv,$phone)) $ver=$vv; } }
     if($ver!==null){
         $st=$p->prepare("SELECT * FROM callbacks WHERE account_id=? AND phone=? AND status IN ('open','scheduled') AND created_at > (NOW() - INTERVAL 7 DAY) ORDER BY id DESC LIMIT 1"); $st->execute([$acc,$phone]);
         if($old=$st->fetch(PDO::FETCH_ASSOC)){
@@ -610,10 +616,10 @@ function cb_mail_card(array $r): string {
 function cb_notify_new(array $r, array $s): void {
     $acc=(int)$r['account_id']; if($acc<=0) return; $to=$s['notify_email'] ?: cb_owner_email($acc); if($to==='') return;
     $now=cb_now($s); $pa=!empty($r['preferred_at']) ? new DateTimeImmutable((string)$r['preferred_at'],cb_tz($s)) : null; $when=$pa ? cb_when_label($pa,$now) : 'so schnell wie möglich';
-    $ai=$r['mode']==='ai';
+    $ai=$r['mode']==='ai'; $wp=cb_when_phrase($r,$s);
     $info='<p style="font-size:14px;color:#3b4055;margin:6px 0">Wunschzeit: <b>'.cb_e($when).'</b> · Quelle: '.cb_e(CB_SOURCES[$r['source']] ?? (string)$r['source']).' · Code '.cb_e((string)$r['code'])
         .($r['urgency']==='dringend' ? ' · <b style="color:#d9336b">DRINGEND</b>' : '').'</p>'
-        .'<p style="font-size:14px;color:#3b4055;margin:6px 0">'.($ai ? '🤖 <b>Ihr digitaler Assistent ruft automatisch zurück</b> ('.cb_e(lcfirst(cb_promise($r,$s))).') – das Ergebnis und das Gesprächsprotokoll sehen Sie im Studio.' : '👤 <b>Bitte zurückrufen</b> und danach im Studio als „Erledigt“ markieren.').'</p>'
+        .'<p style="font-size:14px;color:#3b4055;margin:6px 0">'.($ai ? '🤖 <b>Ihr digitaler Assistent ruft automatisch zurück</b> – '.cb_e($wp['when'].($wp['tail']!=='' ? ', '.$wp['tail'] : '')).'. Ergebnis und Gesprächsprotokoll sehen Sie danach im Studio.' : '👤 <b>Bitte zurückrufen</b> und danach im Studio als „Erledigt“ markieren.').'</p>'
         .((int)$r['consent']===1 ? '<p style="font-size:12.5px;color:#6b7083;margin:6px 0">Einwilligung: '.cb_e((string)$r['consent_text']).'</p>' : '<p style="font-size:12.5px;color:#6b7083;margin:6px 0">Ohne Einwilligung in einen KI-Anruf – bitte persönlich zurückrufen.</p>');
     th_mail($to,($r['urgency']==='dringend' ? '⚡ DRINGEND · ' : '').'📞 Rückrufbitte: '.$r['name'].' · '.($pa ? cb_short_label($pa,$now) : 'sofort'),cb_mail_html('Rückrufbitte von '.cb_e((string)$r['name']),cb_e(cb_short_label(th_dbtime($r['created_at'],cb_tz($s)) ?: $now,$now)).' Uhr',cb_mail_card($r).$info));
 }

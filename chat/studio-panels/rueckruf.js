@@ -12,6 +12,9 @@
   function errText(e){ var d=(e && e.data) || {}; return d.message || d.hint || (e && e.message) || 'Fehler'; }
   function hm(v){ var m=/^(\d{1,2})[:.](\d{2})$/.exec(String(v || '').trim()); if(!m) return null; var H=+m[1], M=+m[2]; if(M>59 || H>24 || (H===24 && M>0)) return null; return (H<10 ? '0' : '')+H+':'+m[2]; }
   function hmShort(x){ var p=String(x).split(':'); return (+p[0])+(p[1]!=='00' ? ':'+p[1] : ''); }
+  /** Meldung über der Liste: Erfolg verschwindet nach 8 s von selbst, Fehler bleiben bis zum nächsten erfolgreichen Laden. */
+  var noteTimer=null;
+  function note(html, kind){ var m=el('cbListMsg'); clearTimeout(noteTimer); msg(m,html,kind); m.setAttribute('data-kind',kind || ''); if(kind==='ok') noteTimer=setTimeout(function(){ msg(m,'',''); m.removeAttribute('data-kind'); },8000); }
   function htmlEsc(s){ return String(s==null ? '' : s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
   /* ---------- Anrufzeiten ---------- */
@@ -55,8 +58,9 @@
     winRead();
     if(t.hasAttribute('data-cbwadd')){
       var r=WIN[w] || [], last=r[r.length-1], end=last ? hm(last[1]) : null;
+      var fmt=function(m){ var H=Math.floor(m/60), M=m%60; return (H<10 ? '0' : '')+H+':'+(M<10 ? '0' : '')+M; };
       if(!last || !end) r.push(['09:00','18:00']);
-      else { var a=Math.min(22,parseInt(end,10)+1), b=Math.min(24,a+4); r.push([(a<10 ? '0' : '')+a+':00',(b<10 ? '0' : '')+b+':00']); }   // z. B. nach der Mittagspause
+      else { var e=parseInt(end,10)*60+parseInt(end.slice(3),10), a=Math.min(22*60,e+60); r.push([fmt(a),fmt(Math.min(24*60,a+240))]); }   // z. B. nach der Mittagspause
       WIN[w]=r;
     }
     else if(t.hasAttribute('data-cbwdel')){ (WIN[w] || []).splice(+t.getAttribute('data-cbwdel'),1); }
@@ -190,7 +194,7 @@
   function busyEditing(){ return !!el('cbList').querySelector('.cbNoteIn'); }
   function render(j){
     var list=j.callbacks || []; LAST=list;
-    el('cbListMsg').innerHTML='';
+    if(el('cbListMsg').getAttribute('data-kind')==='err') note('','');
     if(!list.length){ el('cbList').innerHTML='<div class="mute" style="padding:18px 4px">'+(SCOPE==='open' ? 'Keine offenen Rückrufe. Sobald ein Kunde im Chat, am Telefon, per WhatsApp oder über das Formular um Rückruf bittet, erscheint er hier.' : (SCOPE==='done' ? 'In den letzten 30 Tagen wurde noch nichts erledigt.' : 'Noch keine Rückrufe in den letzten 90 Tagen.'))+'</div>'; return; }
     el('cbList').innerHTML=list.map(item).join('');
     Object.keys(OPEN_CALLS).forEach(function(id){ var it=el('cbList').querySelector('[data-cbitem="'+id+'"]'); if(it) showCalls(it,id,true); else delete OPEN_CALLS[id]; });
@@ -200,11 +204,11 @@
     api('/callbacks?scope='+encodeURIComponent(SCOPE)).then(function(j){
       stats(j.stats || {}); if(!busyEditing()) render(j);
       el('cbLive').textContent='aktualisiert '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr · alle 15 s';
-    }).catch(function(e){ msg(el('cbListMsg'),h(errText(e)),'err'); }).then(function(){ loading=false; });
+    }).catch(function(e){ note(h(errText(e)),'err'); }).then(function(){ loading=false; });
   }
   function update(id, body, btn){
     if(btn) btn.disabled=true; body.id=+id;
-    return api('/callbacks/update',{method:'POST',body:JSON.stringify(body)}).then(function(){ load(); }).catch(function(e){ msg(el('cbListMsg'),h(errText(e)),'err'); if(btn) btn.disabled=false; });
+    return api('/callbacks/update',{method:'POST',body:JSON.stringify(body)}).then(function(){ load(); }).catch(function(e){ note(h(errText(e)),'err'); if(btn) btn.disabled=false; });
   }
   function callNow(id, btn, force){
     var c=findItem(id);
@@ -213,11 +217,11 @@
       if(!confirm(txt)) return;
     }
     btn.disabled=true; btn.textContent='Rufe an …';
-    api('/callbacks/call',{method:'POST',body:JSON.stringify({id:+id,force:force ? 1 : 0})}).then(function(j){ msg(el('cbListMsg'),h(j.message || 'Anruf wird aufgebaut.'),'ok'); load(); })
+    api('/callbacks/call',{method:'POST',body:JSON.stringify({id:+id,force:force ? 1 : 0})}).then(function(j){ note(h(j.message || 'Anruf wird aufgebaut.'),'ok'); load(); })
       .catch(function(e){
         var d=(e && e.data) || {};
         if(d.error==='outside_window' && !force && confirm((d.hint || 'Außerhalb der Anrufzeiten.')+'\n\nTrotzdem jetzt anrufen?')){ btn.disabled=false; callNow(id,btn,true); return; }
-        msg(el('cbListMsg'),h(errText(e)),'err'); btn.disabled=false; btn.textContent='🤖 KI jetzt anrufen lassen';
+        note(h(errText(e)),'err'); btn.disabled=false; btn.textContent='🤖 KI jetzt anrufen lassen';
       });
   }
   var LAST=[];   // zuletzt gezeigte Liste (für Bestätigungstexte und Notiz-Vorbelegung)
@@ -267,7 +271,7 @@
     el('cbNSave').disabled=true;
     api('/callbacks/new',{method:'POST',body:JSON.stringify(d)}).then(function(j){
       ['cbNName','cbNPhone','cbNTopic','cbNWhen','cbNEmail'].forEach(function(id){ el(id).value=''; }); el('cbNUrgent').checked=false; el('cbNConsent').checked=false;
-      newToggle(false); msg(el('cbListMsg'),'Eingetragen ✓ '+h(j.message || '')+(j.hint ? ' <span class="mute">'+h(j.hint)+'</span>' : ''),'ok'); if(SCOPE==='done') setScope('open'); else load();
+      newToggle(false); note('Eingetragen ✓ '+h(j.message || '')+(j.hint ? ' <span class="mute">'+h(j.hint)+'</span>' : ''),'ok'); if(SCOPE==='done') setScope('open'); else load();
     }).catch(function(e){ msg(m,h(errText(e)),'err'); }).then(function(){ el('cbNSave').disabled=false; });
   }
 

@@ -4,11 +4,39 @@
  * ====================================================================
  * POST /chat/concierge.php {messages:[{role,content}], lang}  → {reply}
  * GET  /chat/concierge.php?lang=de                             → {greeting, chips[]}
+ * Live-Demo eines Agenten (Startseite):
+ *   GET  ?agent=<planId>  → {demo, agent, company, persona, greeting, chips, voice:{gender,rate,pitch}, speech:[{text,t}], fillers:[{text,t}], tts, lang}
+ *   POST {agent, channel:'phone'|'chat', messages, lang} → {reply, tools, forward, end, …, speech:[{text,t}], tts}
+ *   speech/fillers = sprechbare Sätze mit Token für /chat/tts.php (speech-lib.php); tts=true, wenn eine Server-Stimme eingerichtet ist.
  * Platform anahtarıyla (CLAUDE_KEY / DEEPSEEK_KEY, db.php) çalışır; ziyaretçiden token istemez.
  * Koruma: IP başına 20 mesaj/saat, toplam 400 mesaj/saat (tablo: concierge_log). Yalnız ChatHelp konuları.
  */
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
+require_once __DIR__.'/speech-lib.php';
+
+/** Persona + Sprechstil des Demo-Betriebs + allgemeine Realismus-Regeln (nach ch_agent_system, vor dem Werkzeug-Hinweis). */
+function concierge_persona_prompt(array $d, bool $phone): string {
+    $name=trim((string)($d['persona'] ?? '')); $fem=(($d['voice']['gender'] ?? 'f')!=='m'); $co=(string)($d['company'] ?? '');
+    $o='';
+    if($name!==''){
+        $o.="\n\nPERSONA: Du bist {$name}, ".($fem?'die digitale Mitarbeiterin':'der digitale Mitarbeiter')." von „{$co}“, und klingst wie ein sehr guter, erfahrener Mensch aus genau diesem Betrieb."
+           ." Die Begrüßung ist bereits erfolgt („".trim((string)($d['greeting'] ?? ''))."“) – stell dich nicht noch einmal vor und begrüße nicht erneut."
+           ." Fragt jemand, ob du ein Mensch bist: freundlich und ehrlich – du bist {$name}, ".($fem?'die digitale Assistentin':'der digitale Assistent')." von {$co}, und hilfst trotzdem direkt weiter.";
+        $o.=!empty($d['du']) ? " Du duzt dein Gegenüber (so ist es in diesem Betrieb üblich)." : " Du siezt dein Gegenüber, außer es bietet dir ausdrücklich das Du an.";
+    }
+    if(trim((string)($d['style'] ?? ''))!=='') $o.="\n\nSTIL UND HALTUNG".($name!==''?" ({$name})":'').":\n".trim((string)$d['style']);
+    $o.="\n\nREALISMUS – so klingst du wie ein echter Mensch, nicht wie ein Bot:"
+       ."\n• Reagiere zuerst kurz auf das Gesagte („Oh, das klingt unangenehm.“, „Alles klar.“, „Verstehe.“), dann geht es weiter – aber nicht jedes Mal mit derselben Einleitung."
+       ."\n• Immer nur EINE Frage pro Antwort. Kurze, natürliche Sätze in der Alltagssprache dieser Branche – keine Behördensprache."
+       ."\n• Wichtige Angaben (Name, Datum, Uhrzeit, Adresse, Betrag, Code, Telefonnummer) kurz wiederholen und bestätigen lassen, bevor du etwas festmachst."
+       ."\n• Gefühle wahrnehmen: Ärger, Sorge, Schmerz oder Eile kurz und ehrlich anerkennen, dann lösungsorientiert weiter. Wer es eilig hat, bekommt noch knappere Antworten."
+       ."\n• Keine Roboter-Floskeln: kein „Als KI …“, kein „Gerne helfe ich Ihnen weiter!“, kein „Ich hoffe, das hilft“, kein „Zögern Sie nicht …“; keine Formulierung im Gespräch zweimal verwenden."
+       ."\n• ".($phone ? 'Am Telefon: keine Aufzählungen, keine Listen, keine Emojis, keine Links – alles in gesprochenen Sätzen.' : 'Im Chat höchstens eine kurze Liste, wenn sie wirklich hilft; Emojis höchstens sparsam und nur, wenn es zum Betrieb passt.')
+       ."\n• Ehrlich bleiben: Was du nicht weißt, sagst du offen und bietest den nächsten Schritt an (Rückruf, Weiterleitung, E-Mail)."
+       ."\n• Zum Schluss freundlich und persönlich verabschieden – ein Satz genügt.";
+    return $o;
+}
 header('Access-Control-Allow-Origin: *'); header('Access-Control-Allow-Headers: Content-Type'); header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 if($_SERVER['REQUEST_METHOD']==='OPTIONS'){ http_response_code(204); exit; }
 
@@ -32,8 +60,16 @@ $g=$G[$lang] ?? $G['de'];
 /* Live-Demo eines Agenten (Startseite): ?agent=agent-phone → Beispiel-Firma + Wissensbasis, echter Agent */
 $demo=preg_replace('/[^a-z0-9-]/','',(string)($in['agent'] ?? ($_GET['agent'] ?? '')));
 if($demo!=='' && !ch_plan($demo)) $demo='';
+/* Server-Stimme nur für echte Demo-Einträge (tts.php prüft CH_DEMO) */
+$ttsOn = $demo!=='' && isset(CH_DEMO[$demo]) && ch_tts_provider()!==null;
 if($_SERVER['REQUEST_METHOD']==='GET'){
-    if($demo!==''){ $d=ch_demo_cfg($demo); $pl=ch_plan($demo); th_json(200,['demo'=>$demo,'agent'=>$pl['name'],'company'=>$d['company'],'greeting'=>$d['greeting'],'chips'=>$d['chips'],'lang'=>'de']); }
+    if($demo!==''){
+        $d=ch_demo_cfg($demo); $pl=ch_plan($demo);
+        $fill=[]; foreach($d['fillers'] as $f){ $x=implode(' ',ch_speech_sentences($f,'de',!empty($d['du']))); if($x!=='') $fill[]=['text'=>$x,'t'=>ch_tts_sign($demo,$x)]; }
+        th_json(200,['demo'=>$demo,'agent'=>$pl['name'],'company'=>$d['company'],'persona'=>$d['persona'],'greeting'=>$d['greeting'],'chips'=>$d['chips'],
+            'voice'=>['gender'=>$d['voice']['gender'],'rate'=>$d['voice']['rate'],'pitch'=>$d['voice']['pitch']],
+            'speech'=>ch_speech_payload($demo,$d['greeting']),'fillers'=>$fill,'tts'=>$ttsOn,'lang'=>'de']);
+    }
     th_json(200,['greeting'=>$g['hi'],'chips'=>$g['chips'],'lang'=>$lang]);
 }
 
@@ -56,7 +92,7 @@ if(!$msgs || end($msgs)['role']!=='user') th_json(400,['error'=>'messages_requir
 /* ---- Agent-Live-Demo: echter Agent mit Beispiel-Wissensbasis (Plattform-Schlüssel, kein Token-Verbrauch des Besuchers) ---- */
 if($demo!==''){
     $pl=ch_plan($demo); $d=ch_demo_cfg($demo); $phone=(($in['channel']??'')==='phone') || $demo==='agent-phone';
-    $sys=ch_agent_system($pl,$d,'de').($phone?CH_PHONE_RULES:'')
+    $sys=ch_agent_system($pl,$d,'de').concierge_persona_prompt($d,$phone).($phone?CH_PHONE_RULES:'')
         ."\n\nDEMO-HINWEIS (nur intern): Dies ist eine öffentliche Live-Demo auf chat-help.com mit der Beispiel-Firma „".$d['company']."“. Bleibe vollständig in der Rolle. Wenn jemand fragt, wie er so einen Agenten bekommt oder etwas über ChatHelp wissen will: Ein Satz – Studio auf chat-help.com, eigene Wissensbasis einfügen, in 10 Minuten startklar – dann zurück in die Rolle.";
     /* Termin- und Bestell-Demo arbeiten mit ECHTEN Werkzeugen auf Konto 0 (Salon Luna / Pizzeria Napoli): echte Slot- und Adressprüfung, echte Buchung/Bestellung – keine Benachrichtigungen */
     $tk=null;
@@ -67,11 +103,13 @@ if($demo!==''){
         $sys.=$tk['hint']."\nDEMO-MODUS: Kundendaten dürfen Platzhalter sein (z. B. Name „Demo“, Telefon „0170 0000000“), Bestellungen auch außerhalb der Öffnungszeiten annehmen; es wird keine echte Nachricht verschickt – sage, dass im echten Betrieb Bestätigung per E-Mail/WhatsApp/SMS kommt.";
         $answer=th_ai_tools($sys,$msgs,$tk['tools'],$tk['exec'],$phone?320:800,60);
     } else $answer=th_ai($sys,$msgs,$phone?300:700,45);
-    if($answer===null) th_json(200,['error'=>'ai_unavailable','reply'=>'Die Demo ist gerade nicht erreichbar – bitte gleich noch einmal versuchen.','demo'=>$demo,'detail'=>th_ai_info()['errors'] ?? []]);   // 200: Cloudflare würde 502 durch eigene Fehlerseite ersetzen
+    if($answer===null){ $r='Die Demo ist gerade nicht erreichbar – bitte gleich noch einmal versuchen.';
+        th_json(200,['error'=>'ai_unavailable','reply'=>$r,'demo'=>$demo,'detail'=>th_ai_info()['errors'] ?? [],'speech'=>ch_speech_payload($demo,$r),'tts'=>$ttsOn]); }   // 200: Cloudflare würde 502 durch eigene Fehlerseite ersetzen
     $forward=str_contains($answer,'[WEITERLEITEN]'); $end=str_contains($answer,'[ENDE]');
     $answer=trim(str_replace(['[WEITERLEITEN]','[ENDE]'],'',$answer));
     $p->prepare("INSERT INTO concierge_log(ip_hash) VALUES(?)")->execute([$h]);
-    th_json(200,['reply'=>$answer,'source'=>th_ai_info()['provider'] ?? 'ai','demo'=>$demo,'forward'=>$forward,'end'=>$end,'tools'=>array_map(fn($c)=>['name'=>$c['name'],'ok'=>$c['ok'] ?? true],th_ai_info()['tool_calls'] ?? [])]);
+    th_json(200,['reply'=>$answer,'source'=>th_ai_info()['provider'] ?? 'ai','demo'=>$demo,'forward'=>$forward,'end'=>$end,'tools'=>array_map(fn($c)=>['name'=>$c['name'],'ok'=>$c['ok'] ?? true],th_ai_info()['tool_calls'] ?? []),
+        'speech'=>ch_speech_payload($demo,$answer),'tts'=>$ttsOn]);
 }
 
 /* ---- sistem promptu: ürün bilgisi ---- */

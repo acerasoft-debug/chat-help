@@ -74,16 +74,16 @@
 
   /* ---------------------------------------------------------------- Kennzahlen */
   function renderOverview(){
-    var o=OV || {}, kb=o.kb_chars || 0, pct=Math.min(100,Math.round(kb*100/KB_LIMIT));
+    var o=OV || {}, kb=o.kb_chars || 0, pct=Math.min(100,kb*100/KB_LIMIT);
     el('trKbNum').textContent=n(kb);
     el('trKbSub').innerHTML='von '+n(KB_LIMIT)+' Zeichen'+(kb>KB_PROMPT ? ' · <span style="color:var(--rose)">Agent liest die ersten '+n(KB_PROMPT)+'</span>' : '');
-    var bar=el('trKbBar'); bar.style.width=pct+'%'; bar.style.background=pct>=90 ? 'var(--rose)' : 'linear-gradient(90deg,#ecd08a,#c9972f)';
+    var bar=el('trKbBar'); bar.style.width=(kb>0 ? Math.max(1.5,pct) : 0).toFixed(1)+'%'; bar.style.background=pct>=90 ? 'var(--rose)' : 'linear-gradient(90deg,#ecd08a,#c9972f)';
     el('trFaqNum').textContent=n(o.faq_count || 0);
     el('trFaqSub').textContent='verbindliche Antworten'+(o.corrections ? ' · '+o.corrections+' '+(o.corrections===1 ? 'Korrektur' : 'Korrekturen') : '');
     var t=o.tests || {};
     el('trScoreNum').textContent=t.score!=null ? t.score+' %' : '–';
     el('trScoreNum').style.color=t.score==null ? '' : (t.score>=80 ? 'var(--ok)' : (t.score>=50 ? 'var(--gold)' : 'var(--rose)'));
-    el('trScoreSub').textContent=t.ran ? t.passed+' von '+t.ran+' bestanden'+(t.ran<t.total ? ' · '+(t.total-t.ran)+' offen' : '')+(t.last_run ? ' · '+when(t.last_run) : '') : (t.total ? t.total+' Testfragen – noch nicht geprüft' : 'noch keine Testfragen');
+    el('trScoreSub').textContent=t.ran ? t.passed+' von '+t.ran+' bestanden'+(t.ran<t.total ? ' · '+(t.total-t.ran)+' offen' : '')+(t.last_run ? ' · '+when(t.last_run) : '') : (t.total ? t.total+' '+(t.total===1 ? 'Testfrage' : 'Testfragen')+' – noch nicht geprüft' : 'noch keine Testfragen');
     var s=o.last_source;
     el('trSrcNum').textContent=s ? clip(s.title || (s.kind==='url' ? 'Website' : 'Dokument'),60) : '–';
     el('trSrcSub').textContent=s ? ({url:'Website',file:'Dokument',text:'Text'}[s.kind] || 'Quelle')+' · '+n(s.chars)+' Zeichen · '+(s.mode==='replace' ? 'ersetzt' : 'angehängt')+' · '+when(s.created_at) : 'noch nichts importiert';
@@ -263,7 +263,7 @@
   }
   function saveFaq(){
     var btn=el('trFaqSave'), box=el('trFaqMsg'); busy(btn,true,'Speichert …');
-    return post('/train/faq',{items:faqCollect()}).then(function(r){
+    return post('/train/faq',{items:faqCollect(),known:FAQ.map(function(f){ return f.id; })}).then(function(r){
       busy(btn,false); FAQ=r.items || []; renderFaq(); faqDirty=false; dirtyUI(); msg(box,'Gespeichert ✓ – gilt ab sofort im Chat, am Telefon und per WhatsApp.','ok'); refreshOverview(); return true;
     }).catch(function(e){
       busy(btn,false); showErr(box,e);
@@ -339,7 +339,7 @@
   function reloadTests(){ var my=seq; return api('/train/tests'+qs()).then(function(r){ if(my!==seq) return; TESTS=r.items || []; if(!testDirty) renderTests(r.summary); }).catch(function(){}); }
   function saveTests(){
     var btn=el('trTestSave'), box=el('trTestMsg'); busy(btn,true,'Speichert …');
-    return post('/train/tests',{items:testsCollect()}).then(function(r){ busy(btn,false); TESTS=r.items || []; testDirty=false; dirtyUI(); renderTests(r.summary); msg(box,'Testfragen gespeichert ✓','ok'); refreshOverview(); return true; })
+    return post('/train/tests',{items:testsCollect(),known:TESTS.map(function(t){ return t.id; })}).then(function(r){ busy(btn,false); TESTS=r.items || []; testDirty=false; dirtyUI(); renderTests(r.summary); msg(box,'Testfragen gespeichert ✓','ok'); refreshOverview(); return true; })
       .catch(function(e){ busy(btn,false); showErr(box,e); var i=e && e.data ? e.data.index : null, rows=document.querySelectorAll('#trTestList .trTrow'); if(i!=null && rows[i]){ rows[i].style.borderColor='var(--rose)'; rows[i].scrollIntoView({behavior:'smooth',block:'center'}); } return false; });
   }
   function runTests(ids){

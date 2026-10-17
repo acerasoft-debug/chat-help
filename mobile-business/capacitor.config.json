@@ -1,0 +1,55 @@
+{
+  "appId": "com.chathelp.business",
+  "appName": "ChatHelp Business",
+  "webDir": "www",
+  "backgroundColor": "#f6f7fb",
+  "appendUserAgent": "ChatHelpBusinessApp/1.0",
+  "loggingBehavior": "debug",
+  "server": {
+    "url": "https://chat-help.com/chat/app.php?src=native",
+    "androidScheme": "https",
+    "errorPath": "index.html",
+    "cleartext": false,
+    "allowNavigation": [
+      "chat-help.com",
+      "*.chat-help.com",
+      "checkout.stripe.com",
+      "*.stripe.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "backgroundColor": "#f6f7fb"
+  },
+  "ios": {
+    "backgroundColor": "#f6f7fb",
+    "allowsLinkPreview": false,
+    "preferredContentMode": "mobile",
+    "handleApplicationNotifications": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "launchAutoHide": true,
+      "launchFadeOutDuration": 250,
+      "backgroundColor": "#f6f7fb",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP",
+      "splashFullScreen": false,
+      "splashImmersive": false
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#ffffff",
+      "overlaysWebView": false
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_chathelp",
+      "iconColor": "#b8862b"
+    }
+  }
+}

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7fb">
+<title>ChatHelp Business</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --sur:#ffffff; --line:#e4e6ee; --ink:#0f1222; --ink2:#3b4055; --mute:#6b7083;
+    --gold:#b8862b; --goldl:#f6ecd3; --rose:#d9336b; --ok:#1a9e5a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0f1222; --sur:#171b31; --line:#262b45; --ink:#f1f2f7; --ink2:#c3c6d6; --mute:#8d91a6; --goldl:#2a2414; }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex; align-items:center; justify-content:center; min-height:100vh; min-height:100dvh;
+    padding:max(24px,env(safe-area-inset-top)) 22px max(24px,env(safe-area-inset-bottom));
+    text-align:center;
+  }
+  .card{
+    width:100%; max-width:380px; background:var(--sur); border:1px solid var(--line); border-radius:24px;
+    padding:34px 24px 26px; box-shadow:0 1px 2px rgba(15,18,34,.05),0 24px 60px rgba(15,18,34,.10);
+  }
+  .em{
+    width:72px;height:72px;margin:0 auto 18px;border-radius:22px;display:grid;place-items:center;
+    background:linear-gradient(135deg,#f3dfa6,#c9972f);box-shadow:0 10px 28px rgba(184,134,43,.28);
+  }
+  h1{font:600 22px/1.2 "Fraunces",Georgia,serif;margin:0 0 4px;letter-spacing:-.01em}
+  h1 span{color:var(--gold)}
+  .status{display:inline-flex;align-items:center;gap:8px;margin:14px 0 6px;padding:6px 12px;border-radius:999px;
+    background:var(--goldl);color:var(--gold);font:600 11.5px/1 "Inter",system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase}
+  .status i{width:8px;height:8px;border-radius:50%;background:var(--rose);display:inline-block}
+  .status.ok i{background:var(--ok)}
+  p{color:var(--ink2);margin:8px 0 22px;font-size:14.5px}
+  button{
+    width:100%;min-height:50px;padding:14px 18px;border:0;border-radius:14px;cursor:pointer;
+    font-weight:700;font-size:15.5px;line-height:1.2;font-family:inherit;color:#fff;background:var(--ink);
+    transition:transform .15s ease, opacity .15s ease;
+  }
+  @media (prefers-color-scheme: dark){ button{background:linear-gradient(135deg,#ecd08a,#c9972f);color:#1a1407} }
+  button:active{transform:scale(.98)}
+  button[disabled]{opacity:.6}
+  .spin{display:none;width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;
+    vertical-align:-3px;margin-right:8px;animation:r .8s linear infinite}
+  button.busy .spin{display:inline-block}
+  @keyframes r{to{transform:rotate(360deg)}}
+  .muted{margin-top:16px;font-size:12px;color:var(--mute)}
+</style>
+</head>
+<body>
+  <main class="card" role="main">
+    <div class="em" aria-hidden="true">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg>
+    </div>
+    <h1>ChatHelp <span>Business</span></h1>
+    <div class="status" id="st"><i></i><span id="stText">Offline</span></div>
+    <p id="msg">Keine Verbindung zum Server. Bitte prüfe WLAN oder mobile Daten – deine Agenten arbeiten in der Zwischenzeit weiter.</p>
+    <button id="retry" type="button"><span class="spin"></span><span id="btnText">Keine Verbindung – erneut versuchen</span></button>
+    <div class="muted">chat-help.com · DSGVO · EU-Server</div>
+  </main>
+<script>
+(function(){
+  var APP_URL = 'https://chat-help.com/chat/app.php?src=native';
+  var btn = document.getElementById('retry');
+  var busy = false;
+
+  function setOnline(on){
+    var st = document.getElementById('st');
+    st.className = on ? 'status ok' : 'status';
+    document.getElementById('stText').textContent = on ? 'Verbinde …' : 'Offline';
+  }
+
+  function retry(){
+    if (busy) return;
+    busy = true;
+    btn.className = 'busy';
+    btn.disabled = true;
+    document.getElementById('btnText').textContent = 'Verbinde …';
+    // Kurz prüfen, ob der Server erreichbar ist, bevor wir die Seite verlassen
+    // (verhindert ein Flackern zwischen Fehlerseite und weißer Seite).
+    var done = false;
+    var go = function(){ if (done) return; done = true; location.replace(APP_URL); };
+    var fail = function(){
+      if (done) return; done = true; busy = false;
+      btn.className = ''; btn.disabled = false;
+      document.getElementById('btnText').textContent = 'Keine Verbindung – erneut versuchen';
+      setOnline(false);
+    };
+    try {
+      var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+      var t = setTimeout(function(){ if (ctrl) ctrl.abort(); fail(); }, 8000);
+      fetch('https://chat-help.com/chat/app.webmanifest?ping=' + Date.now(), { mode: 'no-cors', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+        .then(function(){ clearTimeout(t); go(); })
+        .catch(function(){ clearTimeout(t); fail(); });
+    } catch (e) { go(); }
+  }
+
+  btn.addEventListener('click', retry);
+  window.addEventListener('online', function(){ setOnline(true); retry(); });
+  window.addEventListener('offline', function(){ setOnline(false); });
+  // Sanfte automatische Wiederholung, solange die App sichtbar ist.
+  setInterval(function(){ if (!busy && navigator.onLine && document.visibilityState === 'visible') retry(); }, 6000);
+})();
+</script>
+</body>
+</html>

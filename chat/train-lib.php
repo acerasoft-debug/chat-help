@@ -121,6 +121,7 @@ function train_clean_text(string $s): string {
     return trim($s);
 }
 /** Auf $max Zeichen kürzen – möglichst an Zeilen- bzw. Satzgrenze. */
+function train_one_line(string $s): string { return trim(preg_replace('/\s+/u',' ',train_clean_text($s)) ?? ''); }
 function train_cut(string $s, int $max, string $more='…'): string {
     if(mb_strlen($s)<=$max) return $s;
     $c=mb_substr($s,0,$max); $p=mb_strrpos($c,"\n");
@@ -139,11 +140,17 @@ function train_mask_pii(string $s): string {
     return $s;
 }
 const TRAIN_STOP = ['der','die','das','den','dem','des','und','oder','ich','sie','wir','ihr','du','er','es','ist','sind','bin','bist','hat','haben','habe','hast','ein','eine','einen','einem','einer','eines','zu','zum','zur','im','in','am','an','auf','aus','für','fuer','mit','von','vom','bei','beim','wie','was','wann','wo','wer','warum','wieso','welche','welcher','welches','welchen','kann','können','koennen','könnte','könnten','kannst','man','mir','mich','ihnen','ihn','dir','dich','uns','euch','auch','noch','schon','bitte','danke','hallo','gerne','gern','mal','denn','doch','ja','nein','nicht','kein','keine','keinen','gibt','geben','gut','sehr','so','dass','daß','ob','als','aber','wenn','da','dann','hier','dort','mein','meine','meinen','meinem','meiner','ihre','ihren','ihrem','ihrer','dein','deine','euer','eure','jetzt','heute','morgen','etwas','alle','viel','muss','müssen','soll','sollte','will','möchte','möchten','würde','würden','wird','werden','gerade','eigentlich','also','nur','über','unter','nach','vor','um','bis','ohne','gegen','sich','sein','seine','the','and','is','are','you','your','do','does','can','what','how','when','where','which','for','have','has'];
+/** Häufige Synonyme im Kundenservice auf einen Begriff abbilden („geöffnet“/„offen“, „kostet“/„Preis“ …) – für das Entdoppeln. */
+const TRAIN_SYN = ['/^(geoeffnet|offen|oeffn|aufhab|aufgemacht|geschlossen)/'=>'oeffnen','/^(kost|preis|teuer|guenstig|gebuehr|tarif)/'=>'preis','/^park/'=>'park',
+    '/^(bezahl|zahlung|zahlen$|zahlt|zahlart)/'=>'zahlung','/^(liefer|versand|versend|verschick|zustell)/'=>'versand','/^(rueckgab|retour|zurueckschick|zuruecksend|umtausch)/'=>'retoure',
+    '/^(sonntag|sonntags)/'=>'sonntag','/^(samstag|sonnabend)/'=>'samstag','/^feiertag/'=>'feiertag','/^wochenend/'=>'wochenende','/^gutschein/'=>'gutschein','/^termin/'=>'termin',
+    '/^(storn|absag|absage)/'=>'storno','/^(adress|anschrift|anfahrt|wegbeschreib)/'=>'adresse','/^(telefon|rufnummer|nummer$)/'=>'telefon','/^(hund|haustier|tier$)/'=>'tier'];
 function train_tokens(string $s): array {
     $s=mb_strtolower($s); $s=strtr($s,['ä'=>'ae','ö'=>'oe','ü'=>'ue','ß'=>'ss']);
     $o=[]; foreach(preg_split('/[^\p{L}\p{N}]+/u',$s,-1,PREG_SPLIT_NO_EMPTY) ?: [] as $w){
         if(mb_strlen($w)<3 || in_array($w,TRAIN_STOP,true)) continue;
-        if(mb_strlen($w)>5) $w=preg_replace('/(en|er|es|e|n|s)$/u','',$w) ?? $w;
+        $syn=null; foreach(TRAIN_SYN as $re=>$to){ if(preg_match($re,$w)){ $syn=$to; break; } }
+        if($syn!==null) $w=$syn; elseif(mb_strlen($w)>5) $w=preg_replace('/(en|er|es|e|n|s)$/u','',$w) ?? $w;
         $o[$w]=1; }
     return array_keys($o);
 }
@@ -201,15 +208,16 @@ function train_faq(int $acc, string $plan, bool $activeOnly=false): array {
 }
 /**
  * FAQ-Liste ersetzen: vorhandene IDs werden aktualisiert (Quelle/Korrektur bleibt), neue angelegt, fehlende gelöscht.
+ * $known = IDs, die der Editor geladen hatte: nur diese dürfen wegfallen (schützt zwischenzeitlich anderswo angelegte Einträge).
  * Fehler: ['error'=>…, 'index'=>i, 'message'=>…] – dann wird nichts geändert.
  */
-function train_faq_save(int $acc, string $plan, array $items): array {
+function train_faq_save(int $acc, string $plan, array $items, ?array $known=null): array {
     if($acc<=0) return ['error'=>'demo_readonly','message'=>'In der Demo kann nichts gespeichert werden.'];
     train_bootstrap(); $p=th_db();
     $rows=[]; $seen=[];
     foreach(array_values($items) as $i=>$it){
         if(!is_array($it)) continue;
-        $q=train_clean_text(train_str($it['question'] ?? '')); $a=train_clean_text(train_str($it['answer'] ?? ''));
+        $q=train_one_line(train_str($it['question'] ?? '')); $a=train_clean_text(train_str($it['answer'] ?? ''));
         if($q==='' && $a==='') continue;
         $n=$i+1;
         if($q==='') return ['error'=>'faq_incomplete','index'=>$i,'message'=>"Eintrag $n: Bitte die Frage ergänzen."];
@@ -232,7 +240,7 @@ function train_faq_save(int $acc, string $plan, array $items): array {
             if($r['id'] && in_array($r['id'],$have,true)){ $up->execute([$r['q'],$r['a'],$r['active'],$i,$r['id'],$acc,$plan]); $keep[]=$r['id']; }
             else { $ins->execute([$acc,$plan,$r['q'],$r['a'],$r['src'],$r['active'],$i]); }
         }
-        $del=array_values(array_diff($have,$keep));
+        $del=array_values(array_diff($have,$keep)); if($known!==null) $del=array_values(array_intersect($del,array_map('intval',$known)));
         if($del){ $ph=implode(',',array_fill(0,count($del),'?')); $p->prepare("DELETE FROM agent_faq WHERE account_id=? AND plan=? AND id IN ($ph)")->execute(array_merge([$acc,$plan],$del)); }
         $p->commit();
     }catch(Throwable $e){ $p->rollBack(); throw $e; }
@@ -247,7 +255,7 @@ function train_faq_delete(int $acc, string $plan, int $id): bool {
 function train_correct(int $acc, string $plan, string $question, string $wrong, string $correct, bool $asTest=false): array {
     if($acc<=0) return ['error'=>'demo_readonly','message'=>'In der Demo kann nichts gespeichert werden.'];
     train_bootstrap(); $p=th_db();
-    $q=train_clean_text(train_str($question)); $w=train_cut(train_clean_text(train_str($wrong)),1000); $a=train_clean_text(train_str($correct));
+    $q=train_one_line(train_str($question)); $w=train_cut(train_clean_text(train_str($wrong)),1000); $a=train_clean_text(train_str($correct));
     if($q==='') return ['error'=>'question_required','message'=>'Bitte die Frage des Kunden angeben.'];
     if($a==='') return ['error'=>'correct_required','message'=>'Bitte die richtige Antwort eintragen.'];
     if(mb_strlen($q)>TRAIN_Q_MAX) $q=train_cut($q,TRAIN_Q_MAX);
@@ -351,12 +359,12 @@ function train_tests_summary(int $acc, string $plan, ?array $tests=null): array 
     return ['total'=>count($tests),'ran'=>$ran,'passed'=>$passed,'failed'=>$ran-$passed,'score'=>$ran ? (int)round($passed*100/$ran) : null,'last_run'=>$last];
 }
 /** Testliste ersetzen (IDs bleiben; geänderte Frage/Erwartung setzt das letzte Ergebnis zurück). */
-function train_tests_save(int $acc, string $plan, array $items): array {
+function train_tests_save(int $acc, string $plan, array $items, ?array $known=null): array {
     if($acc<=0) return ['error'=>'demo_readonly','message'=>'In der Demo kann nichts gespeichert werden.'];
     train_bootstrap(); $p=th_db(); $rows=[]; $seen=[];
     foreach(array_values($items) as $i=>$it){
         if(!is_array($it)) continue;
-        $q=train_clean_text(train_str($it['question'] ?? '')); $e=train_clean_text(train_str($it['expect'] ?? ''));
+        $q=train_one_line(train_str($it['question'] ?? '')); $e=train_clean_text(train_str($it['expect'] ?? ''));
         if($q==='' && $e==='') continue; $n=$i+1;
         if($q==='') return ['error'=>'test_incomplete','index'=>$i,'message'=>"Testfrage $n: Bitte die Frage ergänzen."];
         if($e==='') return ['error'=>'test_incomplete','index'=>$i,'message'=>"Testfrage $n („".train_cut($q,60)."“): Bitte eintragen, welche Fakten die Antwort enthalten muss."];
@@ -376,7 +384,7 @@ function train_tests_save(int $acc, string $plan, array $items): array {
             if($r['id'] && isset($cur[$r['id']])){ $o=$cur[$r['id']]; ($o['question']===$r['q'] && $o['expect']===$r['e'] ? $up : $reset)->execute([$r['q'],$r['e'],$i,$r['id'],$acc,$plan]); $keep[]=$r['id']; }
             else $ins->execute([$acc,$plan,$r['q'],$r['e'],$i]);
         }
-        $del=array_values(array_diff(array_keys($cur),$keep));
+        $del=array_values(array_diff(array_keys($cur),$keep)); if($known!==null) $del=array_values(array_intersect($del,array_map('intval',$known)));
         if($del){ $ph=implode(',',array_fill(0,count($del),'?')); $p->prepare("DELETE FROM agent_tests WHERE account_id=? AND plan=? AND id IN ($ph)")->execute(array_merge([$acc,$plan],$del)); }
         $p->commit();
     }catch(Throwable $e){ $p->rollBack(); throw $e; }
@@ -960,7 +968,7 @@ function train_find_gaps(int $acc, string $plan, int $limit=40, bool $useAi=true
             $hit=false; foreach(TRAIN_UNSURE as $re) if(preg_match($re,$txt)){ $hit=true; break; }
             if(!$hit) continue;
             if(preg_match(TRAIN_HUMAN_REQ,$lastU) || mb_strlen($lastU)<8 || mb_strlen($lastU)>500) continue;
-            $used[$lastU]=1; $found[]=[train_mask_pii($lastU),$c['ch'],$c['at'],train_cut(train_mask_pii(preg_replace('/\[(WEITERLEITEN|ENDE)\]/u','',$txt) ?? $txt),220)];
+            $used[$lastU]=1; $found[]=[train_mask_pii($lastU),$c['ch'],$c['at'],train_cut(train_mask_pii(trim(preg_replace('/\s*\[(WEITERLEITEN|ENDE)\]\s*/u',' ',$txt) ?? $txt)),220)];
         }
     }
     if($acc>0){
@@ -1222,7 +1230,7 @@ function train_api(string $route, string $method, int $aid, array $body, array $
     if(!in_array($method,$known[$route],true)) return [405,['error'=>'method_not_allowed','routes'=>$routes]];
     try{
         train_bootstrap();
-        if($route==='train/import-file' && empty($_FILES) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0)>0){
+        if($route==='train/import-file' && empty($_FILES) && empty($_POST) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0)>train_upload_limit()){   // post_max_size überschritten → PHP verwirft $_POST und $_FILES
             $lim=train_upload_limit(); return [413,['error'=>'file_too_large','limit_bytes'=>$lim,'message'=>'Die Datei ist größer als das Upload-Limit ('.number_format($lim/1048576,1,',','.').' MB). Bitte verkleinern oder als Textdatei hochladen.']];
         }
         $plan=train_req_plan($body);
@@ -1306,7 +1314,7 @@ function train_api(string $route, string $method, int $aid, array $body, array $
                 return [200,$r+['sources'=>train_sources($aid,$plan,10)]];
 
             case 'GET train/faq': return [200,['items'=>train_faq($aid,$plan),'limit'=>TRAIN_FAQ_MAX,'prompt'=>array_diff_key(train_addon_build(train_faq($aid,$plan),train_rules($aid,$plan)),['text'=>1])]];
-            case 'POST train/faq': return $isOk(train_faq_save($aid,$plan,is_array($body['items'] ?? null) ? $body['items'] : []));
+            case 'POST train/faq': return $isOk(train_faq_save($aid,$plan,is_array($body['items'] ?? null) ? $body['items'] : [],is_array($body['known'] ?? null) ? $body['known'] : null));
             case 'POST train/faq/delete':
                 $ok=train_faq_delete($aid,$plan,(int)($body['id'] ?? 0));
                 return $ok ? [200,['ok'=>true,'items'=>train_faq($aid,$plan)]] : [404,['error'=>'not_found','message'=>'Eintrag nicht gefunden.']];
@@ -1318,7 +1326,7 @@ function train_api(string $route, string $method, int $aid, array $body, array $
             case 'POST train/rules': $r=train_rules_save($aid,$plan,is_string($body['rules'] ?? null) ? $body['rules'] : ''); return [isset($r['error']) ? 422 : 200,$r];
 
             case 'GET train/tests': $t=train_tests($aid,$plan); return [200,['items'=>$t,'summary'=>train_tests_summary($aid,$plan,$t),'limit'=>TRAIN_TESTS_MAX,'cost_per_test'=>TRAIN_COST_TEST]];
-            case 'POST train/tests': return $isOk(train_tests_save($aid,$plan,is_array($body['items'] ?? null) ? $body['items'] : []));
+            case 'POST train/tests': return $isOk(train_tests_save($aid,$plan,is_array($body['items'] ?? null) ? $body['items'] : [],is_array($body['known'] ?? null) ? $body['known'] : null));
             case 'POST train/run':
                 $tests=train_tests($aid,$plan);
                 if(isset($body['ids']) && is_array($body['ids']) && $body['ids']){ $want=array_map('intval',$body['ids']); $tests=array_values(array_filter($tests,fn($t)=>in_array($t['id'],$want,true))); }

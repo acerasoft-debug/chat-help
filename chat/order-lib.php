@@ -301,8 +301,8 @@ function ord_find_item(array $menu, $ref, ?array &$amb=null, ?array &$rest=null)
         foreach($menu as $m){ $nw=$words((string)$m['name']); $cw=$words((string)($m['category']??'')); if(!$nw) continue; $inN=0; $inC=0; $ok=true; $rw=[];
             foreach($tok as [$o,$w]){ if($eq($w,$nw)) $inN++; elseif($eq($w,$cw)) $inC++; elseif(!in_array($w,$stop,true)){ $ok=false; break; } else $rw[]=$o; }
             if($ok){ if($inN>0) $hits[]=['m'=>$m,'x'=>count($nw)-$inN,'r'=>$rw]; elseif($inC>0) $cat[]=$m; continue; }
-            /* B: jedes Namenswort (Kategorie-Wörter im Namen wie „Pizza“ in „Pizza Salami“ optional) als ganzes Wort in der Angabe → Kandidat; übrige Wörter ohne Füllwörter/Kategorie = $rest */
-            $used=[]; foreach($nw as $x){ $hit=null; foreach($tok as $i=>[,$w]) if(!isset($used[$i]) && $eq($w,[$x])){ $hit=$i; break; } if($hit===null){ if(count($nw)>1 && $like($x,$cw,100)) continue; continue 2; } $used[$hit]=1; }
+            /* B: jedes Namenswort (Kategorie-/Füllwörter im Namen wie „Pizza“ in „Pizza Salami“, „mit“ in „Spaghetti mit Garnelen“ optional) als ganzes Wort in der Angabe → Kandidat; übrige Wörter ohne Füllwörter/Kategorie = $rest */
+            $used=[]; foreach($nw as $x){ $hit=null; foreach($tok as $i=>[,$w]) if(!isset($used[$i]) && $eq($w,[$x])){ $hit=$i; break; } if($hit===null){ if(count($nw)>1 && ($like($x,$cw,100) || in_array($x,ORD_FILL,true))) continue; continue 2; } $used[$hit]=1; }
             if(!$used) continue; $r=[]; foreach($tok as $i=>[$o,$w]) if(!isset($used[$i]) && !in_array($w,ORD_FILL,true) && !$like($w,$cw,100)) $r[]=$o;
             $cand[]=['m'=>$m,'k'=>[-count($used),count(array_filter($r,fn($o)=>!ctype_digit($o))),min(array_keys($used))],'r'=>$r]; }
         if($hits){ usort($hits,fn($a,$b)=>$a['x']<=>$b['x']); if(count($hits)===1 || $hits[0]['x']<$hits[1]['x']){ $rest=$hits[0]['r']; return $hits[0]['m']; } $amb=array_slice(array_map(fn($h)=>$h['m']['name'],array_filter($hits,fn($h)=>$h['x']===$hits[0]['x'])),0,8); return null; }
@@ -391,7 +391,7 @@ function ord_create(int $acc, array $d, string $channel, string $waFrom=''): arr
         $un=array_values(array_filter($un,fn($o)=>!ctype_digit($o)));
         if($un){ $dw=array_values(array_filter(explode(' ',ord_norm($m['description'].' '.$m['tags'])),fn($x)=>$x!==''));
             $bad=array_filter($un,function($o) use($dw){ $w=ord_norm($o); foreach($dw as $x) if(ord_word_eq($w,$x)) return false; return true; });
-            if($bad) $problems[]=$m['name'].': „'.implode(' ',$un).'“ im Namen passt zu keiner Option'.($grps ? ' (möglich: '.ord_options_text($grps).')' : '').' – Auswahl als options, Wünsche ohne Aufpreis als note der Position senden.';
+            if($bad) $problems[]=$m['name'].': „'.implode(' ',$un).'“ im Namen passt zu keiner Option'.($grps ? ' (möglich: '.ord_options_text($grps).')' : ' (Artikel hat keine Optionen)').' – Auswahl als options, Wünsche ohne Aufpreis als note der Position senden.';
             else { $inote=trim($inote.($inote!=='' ? '; ' : '').implode(' ',$un)); $info[]=$m['name'].': „'.implode(' ',$un).'“ als Hinweis zur Position übernommen.'; } }
         $unit=max(0,$unit);
         usort($chosen,fn($a,$b)=>$a[0]<=>$b[0]);   // Anzeige in Kartenreihenfolge (Größe vor Extras), egal ob aus options oder Name
