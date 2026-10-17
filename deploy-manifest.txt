@@ -48,3 +48,23 @@ chat/skin.js                 chat/skin.js
 site/media/hero.webm         media/hero.webm
 site/media/hero.mp4          media/hero.mp4
 site/media/hero-poster.jpg   media/hero-poster.jpg
+# Assistenz-Porträts (synthetisch, keine realen Personen)
+site/media/avatars/avatars.json media/avatars/avatars.json
+site/media/avatars/f1.webp media/avatars/f1.webp
+site/media/avatars/f2.webp media/avatars/f2.webp
+site/media/avatars/f3.webp media/avatars/f3.webp
+site/media/avatars/f4.webp media/avatars/f4.webp
+site/media/avatars/f5.webp media/avatars/f5.webp
+site/media/avatars/f6.webp media/avatars/f6.webp
+site/media/avatars/f7.webp media/avatars/f7.webp
+site/media/avatars/f8.webp media/avatars/f8.webp
+site/media/avatars/f9.webp media/avatars/f9.webp
+site/media/avatars/m1.webp media/avatars/m1.webp
+site/media/avatars/m2.webp media/avatars/m2.webp
+site/media/avatars/m3.webp media/avatars/m3.webp
+site/media/avatars/m4.webp media/avatars/m4.webp
+site/media/avatars/m5.webp media/avatars/m5.webp
+site/media/avatars/m6.webp media/avatars/m6.webp
+site/media/avatars/m7.webp media/avatars/m7.webp
+site/media/avatars/m8.webp media/avatars/m8.webp
+site/media/avatars/m9.webp media/avatars/m9.webp

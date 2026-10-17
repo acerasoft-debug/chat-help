@@ -1,0 +1,128 @@
+[
+ {
+  "id": "f1",
+  "file": "f1.webp",
+  "gender": "f",
+  "label": "Lea",
+  "age": 29
+ },
+ {
+  "id": "f2",
+  "file": "f2.webp",
+  "gender": "f",
+  "label": "Sophie",
+  "age": 31
+ },
+ {
+  "id": "f3",
+  "file": "f3.webp",
+  "gender": "f",
+  "label": "Mia",
+  "age": 33
+ },
+ {
+  "id": "f4",
+  "file": "f4.webp",
+  "gender": "f",
+  "label": "Elif",
+  "age": 30
+ },
+ {
+  "id": "f5",
+  "file": "f5.webp",
+  "gender": "f",
+  "label": "Katrin",
+  "age": 46
+ },
+ {
+  "id": "f6",
+  "file": "f6.webp",
+  "gender": "f",
+  "label": "Hannah",
+  "age": 26
+ },
+ {
+  "id": "f7",
+  "file": "f7.webp",
+  "gender": "f",
+  "label": "Monika",
+  "age": 55
+ },
+ {
+  "id": "f8",
+  "file": "f8.webp",
+  "gender": "f",
+  "label": "Julia",
+  "age": 40
+ },
+ {
+  "id": "f9",
+  "file": "f9.webp",
+  "gender": "f",
+  "label": "Sandra",
+  "age": 44
+ },
+ {
+  "id": "m1",
+  "file": "m1.webp",
+  "gender": "m",
+  "label": "Jonas",
+  "age": 38
+ },
+ {
+  "id": "m2",
+  "file": "m2.webp",
+  "gender": "m",
+  "label": "Thomas",
+  "age": 54
+ },
+ {
+  "id": "m3",
+  "file": "m3.webp",
+  "gender": "m",
+  "label": "Can",
+  "age": 32
+ },
+ {
+  "id": "m4",
+  "file": "m4.webp",
+  "gender": "m",
+  "label": "David",
+  "age": 45
+ },
+ {
+  "id": "m5",
+  "file": "m5.webp",
+  "gender": "m",
+  "label": "Lukas",
+  "age": 29
+ },
+ {
+  "id": "m6",
+  "file": "m6.webp",
+  "gender": "m",
+  "label": "Max",
+  "age": 26
+ },
+ {
+  "id": "m7",
+  "file": "m7.webp",
+  "gender": "m",
+  "label": "Marco",
+  "age": 35
+ },
+ {
+  "id": "m8",
+  "file": "m8.webp",
+  "gender": "m",
+  "label": "Andreas",
+  "age": 48
+ },
+ {
+  "id": "m9",
+  "file": "m9.webp",
+  "gender": "m",
+  "label": "Stefan",
+  "age": 41
+ }
+]

@@ -1,0 +1,2 @@
+Porträts f1–f9, m1–m9: synthetisch erzeugte Gesichter (StyleGAN2, Karras et al., NVIDIA) – es handelt sich um keine realen Personen.
+Freigestellt und auf einheitlichen Studio-Hintergrund gesetzt (scripts/avatar_studio.py). Eigene Fotos können im Studio hochgeladen werden.
