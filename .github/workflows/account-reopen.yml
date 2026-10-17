@@ -54,6 +54,16 @@ jobs:
             if (!$acc) { echo "hesap yok: ".$mask($email)."\n"; exit(1); }
             $show = function (array $a) { foreach (['type','company','status','suspend_reason','suspend_note','kyb_status','kyb_status_before_suspend','restricted_until','no_campaigns','unsuspended_at','unsuspended_by'] as $k) if (array_key_exists($k, $a)) echo "   $k = ".(is_scalar($a[$k]) ? var_export($a[$k], true) : json_encode($a[$k]))."\n"; };
             echo ($dry ? "KURU KOSU" : "GERCEK")." · ".$mask($email)." · id ".$acc['id']."\nONCE:\n"; $show($acc);
+            /* 17 Eki 2026: bilinen alanlarda kısıtlama görünmeyebilir — hesabın BÜTÜN alanları (hassaslar hariç), giriş kilidi
+               (login_throttle.json, 15 dk) ve mesaj engeli de gösterilir. */
+            echo "   tum alanlar: ";
+            $safe = [];
+            foreach ($acc as $k => $v) { if (preg_match('/hash|pass|token|secret|api|iban|bic|bank|swift|account_no|card|session|otp|code/i', (string)$k)) { $safe[$k] = '[gizli]'; continue; }
+              $safe[$k] = is_scalar($v) || $v === null ? (is_string($v) ? mb_substr(preg_replace('/\S+@\S+/', '[adres]', $v), 0, 60) : $v) : '['.gettype($v).(is_array($v) ? ':'.count($v) : '').']'; }
+            echo json_encode($safe, JSON_UNESCAPED_UNICODE)."\n";
+            $thr = function_exists('auth_throttle_load') ? auth_throttle_load() : []; $thrHits = [];
+            foreach ($thr as $tk => $tv) if (str_contains(strtolower((string)$tk), $email)) $thrHits[] = (int)($tv['n'] ?? 0).' deneme, '.date('H:i', (int)($tv['first'] ?? 0));
+            echo "   giris kilidi (son 1 saat): ".($thrHits ? implode(' | ', $thrHits) : 'yok')."\n";
             echo "   fiyat/siparis acik mi: ".(auth_prices_unlocked($acc) && ($acc['status'] ?? '') !== 'suspended' ? 'EVET' : 'HAYIR')." · kisitli: ".(auth_restricted_until($acc) ? date('Y-m-d', auth_restricted_until($acc)) : 'yok')."\n";
             if (is_file($home.'/public_html/inc/unpaid_hold.php')) { require_once $home.'/public_html/inc/unpaid_hold.php'; $st = vestra_unpaid_hold_state($acc);
               echo "   siparisler: acik/odenmemis ".count($st['open'])." (".implode(', ', array_keys($st['open'])).") · odenmis ".count($st['paid'])." · iptal ".$st['cancelled']."\n"; }
@@ -61,6 +71,7 @@ jobs:
             @copy(vestra_data_dir().'/accounts.json', vestra_data_dir().'/accounts.json.bak-reopen-'.date('Ymd_His'));
             auth_update((string)$acc['id'], ['status' => 'active', 'suspend_reason' => '', 'suspend_note' => '', 'kyb_status' => 'approved',
               'restricted_until' => '', 'restricted_lift_refs' => [], 'unsuspended_at' => date('c'), 'unsuspended_by' => 'operator ('.date('j M Y').', workflow)']);
+            if ($thr) { foreach (array_keys($thr) as $tk) if (str_contains(strtolower((string)$tk), $email)) unset($thr[$tk]); auth_throttle_save($thr); }
             $back = auth_find($email);
             echo "SONRA:\n"; $show($back);
             $okNow = $back && ($back['status'] ?? '') === 'active' && auth_prices_unlocked($back) && !auth_restricted_until($back) && !auth_suspended_for_unpaid($back);
