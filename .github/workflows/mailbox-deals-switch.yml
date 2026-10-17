@@ -1,0 +1,57 @@
+name: (Posta kutusu) İndirim partisi + 23:45 turu — aç / ACİL DURDUR
+
+# 17 Eki 2026 (operatör: "noreply@g-star.com buna neden e-mail gönderiyorsun? distribütör ve büyük zincir butiklere ya
+# da marketlere göndermemen gerektiğini söylemiştim"). Eski müşterilere giden indirim mektubu (inc/mailbox.php
+# vestra_mailbox_deals_daily) ve 23:45 tamamlama turu için ayrı anahtar: yeni bulunan butiklere gönderim (otomatik) AÇIK
+# kalır. Kapatırken SÜREN indirim / takip partisi de durdurulur (sunucudaki cron_mailbox.php süreci yalnız açık istek bir
+# takip partisiyse sonlandırılır; istek 'cancelled' olur). Adres basmaz.
+on:
+  workflow_dispatch:
+    inputs:
+      on:
+        description: "true = aç · false = kapat ve süren partiyi durdur"
+        required: true
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  switch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        env:
+          ON: ${{ github.event.inputs.on }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: ON
+          command_timeout: 2m
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_deals_switch.php <<'PHPEOF'
+            <?php
+            chdir(getenv('HOME').'/public_html');
+            require 'inc/products.php'; require_once 'inc/mailbox.php';
+            $on = strtolower(trim((string)getenv('ON'))) === 'true';
+            $cfg = vestra_mailbox_cfg(); $cfg['deals'] = $on; $cfg['followup'] = $on; $cfg['deals_switch_at'] = date('c');
+            $f = vestra_mailbox_file('mailbox.json'); file_put_contents($f, json_encode($cfg, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), LOCK_EX); @chmod($f, 0600);
+            $runs = vestra_mailbox_runs(); $kill = false; $c = 0;
+            if (!$on) foreach ($runs as $i => $r) {
+              if (($r['mode'] ?? '') !== 'followup' || !in_array((string)($r['status'] ?? ''), ['requested', 'running'], true)) continue;
+              if (($r['status'] ?? '') === 'running') $kill = true;
+              $runs[$i]['status'] = 'cancelled'; $runs[$i]['note'] = 'operator: indirim partisi durduruldu'; $runs[$i]['finished_at'] = date('c'); $c++;
+            }
+            vestra_mailbox_runs_save($runs);
+            echo ($on ? "INDIRIM PARTISI + 23:45 TURU ACIK" : "INDIRIM PARTISI + 23:45 TURU KAPALI")." · iptal edilen takip istegi: {$c}\n";
+            echo "bugun indirim mektubu: ".vestra_mailbox_followups_today('deals')." · bugun toplam: ".vestra_mailbox_sent_today()."\n";
+            exit($kill ? 3 : 0);
+            PHPEOF
+            php /tmp/vestra_deals_switch.php 2>&1; rc=$?; rm -f /tmp/vestra_deals_switch.php
+            if [ "$rc" = "3" ]; then
+              pkill -f 'cron_mailbox.php' && echo "suren takip partisi (cron_mailbox.php) durduruldu" || echo "calisan surec bulunamadi"
+            fi
+            exit 0
