@@ -3,6 +3,9 @@ name: (Hesap) Askıyı kaldır — normale döndür, sipariş verebilsin
 # "Open account" + "Activate account" düğmelerinin yazdığı alanların aynısı: status=active, suspend_reason/suspend_note
 # boş, kyb_status=approved; ödenmemiş fatura kısıtlaması (restricted_until) da kalkar. Kampanya dışı işareti
 # (no_campaigns) DEĞİŞMEZ, yalnız raporlanır. Adres girdide base64 (depo herkese açık), kütükte maskeli. Yedek alınır.
+# 17 Eki 2026 (operatör: "kısıtlamayı kaldır ve müşteriye hesabının tekrar erişime açıldığını e-mail ile belirt"): notify=true
+# ise hesap gerçekten açıldıktan sonra müşteriye kendi dilinde "hesabınız yeniden erişime açıldı" mektubu gider
+# (inc/email_templates.php vestra_tpl_account_reopened; dil hesabın dili, yoksa ülkesi).
 on:
   workflow_dispatch:
     inputs:
@@ -13,6 +16,10 @@ on:
         description: "true = yalnız göster"
         required: false
         default: "true"
+      notify:
+        description: "true = açıldıktan sonra müşteriye 'hesabınız yeniden açıldı' e-postası"
+        required: false
+        default: "false"
 permissions:
   contents: read
 jobs:
@@ -24,12 +31,13 @@ jobs:
         env:
           EMAIL_B64: ${{ github.event.inputs.email_b64 }}
           DRY: ${{ github.event.inputs.dry_run }}
+          NOTIFY: ${{ github.event.inputs.notify }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: EMAIL_B64,DRY
+          envs: EMAIL_B64,DRY,NOTIFY
           command_timeout: 3m
           script: |
             cd ~/public_html
@@ -52,11 +60,27 @@ jobs:
             if ($dry) exit(0);
             @copy(vestra_data_dir().'/accounts.json', vestra_data_dir().'/accounts.json.bak-reopen-'.date('Ymd_His'));
             auth_update((string)$acc['id'], ['status' => 'active', 'suspend_reason' => '', 'suspend_note' => '', 'kyb_status' => 'approved',
-              'restricted_until' => '', 'restricted_lift_refs' => [], 'unsuspended_at' => date('c'), 'unsuspended_by' => 'operator (14 Eki 2026, workflow)']);
+              'restricted_until' => '', 'restricted_lift_refs' => [], 'unsuspended_at' => date('c'), 'unsuspended_by' => 'operator ('.date('j M Y').', workflow)']);
             $back = auth_find($email);
             echo "SONRA:\n"; $show($back);
             $okNow = $back && ($back['status'] ?? '') === 'active' && auth_prices_unlocked($back) && !auth_restricted_until($back) && !auth_suspended_for_unpaid($back);
             echo "   fiyat/siparis acik mi: ".($okNow ? 'EVET' : 'HAYIR')."\n";
+            if ($okNow && strtolower(trim((string)getenv('NOTIFY'))) === 'true') {
+              require_once $home."/public_html/inc/notify.php"; require_once $home."/public_html/inc/email_templates.php"; require_once $home."/public_html/inc/i18n.php";
+              $lang = strtolower(substr((string)($back['lang'] ?? ''), 0, 2));
+              if (!in_array($lang, ['en','de','fr','it','es'], true)) {
+                $c = strtolower(trim((string)($back['country'] ?? '')));
+                $lang = in_array($c, ['france','fr','belgique','luxembourg','monaco'], true) || str_ends_with($email, '.fr') ? 'fr'
+                      : (in_array($c, ['germany','deutschland','de','austria','österreich','at'], true) ? 'de'
+                      : (in_array($c, ['italy','italia','it'], true) ? 'it' : (in_array($c, ['spain','españa','es'], true) ? 'es' : 'en')));
+              }
+              $who = trim((string)($back['name'] ?? '')) ?: (trim((string)($back['company'] ?? '')) ?: 'there');
+              $panel = 'https://vestrasales.com'.((($back['type'] ?? '') === 'seller') ? '/seller' : '/buyer');
+              [$ms, $mb, $mo] = vestra_tpl_account_reopened($lang, $who, $panel);
+              $sent = vestra_send_mail((string)$back['email'], $ms, $mb, '', 'VESTRA', null, '', $mo);
+              echo "   musteriye bildirim (dil {$lang}): ".($sent ? 'GONDERILDI' : 'GONDERILEMEDI'.(function_exists('vestra_mail_last_reason') ? ' — '.vestra_mail_last_reason() : ''))."\n";
+              if (!$sent) exit(1);
+            }
             exit($okNow ? 0 : 1);
             PHPEOF
             php /tmp/vestra_reopen.php 2>&1; rc=$?; rm -f /tmp/vestra_reopen.php; exit $rc
