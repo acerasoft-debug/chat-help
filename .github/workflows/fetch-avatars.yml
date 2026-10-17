@@ -14,39 +14,66 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: claude/chat-help-system-video-x0nofb
-      - name: Kandidaten laden und verkleinern
+      - name: Kandidaten laden (ohne Wasserzeichen) und als Studio-Porträt aufbereiten
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq webp imagemagick jq > /dev/null
-          mkdir -p site/media/avatars/_cand /tmp/raw
-          N=$(grep -oE '^count=[0-9]+' site/media/avatars/_fetch.txt | cut -d= -f2); N=${N:-36}
+          rm -rf site/media/avatars/_cand && mkdir -p site/media/avatars/_cand site/media/avatars/_diag /tmp/raw
+          N=$(grep -oE '^count=[0-9]+' site/media/avatars/_fetch.txt | cut -d= -f2); N=${N:-30}
           UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36"
-          # Quelle 1: thispersondoesnotexist.com (StyleGAN, synthetisch)
+          curl -sSL -m 30 -A "$UA" -o site/media/avatars/_diag/tpdne.html "https://thispersondoesnotexist.com/" || true
+          head -c 1500 site/media/avatars/_diag/tpdne.html; echo
           for i in $(seq 1 $N); do
-            code=$(curl -sSL -m 30 -A "$UA" -H "Accept: image/avif,image/webp,image/jpeg,*/*" -o /tmp/raw/a$i.jpg -w "%{http_code} %{content_type} %{size_download}" "https://thispersondoesnotexist.com/" || echo "curl-fail")
-            echo "tpdne $i: $code"; sleep 1.2
+            for u in "https://thispersondoesnotexist.com/image" "https://thispersondoesnotexist.com/"; do
+              code=$(curl -sSL -m 30 -A "$UA" -H "Accept: image/avif,image/webp,image/jpeg,*/*" -H "Referer: https://thispersondoesnotexist.com/" -o /tmp/raw/a$i.jpg -w "%{http_code} %{content_type} %{size_download}" "$u?$RANDOM" || echo fail)
+              echo "tpdne $i $u: $code"
+              if file /tmp/raw/a$i.jpg | grep -qi jpeg; then break; fi
+            done
+            sleep 1.3
           done
-          # Quelle 2: this-person-does-not-exist.com (synthetisch, Filter Geschlecht/Alter)
-          for g in female male; do for a in 19-25 26-35 35-50 50; do for k in 1 2 3; do
-            j=$(curl -sS -m 30 -A "$UA" "https://this-person-does-not-exist.com/new?time=$RANDOM$k&gender=$g&age=$a&etnic=all" || true)
-            src=$(echo "$j" | jq -r '.src // empty' 2>/dev/null)
-            echo "tpdne2 $g $a $k: ${src:-none} $(echo "$j" | head -c 120)"
-            if [ -n "$src" ]; then curl -sSL -m 30 -A "$UA" -o "/tmp/raw/b-$g-$a-$k.jpg" "https://this-person-does-not-exist.com$src" || true; fi
-            sleep 1
-          done; done; done
-          ls -la /tmp/raw | head -80
-          for f in /tmp/raw/*.jpg; do
-            b=$(basename "$f" .jpg)
-            if file "$f" | grep -qiE 'JPEG|PNG|WebP|image data'; then
-              convert "$f" -resize 512x512^ -gravity center -extent 512x512 -strip /tmp/raw/$b-512.png && cwebp -quiet -q 84 /tmp/raw/$b-512.png -o site/media/avatars/_cand/$b.webp
-            else echo "kein Bild: $b ($(file -b "$f" | head -c 80))"; fi
-          done
-          ls -la site/media/avatars/_cand | head -90
-          du -sh site/media/avatars/_cand
+          python3 -m pip install -q "rembg[cpu]" pillow > /dev/null 2>&1 || python3 -m pip install -q rembg onnxruntime pillow > /dev/null 2>&1 || true
+          cat > /tmp/studio.py <<'PY'
+          import sys, glob, os
+          from PIL import Image, ImageFilter, ImageDraw
+          try:
+              from rembg import remove, new_session
+              sess = new_session("u2net_human_seg")
+          except Exception as e:
+              print("rembg nicht verfügbar:", e); remove = None
+          W = 640
+          def backdrop():
+              bg = Image.new("RGB", (W, W), (244, 239, 230))
+              d = ImageDraw.Draw(bg)
+              for r in range(W, 0, -4):   # weicher Studio-Verlauf, warm-hell mit Goldstich in der Mitte
+                  t = r / W
+                  c = (int(226 + 22*(1-t)), int(219 + 22*(1-t)), int(207 + 20*(1-t)))
+                  d.ellipse([W/2-r, W*0.42-r, W/2+r, W*0.42+r], fill=c)
+              return bg.filter(ImageFilter.GaussianBlur(18))
+          for f in sorted(glob.glob("/tmp/raw/a*.jpg")):
+              try:
+                  im = Image.open(f).convert("RGB")
+              except Exception:
+                  continue
+              s = min(im.size); im = im.crop(((im.width-s)//2, (im.height-s)//2, (im.width+s)//2, (im.height+s)//2)).resize((W, W), Image.LANCZOS)
+              out = im
+              if remove:
+                  try:
+                      cut = remove(im, session=sess)
+                      bg = backdrop().convert("RGBA"); bg.alpha_composite(cut); out = bg.convert("RGB")
+                  except Exception as e:
+                      print("rembg Fehler", f, e)
+              base = os.path.splitext(os.path.basename(f))[0]
+              out.save(f"site/media/avatars/_cand/{base}.webp", "WEBP", quality=86, method=6)
+              im.save(f"site/media/avatars/_cand/{base}-orig.webp", "WEBP", quality=80, method=6)
+              print("ok", base)
+          PY
+          sed -i 's/^          //' /tmp/studio.py
+          python3 /tmp/studio.py || echo "Aufbereitung fehlgeschlagen"
+          ls -la site/media/avatars/_cand | head -80; du -sh site/media/avatars/_cand
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add site/media/avatars/_cand
+          git add -A site/media/avatars/_cand site/media/avatars/_diag
           git commit -m "Avatar-Kandidaten (synthetische KI-Gesichter, 512 px WebP)" || echo "nichts zu committen"
           git pull --rebase origin claude/chat-help-system-video-x0nofb || true
           git push origin HEAD:claude/chat-help-system-video-x0nofb

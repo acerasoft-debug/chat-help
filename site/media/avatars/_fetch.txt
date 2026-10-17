@@ -1,2 +1,2 @@
 count=30
-# Änderung dieser Datei startet .github/workflows/fetch-avatars.yml (Lauf 2: mit Diagnose + zweiter Quelle)
+# Lauf 3: thispersondoesnotexist (ohne Wasserzeichen) + Studio-Hintergrund
