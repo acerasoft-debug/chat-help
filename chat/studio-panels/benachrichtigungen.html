@@ -1,0 +1,91 @@
+<div class="row" style="justify-content:space-between;margin-bottom:14px">
+  <div><h2 style="font-size:26px">Benachrichtigungen</h2><p class="mute" style="margin:4px 0 0;max-width:72ch">Neue Bestellungen, Taxifahrten, Termine und Rückrufwünsche sofort auf Handy und Computer – auch wenn das Studio geschlossen ist. Alles landet zusätzlich im Postfach unten.</p></div>
+  <div class="row"><span class="tag gold" id="bnUnreadTag">– ungelesen</span><button class="btn s" type="button" id="bnTestTop">Test senden</button></div>
+</div>
+
+<!-- Dieses Gerät -->
+<div class="card" id="bnStatus" style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;padding:24px;margin-bottom:16px">
+  <div id="bnStIcon" aria-hidden="true" style="width:60px;height:60px;border-radius:20px;display:grid;place-items:center;flex:0 0 auto;background:var(--sur2);color:var(--mute);transition:.2s">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.6 2H4.4z"/><path d="M10 21a2.2 2.2 0 0 0 4 0"/></svg>
+  </div>
+  <div style="flex:1;min-width:min(100%,260px)">
+    <div class="row" style="gap:8px"><span class="tag" id="bnStTag">Wird geprüft …</span><span class="mute small" id="bnStDev"></span></div>
+    <h3 id="bnStTitle" style="font-size:22px;margin-top:10px">Dieses Gerät</h3>
+    <p id="bnStText" style="margin:6px 0 0;color:var(--ink2);max-width:70ch"></p>
+    <ol id="bnStSteps" class="hidden" style="margin:12px 0 0;padding-left:20px;color:var(--ink2);font-size:14px;line-height:1.7"></ol>
+    <div class="row" style="margin-top:16px" id="bnStBtns">
+      <button class="btn gold" type="button" id="bnEnable">Benachrichtigungen aktivieren</button>
+      <button class="btn hidden" type="button" id="bnTest">Test senden</button>
+      <button class="btn hidden" type="button" id="bnInstall">Als App installieren</button>
+      <button class="btn ghost s hidden" type="button" id="bnRecheck">Erneut prüfen</button>
+      <button class="btn ghost s hidden" type="button" id="bnDisable">Auf diesem Gerät ausschalten</button>
+    </div>
+    <div id="bnStMsg"></div>
+  </div>
+</div>
+
+<div class="ws" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))">
+  <!-- Postfach -->
+  <div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div><h3 style="font-size:19px">Postfach</h3><div class="mute small" id="bnInboxSub">Alle Meldungen der letzten 90 Tage</div></div>
+        <div class="row" style="gap:6px"><button class="btn s" type="button" id="bnReadAll">Alle als gelesen</button></div>
+      </div>
+      <div class="row" style="gap:6px;margin-top:12px" id="bnFilter">
+        <button class="btn s p" type="button" data-f="all">Alle</button>
+        <button class="btn s" type="button" data-f="unread">Ungelesen</button>
+        <button class="btn s" type="button" data-f="auftraege">Aufträge</button>
+        <button class="btn s" type="button" data-f="kommunikation">Kommunikation</button>
+        <button class="btn s" type="button" data-f="konto">Konto</button>
+      </div>
+      <div id="bnInbox" style="margin-top:6px"></div>
+      <div class="row" style="justify-content:center;margin-top:12px"><button class="btn s hidden" type="button" id="bnMore">Ältere laden</button></div>
+      <div id="bnInboxMsg"></div>
+    </div>
+  </div>
+
+  <!-- Einstellungen -->
+  <div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:19px">Angemeldete Geräte</h3><span class="mute small" id="bnDevCount"></span></div>
+      <p class="mute small" style="margin:4px 0 0">Jedes Handy, Tablet und jeder Browser, auf dem du „Benachrichtigungen aktivieren“ getippt hast. Fahrer melden ihr Handy über ihren persönlichen Fahrer-Link an.</p>
+      <div id="bnDevices"></div>
+      <div id="bnDevMsg"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:19px">Was soll melden?</h3><span class="small mute" id="bnSaved"></span></div>
+      <p class="mute small" style="margin:4px 0 0">Ausgeschaltete Ereignisse landen trotzdem still im Postfach. <span class="tag gold" style="font-size:10px;padding:3px 7px;vertical-align:1px">Dringend</span> = klingelt erneut und bleibt stehen, bis du reagierst.</p>
+      <div id="bnEvents"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3 style="font-size:19px">Ruhezeiten</h3>
+      <p class="mute small" style="margin:4px 0 0">In dieser Zeit klingelt nichts – Meldungen warten im Postfach. Über Mitternacht ist möglich (z. B. 22:00–07:00).</p>
+      <div class="grid g3" style="gap:10px">
+        <div><label for="bnQFrom">Ruhe ab</label><select id="bnQFrom"></select></div>
+        <div><label for="bnQTo">bis</label><select id="bnQTo"></select></div>
+        <div><label for="bnQTz">Zeitzone</label><select id="bnQTz"><option value="Europe/Berlin">Berlin</option><option value="Europe/Vienna">Wien</option><option value="Europe/Zurich">Zürich</option><option value="Europe/Luxembourg">Luxemburg</option><option value="Europe/Brussels">Brüssel</option><option value="Europe/Amsterdam">Amsterdam</option><option value="Europe/Paris">Paris</option><option value="Europe/London">London</option><option value="Europe/Istanbul">Istanbul</option></select></div>
+      </div>
+      <div class="sw" id="bnQUrgentRow"><input type="checkbox" id="bnQUrgent"><div><b>Dringende Aufträge trotzdem melden</b><div class="mute small">Neue Bestellungen, Fahrten, Termine, Zimmerbuchungen und Stornos kommen auch in der Ruhezeit – alles andere wartet still.</div></div></div>
+      <div id="bnQNow"></div>
+
+      <div class="sec"><h3>E-Mail als Ersatz</h3>
+        <div class="sw" id="bnMailRow"><input type="checkbox" id="bnMail"><div><b>E-Mail senden, wenn kein Gerät erreichbar ist</b><div class="mute small">Bei wichtigen Ereignissen (Bestellung, Fahrt, Termin, Zimmerbuchung, Guthaben) zusätzlich. Höchstens eine E-Mail je Vorgang in 10 Minuten. An: <b id="bnMailTo">–</b></div></div></div>
+      </div>
+    </div>
+
+    <details class="guide">
+      <summary>So klappt es auf jedem Gerät</summary>
+      <ol>
+        <li><b>iPhone / iPad (ab iOS 16.4):</b> Studio in Safari öffnen → „Teilen“ → „Zum Home-Bildschirm“. ChatHelp über das neue Symbol öffnen → Benachrichtigungen → „Benachrichtigungen aktivieren“ → „Erlauben“.</li>
+        <li><b>Android:</b> In Chrome „Benachrichtigungen aktivieren“ tippen → „Zulassen“. Tipp: Menü ⋮ → „App installieren“ – dann öffnet ein Tipp auf die Meldung direkt die App.</li>
+        <li><b>Computer:</b> Chrome, Edge, Firefox oder Safari (macOS 13+). Der Browser muss laufen (darf im Hintergrund sein). Auf dem Mac in den Systemeinstellungen → Mitteilungen den Browser erlauben.</li>
+        <li><b>ChatHelp-App (Android/iOS):</b> In der App unter Benachrichtigungen aktivieren – Meldungen kommen dann auch bei geschlossener App, mit Ton.</li>
+        <li><b>Fahrer:</b> Der Fahrer öffnet seinen persönlichen Fahrer-Link auf dem Handy und tippt dort auf „Benachrichtigungen aktivieren“. Neue Fahrten kommen dann direkt aufs Fahrer-Handy.</li>
+      </ol>
+      <div class="tip">Kommt nichts an? „Test senden“ zeigt für jedes Gerät, ob es erreicht wurde. Energiesparmodus und „Nicht stören“ des Handys können Meldungen zurückhalten.</div>
+    </details>
+  </div>
+</div>
