@@ -141,8 +141,20 @@ function diag_http(string $method, string $url, string $body = ''): array
     $redir = (string)curl_getinfo($ch, CURLINFO_REDIRECT_URL);
     $err   = curl_error($ch);
     curl_close($ch);
-    $bodyPart = is_string($raw) ? substr($raw, (int)strpos($raw, "\r\n\r\n") + 4) : '';
-    return ['code' => $code, 'redirect' => $redir, 'err' => $err, 'body' => mb_substr(trim(strip_tags($bodyPart)), 0, 160)];
+    $split    = is_string($raw) ? (int)strpos($raw, "\r\n\r\n") : 0;
+    $hdrPart  = is_string($raw) ? substr($raw, 0, $split) : '';
+    $bodyPart = is_string($raw) ? substr($raw, $split + 4) : '';
+    // CSP form-action: tarayıcı (Chrome/Edge) bunu POST sonrası yönlendirmeye de
+    // uygular; ödeme sayfası burada listeli değilse müşteri OxaPay'e varamaz.
+    $fa = '';
+    if (preg_match('/^content-security-policy:\s*(.+)$/mi', $hdrPart, $m)) {
+        foreach (explode(';', $m[1]) as $d) {
+            $d = trim($d);
+            if (str_starts_with($d, 'form-action')) $fa = $d;
+        }
+    }
+    return ['code' => $code, 'redirect' => $redir, 'err' => $err, 'csp_form_action' => $fa,
+            'body' => mb_substr(trim(strip_tags($bodyPart)), 0, 160)];
 }
 $org = vr_canonical_origin();
 $out['reach'] = [
