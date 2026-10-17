@@ -369,22 +369,27 @@
   /* Telefonda dikey film: 0,8 MB, yani yatay filmin dörtte biri. Dar
      ekranda yalnız o oynar; veri tasarrufu, yavaş bağlantı ve hareket
      azaltma tercihi yine durdurur (afiş kalır). */
-  var stageVid = document.querySelector('.stage__vid[data-autoplay]');
+  /* SAHNE FİLMİ hero'dur: işletmeci "ana sayfa her zaman videolu olsun" dedi.
+     Bu yüzden karo/bant filmlerinin aksine sahne filmi veri tasarrufu, yavaş
+     bağlantı ya da ekran genişliğiyle KAPATILMIYOR; yalnızca kullanıcının
+     "hareketi azalt" tercihi onu durduruyor (erişilebilirlik/yasal). Dar
+     ekranda dikey film (0,8 MB) oynar, geniş ekranda yatay film. Film
+     oynayana kadar afiş (filmin ilk karesi) duruyor. Duraklatma düğmesi var. */
+  var stageReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var stageNarrow  = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+  var stageVidH = document.querySelector('.stage__vid[data-autoplay]');
   var portraitVid = document.querySelector('.stage__vid[data-autoplay-portrait]');
-  if (portraitVid && window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
-    var pc = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    var pOk = !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
-              !(pc && (pc.saveData || /2g|slow-2g/.test(String(pc.effectiveType || ''))));
-    stageVid = pOk ? portraitVid : null;
-    vrFilms = pOk;
-  }
-  if (stageVid) {
+  var stageVid = (stageNarrow && portraitVid) ? portraitVid : stageVidH;
+  if (stageVid && !stageReduced) {
     var stageBox = document.getElementById('stage-pause');
     var stagePlay = function () {
+      try { if (stageVid.preload === 'none' && stageVid.readyState === 0) stageVid.load(); } catch (e) {}
       var pr = stageVid.play();
       if (pr && pr.catch) pr.catch(function () { /* tarayıcı reddederse poster kalır */ });
     };
-    if (vrFilms) stagePlay();
+    stagePlay();
+    // Oynatma hemen başlamazsa (ağ/çözme gecikmesi) hazır olunca tekrar dene.
+    stageVid.addEventListener('canplay', function () { if (!stageBox || !stageBox.checked) stagePlay(); }, { once: true });
     if (stageBox) {
       stageBox.addEventListener('change', function () {
         if (stageBox.checked) stageVid.pause(); else stagePlay();
