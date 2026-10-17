@@ -38,7 +38,7 @@ p{color:var(--ink2);margin:0 auto;max-width:34ch}
       .catch(function(){ st.textContent='Noch offline. Wir versuchen es automatisch weiter.'; busy=false; }); }
   document.getElementById('retry').addEventListener('click',go);
   window.addEventListener('online',function(){ setTimeout(go,400); });
-  setInterval(function(){ if(navigator.onLine!==false) go(); },15000);
+  setInterval(function(){ if(navigator.onLine!==false) go(); },20000);
 })();
 </script>
 </body></html>

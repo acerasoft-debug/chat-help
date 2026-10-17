@@ -259,6 +259,7 @@ function push_parse_subscription(array $b): array {
     if($type==='fcm'){
         $t=trim((string)($b['token'] ?? '')); if(!preg_match('/^[A-Za-z0-9_:\-.]{20,4096}$/',$t)) return ['error'=>'token_invalid','message'=>'Ungültiges Geräte-Token der App.'];
         $pf=strtolower((string)($b['platform'] ?? 'android')); $pf=in_array($pf,['android','ios'],true) ? $pf : 'android';
+        if(preg_match('/^[a-f0-9]{64}$/i',$t)) return ['error'=>'apns_token','message'=>'Die iOS-App liefert ein APNs-Token statt eines Firebase-Tokens – bitte die App aktualisieren.'];   // FCM HTTP v1 braucht das FCM-Token
         if($label==='') $label=$pf==='ios' ? 'ChatHelp-App · iPhone' : 'ChatHelp-App · Android';
         return ['type'=>'fcm','data'=>['token'=>$t,'platform'=>$pf,'label'=>$label]];
     }

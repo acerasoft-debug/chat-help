@@ -236,6 +236,7 @@
       /* Berechtigung SOFORT (noch in der Klick-Geste) anfragen – erst danach asynchron weiter */
       var permP = Notification.permission === 'granted' ? Promise.resolve('granted') : requestPermission();
       var regP = ensureSW(), infoP = info();
+      infoP.catch(noop);   // Fehler wird unten ausgewertet – hier nur „unhandled rejection“ vermeiden
       return permP.then(function (p) {
         if (p !== 'granted') return res(false, p === 'denied' ? 'denied' : 'dismissed', p === 'denied' ? deniedHint() : 'Die Anfrage wurde geschlossen. Tippe erneut auf „Benachrichtigungen aktivieren“ und wähle „Zulassen“.');
         return Promise.all([regP, infoP]).then(function (a) {
