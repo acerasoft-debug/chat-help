@@ -51,7 +51,16 @@ jobs:
             exit($kill ? 3 : 0);
             PHPEOF
             php /tmp/vestra_deals_switch.php 2>&1; rc=$?; rm -f /tmp/vestra_deals_switch.php
-            if [ "$rc" = "3" ]; then
-              pkill -f 'cron_mailbox.php' && echo "suren takip partisi (cron_mailbox.php) durduruldu" || echo "calisan surec bulunamadi"
+            # Kapatırken: sunucuda süren 'php cron_mailbox.php' süreci (indirim partisi) sonlandırılır. Bu betiğin kendi kabuğu
+            # da "cron_mailbox" metnini taşıdığı için yalnız GERÇEK php süreci seçilir (komut satırı php ile başlar, ikinci
+            # argüman tam olarak cron_mailbox.php). Cron 10 dk sonra kendiliğinden yeniden başlar; indirim kapalıyken
+            # yalnız yeni butiklere gönderir.
+            if [ "${ON}" != "true" ]; then
+              killed=0
+              for p in $(pgrep -u "$(id -u)" php 2>/dev/null) $(pgrep -u "$(id -u)" -f 'lsphp|php-cli' 2>/dev/null); do
+                set -- $(tr '\0' ' ' < /proc/$p/cmdline 2>/dev/null)
+                case "$1" in *php*) [ "$2" = "cron_mailbox.php" ] && kill "$p" 2>/dev/null && { echo "durduruldu: cron_mailbox.php (pid $p)"; killed=1; } ;; esac
+              done
+              [ "$killed" = 1 ] || echo "suren cron_mailbox.php sureci yok"
             fi
             exit 0
