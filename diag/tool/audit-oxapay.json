@@ -1,0 +1,135 @@
+{
+    "at": "2026-10-17T17:21:35+00:00",
+    "root": "/home/hhdwis4qiijc/maxsales_de",
+    "php": "8.3.33",
+    "config": {
+        "data_dir": "/home/hhdwis4qiijc/data",
+        "settings_file": "/home/hhdwis4qiijc/data/oxapay_settings.json",
+        "settings_exists": true,
+        "settings_readable": true,
+        "settings_mode": "0600",
+        "env_key_set": false,
+        "key_len": 27,
+        "key_sha256_8": "96907637",
+        "configured": true,
+        "ready": true,
+        "enabled": true,
+        "crypto_enabled_cfg": true,
+        "sandbox": false,
+        "lifetime": 60,
+        "currency": "EUR",
+        "canonical_origin": "https://sarvesto.com",
+        "curl": true,
+        "openssl": true
+    },
+    "files": {
+        "odeme/oxapay-callback.php": {
+            "size": 2834,
+            "mtime": "2026-10-17T17:15:39+00:00"
+        },
+        "odeme/tesekkurler.php": {
+            "size": 711,
+            "mtime": "2026-10-17T17:15:39+00:00"
+        },
+        "inc/oxapay.php": {
+            "size": 5567,
+            "mtime": "2026-10-17T17:15:39+00:00"
+        },
+        "checkout.php": {
+            "size": 17825,
+            "mtime": "2026-10-17T17:15:39+00:00"
+        },
+        ".htaccess": {
+            "size": 3658,
+            "mtime": "2026-10-17T17:15:39+00:00"
+        },
+        "odeme/.htaccess": null
+    },
+    "htaccess_odeme_lines": [],
+    "log": {
+        "file": "/home/hhdwis4qiijc/data/retail.log",
+        "exists": true,
+        "readable": true,
+        "lines": [
+            "{\"at\":\"2026-10-17T16:48:21+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":0}}"
+        ],
+        "total_lines": 4,
+        "hits": 1
+    },
+    "orders_total": 26,
+    "crypto_orders": {
+        "count": 4,
+        "last": [
+            {
+                "id": "o-fe0d45a695bb75212347",
+                "number": "VS-2610-B8955",
+                "status": "pending",
+                "total_cents": 22000,
+                "created_at": "2026-10-17T17:14:32+00:00",
+                "failed_reason": "",
+                "oxapay_status": "new",
+                "has_track_id": true,
+                "country": "DE"
+            },
+            {
+                "id": "o-0c02c75ee72d67f8032a",
+                "number": "VS-2610-3D02C",
+                "status": "pending",
+                "total_cents": 22000,
+                "created_at": "2026-10-17T17:14:37+00:00",
+                "failed_reason": "",
+                "oxapay_status": "new",
+                "has_track_id": true,
+                "country": "DE"
+            },
+            {
+                "id": "o-da2f6c06a7f877fd7e45",
+                "number": "VS-2610-635E7",
+                "status": "pending",
+                "total_cents": 22000,
+                "created_at": "2026-10-17T17:14:48+00:00",
+                "failed_reason": "",
+                "oxapay_status": "new",
+                "has_track_id": true,
+                "country": "DE"
+            },
+            {
+                "id": "o-07791b3dddde88fd7227",
+                "number": "VS-2610-70A79",
+                "status": "pending",
+                "total_cents": 22000,
+                "created_at": "2026-10-17T17:14:50+00:00",
+                "failed_reason": "",
+                "oxapay_status": "new",
+                "has_track_id": true,
+                "country": "DE"
+            }
+        ]
+    },
+    "hmac_selftest": true,
+    "invoice_test": {
+        "ok": true,
+        "payment_host": "pay.oxapay.com",
+        "track_id": "110664857"
+    },
+    "reach": {
+        "callback_post_empty": {
+            "code": 400,
+            "redirect": "",
+            "err": "",
+            "body": "invalid signature"
+        },
+        "tesekkurler_get": {
+            "code": 303,
+            "redirect": "https://sarvesto.com/order.php?lang=de",
+            "err": "",
+            "body": ""
+        },
+        "checkout_get": {
+            "code": 303,
+            "redirect": "https://sarvesto.com/cart.php?lang=de",
+            "err": "",
+            "body": ""
+        }
+    }
+}
