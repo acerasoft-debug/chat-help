@@ -103,6 +103,8 @@ return [
 
     'shop_title'         => 'La surface de vente',
     'shop_sub'           => 'Prix fixe, expédition immédiate.',
+    'shop_meta'     => 'Mode de luxe authentifiée : Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain et plus. Nouvelle saison et pièces d’archive, provenance vérifiée, prix fixe et livraison en UE.',
+    'brands_meta'   => 'Toutes les maisons en stock chez SARVESTO — Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain, Lacoste et plus. Luxe authentifié par maison.',
     'filters'            => 'Filtres',
     'filter_open'        => 'Filtrer',
     'filter_brand'       => 'Maison',

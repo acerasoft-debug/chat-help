@@ -99,6 +99,8 @@ return [
 
     'shop_title'         => 'Butiksgulvet',
     'shop_sub'           => 'Fast pris, afsendes straks.',
+    'shop_meta'     => 'Autentificeret luksusmode fra Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain og mere. Ny sæson og arkivstykker med bekræftet proveniens, fast pris og levering i EU.',
+    'brands_meta'   => 'Alle huse på lager hos SARVESTO — Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain, Lacoste og mere. Autentificeret luksus efter hus.',
     'filters'            => 'Filtre',
     'filter_open'        => 'Filtrér',
     'filter_brand'       => 'Hus',

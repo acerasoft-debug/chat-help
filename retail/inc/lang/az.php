@@ -99,6 +99,8 @@ return [
 
     'shop_title'         => 'Satış sahəsi',
     'shop_sub'           => 'Sabit qiymət, dərhal göndəriş.',
+    'shop_meta'     => 'Təsdiqlənmiş lüks moda: Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain və daha çox. Yeni mövsüm və arxiv parçaları, təsdiqlənmiş mənşə, sabit qiymət və Aİ üzrə çatdırılma.',
+    'brands_meta'   => 'SARVESTO-da bütün evlər stokda — Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain, Lacoste və daha çox. Evlərə görə təsdiqlənmiş lüks.',
     'filters'            => 'Filtrlər',
     'filter_open'        => 'Süzgəc',
     'filter_brand'       => 'Ev',

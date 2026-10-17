@@ -59,17 +59,30 @@ $link = static function (array $over) use ($q, $brand, $cat, $seller, $sort, $mi
 $title = $q !== '' ? $q
        : ($brand !== '' ? $brand : ($cat !== '' ? vr_cat_label($cat) : t('shop_title')));
 
+// Marka ve kategori sayfaları DEĞERLİ ticari iniş sayfalarıdır: yalnızca
+// gerçek filtre (arama, satıcı, fiyat, sıralama) ya da sayfa>1 varsa noindex.
+// Çıplak /shop, marka, kategori ve marka+kategori indekslenebilir kalır;
+// canonical zaten kendine-referanslı (brand/cat parametresini korur).
+$nonIndexFilter = ($q !== '' || $seller !== '' || $min !== '' || $max !== '' || ($sort !== 'featured' && $sort !== ''));
+$indexable = !$nonIndexFilter && $page <= 1;
+
+$shopJsonld = [vr_jsonld_breadcrumbs(array_filter([
+    (string)vr_config('brand') => vr_url('/'),
+    t('nav_shop')              => $brand !== '' || $cat !== '' ? vr_url('shop.php') : null,
+    $title                     => null,
+], fn($v, $k) => $k !== '', ARRAY_FILTER_USE_BOTH))];
+if ($indexable && !empty($res['rows'])) {
+    $shopJsonld[] = vr_jsonld_itemlist(array_map(fn($p) => vr_product_url($p), $res['rows']));
+}
+
 vr_layout_start([
     'title'  => $title,
-    'desc'   => $brand !== ''
-        ? $brand . ' — ' . t('shop_sub') . ' ' . t('tagline')
-        : t('shop_sub') . ' ' . t('tagline'),
-    'robots' => $filtered || $page > 1 ? 'noindex,follow' : null,
-    'jsonld' => [vr_jsonld_breadcrumbs(array_filter([
-        (string)vr_config('brand') => vr_url('/'),
-        t('nav_shop')              => $brand !== '' || $cat !== '' ? vr_url('shop.php') : null,
-        $title                     => null,
-    ], fn($v, $k) => $k !== '', ARRAY_FILTER_USE_BOTH))],
+    'desc'   => $q !== '' ? $title . ' — ' . t('shop_meta')
+        : ($brand !== '' ? $brand . ' — ' . t('shop_meta')
+        : ($cat !== '' ? vr_cat_label($cat) . ' — ' . t('shop_meta')
+        : t('shop_meta'))),
+    'robots' => $indexable ? null : 'noindex,follow',
+    'jsonld' => $shopJsonld,
 ]);
 ?>
 <section class="sec sec--tight">

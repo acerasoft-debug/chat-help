@@ -104,6 +104,8 @@ return [
 
     'shop_title'         => 'Die Verkaufsfläche',
     'shop_sub'           => 'Fester Preis, sofortiger Versand.',
+    'shop_meta'     => 'Authentische Luxusmode von Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain und mehr. Aktuelle Saison und Archivstücke mit belegter Herkunft, Festpreis und Versand in der EU.',
+    'brands_meta'   => 'Alle Häuser bei SARVESTO — Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain, Lacoste und mehr. Authentische Luxusmode nach Haus entdecken.',
     'filters'            => 'Filter',
     'filter_open'        => 'Filter',
     'filter_brand'       => 'Haus',

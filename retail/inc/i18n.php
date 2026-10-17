@@ -67,15 +67,15 @@ function vr_lang(): string
 }
 
 /** HTML lang / hreflang değeri. */
-function vr_locale(): string
+function vr_locale(?string $lang = null): string
 {
-    return match (vr_lang()) {
+    return match ($lang ?? vr_lang()) {
         'de' => 'de-DE', 'fr' => 'fr-FR', 'it' => 'it-IT', 'es' => 'es-ES',
         'ru' => 'ru-RU', 'az' => 'az-AZ', 'da' => 'da-DK', 'sv' => 'sv-SE',
         // Flamanca ayrı bir ISO dil kodu değil: Hollandaca'nın Belçika
         // varyantı. hreflang'de nl-BE veriyoruz, dosya adı nl.php.
         'nl' => 'nl-BE',
-        default => 'en',
+        default => 'en-US',
     };
 }
 

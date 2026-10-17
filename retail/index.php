@@ -118,16 +118,7 @@ $tileB = vr_editorial_image($curated, $stageSeed . '-b', $tileSkip);
 
 vr_layout_start([
     'desc'    => t('hero_sub'),
-    'jsonld'  => [[
-        '@type'  => 'WebSite',
-        'name'   => (string)vr_config('brand'),
-        'url'    => vr_origin(),
-        'potentialAction' => [
-            '@type'       => 'SearchAction',
-            'target'      => ['@type' => 'EntryPoint', 'urlTemplate' => vr_abs('shop.php') . '?q={search_term_string}'],
-            'query-input' => 'required name=search_term_string',
-        ],
-    ]],
+    // WebSite + SearchAction artık her sayfada global @graph'ta (vr_jsonld_website).
 ]);
 ?>
 

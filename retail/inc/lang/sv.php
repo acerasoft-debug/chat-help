@@ -99,6 +99,8 @@ return [
 
     'shop_title'         => 'Butiksgolvet',
     'shop_sub'           => 'Fast pris, skickas omgående.',
+    'shop_meta'     => 'Autentiserat lyxmode från Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain med mera. Ny säsong och arkivplagg med verifierad proveniens, fast pris och frakt inom EU.',
+    'brands_meta'   => 'Alla modehus i lager hos SARVESTO — Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain, Lacoste med mera. Autentiserad lyx per modehus.',
     'filters'            => 'Filter',
     'filter_open'        => 'Filtrera',
     'filter_brand'       => 'Hus',

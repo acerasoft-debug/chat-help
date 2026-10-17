@@ -105,6 +105,8 @@ return [
 
     'shop_title'         => 'De winkelvloer',
     'shop_sub'           => 'Vaste prijs, onmiddellijke verzending.',
+    'shop_meta'     => 'Geauthenticeerde luxemode van Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain en meer. Nieuw seizoen en archiefstukken met bevestigde herkomst, vaste prijs en verzending in de EU.',
+    'brands_meta'   => 'Alle huizen op voorraad bij SARVESTO — Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain, Lacoste en meer. Geauthenticeerde luxe per huis.',
     'filters'            => 'Filters',
     'filter_open'        => 'Filteren',
     'filter_brand'       => 'Huis',

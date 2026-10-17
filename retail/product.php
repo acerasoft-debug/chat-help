@@ -54,6 +54,10 @@ $sizeErr  = !empty($_GET['nosize']);
 vr_layout_start([
     'title'    => $p['brand'] . ' ' . vr_card_name($p),
     'desc'     => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . vr_product_teaser($p),
+    // Açık canonical: hangi giriş biçiminden gelinirse gelinsin (/product/<id>
+    // ya da /product.php?id=) tek adrese konsolide olsun; dil de korunur.
+    'canonical' => vr_canonical_origin() . vr_product_url($p),
+    'og_type'  => 'product',
     'og_image' => vr_img_dynamic(vr_product_image($p), 1400),
     'jsonld'   => [
         vr_jsonld_product($p, $vaultLot ? (int)$vaultLot['state']['cents'] : null),

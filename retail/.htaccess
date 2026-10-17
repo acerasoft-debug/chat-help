@@ -18,6 +18,10 @@ DirectoryIndex index.php index.html
   RewriteRule ^app/?$  app.php  [L,QSA]
   RewriteRule ^sitemap\.xml$  sitemap.php  [L]
 
+  # IndexNow anahtar dogrulama dosyasi: <anahtar>.txt (yalniz hex; robots.txt
+  # ve sitemap.xml yukarida [L] ile zaten yakalandi, buraya dusmez).
+  RewriteRule ^([a-f0-9]{8,128})\.txt$  indexnow-key.php?k=$1  [L,QSA]
+
   # /outlet/<lot> ve /product/<id> okunabilir yollar
   RewriteRule ^product/([A-Za-z0-9._-]+)/?$  product.php?id=$1  [L,QSA]
   RewriteRule ^outlet/([A-Za-z0-9._-]+)/?$   outlet.php?lot=$1  [L,QSA]

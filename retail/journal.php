@@ -38,17 +38,21 @@ if ($one !== null) {
     vr_layout_start([
         'title'    => $one['title'],
         'desc'     => $one['lead'],
+        'canonical' => vr_canonical_origin() . vr_url('journal.php', ['a' => $slug]),
+        'og_type'  => 'article',
         'og_image' => $art($slug, 1200, 630),
         'jsonld'   => [
             [
                 '@type'         => 'Article',
+                '@id'           => vr_canonical_origin() . vr_url('journal.php', ['a' => $slug]) . '#article',
                 'headline'      => $one['title'],
                 'description'   => $one['lead'],
                 'articleSection' => $one['kicker'],
                 'inLanguage'    => vr_locale(),
                 'wordCount'     => $words,
-                'image'         => vr_origin() . $art($slug, 1200, 630),
-                'publisher'     => ['@type' => 'Organization', 'name' => (string)vr_config('brand')],
+                'image'         => vr_canonical_origin() . $art($slug, 1200, 630),
+                'mainEntityOfPage' => vr_canonical_origin() . vr_url('journal.php', ['a' => $slug]),
+                'publisher'     => ['@id' => vr_canonical_origin() . '/#store'],
             ],
             vr_jsonld_breadcrumbs([
                 (string)vr_config('brand') => vr_url('/'),

@@ -99,6 +99,8 @@ return [
 
     'shop_title'         => 'La superficie de venta',
     'shop_sub'           => 'Precio fijo, envío inmediato.',
+    'shop_meta'     => 'Moda de lujo autenticada: Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain y más. Nueva temporada y piezas de archivo, procedencia verificada, precio fijo y envío en la UE.',
+    'brands_meta'   => 'Todas las casas disponibles en SARVESTO — Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain, Lacoste y más. Lujo autenticado por casa.',
     'filters'            => 'Filtros',
     'filter_open'        => 'Filtrar',
     'filter_brand'       => 'Casa',

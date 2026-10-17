@@ -132,6 +132,24 @@ function vr_is_canonical_host(): bool
     return false;
 }
 
+/**
+ * Kanonik köken (https://sarvesto.com) — canonical, hreflang ve JSON-LD
+ * adresleri HER ZAMAN asıl alan adına işaret etsin diye.
+ *
+ * vr_origin() isteğin Host başlığını kullanır; site DNS taşınana kadar birden
+ * fazla adresten (www, test alt adı, cPanel alt adları) cevap verdiği için bu,
+ * her adreste o adrese işaret eden farklı bir canonical üretiyordu —
+ * çoğaltılmış içerik. Bu yüzden canonical/hreflang üretiminde isteğin host'u
+ * değil, canonical_hosts listesinin ilki (asıl adres) kullanılır. Liste boşsa
+ * (yerel geliştirme) isteğin kökenine düşer.
+ */
+function vr_canonical_origin(): string
+{
+    $hosts = (array)vr_config('canonical_hosts', []);
+    if (!$hosts) return vr_origin();
+    return 'https://' . ltrim(trim((string)$hosts[0]), '/');
+}
+
 // ------------------------------------------------------------------- ayarlar
 /**
  * Tek yapılandırma sözlüğü. Sunucuya özel değerler data/retail-settings.json
@@ -157,6 +175,26 @@ function vr_config(?string $key = null, mixed $default = null): mixed
              */
             'canonical_hosts'  => ['sarvesto.com', 'www.sarvesto.com'],
             'primary_lang'     => 'en',
+
+            /**
+             * ---- SEO / arama motoru
+             * Doğrulama token'ları (Google Search Console, Bing Webmaster,
+             * Yandex) ilgili panelden alınır ve BURAYA ya da
+             * data/retail-settings.json'a yazılır; head'de meta olarak basılır.
+             * Boşken hiçbir meta çıkmaz. IndexNow anahtarı Bing/Yandex'e
+             * anında bildirim içindir (hesap gerekmez): rastgele bir dizi
+             * üretip buraya ve kökteki <key>.txt dosyasına aynısını yaz.
+             * logo: JSON-LD Organization için mutlak erişilebilir raster.
+             * social: gerçek profil adresleri (schema.org sameAs). UYDURMA.
+             */
+            'seo' => [
+                'google_verify'  => '',   // google-site-verification içeriği
+                'bing_verify'    => '',   // msvalidate.01 içeriği
+                'yandex_verify'  => '',   // yandex-verification içeriği
+                'indexnow_key'   => '',   // 8-128 hex; kökte aynı adlı .txt gerekir
+                'logo'           => '/assets/app/icon-512.png',
+                'social'         => [],   // ['https://instagram.com/...', ...]
+            ],
             // Canlı B2B sitesinin 5 dili + ayrıca istenen 5 pazar:
             // ru (Rusça), az (Azerbaycanca), da (Danca), sv (İsveççe),
             // nl (Flamanca/Hollandaca — Flaman bölgesi için standart kod nl,

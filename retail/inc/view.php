@@ -55,8 +55,27 @@ function vr_layout_start(array $o = []): void
     $title = trim((string)($o['title'] ?? ''));
     $full  = $title === '' ? $brand . ' — ' . t('tagline') : $title . ' · ' . $brand;
     $desc  = trim((string)($o['desc'] ?? t('tagline')));
-    $canon = (string)($o['canonical'] ?? vr_origin() . strtok((string)($_SERVER['REQUEST_URI'] ?? '/'), '?'));
+    // Kendine-referanslı canonical: ASIL host (vr_canonical_origin) + mevcut
+    // yol ve kimlik parametreleri (id/lot/brand/cat) + dil. Query'yi KESMİYORUZ
+    // — eskiden strtok(...,'?') tüm sorguyu atıyor ve her ürün/los/yazı tek
+    // çıplak /product.php (ya da /outlet.php, /journal.php) adresine çöküyordu;
+    // bireysel sayfalar indeksten düşüyordu. Host da artık her zaman asıl adres,
+    // www/test alt adlarında farklı canonical üretilmesin.
+    $canon = (string)($o['canonical'] ?? vr_canonical_origin() . vr_lang_url(vr_lang()));
 
+    // Yardımcı adreslerden (test alt adı, cPanel alt adları) gelen HTML
+    // indekslenmesin: canonical zaten asıl adrese işaret ediyor; bir de sayfa
+    // seviyesinde noindex veriyoruz ki robots.txt tek savunma kalmasın.
+    if (!vr_is_canonical_host() && !headers_sent()) {
+        header('X-Robots-Tag: noindex, follow');
+    }
+
+    // Open Graph görseli ve tipi: sayfa verirse onu, yoksa marka panosu.
+    $ogType  = (string)($o['og_type'] ?? 'website');
+    $ogImage = !empty($o['og_image'])
+        ? (str_starts_with((string)$o['og_image'], 'http') ? (string)$o['og_image'] : vr_canonical_origin() . $o['og_image'])
+        : vr_canonical_origin() . vr_base_url() . '/assets/art.php?' . http_build_query(['s' => strtolower((string)vr_config('brand')), 'w' => 1200, 'h' => 630]);
+    $seo     = (array)vr_config('seo', []);
     header('Content-Type: text/html; charset=utf-8');
     ?><!DOCTYPE html>
 <html lang="<?= h(vr_locale()) ?>">
@@ -70,17 +89,30 @@ function vr_layout_start(array $o = []): void
 <?php endif; ?>
 <link rel="canonical" href="<?= h($canon) ?>">
 <?php foreach ((array)vr_config('languages', ['en']) as $lg): ?>
-<link rel="alternate" hreflang="<?= h($lg) ?>" href="<?= h(vr_origin() . vr_lang_url($lg)) ?>">
+<link rel="alternate" hreflang="<?= h($lg) ?>" href="<?= h(vr_canonical_origin() . vr_lang_url($lg)) ?>">
 <?php endforeach; ?>
-<link rel="alternate" hreflang="x-default" href="<?= h(vr_origin() . vr_lang_url((string)vr_config('primary_lang', 'en'))) ?>">
+<link rel="alternate" hreflang="x-default" href="<?= h(vr_canonical_origin() . vr_lang_url((string)vr_config('primary_lang', 'en'))) ?>">
 
-<meta property="og:type" content="website">
+<?php // Arama motoru doğrulaması: token girilmişse meta olarak basılır (boşsa hiç çıkmaz). ?>
+<?php if (!empty($seo['google_verify'])): ?><meta name="google-site-verification" content="<?= h((string)$seo['google_verify']) ?>"><?php endif; ?>
+<?php if (!empty($seo['bing_verify'])): ?><meta name="msvalidate.01" content="<?= h((string)$seo['bing_verify']) ?>"><?php endif; ?>
+<?php if (!empty($seo['yandex_verify'])): ?><meta name="yandex-verification" content="<?= h((string)$seo['yandex_verify']) ?>"><?php endif; ?>
+
+<meta property="og:type" content="<?= h($ogType) ?>">
 <meta property="og:site_name" content="<?= h($brand) ?>">
 <meta property="og:title" content="<?= h($full) ?>">
 <meta property="og:description" content="<?= h(mb_substr($desc, 0, 200)) ?>">
 <meta property="og:url" content="<?= h($canon) ?>">
-<meta property="og:image" content="<?= h(!empty($o['og_image']) ? (str_starts_with((string)$o['og_image'], 'http') ? (string)$o['og_image'] : vr_origin() . $o['og_image']) : vr_abs('assets/art.php', ['s' => strtolower((string)vr_config('brand')), 'w' => 1200, 'h' => 630])) ?>">
+<meta property="og:image" content="<?= h($ogImage) ?>">
+<meta property="og:image:alt" content="<?= h($full) ?>">
+<meta property="og:locale" content="<?= h(str_replace('-', '_', vr_locale())) ?>">
+<?php foreach ((array)vr_config('languages', ['en']) as $lg): if ($lg === vr_lang()) continue; ?>
+<meta property="og:locale:alternate" content="<?= h(str_replace('-', '_', vr_locale($lg))) ?>">
+<?php endforeach; ?>
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<?= h($full) ?>">
+<meta name="twitter:description" content="<?= h(mb_substr($desc, 0, 200)) ?>">
+<meta name="twitter:image" content="<?= h($ogImage) ?>">
 <meta name="theme-color" content="#000000">
 
 <link rel="icon" href="<?= h(vr_url('assets/mark.php')) ?>" type="image/svg+xml">
@@ -100,7 +132,7 @@ function vr_layout_start(array $o = []): void
 <noscript><style>[data-reveal]{opacity:1 !important;transform:none !important}</style></noscript>
 <?php
     // JSON-LD: mağaza kimliği her sayfada, sayfaya özel şema varsa üstüne eklenir.
-    $graph = [vr_jsonld_org()];
+    $graph = [vr_jsonld_website(), vr_jsonld_org()];
     if (!empty($o['jsonld'])) {
         $extra = $o['jsonld'];
         $graph = array_merge($graph, isset($extra[0]) && is_array($extra[0]) ? $extra : [$extra]);
@@ -914,15 +946,34 @@ function vr_demo_banner(): void
 function vr_jsonld_org(): array
 {
     $co = vr_config('company');
+    $seo = (array)vr_config('seo', []);
     $org = [
         '@type' => 'OnlineStore',
-        '@id'   => vr_origin() . '/#store',
+        '@id'   => vr_canonical_origin() . '/#store',
         'name'  => (string)vr_config('brand'),
-        'url'   => vr_origin(),
+        'url'   => vr_canonical_origin() . '/',
         'slogan' => t('tagline'),
         'currenciesAccepted' => (string)vr_config('currency', 'EUR'),
         'paymentAccepted'    => implode(', ', vr_payment_methods()),
     ];
+    // Logo: JSON-LD için mutlak raster (Google en az 112x112 ve taranabilir ister).
+    if (trim((string)($seo['logo'] ?? '')) !== '') {
+        $logo = (string)$seo['logo'];
+        $org['logo'] = str_starts_with($logo, 'http') ? $logo : vr_canonical_origin() . vr_base_url() . $logo;
+        $org['image'] = $org['logo'];
+    }
+    // Sosyal profiller (sameAs) — yalnızca gerçek adresler config'de varsa.
+    $social = array_values(array_filter((array)($seo['social'] ?? []), 'strlen'));
+    if ($social) $org['sameAs'] = $social;
+    // İletişim noktası — e-posta ve/veya telefon varsa.
+    $cp = array_filter([
+        '@type'       => 'ContactPoint',
+        'contactType' => 'customer service',
+        'email'       => (string)($co['email'] ?? ''),
+        'telephone'   => (string)($co['phone'] ?? ''),
+        'availableLanguage' => array_map('strtoupper', (array)vr_config('languages', ['en'])),
+    ]);
+    if (!empty($cp['email']) || !empty($cp['telephone'])) $org['contactPoint'] = $cp;
     if (trim((string)($co['legal_name'] ?? '')) !== '') {
         $org['parentOrganization'] = ['@type' => 'Organization', 'name' => (string)$co['legal_name']];
     }
@@ -941,31 +992,129 @@ function vr_jsonld_org(): array
 }
 
 /** Ürün için schema.org — zengin sonuçlarda fiyat/stok görünsün. */
+/**
+ * WebSite düğümü — her sayfada. SearchAction, Google'ın site içi arama
+ * kutusunu (sitelinks searchbox) tetikler. Hedef adres doğrudan kanonik
+ * kökenden kuruluyor: vr_abs/vr_url ana-dışı dillerde ?lang ekleyip
+ * `shop.php?lang=de?q=...` gibi çift-? bozuk URL üretiyordu.
+ */
+function vr_jsonld_website(): array
+{
+    return [
+        '@type'      => 'WebSite',
+        '@id'        => vr_canonical_origin() . '/#website',
+        'name'       => (string)vr_config('brand'),
+        'url'        => vr_canonical_origin() . '/',
+        'publisher'  => ['@id' => vr_canonical_origin() . '/#store'],
+        'inLanguage' => vr_locale(),
+        'potentialAction' => [
+            '@type'       => 'SearchAction',
+            'target'      => [
+                '@type'       => 'EntryPoint',
+                'urlTemplate' => vr_canonical_origin() . vr_base_url() . '/shop.php?q={search_term_string}',
+            ],
+            'query-input' => 'required name=search_term_string',
+        ],
+    ];
+}
+
 function vr_jsonld_product(array $p, ?int $overridePrice = null): array
 {
     $price = $overridePrice ?? (int)$p['price_cents'];
+    $cur   = (string)vr_config('currency', 'EUR');
+    $url   = vr_canonical_origin() . vr_product_url($p);
+
+    // Görseller: galerinin ilk birkaç karesi mutlak adresle (Google dizi kabul eder).
+    $imgs = [];
+    foreach (array_slice(vr_product_gallery($p, 4), 0, 4) as $g) {
+        $imgs[] = str_starts_with($g, 'http') ? $g : vr_canonical_origin() . vr_img_dynamic($g, 1400);
+    }
+    if (!$imgs) $imgs[] = vr_canonical_origin() . vr_img_dynamic(vr_product_image($p), 1400);
+
+    // Fiyat geçerlilik tarihi: fırsat bitişi varsa o, yoksa bugünden +30 gün.
+    $validUntil = !empty($p['deal_ends'])
+        ? date('Y-m-d', (int)$p['deal_ends'])
+        : date('Y-m-d', time() + 30 * 86400);
+
+    // İade politikası (config return_days) ve kargo (DE bölgesi) — Google
+    // ücretsiz ürün listelemeleri ve zengin sonuç için.
+    $retDays = (int)vr_config('return_days', 30);
+    $ship    = (array)(vr_config('shipping')['de'] ?? []);
+    $shipCents = (int)($ship['cents'] ?? 0);
+    $freeOver  = (int)($ship['free_over'] ?? 0);
+    $effShip   = ($freeOver > 0 && $price >= $freeOver) ? 0 : $shipCents;
+    preg_match_all('/\d+/', (string)($ship['days'] ?? ''), $dm);
+    $tMin = isset($dm[0][0]) ? (int)$dm[0][0] : 1;
+    $tMax = isset($dm[0][1]) ? (int)$dm[0][1] : $tMin;
+
+    $offer = array_filter([
+        '@type'         => 'Offer',
+        'url'           => $url,
+        'price'         => vr_amount($price),
+        'priceCurrency' => $cur,
+        'priceValidUntil' => $validUntil,
+        'availability'  => (int)$p['stock'] > 0
+            ? 'https://schema.org/InStock'
+            : 'https://schema.org/OutOfStock',
+        'itemCondition' => ($p['condition'] ?? 'new') === 'new'
+            ? 'https://schema.org/NewCondition'
+            : 'https://schema.org/UsedCondition',
+        'seller'        => ['@type' => 'Organization', 'name' => vr_product_seller($p)['name']],
+        'hasMerchantReturnPolicy' => [
+            '@type'               => 'MerchantReturnPolicy',
+            'applicableCountry'   => 'DE',
+            'returnPolicyCategory' => 'https://schema.org/MerchantReturnFiniteReturnWindow',
+            'merchantReturnDays'  => $retDays,
+            'returnMethod'        => 'https://schema.org/ReturnByMail',
+            'returnFees'          => 'https://schema.org/FreeReturn',
+        ],
+        'shippingDetails' => [
+            '@type' => 'OfferShippingDetails',
+            'shippingRate' => ['@type' => 'MonetaryAmount', 'value' => vr_amount($effShip), 'currency' => $cur],
+            'shippingDestination' => ['@type' => 'DefinedRegion', 'addressCountry' => 'DE'],
+            'deliveryTime' => [
+                '@type' => 'ShippingDeliveryTime',
+                'handlingTime' => ['@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 1, 'unitCode' => 'DAY'],
+                'transitTime'  => ['@type' => 'QuantitativeValue', 'minValue' => $tMin, 'maxValue' => $tMax, 'unitCode' => 'DAY'],
+            ],
+        ],
+    ]);
+
+    // Model kodu varsa mpn (üretici parça no). Gerçek GTIN elimizde yok, uydurmuyoruz.
+    $mpn = function_exists('vr_model_code') ? trim((string)vr_model_code($p)) : '';
+
     return array_filter([
         '@type'       => 'Product',
+        '@id'         => $url . '#product',
         'name'        => $p['brand'] . ' ' . vr_card_name($p),
         'brand'       => ['@type' => 'Brand', 'name' => $p['brand']],
         'sku'         => $p['sku'] ?: $p['id'],
+        'mpn'         => $mpn !== '' ? $mpn : null,
         'category'    => $p['cat'],
         'description' => mb_substr($p['desc'] !== '' ? $p['desc'] : ($p['brand'] . ' ' . $p['name']), 0, 400),
-        'image'       => vr_origin() . vr_img_dynamic(vr_product_image($p), 1400),
-        'offers'      => [
-            '@type'         => 'Offer',
-            'url'           => vr_origin() . vr_product_url($p),
-            'price'         => vr_amount($price),
-            'priceCurrency' => (string)vr_config('currency', 'EUR'),
-            'availability'  => (int)$p['stock'] > 0
-                ? 'https://schema.org/InStock'
-                : 'https://schema.org/OutOfStock',
-            'itemCondition' => ($p['condition'] ?? 'new') === 'new'
-                ? 'https://schema.org/NewCondition'
-                : 'https://schema.org/UsedCondition',
-            'seller'        => ['@type' => 'Organization', 'name' => vr_product_seller($p)['name']],
-        ],
+        'image'       => $imgs,
+        'url'         => $url,
+        'offers'      => $offer,
     ]);
+}
+
+/**
+ * ItemList — liste/koleksiyon sayfaları için (shop, marka, kategori, vault).
+ * Sıralı ürün/sayfa adreslerini verir; Google koleksiyonu tek sonuçta
+ * gruplayabilir. $urls göreli ya da mutlak olabilir.
+ */
+function vr_jsonld_itemlist(array $urls, int $limit = 30): array
+{
+    $items = [];
+    $i = 1;
+    foreach (array_slice(array_values(array_filter($urls, 'strlen')), 0, $limit) as $u) {
+        $items[] = [
+            '@type'    => 'ListItem',
+            'position' => $i++,
+            'url'      => str_starts_with($u, 'http') ? $u : vr_canonical_origin() . $u,
+        ];
+    }
+    return ['@type' => 'ItemList', 'itemListElement' => $items];
 }
 
 function vr_jsonld_breadcrumbs(array $items): array

@@ -24,11 +24,14 @@ foreach (vr_catalog() as $p) {
 
 vr_layout_start([
     'title' => t('sec_brands'),
-    'desc'  => t('sec_brands') . ' — ' . t('tagline'),
-    'jsonld' => [vr_jsonld_breadcrumbs([
-        (string)vr_config('brand') => vr_url('/'),
-        t('nav_brands')            => null,
-    ])],
+    'desc'  => t('brands_meta'),
+    'jsonld' => [
+        vr_jsonld_breadcrumbs([
+            (string)vr_config('brand') => vr_url('/'),
+            t('nav_brands')            => null,
+        ]),
+        vr_jsonld_itemlist(array_map(fn($b) => vr_url('shop.php', ['brand' => $b]), array_keys($brands))),
+    ],
 ]);
 ?>
 <section class="sec sec--tight">

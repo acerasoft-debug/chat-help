@@ -108,6 +108,8 @@ return [
     // ------------------------------------------------------------------ shop
     'shop_title'         => 'The shop floor',
     'shop_sub'           => 'Fixed price, immediate dispatch.',
+    'shop_meta'     => 'Authenticated luxury fashion from Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain and more. New-season and archive pieces with verified provenance, fixed prices and EU shipping.',
+    'brands_meta'   => 'Every house in stock at SARVESTO — Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain, Lacoste and more. Browse authenticated luxury menswear by maison.',
     'filters'            => 'Filters',
     'filter_open'        => 'Filter',
     'filter_brand'       => 'House',

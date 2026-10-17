@@ -64,6 +64,8 @@ if ($single !== null) {
     vr_layout_start([
         'title'  => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . t('vault_title'),
         'desc'   => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . vr_product_teaser($p),
+        'canonical' => vr_canonical_origin() . vr_url('outlet.php', ['lot' => $single['lot_id']]),
+        'og_type' => 'product',
         'og_image' => vr_img_dynamic(vr_product_image($p), 1400),
         'body_class' => 'is-vault',
         'jsonld' => [
@@ -317,10 +319,13 @@ vr_layout_start([
     'title' => t('vault_title'),
     'desc'  => t('vault_lede'),
     'body_class' => 'is-vault',
-    'jsonld' => [vr_jsonld_breadcrumbs([
-        (string)vr_config('brand') => vr_url('/'),
-        t('vault_title')           => null,
-    ])],
+    'jsonld' => [
+        vr_jsonld_breadcrumbs([
+            (string)vr_config('brand') => vr_url('/'),
+            t('vault_title')           => null,
+        ]),
+        vr_jsonld_itemlist(array_map(fn($v) => vr_url('outlet.php', ['lot' => $v['lot_id']]), $live)),
+    ],
 ]);
 ?>
 <?php

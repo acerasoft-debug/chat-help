@@ -99,6 +99,8 @@ return [
 
     'shop_title'         => 'Торговый зал',
     'shop_sub'           => 'Фиксированная цена, немедленная отправка.',
+    'shop_meta'     => 'Подлинная люксовая мода: Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain и другие. Новый сезон и архив, подтверждённое происхождение, фиксированная цена и доставка по ЕС.',
+    'brands_meta'   => 'Все дома в наличии в SARVESTO — Gucci, Balenciaga, Burberry, Dolce & Gabbana, Balmain, Lacoste и другие. Подлинный люкс по модным домам.',
     'filters'            => 'Фильтры',
     'filter_open'        => 'Фильтр',
     'filter_brand'       => 'Дом',
