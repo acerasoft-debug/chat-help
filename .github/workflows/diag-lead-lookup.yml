@@ -1,0 +1,65 @@
+name: (Teşhis) Alan adı / firma için kayıtlar + gönderim geçmişi (salt okunur)
+
+# 17 Eki 2026, operatör: "noreply@g-star.com buna neden e-mail gönderiyorsun? distribütör ve büyük zincir butiklere ya da
+# marketlere göndermemen gerektiğini söylemiştim". Verilen alan adı / anahtar kelime (base64; depo herkese açık) için:
+# eşleşen bütün kayıtlar (adres MASKELİ), durum, kaynak, hangi yoldan ne zaman yazıldığı, süzgeçlerin bugünkü kararı ve
+# sunucu gönderim kütüğündeki (vestra_sweep.log) satırlar. Hiçbir şey yazmaz.
+on:
+  workflow_dispatch:
+    inputs:
+      term_b64:
+        description: "Alan adı ya da firma anahtar kelimesi, base64 (ör. echo -n g-star.com | base64)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        env:
+          TERM_B64: ${{ github.event.inputs.term_b64 }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: TERM_B64
+          script: |
+            mkdir -p ~/vestra_tmp
+            cat > ~/vestra_tmp/ll.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors', '1'); error_reporting(E_ALL);
+            chdir(getenv('HOME').'/public_html');
+            require_once 'inc/products.php'; require_once 'inc/leads.php'; require_once 'inc/notify.php'; require_once 'inc/finder.php'; require_once 'inc/mailbox.php';
+            $term = strtolower(trim((string)base64_decode((string)getenv('TERM_B64'), true)));
+            if ($term === '' || strlen($term) < 3) { echo "gecersiz arama\n"; exit(1); }
+            $mask = function (string $e): string { $p = strpos($e, '@'); return $p === false ? '***' : substr($e, 0, 1).'***'.substr($e, $p); };
+            $n = 0; $ix = vestra_mailbox_letter_index(vestra_leads());
+            foreach (vestra_leads() as $l) {
+              $hay = strtolower(implode(' ', [(string)($l['email'] ?? ''), (string)($l['company'] ?? ''), (string)($l['website'] ?? '')]));
+              if (!str_contains($hay, $term)) continue;
+              $n++; $e = (string)($l['email'] ?? '');
+              $stamps = [];
+              foreach ($l as $k => $v) if (is_string($k) && is_string($v) && preg_match('/(_at|_contacted_at)$/', $k) && $v !== '' && $k !== 'added_at') $stamps[$k] = substr($v, 0, 16);
+              echo "-- ".$mask($e)." · ".mb_substr((string)($l['company'] ?? ''), 0, 40)." · ".(string)($l['website'] ?? '')." · ".(string)($l['country'] ?? '')."\n";
+              echo "   id=".(string)($l['id'] ?? '')." durum=".(string)($l['status'] ?? '')." kaynak=".(string)($l['source'] ?? '')." yol=".(string)($l['contact_via'] ?? '')." eklendi=".substr((string)($l['added_at'] ?? ''), 0, 10)." kampanya=".(string)($l['last_campaign'] ?? '')."\n";
+              echo "   damgalar: ".json_encode($stamps)." · takip: ".json_encode(array_map(fn($f) => (is_array($f) ? substr((string)($f['at'] ?? ''), 0, 16).' '.($f['campaign'] ?? '') : ''), (array)($l['followups'] ?? [])))."\n";
+              echo "   suzgec BUGUN: junk=".(int)vestra_email_is_junk($e)." blocked=".(int)vestra_lead_is_blocked($l)." off_target=".(int)vestra_lead_off_target($l)." not_retail=".(int)vestra_lead_not_retail($l)." monobrand=".(int)vestra_is_monobrand((string)($l['company'] ?? ''), $e, (string)($l['website'] ?? ''))." guessed=".(int)vestra_lead_source_guessed($l)." still_sendable=".(int)vestra_mailbox_still_sendable((string)($l['id'] ?? ''), $e)."\n";
+              echo "   not: ".mb_substr(preg_replace('/\S+@\S+/', '[adres]', (string)($l['notes'] ?? '')), -220)."\n";
+            }
+            echo "eslesen kayit: {$n}\n\nsunucu gonderim kutugu (son 6000 satir, bu alan adi):\n";
+            $log = getenv('HOME').'/vestra_sweep.log';
+            if (is_readable($log)) {
+              $lines = array_slice(file($log, FILE_IGNORE_NEW_LINES) ?: [], -60000); $hdr = '';
+              foreach ($lines as $ln) {
+                if (str_starts_with($ln, '[mailbox ')) $hdr = $ln;
+                if (str_contains(strtolower($ln), $term)) echo "  ".mb_substr($hdr, 0, 90)."\n    ".mb_substr($ln, 0, 160)."\n";
+              }
+            } else echo "  (kutuk yok)\n";
+            PHPEOF
+            php ~/vestra_tmp/ll.php; rc=$?; rm -f ~/vestra_tmp/ll.php; exit $rc
