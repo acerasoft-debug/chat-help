@@ -77,7 +77,8 @@ function ord_settings_save(int $acc, array $d): array {
     $zones=$c['zones']; if(isset($d['zones'])&&is_array($d['zones'])){ $zones=[]; foreach($d['zones'] as $z){ if(!is_array($z)) continue; $plz=implode(',',array_filter(array_map('trim',explode(',',(string)($z['plz']??''))),fn($x)=>preg_match('/^\d{4,5}$/',$x))); if($plz==='') continue; $zones[]=['plz'=>$plz,'name'=>mb_substr(trim((string)($z['name']??'')),0,60),'fee_cents'=>max(0,(int)($z['fee_cents'] ?? round(((float)str_replace(',','.',(string)($z['fee']??0)))*100))),'min_cents'=>max(0,(int)($z['min_cents'] ?? round(((float)str_replace(',','.',(string)($z['min']??0)))*100)))]; } }
     $lat=$c['lat']; $lon=$c['lon']; if(isset($d['lat'],$d['lon']) && is_numeric($d['lat']) && is_numeric($d['lon'])){ $lat=(float)$d['lat']; $lon=(float)$d['lon']; }
     $address=mb_substr(trim((string)($d['address']??$c['address'])),0,200);
-    if($address!=='' && ($address!==$c['address'] || $lat===null) && empty($d['lat'])){ $g=ord_geocode($address); if($g){ $lat=$g['lat']; $lon=$g['lon']; } }
+    if(empty($d['lat']) && $address!==$c['address']){ $lat=null; $lon=null; }   // neue Adresse → alte Koordinaten verwerfen (Geocoding-Fehler: beim nächsten Speichern neuer Versuch statt Entfernungen vom alten Ort)
+    if($address!=='' && $lat===null && empty($d['lat'])){ $g=ord_geocode($address); if($g){ $lat=$g['lat']; $lon=$g['lon']; } }
     $pm=implode(',',array_values(array_intersect(array_map('trim',explode(',',strtolower((string)($d['payment_methods']??$c['payment_methods'])))),['bar','karte','paypal','online','rechnung'])));
     $wa_token=array_key_exists('wa_token',$d) ? (string)$d['wa_token'] : (string)$c['wa_token']; if($wa_token==='••••••••') $wa_token=(string)$c['wa_token'];
     $v=['order_on'=>(int)!empty($d['order_on'] ?? $c['order_on']),'name'=>mb_substr(trim((string)($d['name']??$c['name'])),0,120),'address'=>$address,'lat'=>$lat,'lon'=>$lon,'phone'=>mb_substr(trim((string)($d['phone']??$c['phone'])),0,40),
@@ -103,11 +104,12 @@ function ord_menu(int $acc, bool $activeOnly=true): array {
 /**
  * Preisangabe am Ende einer Auswahl abtrennen: "Groß 32 cm +3,00" / "Groß +3,00 €" / "(+3,00 €)" / "Käse 1,50 €" / "+1.000,00" / "Normal 0".
  * Eine Zahl am Ende gilt nur mit Vorzeichen (+/−), €/EUR oder als 0 als Preis – sonst gehört sie zum Namen ("Normal 28 cm", "Cola 0,33").
+ * Minus nur nach Leerzeichen, "(" oder am Anfang – ein Bereich im Namen ("Ø 26-30", "Familie 4-6") ist kein negativer Preis.
  * Rückgabe [Bezeichnung, Aufpreis in Cent | null].
  */
 function ord_split_price(string $ch): array {
     $ch=trim($ch);
-    if(preg_match('/^(.*?)\s*\(?\s*([+\-−–]?)\s*(€|eur\b|euro\b)?\s*(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(€|eur\b|euro\b)?\s*\)?$/iu',$ch,$m)){
+    if(preg_match('/^(.*?)\s*\(?\s*((?:\+|(?<=^|\s|\()[\-−–])?)\s*(€|eur\b|euro\b)?\s*(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(€|eur\b|euro\b)?\s*\)?$/iu',$ch,$m)){
         $n=$m[4]; $v=(float)(str_contains($n,',') ? str_replace(['.',','],['','.'],$n) : (preg_match('/^\d{1,3}(\.\d{3})+$/',$n) ? str_replace('.','',$n) : $n));
         if($m[2]!=='' || $m[3]!=='' || ($m[5]??'')!=='' || $v==0.0){ $c=(int)round($v*100); return [trim(preg_replace('/[\s(\-–]+$/u','',$m[1])), in_array($m[2],['-','−','–'],true) ? -$c : $c]; }
     }
@@ -215,12 +217,20 @@ function ord_day_word(DateTimeImmutable $t, DateTimeImmutable $now): string {
 }
 /** "heute 17:30" / "morgen 11:30" / "Mi 18.10. 11:30" */
 function ord_day_label(DateTimeImmutable $t, DateTimeImmutable $now): string { return ord_day_word($t,$now).' '.$t->setTimezone($now->getTimezone())->format('H:i'); }
-/** Jetzt geöffnet? open/until (auch nach Mitternacht, z. B. Fr 18:00–01:30 → Sa 00:30 offen bis 01:30) · sonst next (HH:MM der nächsten Öffnung), next_at, next_label. */
+/** Fensterende lesbar: kürzer als 24 h → "01:30" (über Mitternacht selbstverständlich), sonst mit Tag ("So 18.10. 24:00"); Ende 00:00 = "24:00" des Vortags. */
+function ord_end_label(DateTimeImmutable $a, DateTimeImmutable $b, DateTimeImmutable $now): string {
+    if($b->getTimestamp()-$a->getTimestamp() < 86400) return $b->format('H:i');
+    return $b->format('H:i')==='00:00' ? ord_day_word($b->modify('-1 day'),$now).' 24:00' : ord_day_label($b,$now);
+}
+/**
+ * Jetzt geöffnet? open/until (auch nach Mitternacht, z. B. Fr 18:00–01:30 → Sa 00:30 offen bis 01:30) · sonst next (HH:MM der nächsten Öffnung), next_at, next_label, next_until(_label).
+ * Durchgehend geöffnet (Fenster reicht bis ans Ende der 8-Tage-Vorschau, z. B. 24/7): always=true, until/until_at/until_label = null.
+ */
 function ord_is_open(array $s, ?DateTimeImmutable $at=null): array {
-    $tz=ord_tz($s); $now=($at ?: new DateTimeImmutable('now',$tz))->setTimezone($tz); $ranges=$s['hours'][(string)(int)$now->format('w')] ?? [];
+    $tz=ord_tz($s); $now=($at ?: new DateTimeImmutable('now',$tz))->setTimezone($tz); $ranges=$s['hours'][(string)(int)$now->format('w')] ?? []; $lim=$now->setTime(0,0)->modify('+8 day');
     foreach(ord_windows($s,$now) as [$a,$b]){
-        if($a<=$now && $now<$b) return ['open'=>true,'until'=>$b->format('H:i'),'until_at'=>$b->format('Y-m-d H:i'),'until_label'=>ord_day_label($b,$now),'today'=>$ranges];
-        if($a>$now) return ['open'=>false,'next'=>$a->format('H:i'),'next_at'=>$a->format('Y-m-d H:i'),'next_label'=>ord_day_label($a,$now),'next_until'=>$b->format('H:i'),'today'=>$ranges];
+        if($a<=$now && $now<$b) return $b>=$lim ? ['open'=>true,'always'=>true,'until'=>null,'until_at'=>null,'until_label'=>null,'today'=>$ranges] : ['open'=>true,'until'=>$b->format('H:i'),'until_at'=>$b->format('Y-m-d H:i'),'until_label'=>ord_day_label($b,$now),'today'=>$ranges];
+        if($a>$now) return ['open'=>false,'next'=>$a->format('H:i'),'next_at'=>$a->format('Y-m-d H:i'),'next_label'=>ord_day_label($a,$now),'next_until'=>$b->format('H:i'),'next_until_label'=>$b>=$lim ? null : ord_end_label($a,$b,$now),'today'=>$ranges];
     }
     return ['open'=>false,'next'=>'','next_at'=>null,'next_label'=>null,'today'=>$ranges];
 }
@@ -268,27 +278,43 @@ function ord_check_address(int $acc, string $address): array {
 function ord_code(): string { $a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; $c=''; for($i=0;$i<6;$i++) $c.=$a[random_int(0,strlen($a)-1)]; return $c; }
 /**
  * Artikel zu id oder Name finden. Reihenfolge: id (nur aktive Karte, kein Namens-Ersatz auf Ziffern) → exakter Name → normalisiert (Umlaute/ß) →
- * wortweise (alle Suchwörter in Name/Kategorie, der Name mit den wenigsten Zusatzwörtern gewinnt: „Margherita“ → „Pizza Margherita“, nicht „… Bufala“) → Tippfehler.
+ * wortweise A (alle Suchwörter in Name/Kategorie, der Name mit den wenigsten Zusatzwörtern gewinnt: „Margherita“ → „Pizza Margherita“, nicht „… Bufala“) →
+ * wortweise B (alle Wörter eines Artikelnamens als ganze Wörter in der Angabe: „Salami extra Käse“, „Margherita (Größe: Groß 32 cm)“; Rang: meiste Namenswörter,
+ * dann wenigste Zusatzwörter, dann früheste Stelle – „Funghi mit Salami“ = Funghi) → beides mit Tippfehler-Toleranz → Ähnlichkeit des ganzen Texts.
  * Leere Angabe trifft nichts. Mehrere gleich gute Treffer → null und $amb = Kandidaten (Namen) zum Nachfragen.
- * $rest = übergangene Zusatzwörter der Angabe (z. B. „gross“ aus „Funghi groß“) – ord_create ordnet sie als Option zu statt sie still zu verlieren.
+ * $rest = übrige Wörter der Angabe in Originalschreibung (ohne Kategorie, z. B. ['groß'] aus „Pizza Funghi groß“, ['extra','Käse']) – ord_create ordnet sie
+ * Optionen zu bzw. meldet sie, statt sie still zu verlieren.
  */
+const ORD_FILL=['bitte','mal','stuck','x','mit','und','ein','eine','einen','einer','die','der','das','den','portion','noch','dazu','gern','gerne'];
 function ord_find_item(array $menu, $ref, ?array &$amb=null, ?array &$rest=null): ?array {
     $amb=null; $rest=[]; if(!is_scalar($ref)) return null; $raw=trim((string)$ref); if($raw==='') return null;
     if(is_int($ref) || is_numeric($raw)){ foreach($menu as $m) if((string)$m['id']===(string)(int)$raw) return $m; return null; }
     $ql=mb_strtolower($raw); foreach($menu as $m) if(mb_strtolower(trim((string)$m['name']))===$ql) return $m;
     $qn=ord_norm($raw); if($qn==='') return null; foreach($menu as $m) if(ord_norm((string)$m['name'])===$qn) return $m;
-    $stop=['bitte','mal','stuck','x','mit','und','ein','eine','einen','einer','gross','grosse','grosser','grosses','klein','kleine','kleiner','kleines','normal','normale','portion','die','der','das','den'];
-    $qw=array_values(array_filter(explode(' ',$qn),fn($w)=>$w!==''));
-    foreach([false,true] as $fuzzy){ $hits=[]; $cat=[];
-        foreach($menu as $m){ $nw=explode(' ',ord_norm((string)$m['name'])); $cw=explode(' ',ord_norm((string)($m['category']??''))); $inN=0; $inC=0; $ok=true; $rw=[];
-            foreach($qw as $w){ $f=function(array $list) use($w,$fuzzy){ foreach($list as $x){ if($x==='') continue; if(ord_word_eq($w,$x)) return true; if($fuzzy && mb_strlen($w)>=4 && mb_strlen($x)>=4){ similar_text($w,$x,$pct); if($pct>=80) return true; } } return false; };
-                if($f($nw)) $inN++; elseif($f($cw)) $inC++; elseif(!in_array($w,$stop,true)){ $ok=false; break; } else $rw[]=$w; }
-            if(!$ok) continue; if($inN>0) $hits[]=['m'=>$m,'x'=>count($nw)-$inN,'r'=>$rw]; elseif($inC>0) $cat[]=$m; }
+    $stop=array_merge(ORD_FILL,['gross','grosse','grosser','grosses','klein','kleine','kleiner','kleines','normal','normale']);
+    /* Suchwörter als [Original, Vergleichsform] („32cm“ → 32 · cm) */
+    $tok=[]; foreach(preg_split('/[^\p{L}\p{N}]+/u',preg_replace(['/(\d)(\p{L})/u','/(\p{L})(\d)/u'],'$1 $2',$raw),-1,PREG_SPLIT_NO_EMPTY) as $o){ $n=ord_norm($o); if($n!=='') $tok[]=[$o,$n]; }
+    if(!$tok) return null; $words=fn(string $t)=>array_values(array_filter(explode(' ',ord_norm($t)),fn($x)=>$x!==''));
+    $like=function(string $w, array $list, int $min): bool { foreach($list as $x){ if(ord_word_eq($w,$x)) return true; if($min<100 && mb_strlen($w)>=4 && mb_strlen($x)>=4){ similar_text($w,$x,$pct); if($pct>=$min) return true; } } return false; };
+    $byB=[];
+    foreach([100,80] as $min){ $hits=[]; $cat=[]; $cand=[]; $eq=fn(string $w, array $list)=>$like($w,$list,$min);   // 100 = exakt (mit Endungs-Toleranz), 80 = Tippfehler
+        foreach($menu as $m){ $nw=$words((string)$m['name']); $cw=$words((string)($m['category']??'')); if(!$nw) continue; $inN=0; $inC=0; $ok=true; $rw=[];
+            foreach($tok as [$o,$w]){ if($eq($w,$nw)) $inN++; elseif($eq($w,$cw)) $inC++; elseif(!in_array($w,$stop,true)){ $ok=false; break; } else $rw[]=$o; }
+            if($ok){ if($inN>0) $hits[]=['m'=>$m,'x'=>count($nw)-$inN,'r'=>$rw]; elseif($inC>0) $cat[]=$m; continue; }
+            /* B: jedes Namenswort (Kategorie-Wörter im Namen wie „Pizza“ in „Pizza Salami“ optional) als ganzes Wort in der Angabe → Kandidat; übrige Wörter ohne Füllwörter/Kategorie = $rest */
+            $used=[]; foreach($nw as $x){ $hit=null; foreach($tok as $i=>[,$w]) if(!isset($used[$i]) && $eq($w,[$x])){ $hit=$i; break; } if($hit===null){ if(count($nw)>1 && $like($x,$cw,100)) continue; continue 2; } $used[$hit]=1; }
+            if(!$used) continue; $r=[]; foreach($tok as $i=>[$o,$w]) if(!isset($used[$i]) && !in_array($w,ORD_FILL,true) && !$like($w,$cw,100)) $r[]=$o;
+            $cand[]=['m'=>$m,'k'=>[-count($used),count(array_filter($r,fn($o)=>!ctype_digit($o))),min(array_keys($used))],'r'=>$r]; }
         if($hits){ usort($hits,fn($a,$b)=>$a['x']<=>$b['x']); if(count($hits)===1 || $hits[0]['x']<$hits[1]['x']){ $rest=$hits[0]['r']; return $hits[0]['m']; } $amb=array_slice(array_map(fn($h)=>$h['m']['name'],array_filter($hits,fn($h)=>$h['x']===$hits[0]['x'])),0,8); return null; }
-        if($cat && !$fuzzy){ $amb=array_slice(array_map(fn($m)=>$m['name'],$cat),0,8); return null; }   // nur Kategorie getroffen („Pizza“) → nachfragen
-    }
+        if($cat && $min===100){ $amb=array_slice(array_map(fn($m)=>$m['name'],$cat),0,8); return null; }   // nur Kategorie getroffen („Pizza“) → nachfragen
+        $byB[]=$cand; }
+    /* B erst, wenn A auch mit Tippfehler-Toleranz nichts erklärt (alle Wörter erklärt schlägt „Name + Zusatzwörter“) */
+    foreach($byB as $cand) if($cand){ usort($cand,fn($a,$b)=>$a['k']<=>$b['k']); if(count($cand)===1 || $cand[0]['k']!==$cand[1]['k']){ $rest=$cand[0]['r']; return $cand[0]['m']; } $amb=array_slice(array_map(fn($c)=>$c['m']['name'],array_filter($cand,fn($c)=>$c['k']===$cand[0]['k'])),0,8); return null; }
     $best=null; $bs=0; $second=0; foreach($menu as $m){ similar_text($qn,ord_norm((string)$m['name']),$pct); if($pct>$bs){ $second=$bs; $bs=$pct; $best=$m; } elseif($pct>$second) $second=$pct; }
-    if($best && $bs>72){ if($bs-$second<3){ $amb=[]; foreach($menu as $m){ similar_text($qn,ord_norm((string)$m['name']),$pct); if($bs-$pct<3) $amb[]=$m['name']; } return null; } return $best; }
+    if($best && $bs>72){ if($bs-$second<3){ $amb=[]; foreach($menu as $m){ similar_text($qn,ord_norm((string)$m['name']),$pct); if($bs-$pct<3) $amb[]=$m['name']; } return null; }
+        $nw=$words((string)$best['name']); $cw=$words((string)($best['category']??''));   // Zusatzwörter auch hier nicht verlieren
+        foreach($tok as [$o,$w]) if(!in_array($w,ORD_FILL,true) && !$like($w,$cw,100) && !$like($w,$nw,70)) $rest[]=$o;
+        return $best; }
     return null;
 }
 function ord_options_text(array $grps): string { return mb_substr(implode('; ',array_map(fn($g)=>$g['name'].': '.implode(', ',array_map(fn($c)=>$c['label'].(!empty($c['delta'])?' ('.($c['delta']>0?'+':'').number_format($c['delta']/100,2,',','.').' €)':''),(array)$g['choices'])),$grps)),0,400); }
@@ -301,34 +327,32 @@ function ord_requested_time(array $s, string $raw, ?DateTimeImmutable $now=null)
     $tz=ord_tz($s); $now=($now ?: new DateTimeImmutable('now',$tz))->setTimezone($tz); $raw=trim($raw); $y=null; $fmt=['error'=>'bad_requested_time','hint'=>'Wunschzeit bitte als HH:MM (heute) oder YYYY-MM-DD HH:MM angeben.'];
     if($raw==='' || preg_match('/^(sofort|asap|jetzt|now|so schnell wie möglich|schnellstmöglich)$/iu',$raw)) return ['at'=>null];
     if(preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})[ T,]+(\d{1,2})[:.](\d{2})(?::\d{2})?(?:\s*uhr)?$/iu',$raw,$m)) [$y,$mo,$dd,$h,$i]=[(int)$m[1],(int)$m[2],(int)$m[3],(int)$m[4],(int)$m[5]];
-    elseif(preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})?[ ,]+(\d{1,2})[:.](\d{2})(?:\s*uhr)?$/iu',$raw,$m)){ $y=$m[3]!=='' ? (int)$m[3] : (int)$now->format('Y'); if($y<100) $y+=2000; [$mo,$dd,$h,$i]=[(int)$m[2],(int)$m[1],(int)$m[4],(int)$m[5]]; }
+    elseif(preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})?[ ,]+(\d{1,2})[:.](\d{2})(?:\s*uhr)?$/iu',$raw,$m)){ $y=$m[3]!=='' ? (int)$m[3] : (int)$now->format('Y'); if($y<100) $y+=2000; [$mo,$dd,$h,$i]=[(int)$m[2],(int)$m[1],(int)$m[4],(int)$m[5]];
+        if($m[3]==='' && sprintf('%04d-%02d-%02d',$y,$mo,$dd)<$now->format('Y-m-d')) $y++; }   // ohne Jahr: Datum vor heute = nächstes Jahr (am 31.12. „01.01. 13:00“)
     elseif(preg_match('/^(\d{1,2})[:.](\d{2})(?:\s*uhr)?$/iu',$raw,$m)) [$h,$i]=[(int)$m[1],(int)$m[2]];
     else return $fmt;
     if($h>23 || $i>59 || ($y!==null && !checkdate($mo,$dd,$y))) return $fmt;
     if($y!==null){ $at=(new DateTimeImmutable(sprintf('%04d-%02d-%02d',$y,$mo,$dd),$tz))->setTime($h,$i); if($at<$now->modify('-15 minutes')) return ['error'=>'requested_time_past','hint'=>'Die Wunschzeit '.$at->format('d.m.Y H:i').' liegt in der Vergangenheit.']; }
     else { $at=$now->setTime($h,$i);
         if($at<$now->modify('-15 minutes')){ $cur=ord_is_open($s,$now); $t=$at->modify('+1 day');
-            if(!$cur['open'] || $t<=$now->modify('+6 hours') || ($t<new DateTimeImmutable($cur['until_at'],$tz) && $t<=$now->modify('+12 hours'))) $at=$t;   // spät abends „01:45“ = heute Nacht; „06:00“ um 09:00 (auch bei 24/7) = Fehler statt still morgen
+            if(!$cur['open'] || $t<=$now->modify('+6 hours') || ((!empty($cur['always']) || $t<new DateTimeImmutable((string)$cur['until_at'],$tz)) && $t<=$now->modify('+12 hours'))) $at=$t;   // spät abends „01:45“ = heute Nacht; „06:00“ um 09:00 (auch bei 24/7) = Fehler statt still morgen
             else return ['error'=>'requested_time_past','hint'=>$raw.' Uhr ist heute schon vorbei. Für einen anderen Tag die Wunschzeit mit Datum angeben (YYYY-MM-DD HH:MM).']; } }
     if($at<$now) $at=$now;   // knapp vorbei = so schnell wie möglich
     if($at>$now->modify('+7 days')) return ['error'=>'requested_time_too_far','hint'=>'Vorbestellungen höchstens 7 Tage im Voraus.'];
     return ['at'=>$at];
 }
 /**
- * Bestellzeitpunkt prüfen → ['eta'=>DateTimeImmutable] oder Fehler. Ohne Wunschzeit nur, solange geöffnet. Wunschzeit muss in einem Öffnungsfenster liegen;
- * während geschlossen ist, nur im nächsten Öffnungsfenster (Vorbestellung). ETA frühestens Öffnung + Zubereitungs-/Lieferzeit. 'force' (Studio/Demo) überspringt die Öffnungszeiten.
+ * Bestellzeitpunkt prüfen → ['eta'=>DateTimeImmutable] oder Fehler. Ohne Wunschzeit nur, solange geöffnet. Wunschzeit (Vorbestellung, auch während geschlossen)
+ * muss in einem Öffnungsfenster der nächsten 7 Tage liegen. ETA frühestens Öffnung + Zubereitungs-/Lieferzeit. 'force' (Studio/Demo) überspringt die Öffnungszeiten.
  */
 function ord_timing(array $s, string $type, array $d, ?DateTimeImmutable $now=null): array {
     $tz=ord_tz($s); $now=($now ?: new DateTimeImmutable('now',$tz))->setTimezone($tz); $force=!empty($d['force']); $lead=(int)($type==='delivery' ? $s['eta_delivery_min'] : $s['eta_pickup_min']);
     $open=ord_is_open($s,$now); $rq=ord_requested_time($s,is_scalar($d['requested_time']??null) ? (string)$d['requested_time'] : '',$now); if(isset($rq['error'])) return $rq;
-    $nextTxt=!$open['open'] && $open['next_label'] ? $open['next_label'].'–'.$open['next_until'] : ''; $rt=$rq['at'];
-    if(!$rt){ if(!$open['open'] && !$force) return ['error'=>'closed','next_open'=>$open['next'] ?: null,'next_open_at'=>$open['next_at'],'hint'=>'Derzeit geschlossen'.($nextTxt ? ' – nächste Öffnung '.$nextTxt.'. Vorbestellung möglich: requested_time innerhalb dieses Fensters angeben (HH:MM oder YYYY-MM-DD HH:MM).' : '.')];
+    $nextTxt=!$open['open'] && $open['next_label'] ? $open['next_label'].(($open['next_until_label']??null) ? '–'.$open['next_until_label'] : ' (danach durchgehend)') : ''; $rt=$rq['at'];
+    if(!$rt){ if(!$open['open'] && !$force) return ['error'=>'closed','next_open'=>$open['next'] ?: null,'next_open_at'=>$open['next_at'],'hint'=>'Derzeit geschlossen'.($nextTxt ? ' – nächste Öffnung '.$nextTxt.'. Vorbestellung möglich: requested_time innerhalb der Öffnungszeiten (bis 7 Tage im Voraus) angeben (HH:MM oder YYYY-MM-DD HH:MM).' : '.')];
         return ['eta'=>$now->modify('+'.$lead.' minutes')]; }
     $win=ord_window_at($s,$rt);
-    if(!$force){
-        if(!$win){ $day=$s['hours'][(string)(int)$rt->format('w')] ?? []; return ['error'=>'outside_opening_hours','requested_time'=>$rt->format('Y-m-d H:i'),'hint'=>'Wunschzeit '.ord_day_label($rt,$now).' liegt außerhalb der Öffnungszeiten ('.['So','Mo','Di','Mi','Do','Fr','Sa'][(int)$rt->format('w')].': '.($day ? implode(', ',array_map(fn($x)=>$x[0].'–'.$x[1],$day)) : 'Ruhetag').').'.($nextTxt ? ' Nächste Öffnung: '.$nextTxt.'.' : '')]; }
-        if(!$open['open'] && $open['next_at'] && $win[0]->format('Y-m-d H:i')!==$open['next_at']) return ['error'=>'preorder_next_window_only','requested_time'=>$rt->format('Y-m-d H:i'),'hint'=>'Derzeit geschlossen – Vorbestellungen nur für die nächste Öffnung ('.$nextTxt.').'];
-    }
+    if(!$force && !$win){ $day=$s['hours'][(string)(int)$rt->format('w')] ?? []; return ['error'=>'outside_opening_hours','requested_time'=>$rt->format('Y-m-d H:i'),'hint'=>'Wunschzeit '.ord_day_label($rt,$now).' liegt außerhalb der Öffnungszeiten ('.['So','Mo','Di','Mi','Do','Fr','Sa'][(int)$rt->format('w')].': '.($day ? implode(', ',array_map(fn($x)=>$x[0].'–'.$x[1],$day)) : 'Ruhetag').').'.($nextTxt ? ' Nächste Öffnung: '.$nextTxt.'.' : '')]; }
     $base=($win && $win[0]>$now) ? $win[0] : $now;   // vor Öffnung bestellt: Küche startet mit der Öffnung
     $eta=$base->modify('+'.$lead.' minutes'); if($rt>$eta) $eta=$rt;
     return ['eta'=>$eta];
@@ -337,30 +361,44 @@ function ord_create(int $acc, array $d, string $channel, string $waFrom=''): arr
     $s=ord_settings($acc); if(!$s['order_on']) return ['error'=>'orders_disabled'];
     $type=($d['type']??'delivery')==='pickup'?'pickup':'delivery'; if($type==='delivery'&&!$s['delivery_on']) return ['error'=>'delivery_disabled','hint'=>'Nur Abholung möglich.']; if($type==='pickup'&&!$s['pickup_on']) return ['error'=>'pickup_disabled'];
     $tm=ord_timing($s,$type,$d); if(isset($tm['error'])) return $tm; $eta=$tm['eta'];
-    $menu=ord_menu($acc); $items=[]; $sub=0; $problems=[];
+    /* Positionen auflösen. Alles Unklare (Artikel nicht auf der Karte, Option nicht gefunden/nicht eindeutig/widersprüchlich, Wort im Namen ohne Zuordnung)
+       sammelt $problems → vor dem Anlegen 'items_unclear' (nichts angelegt, keine Benachrichtigung) – eine verbindliche Bestellung nie mit fehlenden Positionen/Optionen. */
+    $menu=ord_menu($acc); $items=[]; $sub=0; $problems=[]; $info=[];
     foreach((array)($d['items']??[]) as $it){ if(!is_array($it)) continue; $nm=is_scalar($it['name']??null) ? trim((string)$it['name']) : ''; $amb=null; $m=null; $rest=[];
-        if(isset($it['id']) && is_scalar($it['id']) && trim((string)$it['id'])!=='') $m=ord_find_item($menu,$it['id']);   // unbekannte id → kein Ziffern-Namenstreffer; nur ein mitgeschickter Name zählt
+        if(isset($it['id']) && is_scalar($it['id']) && trim((string)$it['id'])!==''){ $m=ord_find_item($menu,$it['id']);   // unbekannte id → kein Ziffern-Namenstreffer; nur ein mitgeschickter Name zählt
+            /* id + Name: Zusatzwörter des Namens („Margherita groß“) gelten auch hier; Name eines anderen Artikels = Widerspruch */
+            if($m && $nm!=='' && !ord_find_item([$m],$nm,$a2,$rest) && ($o2=ord_find_item($menu,$nm)) && $o2['id']!==$m['id']){ $problems[]='id '.$m['id'].' ist „'.$m['name'].'“, der Name „'.$nm.'“ passt aber zu „'.$o2['name'].'“ – welcher Artikel?'; continue; } }
         if(!$m && $nm!=='') $m=ord_find_item($menu,$nm,$amb,$rest);
         if(!$m && $amb) return ['error'=>'ambiguous','item'=>$nm,'candidates'=>$amb,'problems'=>$problems ?: null,'hint'=>'Mehrere Artikel passen zu „'.$nm.'“: '.implode(', ',$amb).'. Bitte beim Kunden nachfragen und dann mit id bestellen.'];
         if(!$m){ $problems[]='Nicht auf der Karte: '.($nm!=='' ? $nm : (is_scalar($it['id']??null) && (string)$it['id']!=='' ? 'id '.$it['id'] : '?')); continue; }
-        $qty=max(1,min(50,(int)($it['qty']??1))); $unit=(int)$m['price_cents']; $chosen=[]; $taken=[]; $seen=[]; $grps=array_values(array_filter((array)($m['options']??[]),fn($g)=>is_array($g) && !empty($g['choices'])));
+        $qty=max(1,min(50,(int)($it['qty']??1))); $unit=(int)$m['price_cents']; $chosen=[]; $taken=[]; $seen=[]; $inote=trim(is_scalar($it['note']??null) ? (string)$it['note'] : ''); $grps=array_values(array_filter((array)($m['options']??[]),fn($g)=>is_array($g) && !empty($g['choices'])));
+        /* Auswahl übernehmen (Aufpreis); doppelt genannt zählt einmal, zweite Wahl in einer Einfach-Gruppe (Größe) = Widerspruch */
+        $add=function(?array $r, string $label, string $src) use($grps,$m,&$taken,&$seen,&$unit,&$chosen,&$problems): void {
+            if(!$r || isset($r['amb'])){ $problems[]=$m['name'].': '.$src.' „'.$label.'“ '.($r ? 'nicht eindeutig ('.implode(' / ',$r['amb']).')' : 'nicht gefunden').'. Möglich: '.ord_options_text($grps).'.'; return; }
+            $g=$grps[$r['g']]; $c=$r['c']; $k=$r['g'].'|'.$c['label']; if(isset($seen[$k])) return;
+            $single=ord_group_single($g); if($single && isset($taken[$r['g']])){ $problems[]=$m['name'].': '.$g['name'].' nur einmal wählbar – „'.$taken[$r['g']].'“ und „'.$c['label'].'“ genannt.'; return; }
+            $seen[$k]=1; if($single) $taken[$r['g']]=$c['label']; $unit+=(int)($c['delta']??0); $chosen[]=[$r['g'],$g['name'].': '.$c['label']]; };
         foreach((array)($it['options']??[]) as $optSel){ $label=trim(is_array($optSel) ? (string)($optSel['choice']??$optSel['label']??'') : (is_scalar($optSel) ? (string)$optSel : '')); if($label==='') continue; $gname=is_array($optSel) ? trim((string)($optSel['group']??'')) : '';
-            if(!$grps){ $problems[]=$m['name'].': keine Optionen auf der Karte – „'.$label.'“ nicht berücksichtigt (Wünsche ohne Aufpreis als note angeben).'; continue; }
-            $r=ord_match_option($grps,$label,$gname,array_keys($taken));
-            if(!$r || isset($r['amb'])){ $problems[]=$m['name'].': Option „'.$label.'“ '.($r ? 'nicht eindeutig ('.implode(' / ',$r['amb']).')' : 'nicht gefunden').' – nicht berechnet. Möglich: '.ord_options_text($grps).'.'; continue; }
-            $g=$grps[$r['g']]; $c=$r['c']; $k=$r['g'].'|'.$c['label']; if(isset($seen[$k])) continue;   // doppelt genannt
-            $single=ord_group_single($g); if($single && isset($taken[$r['g']])){ $problems[]=$m['name'].': '.$g['name'].' nur einmal wählbar – „'.$c['label'].'“ ignoriert (gewählt: '.$taken[$r['g']].').'; continue; }
-            $seen[$k]=1; if($single) $taken[$r['g']]=$c['label']; $unit+=(int)($c['delta']??0); $chosen[]=$g['name'].': '.$c['label']; }
-        /* Größe nur im Artikelnamen („Funghi groß“) → als Option übernehmen, sonst melden – nie still zum Grundpreis */
-        $sz=implode(' ',array_diff($rest,['bitte','mal','stuck','x','mit','und','ein','eine','einen','einer','die','der','das','den','portion']));
-        if($sz!==''){ $r=$grps ? ord_match_option($grps,$sz,'',array_keys($taken)) : null;
-            if(!$r || isset($r['amb'])) $problems[]=$m['name'].': „'.$sz.'“ aus dem Artikelnamen '.($grps ? 'keiner Option eindeutig zuzuordnen – nicht berechnet. Möglich: '.ord_options_text($grps).'.' : 'nicht berücksichtigt (keine Optionen auf der Karte).');
-            else { $g=$grps[$r['g']]; $c=$r['c']; $k=$r['g'].'|'.$c['label'];
-                if(!isset($seen[$k])){ if(ord_group_single($g) && isset($taken[$r['g']])) $problems[]=$m['name'].': „'.$sz.'“ im Artikelnamen, gewählt ist '.$g['name'].' '.$taken[$r['g']].' – so berechnet.';
-                    else { $seen[$k]=1; if(ord_group_single($g)) $taken[$r['g']]=$c['label']; $unit+=(int)($c['delta']??0); $chosen[]=$g['name'].': '.$c['label']; } } } }
+            if(!$grps){ $problems[]=$m['name'].': keine Optionen auf der Karte – „'.$label.'“ nicht möglich (Wünsche ohne Aufpreis als note der Position angeben).'; continue; }
+            $add(ord_match_option($grps,$label,$gname,array_keys($taken)),$label,'Option'); }
+        /* Zusatzwörter aus dem Namen („Funghi groß“, „Salami mit extra Käse“, „Margherita (Größe: Groß 32 cm)“) → längste passende Wortfolge als Option;
+           übrig: Wörter aus Beschreibung/Hinweisen des Artikels („Diavola scharf“) → Notiz der Position, reine Zahlen („2 Margherita“) ignoriert, sonst unklar – nie still zum Grundpreis */
+        $L=array_slice(array_values(array_filter($rest,fn($o)=>!in_array(ord_norm((string)$o),ORD_FILL,true))),0,16); $un=[];
+        foreach($L as $ix=>$o) if(in_array(ord_norm((string)$o),['ohne','kein','keine','keinen','keiner','wenig','weniger','nicht','statt','anstatt','halb'],true)){   // „ohne Käse“ nie als Extra Käse werten
+            $problems[]=$m['name'].': „'.implode(' ',array_slice($L,$ix)).'“ im Namen – Wünsche ohne Aufpreis als note der Position, Größe/Extras als options senden.'; $L=array_slice($L,0,$ix); break; }
+        for($i=0,$n=count($L);$i<$n;){ $r=null; $j=$n; if($grps) for(;$j>$i;$j--){ $r=ord_match_option($grps,implode(' ',array_slice($L,$i,$j-$i)),'',array_keys($taken)); if($r) break; }
+            if(!$r){ $un[]=(string)$L[$i]; $i++; continue; } $add($r,implode(' ',array_slice($L,$i,$j-$i)),'Namenszusatz'); $i=$j; }
+        $un=array_values(array_filter($un,fn($o)=>!ctype_digit($o)));
+        if($un){ $dw=array_values(array_filter(explode(' ',ord_norm($m['description'].' '.$m['tags'])),fn($x)=>$x!==''));
+            $bad=array_filter($un,function($o) use($dw){ $w=ord_norm($o); foreach($dw as $x) if(ord_word_eq($w,$x)) return false; return true; });
+            if($bad) $problems[]=$m['name'].': „'.implode(' ',$un).'“ im Namen passt zu keiner Option'.($grps ? ' (möglich: '.ord_options_text($grps).')' : '').' – Auswahl als options, Wünsche ohne Aufpreis als note der Position senden.';
+            else { $inote=trim($inote.($inote!=='' ? '; ' : '').implode(' ',$un)); $info[]=$m['name'].': „'.implode(' ',$un).'“ als Hinweis zur Position übernommen.'; } }
         $unit=max(0,$unit);
-        $items[]=['id'=>$m['id'],'name'=>$m['name'],'qty'=>$qty,'options'=>$chosen,'unit_cents'=>$unit,'total_cents'=>$unit*$qty,'note'=>mb_substr((string)($it['note']??''),0,120)]; $sub+=$unit*$qty; }
-    if(!$items) return ['error'=>'no_items','problems'=>$problems,'hint'=>'Keine gültigen Positionen. Karte mit get_menu prüfen.'];
+        usort($chosen,fn($a,$b)=>$a[0]<=>$b[0]);   // Anzeige in Kartenreihenfolge (Größe vor Extras), egal ob aus options oder Name
+        $items[]=['id'=>$m['id'],'name'=>$m['name'],'qty'=>$qty,'options'=>array_column($chosen,1),'unit_cents'=>$unit,'total_cents'=>$unit*$qty,'note'=>mb_substr($inote,0,120)]; $sub+=$unit*$qty; }
+    if($problems) return ['error'=>'items_unclear','problems'=>$problems,'hint'=>'Nichts angelegt – Positionen mit get_menu klären und erneut senden (Artikel mit id/Name laut Karte, Auswahl in options, Wünsche ohne Aufpreis als note).'];
+    if(!$items) return ['error'=>'no_items','problems'=>null,'hint'=>'Keine gültigen Positionen. Karte mit get_menu prüfen.'];
+    $problems=$info;   // ab hier nur noch Hinweise (z. B. als Notiz übernommene Wörter)
     $name=mb_substr(trim((string)($d['name']??'')),0,120); $phone=mb_substr(trim((string)($d['phone']??'')),0,40); if($phone==='' && $waFrom!=='') $phone='+'.ltrim($waFrom,'+');
     if($name==='') return ['error'=>'name_required','problems'=>$problems]; if($phone==='') return ['error'=>'phone_required','problems'=>$problems];
     $addr=['ok'=>true,'fee_cents'=>0,'min_cents'=>$s['min_order_cents'],'plz'=>'','zone'=>'','geo'=>null,'distance_km'=>null,'parsed'=>['city'=>'']];
@@ -424,12 +462,13 @@ function ord_set_status(int $acc, int $id, string $status, ?int $driverId=null, 
         $o=ord_by_code($o['code']); if($u->rowCount()>0 && $acc!==0 && $from==='out_for_delivery') ord_notify_driver($o,$s);   // Fahrerwechsel unterwegs → neuer Fahrer bekommt die Fahrt
         return ['ok'=>true,'unchanged'=>$u->rowCount()===0,'driver_changed'=>$u->rowCount()>0,'order'=>ord_public($o,$s)];
     }
-    $deny=fn(string $cur)=>['error'=>'invalid_transition','status'=>$cur,'requested'=>$status,'hint'=>'Status ist „'.(ORD_LABELS[$cur]??$cur).'“ – Wechsel zu „'.(ORD_LABELS[$status]??$status).'“ nicht möglich.','order'=>ord_public($o,$s)];
-    if(!ord_transition_ok($from,$status,(string)$o['type'],$by)) return $deny($from);
+    $deny=fn(array $o)=>['error'=>'invalid_transition','status'=>(string)$o['status'],'requested'=>$status,'hint'=>'Status ist „'.(ORD_LABELS[$o['status']]??$o['status']).'“ – Wechsel zu „'.(ORD_LABELS[$status]??$status).'“ nicht möglich.','order'=>ord_public($o,$s)];
+    if(!ord_transition_ok($from,$status,(string)$o['type'],$by)) return $deny($o);
     $u=$p->prepare("UPDATE orders SET status=?, driver_id=COALESCE(?,driver_id), updated_at=NOW() WHERE id=? AND account_id=? AND status=?"); $u->execute([$status,$driverId,$id,$acc,$from]);
-    if($u->rowCount()===0){ $o=ord_by_code($o['code']) ?: $o; return (string)$o['status']===$status ? ['ok'=>true,'unchanged'=>true,'order'=>ord_public($o,$s)] : $deny((string)$o['status']); }   // gleichzeitig geändert
+    if($u->rowCount()===0){ $o=ord_by_code($o['code']) ?: $o; return (string)$o['status']===$status ? ['ok'=>true,'unchanged'=>true,'order'=>ord_public($o,$s)] : $deny($o); }   // gleichzeitig geändert → aktueller Stand (neu gelesen) in der Antwort
     $o=ord_by_code($o['code']);
-    if($acc!==0){ if($status==='out_for_delivery' && $o['driver_id']) ord_notify_driver($o,$s); if(in_array($status,['confirmed','out_for_delivery','ready','delivered','cancelled'],true)) ord_notify_customer($o,$s,$status); }
+    if($acc!==0){ if($status==='out_for_delivery' && $o['driver_id']) ord_notify_driver($o,$s); if(in_array($status,['confirmed','out_for_delivery','ready','delivered','cancelled'],true)) ord_notify_customer($o,$s,$status);
+        if($status==='cancelled' && $by==='customer') ord_notify_restaurant_cancel($o,$s); }   // Kunde storniert (Statusseite/cancel_order) → Restaurant per E-Mail; Board zeigt zusätzlich einen Hinweis
     return ['ok'=>true,'order'=>ord_public($o,$s)];
 }
 function ord_find_by_phone(int $acc, string $phone): array {
@@ -446,6 +485,19 @@ function ord_notify_restaurant(array $o, array $s): void {
       .'<p><b>'.htmlspecialchars($p['name']).'</b> · <a href="tel:'.htmlspecialchars($p['phone']).'">'.htmlspecialchars($p['phone']).'</a><br>'.($p['type']==='delivery'?'🚗 Lieferung: '.htmlspecialchars($p['address']).($p['zone']?' ('.htmlspecialchars($p['zone']).($p['distance_km']!==null?', '.$p['distance_km'].' km':'').')':''):'🛍️ Abholung').' · ETA '.($p['eta_day']?htmlspecialchars($p['eta_day']).' ':'').$p['eta'].' Uhr · Zahlung: '.htmlspecialchars($p['payment']).'</p>'
       .'<table style="width:100%;border-collapse:collapse;font-size:14px">'.$rows.''.($p['discount_cents']?'<tr><td>Abholrabatt</td><td style="text-align:right">−'.number_format($p['discount_cents']/100,2,',','.').' €</td></tr>':'').'<tr><td style="border-top:1px solid #e6e8ef;padding-top:8px">Liefergebühr</td><td style="border-top:1px solid #e6e8ef;padding-top:8px;text-align:right">'.number_format($p['fee_cents']/100,2,',','.').' €</td></tr><tr><td><b>Gesamt</b></td><td style="text-align:right"><b>'.$p['total'].'</b></td></tr></table>'
       .($p['note']?'<p>📝 '.htmlspecialchars($p['note']).'</p>':'').'<p style="font-size:13px;color:#6b7083">Status &amp; Fahrer im Studio: https://chat-help.com/chat/studio.php (Bestellungen)</p></div>');
+}
+/** Kunde hat storniert (Statusseite order.php oder cancel_order) → E-Mail an notify_email bzw. Inhaber (die Bestellung verschwindet sonst nur vom Board). */
+function ord_notify_restaurant_cancel(array $o, array $s): void {
+    $p=ord_public($o,$s); $to=$s['notify_email'] ?: ord_owner_email((int)$o['account_id']); if(!$to) return;
+    th_mail($to,'❌ Bestellung '.$p['code'].' vom Kunden storniert',
+      '<div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;padding:26px;border:1px solid #e6e8ef;border-radius:18px"><h2 style="margin:0 0 6px">Bestellung '.$p['code'].' storniert</h2>'
+      .'<p>Der Kunde hat die Bestellung storniert – bitte nicht mehr zubereiten'.($p['type']==='delivery'?' bzw. ausliefern':'').'.</p>'
+      .'<p><b>'.htmlspecialchars($p['name']).'</b> · <a href="tel:'.htmlspecialchars($p['phone']).'">'.htmlspecialchars($p['phone']).'</a><br>'.htmlspecialchars($p['items_text']).'<br>'.($p['type']==='delivery'?'🚗 Lieferung':'🛍️ Abholung').' · ETA '.($p['eta_day']?htmlspecialchars($p['eta_day']).' ':'').$p['eta'].' Uhr · '.$p['total'].' · bestellt '.$p['created'].' Uhr</p></div>');
+}
+/** Kürzlich (2 h) stornierte Bestellungen – das Küchen-Board meldet so, wenn eine offene Bestellung storniert wurde, statt dass sie still verschwindet. */
+function ord_recent_cancelled(int $acc): array {
+    $st=th_db()->prepare("SELECT id,code FROM orders WHERE account_id=? AND status='cancelled' AND updated_at > (NOW() - INTERVAL 2 HOUR) ORDER BY updated_at DESC LIMIT 50"); $st->execute([$acc]);
+    return array_map(fn($r)=>['id'=>(int)$r['id'],'code'=>$r['code']],$st->fetchAll(PDO::FETCH_ASSOC));
 }
 function ord_notify_driver(array $o, array $s): void {
     $p=ord_public($o,$s); $drv=null; foreach(ord_drivers((int)$o['account_id']) as $d) if((int)$d['id']===(int)$o['driver_id']) $drv=$d; if(!$drv) return;
@@ -531,7 +583,7 @@ function ord_tools(): array {
     return [
       ['name'=>'get_menu','description'=>'Speisekarte mit Kategorien, Preisen, Optionen (Größen/Extras) und Hinweisen (vegetarisch, scharf …). Optional nach Kategorie oder Suchbegriff filtern.','input_schema'=>['type'=>'object','properties'=>['category'=>['type'=>'string'],'query'=>['type'=>'string']],'required'=>[]]],
       ['name'=>'check_delivery_address','description'=>'Lieferadresse prüfen: liegt sie im Liefergebiet, welche Liefergebühr und welcher Mindestbestellwert gelten, voraussichtliche Lieferzeit. Immer aufrufen, bevor eine Lieferbestellung angelegt wird.','input_schema'=>['type'=>'object','properties'=>['address'=>['type'=>'string','description'=>'Straße Hausnummer, PLZ Ort']],'required'=>['address']]],
-      ['name'=>'create_order','description'=>'Bestellung verbindlich anlegen – erst nach Zusammenfassung und ausdrücklicher Bestätigung des Kunden. Positionen mit Menge und ggf. Optionen (z. B. Größe).','input_schema'=>['type'=>'object','properties'=>['type'=>['type'=>'string','enum'=>['delivery','pickup']],'items'=>['type'=>'array','items'=>['type'=>'object','properties'=>['name'=>['type'=>'string'],'id'=>['type'=>'integer','description'=>'id aus get_menu (bevorzugt)'],'qty'=>['type'=>'integer'],'options'=>['type'=>'array','items'=>['type'=>'string'],'description'=>'Auswahl wie in get_menu, z. B. "Größe: Groß 32 cm" oder "Groß 32 cm"'],'note'=>['type'=>'string']],'required'=>['qty']]],'name'=>['type'=>'string'],'phone'=>['type'=>'string'],'address'=>['type'=>'string'],'payment'=>['type'=>'string','description'=>'bar | karte | paypal | online'],'note'=>['type'=>'string'],'requested_time'=>['type'=>'string','description'=>'Optional (Vorbestellung/Wunschzeit): HH:MM für heute oder YYYY-MM-DD HH:MM; muss in den Öffnungszeiten liegen, bei geschlossenem Laden in der nächsten Öffnung']],'required'=>['type','items','name']]],
+      ['name'=>'create_order','description'=>'Bestellung verbindlich anlegen – erst nach Zusammenfassung und ausdrücklicher Bestätigung des Kunden. Positionen mit Menge und ggf. Optionen (z. B. Größe).','input_schema'=>['type'=>'object','properties'=>['type'=>['type'=>'string','enum'=>['delivery','pickup']],'items'=>['type'=>'array','items'=>['type'=>'object','properties'=>['name'=>['type'=>'string','description'=>'Artikelname wie in get_menu (Größe/Extras in options, Wünsche ohne Aufpreis wie „ohne Zwiebeln“ in note)'],'id'=>['type'=>'integer','description'=>'id aus get_menu (bevorzugt)'],'qty'=>['type'=>'integer'],'options'=>['type'=>'array','items'=>['type'=>'string'],'description'=>'Auswahl wie in get_menu, z. B. "Größe: Groß 32 cm" oder "Groß 32 cm"'],'note'=>['type'=>'string']],'required'=>['qty']]],'name'=>['type'=>'string'],'phone'=>['type'=>'string'],'address'=>['type'=>'string'],'payment'=>['type'=>'string','description'=>'bar | karte | paypal | online'],'note'=>['type'=>'string'],'requested_time'=>['type'=>'string','description'=>'Optional (Vorbestellung/Wunschzeit): HH:MM für heute oder YYYY-MM-DD HH:MM; muss in den Öffnungszeiten der nächsten 7 Tage liegen (auch während geschlossen ist)']],'required'=>['type','items','name']]],
       ['name'=>'get_order_status','description'=>'Status einer Bestellung per Bestellcode. Ohne Code: Bestellungen der verifizierten Absender-/Anrufernummer (WhatsApp/Telefon) – fremde Nummern sind gesperrt.','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string'],'phone'=>['type'=>'string']],'required'=>[]]],
       ['name'=>'cancel_order','description'=>'Bestellung stornieren (nur solange Status new/confirmed und nach Bestätigung des Kunden).','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string']],'required'=>['code']]],
     ];
@@ -565,7 +617,7 @@ function ord_system_hint(int $acc): string {
     $wd=['So','Mo','Di','Mi','Do','Fr','Sa']; $h=[]; for($w=1;$w<=7;$w++){ $k=(string)($w%7); $r=$s['hours'][$k]??[]; $h[]=$wd[$w%7].' '.($r?implode(', ',array_map(fn($x)=>$x[0].'–'.$x[1],$r)):'Ruhetag'); }
     $zones=$s['zones']?implode('; ',array_map(fn($z)=>$z['name'].' (PLZ '.$z['plz'].'): Gebühr '.number_format($z['fee_cents']/100,2,',','.').' €, Mindestbestellwert '.number_format($z['min_cents']/100,2,',','.').' €',$s['zones'])):'Liefergebiet nach PLZ-Prüfung';
     $cats=array_count_values(array_column(ord_menu($acc),'category'));
-    return "\n\nBESTELLANNAHME (aktiv) für ".($s['name']?:'das Restaurant').($s['address']?', '.$s['address']:'').". Jetzt: ".$now->format('l H:i')." – ".($open['open']?'GEÖFFNET bis '.(new DateTimeImmutable($open['until_at'],$tz)<=$now->modify('+12 hours') ? $open['until'] : $open['until_label']):'GESCHLOSSEN'.($open['next_label']?', öffnet '.$open['next_label'].' (Vorbestellung für dieses Fenster mit requested_time möglich)':'')).". Öffnungszeiten: ".implode(' · ',$h).". Lieferung ".($s['delivery_on']?'ja':'nein').", Abholung ".($s['pickup_on']?'ja':'nein').". Liefergebiete: $zones. Zahlarten: ".$s['payment_methods'].". Lieferzeit ca. ".$s['eta_delivery_min']." Min, Abholung ca. ".$s['eta_pickup_min']." Min.".($s['pickup_discount_pct']>0?" Abholrabatt: ".$s['pickup_discount_pct']." % auf den Warenwert (wird bei create_order automatisch abgezogen).":" Es gibt KEINEN Abholrabatt – auch wenn die Wissensbasis etwas anderes sagt.")." Karte: ".implode(', ',array_map(fn($c,$n)=>"$c ($n)",array_keys($cats),$cats)).".
+    return "\n\nBESTELLANNAHME (aktiv) für ".($s['name']?:'das Restaurant').($s['address']?', '.$s['address']:'').". Jetzt: ".$now->format('l H:i')." – ".($open['open']?(!empty($open['always']) ? 'GEÖFFNET (durchgehend)' : 'GEÖFFNET bis '.(new DateTimeImmutable($open['until_at'],$tz)<=$now->modify('+12 hours') ? $open['until'] : $open['until_label'])):'GESCHLOSSEN'.($open['next_label']?', öffnet '.$open['next_label'].' (Vorbestellung mit requested_time innerhalb der Öffnungszeiten möglich)':'')).". Öffnungszeiten: ".implode(' · ',$h).". Lieferung ".($s['delivery_on']?'ja':'nein').", Abholung ".($s['pickup_on']?'ja':'nein').". Liefergebiete: $zones. Zahlarten: ".$s['payment_methods'].". Lieferzeit ca. ".$s['eta_delivery_min']." Min, Abholung ca. ".$s['eta_pickup_min']." Min.".($s['pickup_discount_pct']>0?" Abholrabatt: ".$s['pickup_discount_pct']." % auf den Warenwert (wird bei create_order automatisch abgezogen).":" Es gibt KEINEN Abholrabatt – auch wenn die Wissensbasis etwas anderes sagt.")." Karte: ".implode(', ',array_map(fn($c,$n)=>"$c ($n)",array_keys($cats),$cats)).".
 REGELN: Karte/Preise NUR über get_menu (nicht raten). Gesamtsummen nie selbst anders ankündigen als die Werkzeuge: nach create_order gilt ausschließlich das Feld total (inkl. Liefergebühr bzw. Abholrabatt). In der Zusammenfassung vor der Bestellung: Positionen mit Einzelpreisen + Liefergebühr bzw. Abholrabatt laut Einstellungen. Bestellung aufnehmen: Positionen mit Menge und Größe/Optionen, Lieferung oder Abholung, bei Lieferung Adresse mit Straße, Hausnummer, PLZ, Ort → check_delivery_address (nur im Liefergebiet weiter; sonst Abholung anbieten), Name, Telefonnummer, Zahlart. Dann Zusammenfassung mit Gesamtsumme (inkl. Liefergebühr) und „Soll ich die Bestellung so aufgeben?“ – erst nach Ja create_order. Danach Bestellcode, Gesamtsumme und voraussichtliche Zeit nennen; im Chat/WhatsApp zusätzlich den Status-Link (Feld track) mitschicken, am Telefon den Link NICHT vorlesen (Bestätigung kommt per SMS). Upselling höchstens einmal, dezent (Getränk/Dessert). Allergien/Unverträglichkeiten: Hinweise aus der Karte nennen, bei Unsicherheit ans Team verweisen. Kurz, freundlich, in der Sprache des Kunden.";
 }
 

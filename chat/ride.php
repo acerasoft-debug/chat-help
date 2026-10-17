@@ -8,7 +8,7 @@
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/ride-lib.php';
 th_nocache(); th_bootstrap(); th_fresh();
-$code=strtoupper((string)preg_replace('/[^A-Za-z0-9]/','',(string)($_GET['c'] ?? '')));
+$code=strtoupper((string)preg_replace('/[^A-Za-z0-9]/','',ride_str($_GET['c'] ?? '')));   // ride_str: ?c[]=… ergibt '' statt PHP-Warnung
 $r=($code!=='' && strlen($code)<=8) ? ride_by_code($code) : null;   // Code = Zugang des Kunden; Konto ergibt sich aus der Fahrt
 if($r && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['do'] ?? '')==='cancel'){
     $res=ride_cancel_customer((int)$r['account_id'],(string)$r['code']);

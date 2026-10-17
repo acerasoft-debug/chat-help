@@ -1,0 +1,114 @@
+<div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h2 style="font-size:26px">Agent trainieren</h2><p class="mute" style="margin:4px 0 0">Bring deinem Agenten dein Geschäft bei – ohne Technik. Website oder Dokumente einlesen, verbindliche Antworten festlegen, das Verhalten bestimmen und mit echten Testfragen prüfen.</p></div><div class="row"><span class="tag ok hidden" id="trActive">Agent aktiv</span><a class="btn gold hidden" id="trRent" href="/chat/tokens-checkout.php?plan=agent-support" target="_blank" rel="noopener">Agent mieten</a></div></div>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between;align-items:flex-end;gap:14px">
+    <div style="flex:1;min-width:240px"><label for="trPlan" style="margin-top:0">Welchen Agenten trainierst du?</label><select id="trPlan"></select></div>
+    <div class="row" style="gap:8px"><button class="btn s" id="trOpenKb" type="button">Wissensbasis bearbeiten</button><button class="btn s" id="trReload" type="button" title="Neu laden" aria-label="Neu laden">↻</button></div>
+  </div>
+  <div id="trTop"></div>
+</div>
+
+<div class="grid g4" style="margin-top:16px">
+  <div class="card"><span class="tag teal">Wissensbasis</span><div class="num" style="margin-top:10px" id="trKbNum">–</div><div class="mute small" id="trKbSub">von 60.000 Zeichen</div>
+    <div style="height:8px;border-radius:999px;background:var(--sur2);border:1px solid var(--line);margin-top:10px;overflow:hidden"><div id="trKbBar" style="height:100%;width:0;background:linear-gradient(90deg,#ecd08a,#c9972f);transition:width .4s"></div></div></div>
+  <div class="card"><span class="tag gold">FAQ-Einträge</span><div class="num" style="margin-top:10px" id="trFaqNum">–</div><div class="mute small" id="trFaqSub">verbindliche Antworten</div></div>
+  <div class="card"><span class="tag indigo">Testergebnis</span><div class="num" style="margin-top:10px" id="trScoreNum">–</div><div class="mute small" id="trScoreSub">noch nicht geprüft</div></div>
+  <div class="card"><span class="tag">Letzte Quelle</span><div style="margin-top:12px;font:700 17px/1.3 var(--sans);word-break:break-word" id="trSrcNum">–</div><div class="mute small" id="trSrcSub" style="margin-top:4px">noch nichts importiert</div></div>
+</div>
+
+<div class="grid g2" style="margin-top:16px;align-items:start">
+  <div>
+    <div class="card" id="trSecUrl">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:19px">1 · Website importieren</h3><span class="tag gold">≈ 20–80 Tokens</span></div>
+      <p class="mute small" style="margin:6px 0 0">Wir lesen bis zu 12 Seiten deiner Website – Startseite, Impressum, Kontakt, Preise, Leistungen, FAQ, Öffnungszeiten – und die KI macht daraus eine geordnete Wissensbasis. Du prüfst die Vorschau, bevor der Agent etwas lernt.</p>
+      <label for="trUrl">Adresse deiner Website</label>
+      <div class="row"><input type="text" id="trUrl" inputmode="url" autocomplete="url" spellcheck="false" placeholder="www.meine-firma.de" style="flex:1;min-width:200px"><button class="btn p" id="trUrlGo" type="button">Lesen · ≈ 20–80 Tokens</button></div>
+      <div id="trUrlMsg"></div>
+      <details class="guide"><summary>Was wird gelesen – und was nicht?</summary><ol>
+        <li>Startseite, dann die wichtigsten Unterseiten laut <code>sitemap.xml</code> bzw. Menü – Impressum, Kontakt, Preise und FAQ zuerst.</li>
+        <li>Nur Text: Menüs, Cookie-Hinweise, Formulare und Skripte werden entfernt, Fußzeile (Adresse, Öffnungszeiten) einmal übernommen.</li>
+        <li>Nur öffentliche Seiten deiner eigenen Domain; keine Logins, keine PDFs (die lädst du unter „Dokumente“ hoch).</li>
+        <li>Die KI übernimmt ausschließlich Fakten aus dem Text – Preise, Zeiten und Adressen exakt, nichts dazuerfunden.</li></ol>
+        <div class="tip">Kosten: 20 Tokens + 1 Token je 2.000 gelesene Zeichen (höchstens 120) – berechnet erst, wenn die Vorschau fertig ist.</div></details>
+    </div>
+
+    <div class="card" id="trSecFile" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:19px">2 · Dokumente hochladen</h3><span class="tag gold">≈ 20–140 Tokens</span></div>
+      <p class="mute small" style="margin:6px 0 0">Preislisten, Speisekarten, FAQ, Exposés, Leistungsverzeichnisse, Hausordnungen – die KI liest den Text und bereitet ihn für deinen Agenten auf.</p>
+      <div id="trDrop" role="button" tabindex="0" aria-label="Datei auswählen" style="margin-top:14px;border:1.5px dashed var(--line2);border-radius:16px;padding:22px 16px;text-align:center;background:var(--sur2);cursor:pointer;transition:.15s">
+        <div style="font-size:22px;line-height:1">⤒</div><b style="display:block;margin-top:6px">Datei hierher ziehen oder klicken</b><div class="mute small">PDF, Word (.docx), TXT, Markdown (.md), CSV · max. 10 MB</div><div id="trFileName" class="small" style="margin-top:8px;color:var(--ink)"></div>
+      </div>
+      <input type="file" id="trFile" class="hidden" accept=".pdf,.docx,.txt,.md,.markdown,.csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/csv">
+      <div class="row" style="justify-content:space-between;margin-top:12px"><span class="mute small" id="trFileCost">PDF-Dateien liest die KI (+20 Tokens).</span><button class="btn p" id="trFileGo" type="button" disabled>Hochladen &amp; aufbereiten</button></div>
+      <div id="trFileMsg"></div>
+    </div>
+
+    <div class="card hidden" id="trPrev" style="margin-top:16px;border-color:#eadbb0">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:19px">Vorschau prüfen</h3><span class="tag" id="trPrevTag">KI-aufbereitet</span></div>
+      <div class="mute small" id="trPrevMeta" style="margin-top:6px"></div>
+      <details class="guide hidden" id="trPrevPages"><summary id="trPrevPagesSum">Gelesene Seiten</summary><ol id="trPrevList"></ol></details>
+      <label for="trPrevText">Bei Bedarf bearbeiten – erst mit „Anhängen“ oder „Ersetzen“ lernt der Agent den Text.</label>
+      <textarea id="trPrevText" style="min-height:340px" spellcheck="true"></textarea>
+      <div class="mute small" id="trPrevCount" style="margin-top:6px"></div>
+      <div class="row" style="justify-content:space-between;margin-top:12px"><button class="btn ghost s" id="trPrevDrop" type="button">Verwerfen</button><div class="row"><button class="btn" id="trPrevReplace" type="button" title="Bisherige Wissensbasis durch diesen Text ersetzen">Ersetzen</button><button class="btn p" id="trPrevAppend" type="button" title="An die bisherige Wissensbasis anhängen">Anhängen</button></div></div>
+      <div id="trPrevMsg"></div>
+    </div>
+
+    <div class="card" id="trSecRules" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:19px">4 · Verhaltensregeln</h3><span class="tag">kostenlos</span></div>
+      <p class="mute small" style="margin:6px 0 0">So soll sich dein Agent verhalten: Ton, Do’s &amp; Don’ts, wann er an einen Menschen übergibt, welche Themen tabu sind. Fakten (Preise, Zeiten) gehören in die Wissensbasis oder FAQ.</p>
+      <label for="trRules">Regeln – eine pro Zeile</label>
+      <textarea id="trRules" style="min-height:200px" maxlength="8000"></textarea>
+      <div class="row" style="justify-content:space-between;margin-top:10px"><span class="mute small" id="trRulesCount">0 / 8.000 Zeichen</span><div class="row"><button class="btn s" id="trRulesEx" type="button">Beispiel einfügen</button><button class="btn p" id="trRulesSave" type="button">Speichern</button></div></div>
+      <div id="trRulesMsg"></div>
+    </div>
+
+    <div class="card" id="trSecKb" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:19px">7 · Wissensbasis bearbeiten</h3><span class="tag teal" id="trKbTag">–</span></div>
+      <p class="mute small" style="margin:6px 0 0">Alles, was du importierst, landet in der Wissensbasis deines Agenten – der einzigen Faktenquelle für Chat, Telefon und WhatsApp. Dort kannst du jederzeit Text ergänzen, korrigieren oder löschen und den Agenten direkt testen.</p>
+      <div id="trKbWarn"></div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="trOpenKb2" type="button">Wissensbasis öffnen &amp; testen →</button></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card hidden" id="trSecCorr" style="margin-bottom:16px;border-color:#f7c6d5">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:19px">Antwort korrigieren</h3><button class="btn ghost s" id="trCorrClose" type="button">Schließen</button></div>
+      <p class="mute small" style="margin:6px 0 0">Aus einem echten Gespräch mit <b id="trCorrPlan">–</b>: Was hätte der Agent sagen sollen? Die Korrektur wird zur verbindlichen Antwort und hat ab sofort Vorrang.</p>
+      <label for="trCorrQ">Frage des Kunden</label><input type="text" id="trCorrQ" maxlength="500">
+      <label for="trCorrWrong">Bisherige Antwort des Agenten</label><textarea id="trCorrWrong" style="min-height:90px" maxlength="1000"></textarea>
+      <label for="trCorrRight">Richtige Antwort</label><textarea id="trCorrRight" style="min-height:110px" maxlength="2000" placeholder="So soll der Agent künftig antworten – mit allen wichtigen Fakten."></textarea>
+      <div class="sw"><input type="checkbox" id="trCorrTest" checked><div><b>Auch als Testfrage übernehmen</b><div class="mute small">So prüfst du unter „Prüfung“ jederzeit, ob der Agent es jetzt richtig macht.</div></div></div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn p" id="trCorrSave" type="button">Korrektur speichern</button></div>
+      <div id="trCorrMsg"></div>
+    </div>
+
+    <div class="card" id="trSecFaq">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:19px">3 · FAQ – verbindliche Antworten</h3><span class="tag">kostenlos</span></div>
+      <p class="mute small" style="margin:6px 0 0">Frage → exakte Antwort. Diese Antworten haben Vorrang vor allem anderen – ideal für Preise, Sonderfälle und alles, was der Agent nie falsch sagen darf.</p>
+      <div id="trFaqInfo" class="small mute" style="margin-top:8px"></div>
+      <div id="trFaqList"></div>
+      <div class="row" style="justify-content:space-between;margin-top:12px"><button class="btn s" id="trFaqAdd" type="button">+ Eintrag</button><div class="row"><span class="small" id="trFaqDirty" style="color:var(--gold)"></span><button class="btn p" id="trFaqSave" type="button">Speichern</button></div></div>
+      <div id="trFaqMsg"></div>
+    </div>
+
+    <div class="card" id="trSecTest" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:19px">5 · Prüfung</h3><span class="tag gold">≈ 8 Tokens je Frage</span></div>
+      <p class="mute small" style="margin:6px 0 0">Lege Fragen an, die Kunden wirklich stellen, und welche Fakten die Antwort enthalten muss. „Test starten“ fragt deinen echten Agenten – eine zweite KI bewertet jede Antwort mit Begründung.</p>
+      <div id="trTestScore" style="margin-top:10px"></div>
+      <div id="trTestList"></div>
+      <div class="row" style="justify-content:space-between;margin-top:12px"><button class="btn s" id="trTestAdd" type="button">+ Testfrage</button><div class="row"><span class="small" id="trTestDirty" style="color:var(--gold)"></span><button class="btn s" id="trTestSave" type="button">Speichern</button><button class="btn p" id="trTestRun" type="button">Test starten</button></div></div>
+      <div id="trTestMsg"></div>
+      <p class="mute small" style="margin:10px 0 0">Geprüft wird das Wissen (Wissensbasis, FAQ, Regeln) ohne Live-Werkzeuge – Tests buchen also nie echte Termine oder Bestellungen.</p>
+    </div>
+
+    <div class="card" id="trSecGap" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:19px">6 · Lücken finden</h3><span class="tag gold">≈ 10 Tokens</span></div>
+      <p class="mute small" style="margin:6px 0 0">Wir durchsuchen die Gespräche der letzten 30 Tage (Telefon-Transkripte, WhatsApp) nach Fragen, die dein Agent nicht beantworten konnte – und schlagen passende FAQ-Einträge vor.</p>
+      <div class="sw"><input type="checkbox" id="trGapTool"><div><b>Offene Fragen automatisch melden</b><div class="mute small">Weiß ein Agent etwas nicht, notiert er die Frage (ohne persönliche Daten) für diese Liste – ca. 2 Tokens je Meldung. Gilt für alle Agenten dieses Kontos.</div></div></div>
+      <div class="row" style="justify-content:space-between;margin-top:12px"><span class="mute small">KI-Gruppierung ab 3 Fragen – sonst kostenlos als Liste.</span><button class="btn p" id="trGapGo" type="button">Lücken finden · ≈ 10 Tokens</button></div>
+      <div id="trGapMsg"></div>
+      <div id="trGapList"></div>
+    </div>
+  </div>
+</div>

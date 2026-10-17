@@ -22,6 +22,10 @@ const RIDE_LABELS   = ['new'=>'Eingegangen','assigned'=>'Fahrer zugeteilt','en_r
 const RIDE_DRIVER_STATUSES = ['frei','besetzt','pause'];
 const RIDE_PAYMENTS = ['bar'=>'Bar','karte'=>'EC-/Kreditkarte','app'=>'App / Apple Pay / Google Pay','rechnung'=>'Rechnung (Firmenkunden)'];
 const RIDE_MIN_LEAD = 15;   // Vorbestellung: mindestens 15 Minuten im Voraus
+const RIDE_BUSY_LEAD = 45;  // zugeteilte Vorbestellung macht den Fahrer 45 Minuten vor der Abholung „besetzt“
+const RIDE_OPEN_HOURS = 12; // offene Fahrten mit Abholzeit älter als 12 h zählen nicht mehr (Board, Fahrer-App, Fahrerstatus)
+/* „Fahrer ist besetzt“: Fahrt läuft oder zugeteilte Fahrt ist sofort bzw. in Kürze fällig (Platzhalter: ältester Abholzeitpunkt, spätester Abholzeitpunkt) */
+const RIDE_BUSY_SQL = "r.pickup_at>=? AND (r.status IN ('en_route','arrived','onboard') OR (r.status='assigned' AND (r.asap=1 OR r.pickup_at<=?)))";
 const RIDE_TARIFF_DEFAULT = ['base_cents'=>490,'km1_cents'=>240,'km1_upto'=>7,'km2_cents'=>210,'wait_min_cents'=>63,'min_fare_cents'=>0,'night_pct'=>0,'night_from'=>'22:00','night_to'=>'06:00','booking_fee_cents'=>0];
 const RIDE_VEHICLES_DEFAULT = [['key'=>'standard','name'=>'Taxi (bis 4 Personen)','seats'=>4,'factor'=>1],['key'=>'kombi','name'=>'Kombi (viel Gepäck)','seats'=>4,'factor'=>1],
     ['key'=>'grossraum','name'=>'Großraumtaxi (bis 8 Personen)','seats'=>8,'factor'=>1.25],['key'=>'rollstuhl','name'=>'Rollstuhl-Taxi','seats'=>4,'factor'=>1.2]];
@@ -78,6 +82,8 @@ function ride_dt(?string $v, DateTimeZone $tz): ?DateTimeImmutable { if($v===nul
 function ride_eur(?int $c): string { return number_format(((int)$c)/100,2,',','.').' €'; }
 function ride_km(float $km): string { return number_format($km,1,',','.').' km'; }
 function ride_str($v, string $def=''): string { return is_scalar($v) ? (string)$v : $def; }
+/** Schalter aus Werkzeug-/API-Eingaben: true, 1, "true", "ja" … (der String "false" zählt nicht als true). */
+function ride_bool($v): bool { return is_bool($v) ? $v : (is_scalar($v) && in_array(mb_strtolower(trim((string)$v)),['1','true','yes','ja','on','y'],true)); }
 function ride_lc(string $t): string { return mb_strtolower(trim((string)preg_replace('/\s+/u',' ',$t))); }
 function ride_hm(string $v): ?string { return preg_match('/^([01]?\d|2[0-3])[:.]([0-5]\d)$/',trim($v),$m) ? sprintf('%02d:%02d',(int)$m[1],(int)$m[2]) : null; }
 function ride_wd(DateTimeImmutable $d, bool $long=false): string { $w=(int)$d->format('w'); return $long ? ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][$w] : ['So','Mo','Di','Mi','Do','Fr','Sa'][$w]; }
@@ -99,7 +105,7 @@ function ride_slug(string $name): string {
 }
 /** Telefonnummer → E.164 (+49…); Ländervorwahl aus der Zeitzone des Betriebs, Standard DE. */
 function ride_e164(string $phone, array $s): string {
-    $p=trim($phone); $d=preg_replace('/\D/','',$p); if($d==='') return '';
+    $p=trim(str_replace('(0)','',$phone)); $d=preg_replace('/\D/','',$p); if($d==='') return '';
     if(str_starts_with($p,'+')) return '+'.$d; if(str_starts_with($d,'00')) return '+'.substr($d,2);
     $cc=['Europe/Vienna'=>'43','Europe/Zurich'=>'41','Europe/Istanbul'=>'90','Europe/Paris'=>'33','Europe/London'=>'44'][(string)($s['tz'] ?? '')] ?? '49';
     return str_starts_with($d,'0') ? '+'.$cc.substr($d,1) : '+'.$d;
@@ -252,7 +258,12 @@ function ride_drivers_save(int $acc, array $list): void {
         $phone=mb_substr(trim((string)preg_replace('/[^0-9+ ]/','',ride_str($d['phone'] ?? ''))),0,40);
         $veh=mb_substr(trim(strip_tags(ride_str($d['vehicle'] ?? ''))),0,60); $plate=mb_substr(mb_strtoupper(trim((string)preg_replace('/\s+/u',' ',strip_tags(ride_str($d['plate'] ?? ''))))),0,20);
         $seats=max(1,min(20,(int)($d['seats'] ?? 4))); $vk=ride_str($d['vehicle_key'] ?? '');
-        if(!in_array($vk,$vkeys,true)) $vk=($seats>4 && in_array('grossraum',$vkeys,true)) ? 'grossraum' : (in_array('standard',$vkeys,true) ? 'standard' : ($vkeys[0] ?? 'standard'));
+        if(!in_array($vk,$vkeys,true)){
+            /* Fahrzeugtyp, der im selben Speichervorgang neu angelegt wurde, hat im Studio noch keinen Schlüssel → über den Namen zuordnen */
+            $vn=ride_lc(mb_substr(trim(ride_str($d['vehicle_name'] ?? '')),0,60)); $hit=null;
+            if($vn!=='') foreach($s['vehicles'] as $v) if(ride_lc($v['name'])===$vn){ $hit=$v['key']; break; }
+            $vk=$hit ?? (($seats>4 && in_array('grossraum',$vkeys,true)) ? 'grossraum' : (in_array('standard',$vkeys,true) ? 'standard' : ($vkeys[0] ?? 'standard')));
+        }
         $stand=ride_str($d['stand'] ?? ''); if(!in_array($stand,$stands,true)) $stand='';
         $id=(int)($d['id'] ?? 0);
         if($id>0){ $chk=$p->prepare("SELECT COUNT(*) FROM taxi_drivers WHERE id=? AND account_id=?"); $chk->execute([$id,$acc]); if((int)$chk->fetchColumn()===0) $id=0; }
@@ -265,16 +276,34 @@ function ride_drivers_save(int $acc, array $list): void {
 function ride_driver_set_status(int $acc, int $id, string $status): array {
     if(!in_array($status,RIDE_DRIVER_STATUSES,true)) return ['error'=>'bad_status','hint'=>'Erlaubt: frei, besetzt, pause'];
     $d=ride_driver($acc,$id); if(!$d || !$d['active']) return ['error'=>'not_found','hint'=>'Fahrer nicht gefunden'];
-    if($acc!==0) th_db()->prepare("UPDATE taxi_drivers SET status=?, updated_at=NOW() WHERE id=? AND account_id=?")->execute([$status,$id,$acc]);
-    $d['status']=$status; return ['ok'=>true,'driver'=>ride_driver_public($d)];
+    if($acc===0){ $d['status']=$status; return ['ok'=>true,'driver'=>ride_driver_public($d)]; }
+    th_db()->prepare("UPDATE taxi_drivers SET status=?, updated_at=NOW() WHERE id=? AND account_id=?")->execute([$status,$id,$acc]);
+    $kept=false;
+    if($status==='frei'){ ride_drivers_sync($acc); $d=ride_driver($acc,$id) ?? $d; $kept=$d['status']!=='frei'; }   // laufende/gleich fällige Fahrt → bleibt besetzt
+    else $d['status']=$status;
+    return ['ok'=>true,'driver'=>ride_driver_public($d)]+($kept ? ['kept_busy'=>true,'hint'=>'Der Fahrer hat eine laufende bzw. in Kürze fällige Fahrt – Status bleibt „besetzt“.'] : []);
 }
-/** Fahrerstatus aus seinen Fahrten ableiten: laufende/gleich fällige Fahrt → besetzt; sonst besetzt → frei (Pause bleibt Pause). */
+/** Zeitfenster für „besetzt“: [ältester Abholzeitpunkt, der noch zählt (−12 h), spätester Abholzeitpunkt einer zugeteilten Vorbestellung (+45 Min)] in Ortszeit. */
+function ride_busy_window(array $s): array { $now=ride_now($s); return [$now->modify('-'.RIDE_OPEN_HOURS.' hours')->format('Y-m-d H:i:s'),$now->modify('+'.RIDE_BUSY_LEAD.' minutes')->format('Y-m-d H:i:s')]; }
+/**
+ * Fahrerstatus aus seinen Fahrten ableiten (nach jedem Statuswechsel seiner Fahrten): laufende bzw. gleich fällige Fahrt → besetzt;
+ * sonst besetzt → frei (Pause bleibt Pause). Fahrten mit Abholzeit älter als 12 h (vergessen abzuschließen) blockieren nicht.
+ */
 function ride_driver_refresh(int $acc, int $driverId, array $s): void {
-    if($acc===0 || $driverId<=0) return;
-    $soon=ride_now($s)->modify('+45 minutes')->format('Y-m-d H:i:s');
-    $q=th_db()->prepare("SELECT COUNT(*) FROM rides WHERE account_id=? AND driver_id=? AND (status IN ('en_route','arrived','onboard') OR (status='assigned' AND (asap=1 OR pickup_at<=?)))"); $q->execute([$acc,$driverId,$soon]);
+    if($acc===0 || $driverId<=0) return; [$old,$soon]=ride_busy_window($s);
+    $q=th_db()->prepare("SELECT COUNT(*) FROM rides r WHERE r.account_id=? AND r.driver_id=? AND ".RIDE_BUSY_SQL); $q->execute([$acc,$driverId,$old,$soon]);
     if((int)$q->fetchColumn()>0) th_db()->prepare("UPDATE taxi_drivers SET status='besetzt', updated_at=NOW() WHERE id=? AND account_id=?")->execute([$driverId,$acc]);
     else th_db()->prepare("UPDATE taxi_drivers SET status='frei', updated_at=NOW() WHERE id=? AND account_id=? AND status='besetzt'")->execute([$driverId,$acc]);
+}
+/**
+ * Zeitabhängiger Abgleich beim Lesen (Board, Live-Liste, Wartezeit, Fahrer-App): Wer eine laufende oder in den nächsten 45 Minuten fällige
+ * zugeteilte Fahrt hat, wird „besetzt“ – auch wenn sich an der Fahrt nichts geändert hat (z. B. Vorbestellung von gestern rückt heran).
+ * Nur frei → besetzt; ein von Hand gesetztes „besetzt“ (z. B. Winkerfahrt) und „Pause“ bleiben unberührt.
+ */
+function ride_drivers_sync(int $acc, ?array $s=null): void {
+    if($acc<=0) return; ride_bootstrap(); $s=$s ?: ride_settings($acc); [$old,$soon]=ride_busy_window($s);
+    th_db()->prepare("UPDATE taxi_drivers d SET d.status='besetzt', d.updated_at=NOW() WHERE d.account_id=? AND d.active=1 AND d.status='frei'
+        AND EXISTS(SELECT 1 FROM rides r WHERE r.account_id=d.account_id AND r.driver_id=d.id AND ".RIDE_BUSY_SQL.")")->execute([$acc,$old,$soon]);
 }
 function ride_vehicle_fits(array $d, string $vkey, int $pax): bool { if((int)$d['seats']<$pax) return false; return $vkey==='' || $vkey==='standard' || $d['vehicle_key']===$vkey; }
 /** Standort eines Fahrers: Koordinaten seines Taxistands, sonst der Zentrale. */
@@ -381,7 +410,11 @@ function ride_parse_time(array $s, string $raw): array {
     if($at===null){
         $rest=$t;
         if(preg_match('/(\d{4})-(\d{2})-(\d{2})(?:[ t])?/',$rest,$m)){ if(!checkdate((int)$m[2],(int)$m[3],(int)$m[1])) return ['error'=>'time_format','hint'=>'Ungültiges Datum. '.$fmt]; $day=new DateTimeImmutable($m[1].'-'.$m[2].'-'.$m[3].' 00:00',$tz); $rest=str_replace($m[0],' ',$rest); $explicit=true; }
-        elseif(preg_match('/\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})?/',$rest,$m)){ $y=isset($m[3]) && $m[3]!=='' ? (int)$m[3] : (int)$now->format('Y'); if($y<100) $y+=2000;
+        elseif(preg_match('/\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})?/',$rest,$m)
+            /* „17.10 05:30“: Datum ohne Schlusspunkt – nur, wenn außer diesem Tag.Monat noch eine Uhrzeit im Text steht (sonst ist „17.10“ 17:10 Uhr) */
+            || (preg_match('/(?<![\d.:])(\d{1,2})\.(\d{1,2})(?![\d.:])/u',$rest,$m) && (int)$m[1]>=1 && (int)$m[1]<=31 && (int)$m[2]>=1 && (int)$m[2]<=12
+                && preg_match('/\b([01]?\d|2[0-3])\s*(?:[:.h]\s*[0-5]\d\b|uhr\b)/u',str_replace($m[0],' ',$rest)))){
+            $y=isset($m[3]) && $m[3]!=='' ? (int)$m[3] : (int)$now->format('Y'); if($y<100) $y+=2000;
             if(!checkdate((int)$m[2],(int)$m[1],$y)) return ['error'=>'time_format','hint'=>'Ungültiges Datum. '.$fmt];
             $day=new DateTimeImmutable(sprintf('%04d-%02d-%02d 00:00',$y,(int)$m[2],(int)$m[1]),$tz); if(($m[3] ?? '')==='' && $day<$now->setTime(0,0)) $day=$day->modify('+1 year'); $rest=str_replace($m[0],' ',$rest); $explicit=true; }
         elseif(preg_match('/\b(übermorgen|uebermorgen)\b/u',$rest)) $day=$now->setTime(0,0)->modify('+2 days');
@@ -420,12 +453,12 @@ function ride_pick_vehicle(array $s, string $req, int $pax, string $extras): arr
         $w=$byKey('rollstuhl'); if(!$w) foreach($vs as $v) if(str_contains(ride_lc($v['name']),'rollstuhl')) $w=$v;
         if(!$w) return ['error'=>'no_wheelchair_vehicle','hint'=>'Kein Rollstuhl-Taxi in der Flotte. Bitte an die Zentrale verweisen'.($s['phone']?' ('.$s['phone'].')':'').'.'];
         if(!$chosen || $chosen['key']!==$w['key']) $notes[]='Rollstuhl → automatisch '.$w['name'].'.'; $chosen=$w;
-        if($pax>$w['seats']) return ['error'=>'too_many_passengers','hint'=>$w['name'].' hat '.$w['seats'].' Plätze. Für mehr Personen bitte zusätzlich ein zweites Taxi buchen.'];
+        if($pax>$w['seats']) return ['error'=>'too_many_passengers','hint'=>$w['name'].' hat '.$w['seats'].' Plätze. Für mehr Personen bitte zusätzlich ein zweites Taxi buchen (je Taxi ein book_ride, ab dem zweiten mit additional_taxi=true).'];
     }
     if(!$chosen) $chosen=$byKey('standard') ?: $vs[0];
     if($pax>$chosen['seats']){
         $big=$byKey('grossraum'); if(!$big || $big['seats']<$pax){ $big=null; foreach($vs as $v) if($v['seats']>=$pax && $v['key']!=='rollstuhl' && (!$big || $v['seats']<$big['seats'])) $big=$v; }
-        if(!$big){ $maxSeats=max(array_column($vs,'seats')); return ['error'=>'too_many_passengers','hint'=>'Höchstens '.$maxSeats.' Personen je Fahrzeug. Bitte die Gruppe auf mehrere Taxis aufteilen (je eine Buchung, z. B. '.$maxSeats.' + '.($pax-$maxSeats).' Personen).']; }
+        if(!$big){ $maxSeats=max(array_column($vs,'seats')); return ['error'=>'too_many_passengers','hint'=>'Höchstens '.$maxSeats.' Personen je Fahrzeug. Bitte die Gruppe auf mehrere Taxis aufteilen (je Taxi ein book_ride, z. B. '.$maxSeats.' + '.($pax-$maxSeats).' Personen; ab dem zweiten Taxi mit additional_taxi=true).']; }
         $notes[]='Für '.$pax.' Personen automatisch '.$big['name'].'.'; $chosen=$big;
     }
     return ['key'=>$chosen['key'],'name'=>$chosen['name'],'seats'=>$chosen['seats'],'factor'=>(float)$chosen['factor'],'notes'=>$notes];
@@ -468,6 +501,7 @@ function ride_price(array $s, ?float $km, array $veh, DateTimeImmutable $at, str
 /** Wartezeit „sofort“: eta_min + 2 Min je km vom nächsten Taxistand mit freiem (passendem) Fahrer, sonst nächster Stand, sonst eta_min. */
 function ride_eta(int $acc, array $s, ?float $lat, ?float $lon, string $vkey='standard', int $pax=1): array {
     $base=max(1,(int)$s['eta_min']); $res=['min'=>$base,'stand'=>null,'distance_km'=>null,'free'=>0,'note'=>null];
+    ride_drivers_sync($acc,$s);   // Fahrer mit gleich fälliger Vorbestellung zählen nicht als frei
     $free=array_values(array_filter(ride_drivers($acc,true),fn($d)=>$d['status']==='frei')); $res['free']=count($free);
     if($lat!==null && $lon!==null){
         $fit=array_values(array_filter($free,fn($d)=>ride_vehicle_fits($d,$vkey,$pax))); $best=null; $usedFit=true;
@@ -494,7 +528,7 @@ function ride_input(array $d): array {
         'time'=>$pick(['time','pickup_time','when','zeit','at','datetime']),'passengers'=>max(1,min(16,(int)($pick(['passengers','pax','persons','personen','guests']) ?: 1))),
         'luggage'=>mb_substr($pick(['luggage','gepaeck','gepäck','bags']),0,60),'vehicle'=>$pick(['vehicle','vehicle_type','fahrzeug','car']),'extras'=>mb_substr(trim((string)$ex),0,200),
         'payment'=>$pick(['payment','zahlung','pay']),'note'=>mb_substr($pick(['note','notes','notiz','bemerkung','comment']),0,400),
-        'confirm_address'=>!empty($d['confirm_address']),'force'=>!empty($d['force']),'manual'=>!empty($d['_manual'])];
+        'confirm_address'=>ride_bool($d['confirm_address'] ?? false),'additional'=>ride_bool($d['additional_taxi'] ?? false),'force'=>!empty($d['force']),'manual'=>!empty($d['_manual'])];
 }
 /** Gemeinsame Kalkulation für estimate_ride und book_ride. */
 function ride_quote(int $acc, array $s, array $d, bool $booking=false): array {
@@ -545,9 +579,10 @@ function ride_log_add(?string $json, string $key, ?string $val=null, ?int $ts=nu
  */
 function ride_book(int $acc, array $d, string $channel, string $from=''): array {
     try{
-        $s=ride_settings($acc);
-        if(!ride_enabled($acc)) return ['error'=>'rides_disabled','hint'=>'Die Taxi-Annahme ist gerade nicht aktiv – bitte direkt bei der Zentrale anrufen'.($s['phone']?' ('.$s['phone'].')':'').'.'];
-        $in=ride_input($d); $channel=mb_substr(preg_replace('/[^a-z0-9_-]/','',strtolower($channel)) ?: 'chat',0,16);
+        $s=ride_settings($acc); $in=ride_input($d);
+        /* „Taxi-Annahme aktiv“ schaltet die Agenten-Kanäle; eine Fahrt, die die Zentrale selbst im Studio einträgt, geht immer */
+        if(!$in['manual'] && !ride_enabled($acc)) return ['error'=>'rides_disabled','hint'=>'Die Taxi-Annahme ist gerade nicht aktiv – bitte direkt bei der Zentrale anrufen'.($s['phone']?' ('.$s['phone'].')':'').'.'];
+        $channel=mb_substr(preg_replace('/[^a-z0-9_-]/','',strtolower($channel)) ?: 'chat',0,16);
         $relaxed=$in['manual'] || $channel==='hotel' || ($acc===0 && $channel==='demo');   // Studio, Hotel-Rezeption, Live-Demo: Telefonnummer freiwillig
         if($channel==='hotel') $in['confirm_address']=true;
         $name=mb_substr(trim(strip_tags($in['name'])),0,120);
@@ -559,10 +594,14 @@ function ride_book(int $acc, array $d, string $channel, string $from=''): array 
         $q=ride_quote($acc,$s,$in,true); if(isset($q['error'])) return $q;
         [$pay,$payNote]=ride_payment($s,$in['payment']); if($payNote) $q['notes'][]=$payNote;
         $p=th_db(); $pu=$q['pickup']; $de=$q['destination']; $route=$q['route'];
-        if($phone!==''){
-            $dup=$p->prepare("SELECT * FROM rides WHERE account_id=? AND phone=? AND pickup_text=? AND asap=? AND status IN ('new','assigned') AND created_at > (NOW() - INTERVAL 5 MINUTE) ORDER BY id DESC LIMIT 1");
-            $dup->execute([$acc,$phone,$pu['text'],$q['asap']?1:0]);
-            if($r=$dup->fetch(PDO::FETCH_ASSOC)) return ['ok'=>true,'duplicate'=>true,'ride'=>ride_public($r,$s),'hint'=>'Diese Fahrt ist bereits gebucht (Code '.$r['code'].') – nicht erneut buchen.'];
+        if($phone!=='' && !$in['manual'] && !$in['additional']){
+            /* Doppelbuchung (Werkzeug versehentlich zweimal aufgerufen) = dieselbe Anfrage: gleiche Nummer, gleicher Name, gleicher Abholort und gleiches Ziel,
+               gleiche Personenzahl und gleiches Fahrzeug, bei Vorbestellung dieselbe Abholzeit – in den letzten 5 Minuten. Aufgeteilte Gruppen und
+               Vorbestellungen an anderen Tagen sind eigene Fahrten; ein bewusst zusätzliches Taxi kommt mit additional_taxi=true. */
+            $dup=$p->prepare("SELECT * FROM rides WHERE account_id=? AND phone=? AND customer_name=? AND pickup_text=? AND dest_text=? AND passengers=? AND vehicle=? AND asap=?
+                AND (asap=1 OR pickup_at=?) AND status IN ('new','assigned') AND created_at > (NOW() - INTERVAL 5 MINUTE) ORDER BY id DESC LIMIT 1");
+            $dup->execute([$acc,$phone,mb_substr($name,0,120),mb_substr($pu['text'],0,240),$de ? mb_substr($de['text'],0,240) : '',$q['passengers'],$q['vehicle']['key'],$q['asap']?1:0,$q['at']->format('Y-m-d H:i:00')]);
+            if($r=$dup->fetch(PDO::FETCH_ASSOC)) return ['ok'=>true,'duplicate'=>true,'ride'=>ride_public($r,$s),'hint'=>'Diese Fahrt ist bereits gebucht (Code '.$r['code'].') – nicht erneut buchen. Nur wenn der Kunde ausdrücklich ein weiteres Taxi für dieselbe Fahrt möchte (z. B. Gruppe aufgeteilt): book_ride mit additional_taxi=true.'];
         }
         $vals=[$acc,null,$channel,mb_substr($name,0,120),$phone,$channel==='whatsapp' ? mb_substr($digits,0,40) : '',mb_substr($pu['text'],0,240),mb_substr($pu['display'],0,240),$pu['lat'],$pu['lon'],
             $de ? mb_substr($de['text'],0,240) : '',$de ? mb_substr($de['display'],0,240) : '',$de['lat'] ?? null,$de['lon'] ?? null,$route ? $route['km'] : null,$route ? $route['min'] : null,
@@ -615,33 +654,55 @@ function ride_for_ai(array $p): array {
 /**
  * Status setzen (Board, Studio, Fahrer, Kunde). Vorwärts jederzeit, Storno aus new/assigned/en_route, „nicht angetroffen“ aus assigned/en_route/arrived,
  * zurück auf new (Fahrer abziehen) bzw. Umteilen auf einen anderen Fahrer. Fahrerstatus wird mitgeführt, Benachrichtigungen nur für Konto > 0.
+ * Prüfen + Schreiben laufen unter Zeilensperre (SELECT … FOR UPDATE): gleichzeitige Aktionen werden nacheinander gegen den aktuellen Stand geprüft.
+ * $expect = Status, den der Aufrufer zuletzt gesehen hat (Board/Studio/Fahrer-App) – weicht er ab, kommt 'conflict' statt einer Änderung.
+ * Benachrichtigungen erst nach dem Commit und nur für die tatsächlich geschriebene Änderung.
  */
-function ride_set_status(int $acc, int $id, string $status, ?int $driverId=null, string $by=''): array {
+function ride_set_status(int $acc, int $id, string $status, ?int $driverId=null, string $by='', ?string $expect=null): array {
     if(!in_array($status,RIDE_STATUSES,true)) return ['error'=>'bad_status','hint'=>'Erlaubt: '.implode(', ',RIDE_STATUSES)];
-    $r=ride_by_id($acc,$id); if(!$r) return ['error'=>'not_found','hint'=>'Fahrt nicht gefunden'];
-    $s=ride_settings($acc); $cur=(string)$r['status']; $oldDrv=$r['driver_id']!==null ? (int)$r['driver_id'] : 0; $driverId=$driverId!==null && $driverId>0 ? $driverId : null;
-    if($status===$cur && ($driverId===null || $driverId===$oldDrv)) return ['ok'=>true,'unchanged'=>true,'ride'=>ride_public($r,$s)];
-    if(in_array($cur,RIDE_FINAL,true)) return ['error'=>'final_state','hint'=>'Die Fahrt ist bereits '.(RIDE_LABELS[$cur] ?? $cur).'.'];
-    $fi=array_search($cur,RIDE_FLOW,true); $ti=array_search($status,RIDE_FLOW,true);
-    $ok=match($status){ 'cancelled'=>in_array($cur,['new','assigned','en_route'],true), 'no_show'=>in_array($cur,['assigned','en_route','arrived'],true),
-        'new'=>in_array($cur,['assigned','en_route'],true), 'assigned'=>$cur==='new' || ($driverId!==null && $driverId!==$oldDrv && in_array($cur,['assigned','en_route','arrived'],true)),
-        default=>$ti!==false && $fi!==false && $ti>$fi };
-    if(!$ok) return ['error'=>'bad_transition','hint'=>'Von „'.(RIDE_LABELS[$cur] ?? $cur).'“ nicht nach „'.(RIDE_LABELS[$status] ?? $status).'“ möglich.'];
-    $newDrv=$status==='new' ? 0 : ($driverId ?? $oldDrv); $warn=[];
-    if($driverId!==null){ $d=ride_driver($acc,$driverId); if(!$d || !$d['active']) return ['error'=>'bad_driver','hint'=>'Fahrer nicht gefunden']; if($d['seats']<(int)$r['passengers']) $warn[]=$d['name'].' hat nur '.$d['seats'].' Plätze ('.(int)$r['passengers'].' Personen).'; }
-    if($status==='assigned' && !$newDrv) return ['error'=>'driver_required','hint'=>'Bitte einen Fahrer wählen.'];
-    $log=ride_log_add($r['status_log'] ?? null,$status); if($by!=='' && $status==='cancelled') $log=ride_log_add($log,'cancel_by',$by);
-    th_db()->prepare("UPDATE rides SET status=?, driver_id=?, status_log=?, updated_at=NOW() WHERE id=? AND account_id=?")->execute([$status,$newDrv ?: null,$log,$id,$acc]);
+    if($expect!==null && !in_array($expect,RIDE_STATUSES,true)) $expect=null;
+    $driverId=$driverId!==null && $driverId>0 ? $driverId : null;
+    try{
+        ride_bootstrap(); $s=ride_settings($acc); $p=th_db(); $own=!$p->inTransaction();
+        if($own) $p->beginTransaction();
+        try{
+            $t=ride_status_locked($acc,$id,$status,$driverId,$by,$expect);
+            if($own){ if(isset($t['row']) && empty($t['unchanged'])) $p->commit(); else $p->rollBack(); }
+        }catch(Throwable $e){ if($own && $p->inTransaction()) $p->rollBack(); throw $e; }
+    }catch(Throwable $e){ error_log('CH ride_set_status '.$acc.'/'.$id.': '.$e->getMessage()); return ['error'=>'internal_error','hint'=>'Technischer Fehler – bitte gleich noch einmal versuchen.']; }
+    if(isset($t['error'])) return $t;
+    if(!empty($t['unchanged'])) return ['ok'=>true,'unchanged'=>true,'ride'=>ride_public($t['row'],$s)];
+    $r=$t['row']; $cur=$t['cur']; $oldDrv=$t['old']; $newDrv=$t['new']; $warn=$t['warn'];
     if($oldDrv && $oldDrv!==$newDrv) ride_driver_refresh($acc,$oldDrv,$s);
     if($newDrv) ride_driver_refresh($acc,$newDrv,$s);
-    $r=ride_by_id($acc,$id);
     if($acc!==0 && $r['channel']!=='selftest'){
         if($newDrv && $newDrv!==$oldDrv && in_array($status,['assigned','en_route','arrived'],true) && ($d=ride_driver($acc,$newDrv))){ ride_notify_driver($r,$s,$d,'assigned'); if($status!=='arrived') ride_notify_customer($r,$s,'assigned'); }
         if($oldDrv && $oldDrv!==$newDrv && ($od=ride_driver($acc,$oldDrv))) ride_notify_driver($r,$s,$od,'withdrawn');
         if($status==='cancelled' && $oldDrv && ($od=ride_driver($acc,$oldDrv))) ride_notify_driver($r,$s,$od,'cancelled');
         if($status==='arrived') ride_notify_customer($r,$s,'arrived');
     }
-    return ['ok'=>true,'ride'=>ride_public($r,$s)]+($warn ? ['warnings'=>$warn] : []);
+    return ['ok'=>true,'prev_status'=>$cur,'ride'=>ride_public($r,$s)]+($warn ? ['warnings'=>$warn] : []);
+}
+/** Teil von ride_set_status innerhalb der Transaktion: Zeile sperren, Übergang gegen den aktuellen Stand prüfen, schreiben. Liefert die geschriebene Zeile. */
+function ride_status_locked(int $acc, int $id, string $status, ?int $driverId, string $by, ?string $expect): array {
+    $q=th_db()->prepare("SELECT * FROM rides WHERE id=? AND account_id=? FOR UPDATE"); $q->execute([$id,$acc]); $r=$q->fetch(PDO::FETCH_ASSOC);
+    if(!$r) return ['error'=>'not_found','hint'=>'Fahrt nicht gefunden'];
+    $cur=(string)$r['status']; $oldDrv=$r['driver_id']!==null ? (int)$r['driver_id'] : 0; $lbl=fn(string $x)=>RIDE_LABELS[$x] ?? $x;
+    if($status===$cur && ($driverId===null || $driverId===$oldDrv)) return ['unchanged'=>true,'row'=>$r];
+    if($expect!==null && $expect!==$cur) return ['error'=>'conflict','status'=>$cur,'hint'=>'Die Fahrt wurde inzwischen geändert (jetzt: „'.$lbl($cur).'“) – bitte die Ansicht neu laden und erneut entscheiden.'];
+    if(in_array($cur,RIDE_FINAL,true)) return ['error'=>'final_state','status'=>$cur,'hint'=>'Die Fahrt ist bereits '.$lbl($cur).'.'];
+    $fi=array_search($cur,RIDE_FLOW,true); $ti=array_search($status,RIDE_FLOW,true);
+    $ok=match($status){ 'cancelled'=>in_array($cur,['new','assigned','en_route'],true), 'no_show'=>in_array($cur,['assigned','en_route','arrived'],true),
+        'new'=>in_array($cur,['assigned','en_route'],true), 'assigned'=>$cur==='new' || ($driverId!==null && $driverId!==$oldDrv && in_array($cur,['assigned','en_route','arrived'],true)),
+        default=>$ti!==false && $fi!==false && $ti>$fi };
+    if(!$ok) return ['error'=>'bad_transition','status'=>$cur,'hint'=>'Von „'.$lbl($cur).'“ nicht nach „'.$lbl($status).'“ möglich.'];
+    $newDrv=$status==='new' ? 0 : ($driverId ?? $oldDrv); $warn=[];
+    if($driverId!==null){ $d=ride_driver($acc,$driverId); if(!$d || !$d['active']) return ['error'=>'bad_driver','hint'=>'Fahrer nicht gefunden']; if($d['seats']<(int)$r['passengers']) $warn[]=$d['name'].' hat nur '.$d['seats'].' Plätze ('.(int)$r['passengers'].' Personen).'; }
+    if($status==='assigned' && !$newDrv) return ['error'=>'driver_required','hint'=>'Bitte einen Fahrer wählen.'];
+    $log=ride_log_add($r['status_log'] ?? null,$status); if($by!=='' && $status==='cancelled') $log=ride_log_add($log,'cancel_by',$by);
+    th_db()->prepare("UPDATE rides SET status=?, driver_id=?, status_log=?, updated_at=NOW() WHERE id=? AND account_id=?")->execute([$status,$newDrv ?: null,$log,$id,$acc]);
+    $r['status']=$status; $r['driver_id']=$newDrv ?: null; $r['status_log']=$log;
+    return ['row'=>$r,'cur'=>$cur,'old'=>$oldDrv,'new'=>$newDrv,'warn'=>$warn];
 }
 /** Storno durch den Kunden (Werkzeug cancel_ride, Statusseite): solange new/assigned/en_route; bei Anfahrt E-Mail an die Zentrale. */
 function ride_cancel_customer(int $acc, string $code): array {
@@ -649,21 +710,40 @@ function ride_cancel_customer(int $acc, string $code): array {
     $s=ride_settings($acc);
     if($r['status']==='cancelled') return ['ok'=>true,'already'=>true,'ride'=>ride_public($r,$s)];
     if(!in_array($r['status'],['new','assigned','en_route'],true)) return ['error'=>'too_late','status'=>$r['status'],'hint'=>'Stornieren ist nicht mehr möglich (Status: '.(RIDE_LABELS[$r['status']] ?? $r['status']).'). Bitte direkt die Zentrale anrufen'.($s['phone']?' ('.$s['phone'].')':'').'.'];
-    $enRoute=$r['status']==='en_route'; $res=ride_set_status($acc,(int)$r['id'],'cancelled',null,'Kunde'); if(isset($res['error'])) return $res;
-    if($enRoute && $acc!==0 && $r['channel']!=='selftest') ride_notify_zentrale(ride_by_id($acc,(int)$r['id']),$s,'cancel_en_route');
+    $res=ride_set_status($acc,(int)$r['id'],'cancelled',null,'Kunde');   // prüft unter Zeilensperre noch einmal den aktuellen Stand
+    if(isset($res['error'])){
+        $st=(string)($res['status'] ?? '');
+        if($st==='cancelled') return ['ok'=>true,'already'=>true,'ride'=>ride_public(ride_by_id($acc,(int)$r['id']) ?: $r,$s)];
+        if(in_array($res['error'],['bad_transition','final_state'],true)) return ['error'=>'too_late','status'=>$st,'hint'=>'Stornieren ist nicht mehr möglich (Status: '.(RIDE_LABELS[$st] ?? $st).'). Bitte direkt die Zentrale anrufen'.($s['phone']?' ('.$s['phone'].')':'').'.'];
+        return $res;
+    }
+    if(($res['prev_status'] ?? '')==='en_route' && $acc!==0 && $r['channel']!=='selftest') ride_notify_zentrale(ride_by_id($acc,(int)$r['id']) ?: $r,$s,'cancel_en_route');
     return $res+['hint'=>'Die Fahrt ist storniert.'];
 }
+/**
+ * Fahrten zu einer (bereits verifizierten!) Telefonnummer: letzte 24 h + offene Vorbestellungen. Treffer nur bei exakt gleicher Nummer
+ * (E.164 von Kontaktnummer bzw. WhatsApp-Absender) – nicht bloß gleiche Endziffern.
+ */
 function ride_find_by_phone(int $acc, string $phone): array {
-    $d=preg_replace('/\D/','',$phone); if(strlen($d)<6) return []; $s=ride_settings($acc); $like='%'.substr($d,-8);
+    $s=ride_settings($acc); $want=ltrim(ride_e164($phone,$s),'+'); if(strlen($want)<6) return [];
+    $like='%'.substr($want,-7);
     $q=th_db()->prepare("SELECT * FROM rides WHERE account_id=? AND (created_at > (NOW() - INTERVAL 1 DAY) OR (status IN ('new','assigned','en_route','arrived','onboard') AND pickup_at >= ?))
-        AND (REPLACE(REPLACE(REPLACE(REPLACE(phone,' ',''),'+',''),'-',''),'/','') LIKE ? OR wa_from LIKE ?) ORDER BY pickup_at DESC, id DESC LIMIT 5");
-    $q->execute([$acc,ride_now($s)->format('Y-m-d 00:00:00'),$like,$like]); return $q->fetchAll(PDO::FETCH_ASSOC);
+        AND (REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone,' ',''),'+',''),'-',''),'/',''),'(',''),')','') LIKE ? OR wa_from LIKE ?) ORDER BY pickup_at DESC, id DESC LIMIT 60");
+    $q->execute([$acc,ride_now($s)->format('Y-m-d 00:00:00'),$like,$like]);
+    $same=fn(array $r)=>ltrim(ride_e164((string)$r['phone'],$s),'+')===$want || ((string)$r['wa_from']!=='' && preg_replace('/\D/','',(string)$r['wa_from'])===$want);
+    return array_slice(array_values(array_filter($q->fetchAll(PDO::FETCH_ASSOC),$same)),0,5);
+}
+/** Datenschutz: Nummer, nach der gesucht werden darf – nur über ch_verified_phone() (Absender-/Anrufernummer bzw. Studio/Demo); null = nur per Code. */
+function ride_verified_phone(int $acc, string $channel, string $from, string $asked): ?string {
+    if(!function_exists('ch_verified_phone') && is_file(__DIR__.'/agent-tools.php')){ try{ require_once __DIR__.'/agent-tools.php'; }catch(Throwable $e){ error_log('CH ride: agent-tools '.$e->getMessage()); } }
+    if(function_exists('ch_verified_phone')) return ch_verified_phone($acc,$channel,$from,$asked);
+    $x=$asked!=='' ? $asked : $from; return ($acc===0 && strlen(preg_replace('/\D/','',$x))>=6) ? $x : null;
 }
 /** Offene Fahrten (aktiv, Abholzeit nicht älter als 12 h) bzw. alle der letzten 7 Tage – mit Fahrervorschlag. */
 function ride_list(int $acc, string $scope='open'): array {
-    ride_bootstrap(); $s=ride_settings($acc); $drivers=ride_drivers($acc,false); $now=ride_now($s);
+    ride_bootstrap(); $s=ride_settings($acc); ride_drivers_sync($acc,$s); $drivers=ride_drivers($acc,false); $now=ride_now($s);
     if($scope==='all'){ $q=th_db()->prepare("SELECT * FROM rides WHERE account_id=? AND (created_at > (NOW() - INTERVAL 7 DAY) OR pickup_at >= ?) ORDER BY pickup_at DESC, id DESC LIMIT 200"); $q->execute([$acc,$now->format('Y-m-d 00:00:00')]); }
-    else { $q=th_db()->prepare("SELECT * FROM rides WHERE account_id=? AND status IN ('new','assigned','en_route','arrived','onboard') AND pickup_at >= ? ORDER BY pickup_at, id LIMIT 300"); $q->execute([$acc,$now->modify('-12 hours')->format('Y-m-d H:i:s')]); }
+    else { $q=th_db()->prepare("SELECT * FROM rides WHERE account_id=? AND status IN ('new','assigned','en_route','arrived','onboard') AND pickup_at >= ? ORDER BY pickup_at, id LIMIT 300"); $q->execute([$acc,$now->modify('-'.RIDE_OPEN_HOURS.' hours')->format('Y-m-d H:i:s')]); }
     $active=array_values(array_filter($drivers,fn($d)=>$d['active']));
     return array_map(function($r) use($s,$drivers,$active){ $p=ride_public($r,$s,$drivers); if(in_array($p['status'],['new','assigned'],true)){ $rk=ride_driver_rank($r,$active,$s); $p['driver_order']=$rk['order']; $p['suggest_driver_id']=$rk['suggest']; $p['unfit_driver_ids']=$rk['unfit']; } return $p; },$q->fetchAll(PDO::FETCH_ASSOC));
 }
@@ -672,7 +752,7 @@ function ride_stats(int $acc, ?array $s=null): array {
     $q=th_db()->prepare("SELECT COUNT(*) n, COALESCE(SUM(status='completed'),0) done, COALESCE(SUM(status IN ('cancelled','no_show')),0) lost, COALESCE(SUM(CASE WHEN status='completed' THEN COALESCE(price_cents,0) ELSE 0 END),0) rev
         FROM rides WHERE account_id=? AND pickup_at BETWEEN ? AND ?"); $q->execute([$acc,$now->format('Y-m-d 00:00:00'),$now->format('Y-m-d 23:59:59')]); $t=$q->fetch(PDO::FETCH_ASSOC);
     $o=th_db()->prepare("SELECT COUNT(*) n, COALESCE(SUM(asap=0 AND pickup_at > ?),0) pre FROM rides WHERE account_id=? AND status IN ('new','assigned','en_route','arrived','onboard') AND pickup_at >= ?");
-    $o->execute([$now->modify('+60 minutes')->format('Y-m-d H:i:s'),$acc,$now->modify('-12 hours')->format('Y-m-d H:i:s')]); $op=$o->fetch(PDO::FETCH_ASSOC);
+    $o->execute([$now->modify('+60 minutes')->format('Y-m-d H:i:s'),$acc,$now->modify('-'.RIDE_OPEN_HOURS.' hours')->format('Y-m-d H:i:s')]); $op=$o->fetch(PDO::FETCH_ASSOC);
     return ['today'=>(int)$t['n'],'open'=>(int)$op['n'],'prebooked'=>(int)$op['pre'],'completed_today'=>(int)$t['done'],'cancelled_today'=>(int)$t['lost'],'revenue_today_cents'=>(int)$t['rev'],'revenue_today'=>ride_eur((int)$t['rev'])];
 }
 /** Daten für das Dispositions-Board (taxi-board.php) und die Board-API. */
@@ -759,10 +839,20 @@ function ride_notify_customer(array $r, array $s, string $kind): void {
         'assigned'=>"🚕 Ihr Taxi ist bestellt (Code {$p['code']}): ".($d ? "Fahrer {$d['name']}".($car!=='' ? ", $car" : '') : 'Ein Fahrer ist eingeteilt').' · '.($p['asap'] ? 'Ankunft '.$p['eta_text'] : 'Abholung '.$p['when_long']).". Live-Status: {$p['track']}",
         'arrived'=>"🚕 Ihr Taxi ist da".($car!=='' ? ": $car" : '').($d ? " · Fahrer {$d['name']}" : '').". Gute Fahrt! – $co",
         default=>'' };
-    if($msg===''){ return; } $ok=false; $via='none';
-    if($r['channel']==='whatsapp' && $r['wa_from']!==''){ $ok=ord_wa_send(ord_settings($acc),(string)$r['wa_from'],$msg); $via='whatsapp'; }
-    elseif($r['channel']==='phone' && $r['phone']!==''){ $ok=ord_sms_send(ride_e164((string)$r['phone'],$s),($kind==='arrived' ? '' : $co.': ').$msg,$acc); $via='sms'; }
-    ride_notify_log(['kind'=>'customer_'.$kind,'via'=>$via,'ok'=>$ok]);
+    if($msg===''){ return; } $ok=false; $via='none'; $tried=[]; $smsText=($kind==='arrived' ? '' : $co.': ').$msg;
+    if($r['channel']==='whatsapp' && $r['wa_from']!==''){
+        /* Freie WhatsApp-Texte kommen nur im 24-h-Fenster an (sonst nimmt Meta/Twilio an und verwirft später – typisch bei Vorbestellungen
+           Tage im Voraus) → außerhalb des Fensters bzw. wenn WhatsApp scheitert: SMS an die Kontaktnummer (sonst an die WhatsApp-Nummer). */
+        $os=ord_settings($acc); $wa=(string)$r['wa_from']; $win=function_exists('ord_wa_window_open') ? ord_wa_window_open($acc,$wa) : true;
+        if($win){ $tried[]='whatsapp'; $ok=ord_wa_send($os,$wa,$msg); $via='whatsapp'; }
+        if(!$ok){
+            $to=ride_e164((string)$r['phone']!=='' ? (string)$r['phone'] : '+'.preg_replace('/\D/','',$wa),$s);
+            if($to!==''){ $tried[]='sms'; if(ord_sms_send($to,$smsText,$acc)){ $ok=true; $via='sms'; } }
+            if(!$ok && !$win){ $tried[]='whatsapp_ohne_fenster'; ord_wa_send($os,$wa,$msg); $via='whatsapp_ohne_fenster'; }   // letzter Versuch – gilt nicht als zugestellt
+        }
+    }
+    elseif($r['channel']==='phone' && $r['phone']!==''){ $tried[]='sms'; $ok=ord_sms_send(ride_e164((string)$r['phone'],$s),$smsText,$acc); $via='sms'; }
+    ride_notify_log(['kind'=>'customer_'.$kind,'via'=>$via,'ok'=>$ok,'tried'=>$tried]);
 }
 
 /* ---------- Werkzeuge für den Agenten ---------- */
@@ -802,8 +892,9 @@ function ride_tools(): array {
           'pickup'=>['type'=>'string'],'destination'=>['type'=>'string'],'time'=>['type'=>'string','description'=>'„sofort“ oder „HH:MM“, „morgen HH:MM“, „YYYY-MM-DD HH:MM“'],
           'passengers'=>['type'=>'integer'],'luggage'=>['type'=>'string','description'=>'z. B. 2 Koffer, Kinderwagen'],'vehicle'=>['type'=>'string','description'=>'standard | kombi | grossraum | rollstuhl'],
           'extras'=>['type'=>'string','description'=>'Kindersitz (Alter), Rollstuhl, Hund …'],'payment'=>['type'=>'string','description'=>'bar | karte | app | rechnung'],'note'=>['type'=>'string','description'=>'Hinweis für den Fahrer (z. B. Hinterhof, Klingel)'],
-          'confirm_address'=>['type'=>'boolean','description'=>'true nur, wenn der Abholort nicht auf der Karte gefunden wurde und der Kunde ihn genau so bestätigt hat']],'required'=>['name','pickup','time']]],
-      ['name'=>'get_ride_status','description'=>'Status bestellter Fahrten per Code oder Telefonnummer (Fahrten der letzten 24 Stunden und offene Vorbestellungen): Fahrer, Fahrzeug, Kennzeichen, Wartezeit.','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string'],'phone'=>['type'=>'string']],'required'=>[]]],
+          'confirm_address'=>['type'=>'boolean','description'=>'true nur, wenn der Abholort nicht auf der Karte gefunden wurde und der Kunde ihn genau so bestätigt hat'],
+          'additional_taxi'=>['type'=>'boolean','description'=>'true nur für ein bewusst ZUSÄTZLICHES Taxi zur selben Fahrt (z. B. Gruppe auf mehrere Taxis aufgeteilt) – sonst weglassen']],'required'=>['name','pickup','time']]],
+      ['name'=>'get_ride_status','description'=>'Status bestellter Fahrten per Fahrtcode (Fahrer, Fahrzeug, Kennzeichen, Wartezeit). Ohne Code nur für die verifizierte eigene Nummer des Kunden (WhatsApp-Absender bzw. Anrufer; dann ohne Parameter aufrufen) – Fahrten der letzten 24 Stunden und offene Vorbestellungen. Eine vom Kunden genannte Telefonnummer reicht aus Datenschutzgründen NICHT.','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string','description'=>'Fahrtcode aus der Bestätigung (6 Zeichen)'],'phone'=>['type'=>'string','description'=>'nur im Studio der Zentrale und in der Demo wirksam; sonst zählt allein die verifizierte Absender-/Anrufernummer']],'required'=>[]]],
       ['name'=>'cancel_ride','description'=>'Fahrt per Code stornieren – nur nach ausdrücklicher Bestätigung des Kunden; möglich, solange das Taxi noch nicht da ist.','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string']],'required'=>['code']]],
     ];
 }
@@ -815,13 +906,19 @@ function ride_exec(int $acc, string $name, array $in, string $channel, string $f
             case 'estimate_ride': return ride_estimate($acc,$in);
             case 'book_ride': return ride_book($acc,$in,$channel,$from);
             case 'get_ride_status':
-                $code=trim((string)($in['code'] ?? ''));
+                $code=trim(ride_str($in['code'] ?? '')); $note=null;
                 if($code!==''){ $r=ride_by_code($code,$acc); $rows=$r ? [$r] : []; }
-                else { $ph=trim((string)($in['phone'] ?? '')) ?: $from; if(strlen(preg_replace('/\D/','',$ph))<6) return ['error'=>'code_or_phone_required','hint'=>'Bitte den Fahrtcode (6 Zeichen) oder die Telefonnummer der Buchung erfragen.']; $rows=ride_find_by_phone($acc,$ph); }
+                else {
+                    /* Datenschutz: ohne Code nur über die verifizierte Absender-/Anrufernummer – nie über eine Nummer, die das Modell bloß eingibt */
+                    $asked=trim(ride_str($in['phone'] ?? '')); $ph=ride_verified_phone($acc,$channel,$from,$asked);
+                    if($ph===null) return ['rides'=>[],'count'=>0,'error'=>'code_required','hint'=>defined('CH_CODE_ONLY_HINT') ? CH_CODE_ONLY_HINT : 'Aus Datenschutzgründen nur mit dem Fahrtcode aus der Bestätigung möglich – bitte freundlich nach dem Code fragen.'];
+                    if($asked!=='' && ltrim(ride_e164($asked,ride_settings($acc)),'+')!==ltrim(ride_e164($ph,ride_settings($acc)),'+')) $note='Gesucht wurde nur unter der eigenen Absender-/Anrufernummer – Fahrten zu anderen Nummern gibt es aus Datenschutzgründen nur mit dem Fahrtcode.';
+                    $rows=ride_find_by_phone($acc,$ph);
+                }
                 $s=ride_settings($acc); $out=[];
                 foreach($rows as $r){ if($acc===0) $r=ride_demo_tick($r); $out[]=ride_for_ai(ride_public($r,$s)); }
-                return ['rides'=>$out,'count'=>count($out)]+($out ? [] : ['hint'=>$code!=='' ? 'Kein Treffer für diesen Code – bitte buchstabieren lassen (6 Zeichen, z. B. K7M2X9).' : 'Keine Fahrt der letzten 24 Stunden unter dieser Nummer.']);
-            case 'cancel_ride': return ride_cancel_customer($acc,(string)($in['code'] ?? ''));
+                return ['rides'=>$out,'count'=>count($out)]+($note ? ['note'=>$note] : [])+($out ? [] : ['hint'=>$code!=='' ? 'Kein Treffer für diesen Code – bitte buchstabieren lassen (6 Zeichen, z. B. K7M2X9).' : 'Keine Fahrt der letzten 24 Stunden unter dieser Nummer – bitte nach dem Fahrtcode fragen.']);
+            case 'cancel_ride': return ride_cancel_customer($acc,trim(ride_str($in['code'] ?? '')));
         }
     }catch(Throwable $e){ error_log('CH ride_exec '.$name.': '.$e->getMessage()); return ['error'=>'internal_error','hint'=>'Technischer Fehler – bitte entschuldigen und die Telefonnummer der Zentrale nennen.']; }
     return ['error'=>'unknown_tool','hint'=>'Dieses Werkzeug gibt es im Taxi-Modul nicht.'];
@@ -833,6 +930,12 @@ function ride_system_hint(int $acc, string $channel='chat'): string {
     $stands=$s['stands'] ? implode('; ',array_map(fn($st)=>$st['name'].($st['address']!=='' ? ' ('.$st['address'].')' : ''),$s['stands'])) : 'keine hinterlegt';
     $fixed=$s['fixed_routes'] ? implode('; ',array_map(fn($f)=>$f['name'].' '.ride_eur($f['price_cents']),$s['fixed_routes'])) : 'keine';
     $pay=implode(', ',array_map(fn($k)=>RIDE_PAYMENTS[$k] ?? $k,explode(',',$s['payment_methods'])));
+    /* Datenschutz (ch_verified_phone): ohne Code nur über die verifizierte WhatsApp-/Anrufernummer */
+    $statusRule=($acc===0 || in_array($channel,['studio','phone-test'],true))
+        ? 'Status/„Wo bleibt mein Taxi?“ → get_ride_status mit Fahrtcode oder Telefonnummer der Buchung.'
+        : (in_array($channel,['phone','whatsapp'],true)
+            ? 'Status/„Wo bleibt mein Taxi?“ → get_ride_status mit dem Fahrtcode oder ohne Parameter (sucht dann nur über die eigene '.($channel==='phone' ? 'Anrufernummer' : 'WhatsApp-Nummer').'). Eine andere, nur genannte Telefonnummer reicht nicht – Fahrten zu fremden Nummern gibt es nur mit Code.'
+            : 'Status/„Wo bleibt mein Taxi?“ → nach dem Fahrtcode aus der Bestätigung fragen und get_ride_status mit code aufrufen. Ohne Code klappt die Suche nur über die verifizierte WhatsApp- bzw. Anrufernummer, hier im Chat also nicht – niemals Daten zu einer bloß genannten Telefonnummer herausgeben.');
     $chanRule=$phone
         ? 'TELEFON: Die Anrufernummer ist die Kontaktnummer – nicht danach fragen; nur wenn der Anrufer eine andere Nummer möchte, diese als phone übergeben (ist die Nummer unterdrückt, meldet book_ride phone_required → Rückrufnummer erfragen). Adressen kurz wiederholen. Den Code langsam mit Pausen buchstabieren (Feld code_spoken). KEINE Links oder URLs vorlesen – der Kunde bekommt, falls eingerichtet, eine SMS. Kurze Sätze, zügig – Kunden stehen oft an der Straße.'
         : ($channel==='whatsapp' ? 'WHATSAPP: Die Absendernummer ist die Kontaktnummer – nicht danach fragen. Nach der Buchung den Status-Link (Feld track) mitschicken; Zuteilung und „Taxi ist da“ kommen automatisch per WhatsApp.'
@@ -846,13 +949,19 @@ function ride_system_hint(int $acc, string $channel='chat'): string {
         .' Preise und Wartezeiten NUR aus den Werkzeugen nennen: Richtpreis immer als „ca. … (Richtpreis, es gilt der Taxameter)“, Festpreis als Festpreis. Mehr als 4 Personen → Großraumtaxi, Rollstuhl → Rollstuhl-Taxi (wählt das Werkzeug automatisch; Hinweise in notes kurz erwähnen).'
         .' Liegt der Abholort außerhalb des Einsatzgebiets: freundlich ablehnen und auf ein örtliches Taxiunternehmen verweisen. Liefert ein Werkzeug error + hint, dem hint folgen.'
         .' Nach book_ride: Code nennen, bei „sofort“ die Wartezeit (ca.), sonst die Abholzeit, und den Preis als Richtpreis bzw. Festpreis. Niemals einen bestimmten Fahrer oder eine exakte Ankunftsminute versprechen.'
-        .' Status/„Wo bleibt mein Taxi?“ → get_ride_status (Code oder Telefonnummer). Storno → Code erfragen, Bestätigung einholen, dann cancel_ride.'
+        .' Gruppe größer als ein Fahrzeug: auf mehrere Taxis aufteilen – je Taxi ein book_ride, ab dem zweiten mit additional_taxi=true.'
+        .' '.$statusRule.' Storno → Code erfragen, Bestätigung einholen, dann cancel_ride.'
         .' Medizinischer Notfall: sofort auf den Notruf 112 verweisen – kein Taxi für Notfälle. '.$chanRule;
 }
 
 /* ---------- Studio-REST (/v1/ride/…) ---------- */
+/** HTTP-Status für Ergebnisse von ride_set_status / ride_driver_set_status (Studio-API und Board-API). */
+function ride_http_code(array $res): int {
+    if(!isset($res['error'])) return 200;
+    return ['not_found'=>404,'conflict'=>409,'internal_error'=>500][$res['error']] ?? 400;
+}
 function ride_api_bundle(int $aid): array {
-    $s=ride_settings($aid);
+    $s=ride_settings($aid); ride_drivers_sync($aid,$s);
     return ['settings'=>ride_settings_public($s),'drivers'=>array_map(fn($d)=>array_diff_key($d,['token'=>1,'account_id'=>1]),ride_drivers($aid,false)),'links'=>ride_links($aid),'stats'=>ride_stats($aid,$s),
         'labels'=>['statuses'=>RIDE_LABELS,'payments'=>RIDE_PAYMENTS,'driver_statuses'=>RIDE_DRIVER_STATUSES]];
 }
@@ -868,16 +977,17 @@ function ride_api(string $route, string $method, int $aid, array $body, array $a
                 $scope=($_GET['scope'] ?? 'open')==='all' ? 'all' : 'open';
                 return [200,['scope'=>$scope,'rides'=>ride_list($aid,$scope),'drivers'=>array_map('ride_driver_public',ride_drivers($aid,true)),'stats'=>ride_stats($aid)]];
             case 'POST ride/status':
-                $did=isset($body['driver_id']) && $body['driver_id']!=='' && $body['driver_id']!==null ? (int)$body['driver_id'] : null;
-                $res=ride_set_status($aid,(int)($body['id'] ?? 0),(string)($body['status'] ?? ''),$did,'Zentrale');
-                return [isset($res['error']) ? ($res['error']==='not_found' ? 404 : 400) : 200,$res];
+                $did=isset($body['driver_id']) && is_scalar($body['driver_id']) && $body['driver_id']!=='' ? (int)$body['driver_id'] : null;
+                $from=ride_str($body['from'] ?? ''); /* zuletzt gesehener Status → Konflikt statt stiller Überschreibung */
+                $res=ride_set_status($aid,(int)($body['id'] ?? 0),ride_str($body['status'] ?? ''),$did,'Zentrale',$from!=='' ? $from : null);
+                return [ride_http_code($res),$res];
             case 'POST ride/create':
                 $res=ride_book($aid,['_manual'=>1]+array_diff_key($body,['_manual'=>1]),'studio'); return [isset($res['error']) ? 422 : 200,$res];
             case 'GET ride/estimate':
                 $in=[]; foreach(['pickup','destination','time','vehicle','passengers','extras'] as $k) if(isset($_GET[$k]) && is_scalar($_GET[$k])) $in[$k]=(string)$_GET[$k];
                 $res=ride_estimate($aid,$in); return [isset($res['error']) ? 422 : 200,$res];
             case 'POST ride/driver':
-                $res=ride_driver_set_status($aid,(int)($body['id'] ?? $body['driver_id'] ?? 0),(string)($body['status'] ?? '')); return [isset($res['error']) ? ($res['error']==='not_found' ? 404 : 400) : 200,$res];
+                $res=ride_driver_set_status($aid,(int)($body['id'] ?? $body['driver_id'] ?? 0),ride_str($body['status'] ?? '')); return [ride_http_code($res),$res];
         }
         return [404,['error'=>'not_found','routes'=>['GET|POST /v1/ride/settings','GET /v1/ride/rides?scope=open|all','POST /v1/ride/status','POST /v1/ride/create','GET /v1/ride/estimate','POST /v1/ride/driver']]];
     }catch(Throwable $e){ error_log('CH ride_api '.$route.': '.$e->getMessage()); return [500,['error'=>'server_error','message'=>'Interner Fehler im Taxi-Modul.']]; }

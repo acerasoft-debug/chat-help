@@ -1,0 +1,98 @@
+<div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h2 style="font-size:26px">Rückrufe &amp; Lead-Sofortrückruf</h2><p class="mute" style="margin:4px 0 0">Jeder deiner Agenten nimmt Rückrufwünsche auf – im Chat, am Telefon und per WhatsApp. Mit „KI ruft zurück“ ruft dein Telefon-Agent selbst an: zur Wunschzeit oder bei Web- und Portal-Anfragen in 60 Sekunden. Er qualifiziert den Interessenten und bucht direkt eine Besichtigung oder einen Termin – ideal für Makler, Handwerk und Autohäuser.</p></div><a class="btn gold" id="cbRent" href="/chat/tokens-checkout.php?plan=immo-agent" target="_blank">Immobilien-Agent mieten · 119 €/Monat</a></div>
+
+<div class="grid g4" style="margin-bottom:16px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+  <div class="card"><span class="tag rose">Offen</span><div class="num" style="margin-top:8px" id="cbKOpen">–</div><div class="mute small" id="cbKDue">jetzt fällig: –</div></div>
+  <div class="card"><span class="tag gold">Heute eingegangen</span><div class="num" style="margin-top:8px" id="cbKToday">–</div><div class="mute small">Chat · Telefon · WhatsApp · Formular</div></div>
+  <div class="card"><span class="tag ok">Erledigt · 7 Tage</span><div class="num" style="margin-top:8px" id="cbKDone">–</div><div class="mute small" id="cbKFail">nicht erreicht: –</div></div>
+  <div class="card"><span class="tag indigo">KI-Gespräche · 7 Tage</span><div class="num" style="margin-top:8px" id="cbKAi">–</div><div class="mute small" id="cbKAiTry">Anrufversuche: –</div></div>
+</div>
+
+<div class="ws" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr))">
+  <div>
+    <div class="card">
+      <div class="sw" style="margin-top:0"><input type="checkbox" id="cbOn"><div><b>Rückrufwünsche annehmen</b><div class="mute small">Alle Agenten erhalten das Werkzeug „Rückruf eintragen“: Name, Nummer, Anliegen und Wunschzeit landen in der Liste rechts, du bekommst eine E-Mail.</div></div></div>
+      <div class="sw"><input type="checkbox" id="cbAi"><div><b>KI ruft zurück</b><div class="mute small">Dein Telefon-Agent ruft selbst zurück – zur Wunschzeit, innerhalb der Anrufzeiten, mit Gesprächsprotokoll.</div></div></div>
+      <div class="msg info" id="cbLegal"><b>Nur mit Einwilligung (UWG § 7):</b> Der Assistent ruft ausschließlich Personen an, die selbst um einen Rückruf gebeten haben – im Chat, am Telefon oder per WhatsApp gilt die Bitte als Einwilligung, Web-Formulare brauchen das Einwilligungs-Häkchen. Einwilligungen werden mit Zeitpunkt, IP-Prüfsumme und Wortlaut gespeichert (Nachweis nach § 7a UWG). Angerufen wird nur innerhalb der Anrufzeiten, höchstens mit der eingestellten Zahl an Versuchen; der Assistent stellt sich immer als digitaler Assistent vor.</div>
+
+      <div id="cbAiBox">
+        <div class="grid g2" style="gap:10px">
+          <div><label for="cbPlan">Agent, der anruft</label><select id="cbPlan"></select></div>
+          <div><label for="cbFrom">Absendernummer (optional)</label><input type="tel" id="cbFrom" placeholder="leer = Nummer des Agenten" maxlength="32"></div>
+        </div>
+        <div class="mute small" id="cbPlanInfo" style="margin-top:6px"></div>
+        <div id="cbReady" style="margin-top:10px"></div>
+        <div class="sw"><input type="checkbox" id="cbInstant"><div><b>Lead-Sofortrückruf</b><div class="mute small">Anfragen aus dem Rückruf-Formular, von Portalen oder Zapier mit Einwilligung ruft der Assistent innerhalb der Anrufzeiten in ca. 60 Sekunden an.</div></div></div>
+        <div class="grid g2" style="gap:10px">
+          <div><label for="cbMax">Anrufversuche höchstens</label><select id="cbMax"><option value="1">1 Versuch</option><option value="2">2 Versuche</option><option value="3">3 Versuche</option><option value="4">4 Versuche</option><option value="5">5 Versuche</option></select></div>
+          <div><label for="cbRetry">Abstand zwischen Versuchen</label><select id="cbRetry"><option value="15">15 Minuten</option><option value="30">30 Minuten</option><option value="60">1 Stunde</option><option value="120">2 Stunden</option><option value="240">4 Stunden</option><option value="1440">1 Tag</option></select></div>
+        </div>
+        <label for="cbIntro">Erster Satz am Telefon (optional)</label><input type="text" id="cbIntro" maxlength="300" placeholder="z. B. Guten Tag, hier ist Lisa, die digitale Assistentin von {firma}.">
+        <div class="mute small" style="margin-top:6px">Platzhalter: <b>{firma}</b>, <b>{name}</b>. Danach folgt automatisch: „Sie hatten um einen Rückruf gebeten – es geht um … Passt es Ihnen gerade?“</div>
+        <div class="snip" id="cbGreetPrev" style="font-family:inherit"></div>
+      </div>
+
+      <div class="sec"><h3>Anrufzeiten</h3><p class="mute small" style="margin:4px 0 8px">In diesen Zeiten ruft der Assistent an; Wunschzeiten außerhalb werden auf die nächste mögliche Zeit gelegt. Das Rückruf-Formular bietet nur diese Zeiten an.</p>
+        <div id="cbWin"></div>
+        <div class="row" style="margin-top:10px"><button class="btn s" type="button" id="cbWinCopy">Montag auf Di–Fr übertragen</button><span class="mute small" id="cbWinText"></span></div>
+        <div class="grid g2" style="gap:10px">
+          <div><label for="cbTz">Zeitzone</label><select id="cbTz"><option>Europe/Berlin</option><option>Europe/Vienna</option><option>Europe/Zurich</option><option>Europe/Luxembourg</option><option>Europe/Amsterdam</option><option>Europe/Paris</option><option>Europe/London</option><option>Europe/Istanbul</option></select></div>
+          <div><label for="cbNotify">Benachrichtigung an</label><input type="email" id="cbNotify" placeholder="leer = E-Mail deines Kontos" maxlength="190"></div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px"><button class="btn p" id="cbSave" type="button">Einstellungen speichern</button></div>
+      <div id="cbMsg"></div>
+
+      <div class="sec"><h3>Einbinden: Formular, Website, Portale</h3>
+        <p class="mute small" style="margin:4px 0 0" id="cbFormState"></p>
+        <label>Gehostete Seite „Rückruf anfordern“ (Link für Website, E-Mail-Signatur, Exposé, QR-Code)</label>
+        <div class="snip" id="cbFormLink">–</div>
+        <div class="row" style="margin-top:8px"><a class="btn s" id="cbFormOpen" href="#" target="_blank">Seite öffnen</a><button class="btn s" type="button" data-cbcopy="cbFormLink">Link kopieren</button><span class="mute small">Tipp: <b>&amp;topic=Objekt LQ-2041</b> belegt das Anliegen vor.</span></div>
+        <label>HTML-Formular für deine Website (sendet direkt an die Lead-API)</label>
+        <div class="snip" id="cbSnippet" style="max-height:220px;overflow:auto">–</div>
+        <div class="row" style="margin-top:8px"><button class="btn s" type="button" data-cbcopy="cbSnippet">Code kopieren</button></div>
+        <label>Portale, Zapier, Make (JSON per POST)</label>
+        <div class="snip" id="cbJson" style="max-height:220px;overflow:auto">–</div>
+        <div class="row" style="margin-top:8px"><button class="btn s" type="button" data-cbcopy="cbJson">Beispiel kopieren</button><span class="mute small">Antwort: {"ok":true,"code":"…","message":"…"} · weitere kurze Felder (Objekt, Budget …) landen als Details beim Lead.</span></div>
+      </div>
+
+      <details class="guide"><summary>So funktioniert's</summary><ol>
+        <li><b>Rückrufwunsch:</b> Im Chat, am Telefon oder per WhatsApp sagt der Kunde „Bitte rufen Sie mich zurück“ – der Agent fragt Name, Nummer, Anliegen und Wunschzeit ab und trägt den Rückruf ein. Du bekommst eine E-Mail mit Anruf-Knopf.</li>
+        <li><b>Team ruft an:</b> Ohne KI-Rückruf (oder wenn der Kunde ausdrücklich einen Menschen möchte) rufst du zurück und markierst den Eintrag als „Erledigt“.</li>
+        <li><b>KI ruft an:</b> Mit „KI ruft zurück“ startet dein Telefon-Agent den Anruf zur Wunschzeit: „Guten Tag, hier ist der digitale Assistent von … Sie hatten um einen Rückruf gebeten – passt es gerade?“ Er klärt das Anliegen, qualifiziert und bucht mit dem Termin-Modul direkt eine Besichtigung bzw. einen Termin.</li>
+        <li><b>Lead-Sofortrückruf:</b> Anfragen aus dem Formular, von ImmoScout24 &amp; Co. (über Zapier/Make) oder deiner Website werden innerhalb der Anrufzeiten in ca. 60 Sekunden angerufen – solange der Interessent noch am Bildschirm sitzt.</li>
+        <li><b>Nicht erreicht:</b> Bei Anrufbeantworter hinterlässt der Assistent eine kurze Nachricht und versucht es nach der eingestellten Pause erneut – höchstens so oft wie eingestellt. Danach bekommst du eine E-Mail „bitte selbst zurückrufen“.</li>
+        <li><b>Protokoll:</b> Jeder Anruf wird mit Transkript gespeichert – in der Liste unter „Gespräche“.</li>
+      </ol><div class="tip">Voraussetzung für KI-Anrufe: ein Telefon-Agent mit eingeschaltetem Telefon und Nummer (Studio → Telefon) sowie Twilio (eigenes Konto unter „Verbindungen“ oder über ChatHelp). Rechtlicher Hinweis: Angerufen werden nur Personen, die selbst um Rückruf gebeten haben. Lege im Formular deiner Website immer ein eigenes Einwilligungs-Häkchen an und übermittle den angezeigten Wortlaut im Feld consent_text.</div></details>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:19px">Rückrufliste</h3>
+        <div class="row" style="gap:6px"><button class="btn s p" type="button" data-cbscope="open">Offen <span id="cbCntOpen"></span></button><button class="btn s" type="button" data-cbscope="done">Erledigt</button><button class="btn s" type="button" data-cbscope="all">Alle</button></div></div>
+      <div class="row" style="justify-content:space-between;margin-top:8px"><span class="mute small" id="cbLive">wird geladen …</span><button class="btn s" type="button" id="cbNewToggle">+ Rückruf eintragen</button></div>
+
+      <div id="cbNew" class="call hidden" style="background:var(--sur2)">
+        <b>Rückruf manuell eintragen</b>
+        <div class="grid g2" style="gap:10px">
+          <div><label for="cbNName">Name</label><input type="text" id="cbNName" maxlength="120" placeholder="Vor- und Nachname"></div>
+          <div><label for="cbNPhone">Telefon</label><input type="tel" id="cbNPhone" maxlength="40" placeholder="0170 1234567"></div>
+        </div>
+        <label for="cbNTopic">Anliegen</label><input type="text" id="cbNTopic" maxlength="500" placeholder="z. B. Besichtigung LQ-2041, Rückfrage zur Finanzierung">
+        <div class="grid g2" style="gap:10px">
+          <div><label for="cbNWhen">Wunschzeit</label><input type="text" id="cbNWhen" maxlength="60" placeholder="so schnell wie möglich · heute 16 Uhr · morgen vormittag"></div>
+          <div><label for="cbNBy">Wer ruft an?</label><select id="cbNBy"><option value="team">Team</option><option value="assistant">KI-Assistent</option></select></div>
+        </div>
+        <label for="cbNEmail">E-Mail (optional)</label><input type="email" id="cbNEmail" maxlength="190" placeholder="name@beispiel.de">
+        <div class="sw"><input type="checkbox" id="cbNUrgent"><div><b>Dringend</b><div class="mute small">steht oben in der Liste und in der E-Mail</div></div></div>
+        <div class="sw"><input type="checkbox" id="cbNConsent"><div><b>Der Kunde hat um Rückruf gebeten</b><div class="mute small">Einwilligung – Voraussetzung, damit der KI-Assistent anrufen darf</div></div></div>
+        <div class="row" style="margin-top:12px"><button class="btn p s" type="button" id="cbNSave">Eintragen</button><button class="btn s ghost" type="button" id="cbNCancel">Abbrechen</button></div>
+        <div id="cbNMsg"></div>
+      </div>
+
+      <div id="cbListMsg"></div>
+      <div id="cbList"></div>
+    </div>
+  </div>
+</div>

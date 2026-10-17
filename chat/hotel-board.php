@@ -144,7 +144,7 @@ function arrCard(b,today){
   return '<div class="cd'+(done?' done':'')+'"><div class="top"><span class="nm">'+esc(b.name)+'</span>'+tag+'</div>'
    +'<div class="meta">'+esc(b.room)+' · '+b.guests+' '+(b.guests===1?'Gast':'Gäste')+' · '+nightsTxt(b.nights)+' (bis '+esc(b.checkout_short)+')'+(b.breakfast?' · Frühstück':'')+'</div>'
    +(b.note?'<div class="note">📝 '+esc(b.note)+'</div>':'')
-   +'<div class="meta s">'+(contact(b)?contact(b)+' · ':'')+'Code '+esc(b.code)+' · '+esc(CH[b.channel]||b.channel)+' · '+esc(b.total)+'</div>'
+   +'<div class="meta s">'+(contact(b)?contact(b)+' · ':'')+(b.code?'Code '+esc(b.code)+' · ':'')+esc(CH[b.channel]||b.channel)+' · '+esc(b.total)+'</div>'
    +(acts?'<div class="acts">'+acts+'</div>':'')+'</div>';
 }
 function depCard(b,today){

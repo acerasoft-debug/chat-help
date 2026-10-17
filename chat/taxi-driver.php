@@ -8,7 +8,7 @@
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/ride-lib.php';
 th_nocache(); th_bootstrap(); th_fresh();
-$t=preg_replace('/[^a-f0-9]/','',(string)($_GET['t'] ?? '')); $drv=ride_driver_by_token($t);
+$t=preg_replace('/[^a-f0-9]/','',ride_str($_GET['t'] ?? '')); $drv=ride_driver_by_token($t);   // ride_str: ?t[]=… ergibt '' statt PHP-Warnung
 $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
 if(!$drv){ http_response_code(404); header('Content-Type: text/html; charset=UTF-8'); ?><!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fahrer-Link ungültig</title><meta name="robots" content="noindex">
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0f1222;color:#fff;font:16px/1.55 Inter,system-ui,sans-serif;padding:16px}.b{max-width:420px;background:#171b33;border:1px solid #2a2f4a;border-radius:22px;padding:26px}h1{font-size:21px;margin:0 0 8px}p{color:#9aa0c0;margin:0}</style></head>
@@ -17,23 +17,28 @@ if(!$drv){ http_response_code(404); header('Content-Type: text/html; charset=UTF
 $acc=(int)$drv['account_id']; $did=(int)$drv['id']; $s=ride_settings($acc); $tz=ride_tz($s); $now=ride_now($s);
 $self='?t='.$t;
 if($_SERVER['REQUEST_METHOD']==='POST'){
-    $do=(string)($_POST['do'] ?? ''); $m='ok';
-    if($do==='me'){ $st=(string)($_POST['s'] ?? ''); $m=in_array($st,['frei','pause'],true) && !isset(ride_driver_set_status($acc,$did,$st)['error']) ? 'me' : 'err'; }
+    $do=ride_str($_POST['do'] ?? ''); $m='ok';
+    if($do==='me'){ $st=ride_str($_POST['s'] ?? ''); $res=in_array($st,['frei','pause'],true) ? ride_driver_set_status($acc,$did,$st) : ['error'=>'bad_status']; $m=isset($res['error']) ? 'err' : (!empty($res['kept_busy']) ? 'busy' : 'me'); }
     elseif($do==='status'){
-        $id=(int)($_POST['id'] ?? 0); $st=(string)($_POST['s'] ?? '');
+        $id=(int)ride_str($_POST['id'] ?? '0'); $st=ride_str($_POST['s'] ?? ''); $from=ride_str($_POST['from'] ?? '');   // from = Status, den der Fahrer gesehen hat
         $q=th_db()->prepare("SELECT id FROM rides WHERE id=? AND account_id=? AND driver_id=?"); $q->execute([$id,$acc,$did]);
-        if($q->fetchColumn() && in_array($st,['en_route','arrived','onboard','completed','no_show'],true)){ $res=ride_set_status($acc,$id,$st,null,'Fahrer'); $m=isset($res['error']) ? 'err' : $st; } else $m='err';
+        if($q->fetchColumn() && in_array($st,['en_route','arrived','onboard','completed','no_show'],true)){ $res=ride_set_status($acc,$id,$st,null,'Fahrer',$from!=='' ? $from : null); $m=isset($res['error']) ? ($res['error']==='conflict' ? 'conflict' : 'err') : $st; }
+        else $m='err';
     }
     header('Location: '.$self.'&_='.dechex(time()).'&m='.rawurlencode($m),true,303); exit;
 }
+ride_drivers_sync($acc,$s);   // gleich fällige Vorbestellung → „besetzt“, auch ohne Statuswechsel der Fahrt
 $drv=ride_driver($acc,$did) ?? $drv;
 $q=th_db()->prepare("SELECT * FROM rides WHERE account_id=? AND driver_id=? AND status IN ('assigned','en_route','arrived','onboard') AND pickup_at >= ? ORDER BY FIELD(status,'onboard','arrived','en_route','assigned'), asap DESC, pickup_at, id");
-$q->execute([$acc,$did,$now->modify('-12 hours')->format('Y-m-d H:i:s')]); $drvList=[$drv];
+$q->execute([$acc,$did,$now->modify('-'.RIDE_OPEN_HOURS.' hours')->format('Y-m-d H:i:s')]); $drvList=[$drv];
 $rides=array_map(fn($r)=>ride_public($r,$s,$drvList),$q->fetchAll(PDO::FETCH_ASSOC));
 $cur=null; $next=[];
 foreach($rides as $r){ if($cur===null && ($r['status']!=='assigned' || $r['asap'] || ($r['due_in_min']!==null && $r['due_in_min']<=60))) $cur=$r; else $next[]=$r; }
 $q=th_db()->prepare("SELECT COUNT(*) FROM rides WHERE account_id=? AND driver_id=? AND status='completed' AND pickup_at BETWEEN ? AND ?"); $q->execute([$acc,$did,$now->format('Y-m-d 00:00:00'),$now->format('Y-m-d 23:59:59')]); $done=(int)$q->fetchColumn();
-$flash=['me'=>'Status gespeichert.','en_route'=>'Anfahrt gestartet – gute Fahrt!','arrived'=>'Gemeldet: Du bist da. Der Fahrgast wird informiert.','onboard'=>'Fahrgast an Bord.','completed'=>'Fahrt beendet ✓ Danke!','no_show'=>'Als „nicht angetroffen“ gemeldet.','err'=>'Das hat nicht geklappt – bitte noch einmal versuchen oder die Zentrale anrufen.'][(string)($_GET['m'] ?? '')] ?? '';
+$flash=['me'=>'Status gespeichert.','en_route'=>'Anfahrt gestartet – gute Fahrt!','arrived'=>'Gemeldet: Du bist da. Der Fahrgast wird informiert.','onboard'=>'Fahrgast an Bord.','completed'=>'Fahrt beendet ✓ Danke!','no_show'=>'Als „nicht angetroffen“ gemeldet.','err'=>'Das hat nicht geklappt – bitte noch einmal versuchen oder die Zentrale anrufen.',
+    'conflict'=>'Die Fahrt wurde inzwischen geändert (z. B. von der Zentrale umdisponiert oder vom Fahrgast storniert) – hier der aktuelle Stand.',
+    'busy'=>'Du hast eine laufende bzw. gleich fällige Fahrt – dein Status bleibt „besetzt“.'][ride_str($_GET['m'] ?? '')] ?? '';
+$flashErr=in_array(ride_str($_GET['m'] ?? ''),['err','conflict'],true);
 $telZ=$s['phone']!=='' ? preg_replace('/[^0-9+]/','',$s['phone']) : '';
 $step=['assigned'=>['en_route','▶ Anfahrt starten','go'],'en_route'=>['arrived','📍 Bin da','go'],'arrived'=>['onboard','👤 Kunde an Bord','ok'],'onboard'=>['completed','🏁 Fahrt beendet','ok']];
 header('Content-Type: text/html; charset=UTF-8');
@@ -64,7 +69,7 @@ h3{font:700 12px Inter;letter-spacing:.12em;text-transform:uppercase;color:var(-
 </style></head>
 <body><div class="w">
 <div class="hd"><div><b>🚖 <?= $e($drv['name']) ?></b><small><?= $e($drv['vehicle'] ?: ($s['name'] ?: 'Taxi')) ?><?= $drv['plate']!=='' ? ' · <span style="white-space:nowrap">'.$e($drv['plate']).'</span>' : '' ?></small></div><div class="tm"><?= $e($s['name'] ?: 'Zentrale') ?><br>heute erledigt: <b style="color:#fff"><?= $done ?></b> · <?= $e($now->format('H:i')) ?></div></div>
-<?php if($flash!==''): ?><div class="fl <?= ($_GET['m'] ?? '')==='err' ? 'err' : '' ?>"><?= $e($flash) ?></div><?php endif; ?>
+<?php if($flash!==''): ?><div class="fl <?= $flashErr ? 'err' : '' ?>"><?= $e($flash) ?></div><?php endif; ?>
 <div class="sw">
   <?php foreach(['frei'=>'🟢 Frei','pause'=>'⏸ Pause'] as $k=>$lbl): ?><form method="post" action="<?= $e($self) ?>" onsubmit="this.classList.add('busy')"><input type="hidden" name="do" value="me"><input type="hidden" name="s" value="<?= $k ?>"><button type="submit" class="<?= $k ?><?= $drv['status']===$k ? ' on' : '' ?>" style="width:100%"><?= $lbl ?></button></form><?php endforeach; ?>
   <?php if($drv['status']==='besetzt'): ?><div class="busyl">● Besetzt – du bist auf einer Fahrt</div><?php endif; ?>
@@ -82,8 +87,8 @@ h3{font:700 12px Inter;letter-spacing:.12em;text-transform:uppercase;color:var(-
     <div class="btns">
       <?php if($nav): ?><a class="b nav" href="<?= $e($nav) ?>" target="_blank" rel="noopener">🗺 <?= $toDest ? 'Zum Ziel' : 'Zum Abholort' ?></a><?php else: ?><span class="b call" style="opacity:.5">🗺 kein Ziel</span><?php endif; ?>
       <?php if($r['phone']!==''): ?><a class="b call" href="tel:<?= $e(preg_replace('/[^0-9+]/','',$r['phone'])) ?>">📞 Fahrgast</a><?php elseif($telZ!==''): ?><a class="b call" href="tel:<?= $e($telZ) ?>">📞 Zentrale</a><?php endif; ?>
-      <?php if($nx): ?><form method="post" action="<?= $e($self) ?>" class="full" onsubmit="this.classList.add('busy');this.querySelector('button').disabled=true"><input type="hidden" name="do" value="status"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="s" value="<?= $nx[0] ?>"><button class="b <?= $nx[2] ?>" type="submit"><?= $e($nx[1]) ?></button></form><?php endif; ?>
-      <?php if(in_array($r['status'],['en_route','arrived'],true)): ?><form method="post" action="<?= $e($self) ?>" class="full" onsubmit="if(!confirm('Fahrgast wirklich nicht angetroffen?'))return false;this.classList.add('busy')"><input type="hidden" name="do" value="status"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="s" value="no_show"><button class="b x" type="submit">Kunde nicht da</button></form><?php endif; ?>
+      <?php if($nx): ?><form method="post" action="<?= $e($self) ?>" class="full" onsubmit="this.classList.add('busy');this.querySelector('button').disabled=true"><input type="hidden" name="do" value="status"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="from" value="<?= $e($r['status']) ?>"><input type="hidden" name="s" value="<?= $nx[0] ?>"><button class="b <?= $nx[2] ?>" type="submit"><?= $e($nx[1]) ?></button></form><?php endif; ?>
+      <?php if(in_array($r['status'],['en_route','arrived'],true)): ?><form method="post" action="<?= $e($self) ?>" class="full" onsubmit="if(!confirm('Fahrgast wirklich nicht angetroffen?'))return false;this.classList.add('busy')"><input type="hidden" name="do" value="status"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="from" value="<?= $e($r['status']) ?>"><input type="hidden" name="s" value="no_show"><button class="b x" type="submit">Kunde nicht da</button></form><?php endif; ?>
     </div>
   </div>
 <?php endif; ?>

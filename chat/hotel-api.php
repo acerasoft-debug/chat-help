@@ -17,7 +17,11 @@ $acc=hotel_account_by_board($t); if($acc===null) th_json(403,['error'=>'bad_toke
 $m=$_SERVER['REQUEST_METHOD'] ?? 'GET';
 try{
     if($a==='board' && $m==='GET'){ if($acc===0) hotel_demo_seed(); th_json(200,hotel_board($acc,$acc===0)); }
-    if($a==='request' && $m==='POST'){ $r=hotel_request_set_status($acc,(int)($in['id'] ?? 0),(string)($in['status'] ?? '')); th_json(isset($r['error']) ? ($r['error']==='not_found' ? 404 : 422) : 200,$r); }
+    if($a==='request' && $m==='POST'){
+        $r=hotel_request_set_status($acc,(int)($in['id'] ?? 0),(string)($in['status'] ?? ''));
+        if($acc===0 && isset($r['request'])) $r['request']=hotel_mask_request($r['request']);   // Demo: wie auf dem Board maskieren
+        th_json(isset($r['error']) ? ($r['error']==='not_found' ? 404 : 422) : 200,$r);
+    }
     if($a==='booking' && $m==='POST'){
         $r=hotel_booking_action($acc,(int)($in['id'] ?? 0),(string)($in['action'] ?? ''),(string)($in['room_no'] ?? ''),'board');
         if($acc===0 && isset($r['booking'])) $r['booking']=hotel_mask($r['booking']);

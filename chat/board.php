@@ -38,7 +38,7 @@ select{padding:10px;border-radius:12px;border:1px solid var(--line);background:#
 <div class="toast" id="toast">Neue Bestellung!</div>
 <script>
 const T=<?= json_encode($t) ?>, API='/chat/order-api.php'; const $=s=>document.querySelector(s);
-let seen=null, drivers=[], sound=localStorage.getItem('kb_sound')!=='0';
+let seen=null, drivers=[], sound=localStorage.getItem('kb_sound')!=='0'; const mine=new Set();   // mine: hier am Board selbst stornierte Bestellungen (kein Storno-Hinweis)
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 $('#snd').textContent=sound?'🔔 Ton an':'🔕 Ton aus';$('#snd').onclick=()=>{sound=!sound;localStorage.setItem('kb_sound',sound?'1':'0');$('#snd').textContent=sound?'🔔 Ton an':'🔕 Ton aus';if(sound)beep();};
 function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();[0,.18,.36].forEach(t=>{const o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.0001,a.currentTime+t);g.gain.exponentialRampToValueAtTime(.4,a.currentTime+t+.02);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+t+.16);o.start(a.currentTime+t);o.stop(a.currentTime+t+.18);});}catch(e){}}
@@ -61,8 +61,10 @@ async function load(){try{const r=await fetch(`${API}?a=board&t=${T}&_=${Date.no
   const o=j.orders||[];const c1=o.filter(x=>x.status==='new'||x.status==='confirmed'),c2=o.filter(x=>x.status==='preparing'),c3=o.filter(x=>x.status==='ready'||x.status==='out_for_delivery');
   $('#c1').innerHTML=c1.map(card).join('')||'<div class="empty">Keine neuen Bestellungen</div>';$('#c2').innerHTML=c2.map(card).join('')||'<div class="empty">–</div>';$('#c3').innerHTML=c3.map(card).join('')||'<div class="empty">–</div>';
   $('#n1').textContent=c1.length;$('#n2').textContent=c2.length;$('#n3').textContent=c3.length;
-  const ids=new Set(o.map(x=>x.id));if(seen){const fresh=o.filter(x=>!seen.has(x.id)&&x.status==='new');if(fresh.length){if(sound)beep();const t=$('#toast');t.textContent=`Neue Bestellung ${fresh.map(f=>f.code).join(', ')}!`;t.style.display='block';setTimeout(()=>t.style.display='none',6000);}}seen=ids;
+  const ids=new Set(o.map(x=>x.id));if(seen){const fresh=o.filter(x=>!seen.has(x.id)&&x.status==='new'),gone=(j.cancelled||[]).filter(c=>seen.has(c.id)&&!ids.has(c.id)&&!mine.has(c.id));   // offene Bestellung inzwischen storniert (Kunde/Studio) → Hinweis statt stillem Verschwinden
+    const msg=[fresh.length?`Neue Bestellung ${fresh.map(f=>f.code).join(', ')}!`:'',gone.length?`Storniert: ${gone.map(c=>c.code).join(', ')}`:''].filter(Boolean).join(' · ');
+    if(msg){if(sound)beep();const t=$('#toast');t.textContent=msg;t.style.background=gone.length?'var(--rose)':'';t.style.color=gone.length?'#fff':'';t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',gone.length?15000:6000);}}seen=ids;
   $('#st').textContent=`${o.length} offen · aktualisiert ${new Date().toLocaleTimeString('de-DE')}`;}catch(e){$('#st').textContent='⚠ '+e.message;}}
-async function st(id,status,driver_id){try{const r=await fetch(`${API}?a=status&t=${T}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status,driver_id:driver_id||null})});const j=await r.json();if(!r.ok)throw new Error(j.hint||j.error||r.status);load();}catch(e){alert('Fehler: '+e.message);load();}}
+async function st(id,status,driver_id){if(status==='cancelled')mine.add(id);try{const r=await fetch(`${API}?a=status&t=${T}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status,driver_id:driver_id||null})});const j=await r.json();if(!r.ok)throw new Error(j.hint||j.error||r.status);load();}catch(e){alert('Fehler: '+e.message);load();}}
 load();setInterval(load,15000);
 </script></body></html>

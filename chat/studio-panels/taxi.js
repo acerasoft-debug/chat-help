@@ -3,7 +3,7 @@
 (function(){
   'use strict';
   var PANEL='panel-taxi';
-  var S=null, LBL={statuses:{},payments:{}}, LINKS={}, LIVE={rides:[],drivers:[]}, timer=null, pendingRender=false, busy=false, lastQuote=null;
+  var S=null, LBL={statuses:{},payments:{}}, LINKS={}, LIVE={rides:[],drivers:[]}, timer=null, pendingRender=false, busy=false, lastQuote=null, vseq=0;
   var g=function(id){return document.getElementById(id);};
   var h=function(v){return esc(v==null?'':String(v));};
   var visible=function(){var el=g(PANEL);return !!el&&!el.closest('.hidden');};
@@ -22,14 +22,17 @@
   /* ---------- Editor-Zeilen ---------- */
   function addVeh(v){v=v||{};var d=line('<input type="hidden" class="vKey" value="'+h(v.key||'')+'"><input type="text" class="vName" placeholder="z. B. Großraumtaxi (bis 8 Personen)" value="'+h(v.name||'')+'" style="flex:2;min-width:150px">'+
     '<input type="text" class="vSeats" inputmode="numeric" value="'+h(v.seats||4)+'" style="width:58px" title="Plätze"><span class="mute small">Plätze</span><input type="text" class="vFac" inputmode="decimal" value="'+h(dnum(v.factor==null?1:v.factor))+'" style="width:64px" title="Preisfaktor"><span class="mute small">× Tarif</span><button class="btn s" type="button" data-rm title="entfernen">✕</button>');
+    d.dataset.vid=v.key||('neu-'+(++vseq));   /* gespeicherte Typen: Schlüssel; neue (noch ohne Schlüssel): eindeutige Zeilen-Id – der Server ordnet sie über den Namen zu */
     rm(d);d.querySelector('.vName').addEventListener('input',refreshSelects);g('txVeh').appendChild(d);}
   function addFix(f){f=f||{};var d=line('<input type="text" class="fName" placeholder="Flughafen Köln/Bonn" value="'+h(f.name||'')+'" style="flex:1.2;min-width:130px"><input type="text" class="fMatch" placeholder="flughafen|airport|cgn" value="'+h(f.match||'')+'" style="flex:1.5;min-width:140px" title="Stichwörter mit | trennen">'+
     '<input type="text" class="fPrice" inputmode="decimal" value="'+h(f.price_cents?eurOut(f.price_cents):'')+'" placeholder="39,00" style="width:78px" title="Festpreis €"><span class="mute small">€</span><button class="btn s" type="button" data-rm title="entfernen">✕</button>');rm(d);g('txFix').appendChild(d);}
   function addStand(st){st=st||{};var geo=st.name?(st.lat!=null?'<span class="tag ok" title="'+h(st.lat+', '+st.lon)+'">Ort ✓</span>':'<span class="tag rose" title="Adresse beim Speichern nicht gefunden – bitte mit PLZ und Ort eintragen">nicht gefunden</span>'):'<span class="tag">neu</span>';
     var d=line('<input type="text" class="sName" placeholder="Hauptbahnhof" value="'+h(st.name||'')+'" style="flex:1;min-width:120px"><input type="text" class="sAddr" placeholder="Trankgasse 11, 50667 Köln" value="'+h(st.address||'')+'" style="flex:2;min-width:170px">'+geo+'<button class="btn s" type="button" data-rm title="entfernen">✕</button>');
     rm(d);d.querySelector('.sName').addEventListener('input',refreshSelects);g('txStands').appendChild(d);}
-  function vehOptions(cur){var rows=[].slice.call(document.querySelectorAll('#txVeh .row')).map(function(r){return {key:r.querySelector('.vKey').value,name:r.querySelector('.vName').value.trim()};}).filter(function(v){return v.name;});
-    if(!rows.length&&S)rows=S.vehicles||[];return rows.map(function(v){var k=v.key||'';return '<option value="'+h(k)+'"'+(k===cur?' selected':'')+'>'+h(v.name)+(k?'':' (neu)')+'</option>';}).join('');}
+  function vehRows(){var rows=[].slice.call(document.querySelectorAll('#txVeh .row')).map(function(r){var k=r.querySelector('.vKey').value;return {vid:r.dataset.vid||k,key:k,name:r.querySelector('.vName').value.trim()};}).filter(function(v){return v.name;});
+    if(!rows.length&&S)rows=(S.vehicles||[]).map(function(v){return {vid:v.key,key:v.key,name:v.name};});return rows;}
+  /* savedOnly: nur gespeicherte Typen (Preisrechner – der Server kennt neue Typen erst nach dem Speichern) */
+  function vehOptions(cur,savedOnly){return vehRows().filter(function(v){return !savedOnly||v.key;}).map(function(v){var val=savedOnly?v.key:v.vid;return '<option value="'+h(val)+'"'+(val===cur?' selected':'')+'>'+h(v.name)+(v.key?'':' (neu)')+'</option>';}).join('');}
   function standOptions(cur){var names=[].slice.call(document.querySelectorAll('#txStands .sName')).map(function(i){return i.value.trim();}).filter(Boolean);
     if(cur&&names.indexOf(cur)<0)names.push(cur);return '<option value="">ohne Stand (Zentrale)</option>'+names.map(function(n){return '<option'+(n===cur?' selected':'')+'>'+h(n)+'</option>';}).join('');}
   function addDrv(x){x=x||{};var d=document.createElement('div');d.className='call';d.dataset.id=x.id||0;
@@ -45,7 +48,7 @@
     g('txDrivers').appendChild(d);refreshSelects();}
   function refreshSelects(){document.querySelectorAll('#txDrivers .dType').forEach(function(s){var cur=s.value||s.dataset.cur||'';s.innerHTML=vehOptions(cur);if(cur)s.value=cur;});
     document.querySelectorAll('#txDrivers .dStand').forEach(function(s){var cur=s.value||s.dataset.cur||'';s.innerHTML=standOptions(cur);s.value=cur;});
-    var cv=g('txCVeh');if(cv){var c=cv.value;cv.innerHTML='<option value="">automatisch</option>'+vehOptions('');cv.value=c;}}
+    var cv=g('txCVeh');if(cv){var c=cv.value;cv.innerHTML='<option value="">automatisch</option>'+vehOptions('',true);cv.value=c;if(cv.value!==c)cv.value='';}}
 
   /* ---------- Laden / Anzeigen ---------- */
   function fill(j){S=j.settings||{};LBL=j.labels||LBL;LINKS=j.links||{};
@@ -72,8 +75,10 @@
     var veh=[].slice.call(document.querySelectorAll('#txVeh .row')).map(function(r){return {key:r.querySelector('.vKey').value,name:r.querySelector('.vName').value.trim(),seats:int(r.querySelector('.vSeats').value,4,1,20),factor:dec(r.querySelector('.vFac').value,1)};}).filter(function(v){return v.name;});
     var fix=[].slice.call(document.querySelectorAll('#txFix .row')).map(function(r){return {name:r.querySelector('.fName').value.trim(),match:r.querySelector('.fMatch').value.trim(),price_cents:cents(r.querySelector('.fPrice').value)};}).filter(function(f){return f.name;});
     var stands=[].slice.call(document.querySelectorAll('#txStands .row')).map(function(r){return {name:r.querySelector('.sName').value.trim(),address:r.querySelector('.sAddr').value.trim()};}).filter(function(s){return s.name;});
-    var drivers=[].slice.call(document.querySelectorAll('#txDrivers .call')).map(function(r){return {id:+r.dataset.id||0,name:r.querySelector('.dName').value.trim(),phone:r.querySelector('.dPhone').value.trim(),vehicle:r.querySelector('.dVeh').value.trim(),plate:r.querySelector('.dPlate').value.trim(),
-      seats:int(r.querySelector('.dSeats').value,4,1,20),vehicle_key:r.querySelector('.dType').value,stand:r.querySelector('.dStand').value};}).filter(function(d){return d.name;});
+    var vmap={};vehRows().forEach(function(v){vmap[v.vid]=v;});
+    var drivers=[].slice.call(document.querySelectorAll('#txDrivers .call')).map(function(r){var vid=r.querySelector('.dType').value,vt=vmap[vid];
+      return {id:+r.dataset.id||0,name:r.querySelector('.dName').value.trim(),phone:r.querySelector('.dPhone').value.trim(),vehicle:r.querySelector('.dVeh').value.trim(),plate:r.querySelector('.dPlate').value.trim(),
+      seats:int(r.querySelector('.dSeats').value,4,1,20),vehicle_key:vt?vt.key:vid,vehicle_name:vt?vt.name:'',stand:r.querySelector('.dStand').value};}).filter(function(d){return d.name;});
     return {ride_on:g('txOn').checked?1:0,name:g('txName').value.trim(),address:g('txAddress').value.trim(),phone:g('txPhone').value.trim(),notify_email:g('txNotify').value.trim(),tz:g('txTz').value,
       area_km:int(g('txArea').value,25,1,300),eta_min:int(g('txEta').value,8,1,90),prebook_days:int(g('txPre').value,14,0,90),area_plz:g('txPlz').value,
       tariff:{base_cents:cents(g('txBase').value),km1_cents:cents(g('txKm1').value),km1_upto:dec(g('txUpto').value,7),km2_cents:cents(g('txKm2').value),wait_min_cents:cents(g('txWait').value),min_fare_cents:cents(g('txMin').value),
@@ -87,7 +92,7 @@
     api('/ride/settings',{method:'POST',body:JSON.stringify(p)}).then(function(j){fill(j);msg(out,'Gespeichert ✓ – Agent, Board und Fahrer-App nutzen die Einstellungen sofort.'+(j.settings&&j.settings.address&&j.settings.lat==null?' Hinweis: Die Adresse der Zentrale wurde nicht gefunden.':''),'ok');loadRides(true);})
       .catch(function(e){msg(out,h(e.message),'err');}).then(function(){btn.disabled=false;});}
   function driverCycle(id,btn){var d=null;(LIVE.drivers||[]).forEach(function(x){if(x.id===id)d=x;});var cur=d?d.status:(btn.textContent.trim()==='besetzt'?'besetzt':(btn.textContent.trim()==='Pause'?'pause':'frei'));
-    btn.disabled=true;api('/ride/driver',{method:'POST',body:JSON.stringify({id:id,status:DNEXT[cur]||'frei'})}).then(function(j){var st=DS[j.driver.status]||DS.frei;btn.innerHTML='<span class="tag '+st[1]+'">'+h(st[0])+'</span>';loadRides(true);})
+    btn.disabled=true;api('/ride/driver',{method:'POST',body:JSON.stringify({id:id,status:DNEXT[cur]||'frei'})}).then(function(j){var st=DS[j.driver.status]||DS.frei;btn.innerHTML='<span class="tag '+st[1]+'">'+h(st[0])+'</span>';if(j.kept_busy)msg(g('txMsg2'),h(j.driver.name+': '+(j.hint||'bleibt besetzt')),'info');loadRides(true);})
       .catch(function(e){msg(g('txMsg2'),h(e.message),'err');}).then(function(){btn.disabled=false;});}
 
   /* ---------- Live-Fahrten ---------- */
@@ -114,10 +119,11 @@
   function loadRides(quiet){return api('/ride/rides?scope='+(g('txAll').checked?'all':'open')).then(function(j){LIVE=j;stats(j.stats);renderRides();})
     .catch(function(e){if(!quiet)g('txList').textContent=e.message;});}
   function act(e){var b=e.target.closest('[data-act]');if(!b||busy)return;var id=+b.dataset.id,a=b.dataset.act,body={id:id,status:a};
+    (LIVE.rides||[]).forEach(function(x){if(x.id===id)body.from=x.status;});   /* zuletzt gesehener Status → Konflikt statt stiller Überschreibung, wenn Board/Fahrer/Kunde schneller war */
     if(a==='assign'){var s=document.querySelector('#txList select[data-sel="'+id+'"]');if(!s||!s.value){alert('Bitte zuerst unten Fahrer anlegen.');return;}body.status='assigned';body.driver_id=+s.value;}
     if(a==='cancelled'&&!confirm('Fahrt stornieren?'))return;if(a==='no_show'&&!confirm('Kunde nicht angetroffen?'))return;if(a==='new'&&!confirm('Fahrer von dieser Fahrt abziehen?'))return;
     busy=true;b.disabled=true;api('/ride/status',{method:'POST',body:JSON.stringify(body)}).then(function(j){if(j.warnings&&j.warnings.length)alert(j.warnings.join('\n'));return loadRides(true);})
-      .catch(function(err){alert((err.data&&err.data.hint)||err.message);b.disabled=false;}).then(function(){busy=false;});}
+      .catch(function(err){alert((err.data&&err.data.hint)||err.message);b.disabled=false;return loadRides(true);}).then(function(){busy=false;});}
 
   /* ---------- Preisrechner / manuelle Fahrt ---------- */
   function calcInput(){return {pickup:g('txCPick').value.trim(),destination:g('txCDest').value.trim(),time:g('txCTime').value.trim()||'sofort',vehicle:g('txCVeh').value,passengers:String(int(g('txCPax').value,1,1,16)),extras:g('txCExtras').value.trim()};}

@@ -8,7 +8,7 @@
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/ride-lib.php';
 require_once __DIR__.'/pagever.php'; th_nocache(); ch_page_version(__FILE__);
-$t=preg_replace('/[^a-f0-9]/','',(string)($_GET['t'] ?? ''));
+$t=preg_replace('/[^a-f0-9]/','',ride_str($_GET['t'] ?? ''));
 $acc=null; if(strlen($t)===24){ th_bootstrap(); $acc=ride_account_by_board_token($t); }
 header('Content-Type: text/html; charset=UTF-8');
 if($acc===null){ http_response_code(404); ?><!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Board-Link ungültig</title><meta name="robots" content="noindex">
@@ -133,11 +133,12 @@ function post(a,body){return fetch(API+'?a='+a+'&t='+T,{method:'POST',headers:{'
 document.addEventListener('change',function(e){var s=e.target.closest('select[data-sel]');if(s)sel[s.dataset.sel]=s.value;});
 document.addEventListener('focusout',function(e){if(e.target.tagName==='SELECT')setTimeout(function(){if(pending)render();},50);});
 document.addEventListener('click',function(e){var b=e.target.closest('[data-act]'),p=e.target.closest('[data-drv]');
-  if(b&&!busy){var id=+b.dataset.id,act=b.dataset.act,body={id:id,status:act};
+  if(b&&!busy){var id=+b.dataset.id,act=b.dataset.act,body={id:id,status:act},seenR=null;
+    (D.rides||[]).forEach(function(x){if(x.id===id)seenR=x;});if(seenR)body.from=seenR.status;   /* zuletzt gesehener Status: hat jemand anders die Fahrt inzwischen geändert, meldet der Server einen Konflikt */
     if(act==='assign'){var s=document.querySelector('select[data-sel="'+id+'"]');if(!s||!s.value){toast('Bitte zuerst einen Fahrer anlegen bzw. wählen.',true);return;}body.status='assigned';body.driver_id=+s.value;}
     if(act==='cancelled'&&!confirm('Fahrt wirklich stornieren?'))return;if(act==='no_show'&&!confirm('Kunde nicht angetroffen – Fahrt abschließen?'))return;if(act==='new'&&!confirm('Fahrer von dieser Fahrt abziehen?'))return;
-    busy=true;b.disabled=true;post('status',body).then(function(j){delete sel[id];if(j.warnings&&j.warnings.length)toast('⚠ '+j.warnings.join(' '),true);return load();}).catch(function(err){toast('Fehler: '+err.message,true);b.disabled=false;}).then(function(){busy=false;});}
-  if(p&&!busy){var d=drvById(+p.dataset.drv);if(!d)return;busy=true;post('driver',{driver_id:d.id,status:NEXT[d.status]||'frei'}).then(load).catch(function(err){toast('Fehler: '+err.message,true);}).then(function(){busy=false;});}});
+    busy=true;b.disabled=true;post('status',body).then(function(j){delete sel[id];if(j.warnings&&j.warnings.length)toast('⚠ '+j.warnings.join(' '),true);return load();}).catch(function(err){toast('Fehler: '+err.message,true);b.disabled=false;delete sel[id];return load();}).then(function(){busy=false;});}
+  if(p&&!busy){var d=drvById(+p.dataset.drv);if(!d)return;busy=true;post('driver',{driver_id:d.id,status:NEXT[d.status]||'frei'}).then(function(j){if(j.kept_busy)toast(d.name+': '+(j.hint||'bleibt besetzt'),true);return load();}).catch(function(err){toast('Fehler: '+err.message,true);}).then(function(){busy=false;});}});
 load();setInterval(function(){if(!busy)load();},10000);
 })();
 </script></body></html>

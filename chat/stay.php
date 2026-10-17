@@ -28,6 +28,7 @@ $pill=['requested'=>'ind','confirmed'=>'ok','checked_in'=>'ok','checked_out'=>'n
 $steps=[['requested','Anfrage'],['confirmed','Bestätigt'],['checked_in','Eingecheckt'],['checked_out','Abgereist']];
 $idx=array_search($st,array_column($steps,0),true);
 $live=$st==='requested'; $active=in_array($st,['requested','confirmed','checked_in'],true);
+$mails=$b ? !hotel_silent((int)$b['account_id'],(string)$b['channel']) : false;   // Live-Demo: es werden keine E-Mails versendet
 $monS=['Jan.','Feb.','März','Apr.','Mai','Juni','Juli','Aug.','Sept.','Okt.','Nov.','Dez.'];
 $dayParts=function(string $ymd) use($monS): array { $d=hotel_day($ymd); return [HOTEL_WD[(int)$d->format('w')],(int)$d->format('j').'. '.$monS[(int)$d->format('n')-1],$d->format('Y')]; };
 $tz=$s ? hotel_tz($s) : new DateTimeZone('Europe/Berlin');
@@ -76,7 +77,7 @@ h2{font:600 18px Fraunces,Georgia,serif;margin:22px 0 8px}
     <span class="pill <?= $pill ?>"><?= $e($p['status_label']) ?></span>
   </div>
   <div class="c">
-    <?php if(isset($_GET['x']) && $_GET['x']==='1' && $st==='cancelled'): ?><div class="box ok" style="margin:0 0 16px">Ihre Buchung wurde kostenfrei storniert.<?= $p['email'] ? ' Eine Bestätigung ist per E-Mail unterwegs.' : '' ?></div><?php endif; ?>
+    <?php if(isset($_GET['x']) && $_GET['x']==='1' && $st==='cancelled'): ?><div class="box ok" style="margin:0 0 16px">Ihre Buchung wurde kostenfrei storniert.<?= $p['email'] && $mails ? ' Eine Bestätigung ist per E-Mail unterwegs.' : '' ?></div><?php endif; ?>
     <?php if(isset($_GET['x']) && $_GET['x']==='0'): ?><div class="box err" style="margin:0 0 16px">Eine kostenfreie Stornierung ist nicht mehr möglich. Bitte wenden Sie sich direkt an die Rezeption<?= $s['phone'] ? ' ('.$e($s['phone']).')' : '' ?>.</div><?php endif; ?>
     <?php if($idx!==false): ?><div class="steps"><?php foreach($steps as $i=>[$k,$lbl]): ?><div class="<?= $i<=$idx ? 'on' : '' ?>"><i></i><span><?= $e($lbl) ?></span></div><?php endforeach; ?></div><?php endif; ?>
     <div class="dates">
@@ -89,7 +90,7 @@ h2{font:600 18px Fraunces,Georgia,serif;margin:22px 0 8px}
       <div class="cell"><span>Gäste</span><b><?= (int)$p['guests'] ?> <?= $p['guests']===1 ? 'Person' : 'Personen' ?></b></div>
       <div class="cell"><span>Frühstück</span><b><?= $e(ucfirst($p['breakfast_text'])) ?></b></div>
     </div>
-    <?php if($st==='requested'): ?><div class="box info">Die Rezeption prüft Ihre Anfrage und bestätigt sie in Kürze<?= $p['email'] ? ' per E-Mail an <b>'.$e($p['email']).'</b>' : '' ?>. Das Zimmer ist für Sie vorgemerkt – diese Seite aktualisiert sich automatisch.</div>
+    <?php if($st==='requested'): ?><div class="box info">Die Rezeption prüft Ihre Anfrage und bestätigt sie in Kürze<?= $p['email'] && $mails ? ' per E-Mail an <b>'.$e($p['email']).'</b>' : '' ?>. Das Zimmer ist für Sie vorgemerkt – diese Seite aktualisiert sich automatisch.</div>
     <?php elseif($st==='confirmed'): ?><div class="box ok">Ihre Buchung ist bestätigt. Check-in ab <?= $e($p['checkin_from']) ?> Uhr – wir freuen uns auf Sie!</div>
     <?php elseif($st==='checked_in'): ?><div class="box ok">Schön, dass Sie da sind! Wünsche während Ihres Aufenthalts (Handtücher, Weckruf, Taxi …) nimmt die Rezeption jederzeit entgegen – auch per Chat oder Telefon. Check-out bis <?= $e($p['checkout_until']) ?> Uhr.</div>
     <?php elseif($st==='declined'): ?><div class="box err">Leider können wir Ihre Anfrage für diesen Zeitraum nicht bestätigen. Gern finden wir einen anderen Termin für Sie<?= $s['phone'] ? ' – rufen Sie uns an: '.$e($s['phone']) : '' ?>.</div>

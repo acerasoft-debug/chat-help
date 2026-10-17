@@ -127,25 +127,65 @@ function hotel_rooms(int $acc, bool $activeOnly=true): array {
     $s=th_db()->prepare("SELECT * FROM hotel_rooms WHERE account_id=?".($activeOnly?" AND active=1":"")." ORDER BY active DESC, sort, id"); $s->execute([$acc]);
     return array_map('hotel_room_row',$s->fetchAll(PDO::FETCH_ASSOC));
 }
-/** Komplette Liste übernehmen: vorhandene ids behalten, neue anlegen, fehlende entfernen (mit Buchungen: nur deaktivieren). */
-function hotel_rooms_save(int $acc, array $list): void {
-    hotel_bootstrap(); if($acc<=0) return; $p=th_db(); $keep=[]; $i=0;
-    $eur=fn($v)=>hotel_cents_in($v);
+/**
+ * Zimmerliste auflösen (ohne zu schreiben): je Eintrag die Ziel-id – eigene vorhandene id, sonst eine gleichnamige bisherige
+ * Kategorie (auch deaktivierte: „entfernt und neu angelegt“ bzw. „Beispiel laden“ behält so die id und damit die Belegung), sonst 0 = neu.
+ * off = ids, die danach entfernt bzw. deaktiviert wären. wipe=false: Liste nicht leer, aber ohne gültige Namen → nichts entfernen.
+ */
+function hotel_rooms_plan(int $acc, array $list): array {
+    $st=th_db()->prepare("SELECT id, name FROM hotel_rooms WHERE account_id=? ORDER BY active DESC, id DESC"); $st->execute([$acc]); $all=[];
+    foreach($st->fetchAll(PDO::FETCH_ASSOC) as $r) $all[(int)$r['id']]=mb_strtolower(trim((string)$r['name']));
+    $items=[]; $used=[]; $i=0; $eur=fn($v)=>hotel_cents_in($v);
     foreach($list as $it){ if(!is_array($it)) continue; $it=hotel_scalars($it); $name=mb_substr(trim((string)($it['name'] ?? '')),0,120); if($name==='') continue; $i++;
         $price=isset($it['price_cents']) && is_numeric($it['price_cents']) ? (int)$it['price_cents'] : $eur($it['price'] ?? 0);
         $we=isset($it['weekend_cents']) && is_numeric($it['weekend_cents']) ? (int)$it['weekend_cents'] : (isset($it['weekend']) && trim((string)$it['weekend'])!=='' ? $eur($it['weekend']) : 0);
         $vals=[$name,mb_substr(trim((string)($it['description'] ?? '')),0,500),max(1,min(20,(int)($it['capacity'] ?? 2))),max(1,min(999,(int)($it['units'] ?? 1))),max(0,min(10000000,$price)),
             $we>0 ? min(10000000,$we) : null,mb_substr(trim((string)($it['amenities'] ?? '')),0,300),(!isset($it['active']) || !empty($it['active'])) ? 1 : 0,$i];
-        $id=(int)($it['id'] ?? 0);
-        if($id>0){ $chk=$p->prepare("SELECT COUNT(*) FROM hotel_rooms WHERE id=? AND account_id=?"); $chk->execute([$id,$acc]); if((int)$chk->fetchColumn()===0) $id=0; }
-        if($id>0) $p->prepare("UPDATE hotel_rooms SET name=?,description=?,capacity=?,units=?,price_cents=?,weekend_cents=?,amenities=?,active=?,sort=? WHERE id=? AND account_id=?")->execute([...$vals,$id,$acc]);
-        else { $p->prepare("INSERT INTO hotel_rooms(account_id,name,description,capacity,units,price_cents,weekend_cents,amenities,active,sort) VALUES(?,?,?,?,?,?,?,?,?,?)")->execute([$acc,...$vals]); $id=(int)$p->lastInsertId(); }
-        $keep[]=$id; }
-    if($keep || !$list){   // entfernte Kategorien: ohne Buchungen löschen, sonst deaktivieren (Buchungen behalten Namen und Preis)
-        $cond=$keep ? " AND id NOT IN (".implode(',',array_map('intval',$keep)).")" : "";
-        $p->prepare("DELETE FROM hotel_rooms WHERE account_id=?".$cond." AND NOT EXISTS (SELECT 1 FROM hotel_bookings b WHERE b.account_id=hotel_rooms.account_id AND b.room_id=hotel_rooms.id)")->execute([$acc]);
-        $p->prepare("UPDATE hotel_rooms SET active=0 WHERE account_id=?".$cond)->execute([$acc]);
+        $id=(int)($it['id'] ?? 0); if($id>0 && (!isset($all[$id]) || isset($used[$id]))) $id=0;   // fremde/unbekannte/doppelte id → wie neu
+        if($id>0) $used[$id]=1; $items[]=['id'=>$id,'name'=>$name,'vals'=>$vals];
     }
+    foreach($items as &$x){ if($x['id']>0) continue; $n=mb_strtolower($x['name']);
+        foreach($all as $rid=>$rn) if(!isset($used[$rid]) && $rn===$n){ $x['id']=$rid; $used[$rid]=1; break; } }
+    unset($x);
+    $wipe=$items || !$list; $off=$wipe ? array_values(array_diff(array_keys($all),array_keys($used))) : [];
+    foreach($items as $x) if($x['id']>0 && $x['vals'][7]===0) $off[]=$x['id'];
+    return ['items'=>$items,'off'=>array_values(array_unique($off)),'wipe'=>$wipe];
+}
+/** Anstehende, belegende Buchungen (Anfrage, bestätigt, im Haus; Abreise nach heute) auf diesen Kategorien. */
+function hotel_rooms_in_use(int $acc, array $ids): array {
+    $ids=array_values(array_filter(array_map('intval',$ids))); if(!$ids) return [];
+    $st=th_db()->prepare("SELECT id, code, room_id, room_name, checkin, checkout, status FROM hotel_bookings WHERE account_id=? AND room_id IN (".implode(',',array_fill(0,count($ids),'?')).")
+        AND status IN ('requested','confirmed','checked_in') AND checkout > ? ORDER BY checkin, id LIMIT 100");
+    $st->execute(array_merge([$acc],$ids,[hotel_today(hotel_settings($acc))])); return $st->fetchAll(PDO::FETCH_ASSOC);
+}
+/** Vorab-Prüfung fürs Studio: Kategorien mit anstehenden Buchungen dürfen nicht entfernt/deaktiviert werden (sonst blockieren diese Buchungen nichts mehr → Überbuchung). */
+function hotel_rooms_check(int $acc, array $list): array {
+    if($acc<=0) return ['ok'=>true]; hotel_bootstrap(); $plan=hotel_rooms_plan($acc,$list); $busy=hotel_rooms_in_use($acc,$plan['off']); if(!$busy) return ['ok'=>true];
+    $by=[]; foreach($busy as $b) $by[(string)$b['room_name']][]=$b;
+    $parts=[]; foreach($by as $rn=>$bs){ $n=count($bs);
+        $parts[]='„'.$rn.'“ hat noch '.$n.' anstehende '.($n===1 ? 'Buchung' : 'Buchungen').' ('.implode(', ',array_map(fn($b)=>$b['code'].' · '.hotel_human($b['checkin'],'short').'–'.hotel_human($b['checkout'],'short'),array_slice($bs,0,3))).($n>3 ? ' …' : '').')'; }
+    return ['error'=>'room_in_use','hint'=>'Nicht gespeichert: '.implode('; ',$parts).'. Diese Kategorie bitte behalten (Name, Preise und Anzahl lassen sich ändern) oder die Buchungen zuerst stornieren bzw. umbuchen.',
+        'bookings'=>array_map(fn($b)=>['id'=>(int)$b['id'],'code'=>$b['code'],'room'=>$b['room_name'],'checkin'=>$b['checkin'],'checkout'=>$b['checkout'],'status'=>$b['status']],$busy)];
+}
+/**
+ * Komplette Liste übernehmen: vorhandene ids behalten (bzw. gleichnamige wiederverwenden), neue anlegen, fehlende entfernen
+ * (mit Buchungen: nur deaktivieren). Kategorien mit anstehenden Buchungen bleiben in jedem Fall aktiv (kept_active).
+ */
+function hotel_rooms_save(int $acc, array $list): array {
+    hotel_bootstrap(); if($acc<=0) return ['ok'=>false]; $p=th_db(); $plan=hotel_rooms_plan($acc,$list);
+    $busy=array_values(array_unique(array_map(fn($b)=>(int)$b['room_id'],hotel_rooms_in_use($acc,$plan['off'])))); $kept=[];
+    foreach($plan['items'] as $x){ $vals=$x['vals']; $id=$x['id'];
+        if($id>0 && $vals[7]===0 && in_array($id,$busy,true)){ $vals[7]=1; $kept[]=$x['name']; }
+        if($id>0) $p->prepare("UPDATE hotel_rooms SET name=?,description=?,capacity=?,units=?,price_cents=?,weekend_cents=?,amenities=?,active=?,sort=? WHERE id=? AND account_id=?")->execute([...$vals,$id,$acc]);
+        else $p->prepare("INSERT INTO hotel_rooms(account_id,name,description,capacity,units,price_cents,weekend_cents,amenities,active,sort) VALUES(?,?,?,?,?,?,?,?,?,?)")->execute([$acc,...$vals]); }
+    $listed=array_column($plan['items'],'id');
+    $gone=array_values(array_filter($plan['off'],fn($id)=>!in_array($id,$listed,true)));
+    foreach($gone as $id){
+        if(in_array($id,$busy,true)){ $n=$p->prepare("SELECT name FROM hotel_rooms WHERE id=? AND account_id=?"); $n->execute([$id,$acc]); $kept[]=(string)$n->fetchColumn(); continue; }   // anstehende Buchungen → bleibt aktiv
+        $p->prepare("DELETE FROM hotel_rooms WHERE id=? AND account_id=? AND NOT EXISTS (SELECT 1 FROM hotel_bookings b WHERE b.account_id=? AND b.room_id=?)")->execute([$id,$acc,$acc,$id]);
+        $p->prepare("UPDATE hotel_rooms SET active=0 WHERE id=? AND account_id=?")->execute([$id,$acc]);   // Buchungen behalten Namen und Preis
+    }
+    return ['ok'=>true,'kept_active'=>$kept];
 }
 /** Zimmerkategorie per id oder Name (exakt, enthalten, ähnlich). Nur aktive. */
 function hotel_room_find(int $acc, $ref): ?array {
@@ -162,6 +202,8 @@ function hotel_day(string $ymd): DateTimeImmutable { return new DateTimeImmutabl
 /** Eingaben (KI-Werkzeug, API, Formulare) auf Skalare reduzieren – Arrays/Objekte werden zu '' (außer $keep). */
 function hotel_scalars(array $a, array $keep=[]): array { foreach($a as $k=>$v){ if(in_array($k,$keep,true)) continue; if(!is_scalar($v) && $v!==null) $a[$k]=''; } return $a; }
 function hotel_eur(int $c): string { return number_format($c/100,2,',','.').' €'; }
+/** „1 Nacht“ / „3 Nächte“ */
+function hotel_nights_txt(int $n): string { return $n.' '.($n===1 ? 'Nacht' : 'Nächte'); }
 /** Betrag aus Eingabe → Cent: „18,50“, „18.5“, „1.250,00“, „1.250“ */
 function hotel_cents_in($v): int {
     $t=preg_replace('/[^0-9,.]/','',(string)$v); if($t==='') return 0;
@@ -257,8 +299,8 @@ function hotel_range(array $s, $checkin, $checkout, $nights=null): array {
     if($co['date'] <= $ci['date']) return ['error'=>'checkout_not_after_checkin','hint'=>'Die Abreise muss nach der Anreise ('.hotel_human($ci['date']).') liegen.'];
     if($ci['date'] > hotel_day($today)->modify('+'.HOTEL_HORIZON_DAYS.' days')->format('Y-m-d')) return ['error'=>'too_far_ahead','hint'=>'So weit im Voraus sind noch keine Buchungen möglich – bitte die Rezeption kontaktieren.'];
     $n=(int)hotel_day($ci['date'])->diff(hotel_day($co['date']))->days;
-    if($n<$s['min_nights']) return ['error'=>'min_nights','min_nights'=>$s['min_nights'],'hint'=>'Mindestaufenthalt: '.$s['min_nights'].' Nächte.'];
-    if($n>$s['max_nights']) return ['error'=>'max_nights','max_nights'=>$s['max_nights'],'hint'=>'Online höchstens '.$s['max_nights'].' Nächte am Stück – für längere Aufenthalte bitte direkt die Rezeption kontaktieren.'];
+    if($n<$s['min_nights']) return ['error'=>'min_nights','min_nights'=>$s['min_nights'],'hint'=>'Mindestaufenthalt: '.hotel_nights_txt($s['min_nights']).'.'];
+    if($n>$s['max_nights']) return ['error'=>'max_nights','max_nights'=>$s['max_nights'],'hint'=>'Online höchstens '.hotel_nights_txt($s['max_nights']).' am Stück – für längere Aufenthalte bitte direkt die Rezeption kontaktieren.'];
     return ['checkin'=>$ci['date'],'checkout'=>$co['date'],'nights'=>$n];
 }
 
@@ -330,13 +372,18 @@ function hotel_public(array $b, ?array $s=null): array {
         'cancel_until'=>$dl->format('d.m.Y H:i'),'cancel_until_human'=>HOTEL_WD[(int)$dl->format('w')].', '.$dl->format('d.m.Y, H:i').' Uhr','can_cancel'=>$can,
         'hotel'=>$s['name'],'stay_url'=>hotel_stay_url($b['code']),'ics_url'=>hotel_stay_url($b['code']).'&ics=1'];
 }
+/** Keine Nachrichten an Gäste/Hotel: Demo-Konto 0 und Demo-/Seed-Kanäle. */
+function hotel_silent(int $acc, string $channel): bool { return $acc<=0 || in_array($channel,['demo','seed'],true); }
+const HOTEL_DEMO_NOMAIL=' (Live-Demo – es wird keine E-Mail versendet.)';
 /**
  * Buchung anlegen. $d: room_id|room_name, checkin, checkout (oder nights), guests, name, phone?, email?, breakfast?, note?.
- * Status: confirmed bei Sofortbuchung (oder Studio), sonst requested. Prüft Verfügbarkeit erneut unter Sperre (keine Überbuchung).
+ * Status: confirmed bei Sofortbuchung, sonst requested. $manual = Eintrag der Rezeption im Studio-Formular (POST hotel/book):
+ * immer bestätigt, auch wenn die Online-Rezeption ausgeschaltet ist. Der Agenten-Testchat im Studio (Kanal studio) folgt dagegen
+ * den Einstellungen wie jeder andere Kanal. Prüft Verfügbarkeit erneut unter Sperre (keine Überbuchung).
  */
-function hotel_book(int $acc, array $d, string $channel, string $from=''): array {
-    $s=hotel_settings($acc); $channel=mb_substr(preg_replace('/[^a-z_-]/','',strtolower($channel)) ?: 'chat',0,12);
-    if(!hotel_enabled($acc) && $channel!=='studio') return ['error'=>'hotel_disabled','hint'=>'Online-Buchungen sind derzeit nicht aktiv – bitte an die Rezeption verweisen.'];
+function hotel_book(int $acc, array $d, string $channel, string $from='', bool $manual=false): array {
+    $s=hotel_settings($acc); $channel=mb_substr(preg_replace('/[^a-z_-]/','',strtolower($channel)) ?: 'chat',0,12); $manual=$manual && $acc>0;
+    if(!hotel_enabled($acc) && !$manual) return ['error'=>'hotel_disabled','hint'=>'Online-Buchungen sind derzeit nicht aktiv – bitte an die Rezeption verweisen.'];
     $name=mb_substr(trim(preg_replace('/\s+/u',' ',(string)($d['name'] ?? $d['guest_name'] ?? ''))),0,120);
     $email=trim((string)($d['email'] ?? '')); $phone=mb_substr(trim(preg_replace('/[^0-9+ ()\/-]/','',(string)($d['phone'] ?? ''))),0,40);
     $from=preg_replace('/\D/','',$from); if($phone==='' && $from!=='' && in_array($channel,['whatsapp','phone'],true)) $phone='+'.$from;
@@ -350,7 +397,7 @@ function hotel_book(int $acc, array $d, string $channel, string $from=''): array
     if($g>$room['capacity']) return ['error'=>'too_many_guests','capacity'=>$room['capacity'],'hint'=>$room['name'].' ist für höchstens '.$room['capacity'].' Personen. Größere Kategorie anbieten oder ein weiteres Zimmer buchen.'];
     $bf=$s['breakfast_mode']==='included' ? true : ($s['breakfast_mode']==='optional' && hotel_bool($d['breakfast'] ?? false));
     $q=hotel_quote($s,$room,$r['checkin'],$r['nights'],$g,$bf);
-    $status=($s['auto_confirm'] || $channel==='studio') ? 'confirmed' : 'requested';
+    $status=($s['auto_confirm'] || $manual) ? 'confirmed' : 'requested';
     $note=mb_substr(trim((string)($d['note'] ?? '')),0,500); $p=th_db(); $code='';
     $p->beginTransaction();
     try{
@@ -365,10 +412,11 @@ function hotel_book(int $acc, array $d, string $channel, string $from=''): array
         $p->commit();
     }catch(Throwable $e){ if($p->inTransaction()) $p->rollBack(); error_log('CH hotel_book: '.$e->getMessage()); return ['error'=>'db_error','hint'=>'Technischer Fehler beim Speichern – bitte erneut versuchen oder die Rezeption kontaktieren.']; }
     $b=hotel_by_code($code); hotel_notify($b,$s,'new');
-    $pub=hotel_public($b,$s);
+    $pub=hotel_public($b,$s); $silent=hotel_silent($acc,$channel);
+    $via=$silent ? '' : ($email!=='' ? ' per E-Mail an '.$email : ($channel==='whatsapp' && $from!=='' ? ' per WhatsApp' : ($channel==='phone' && $phone!=='' ? ' per SMS' : ($phone!=='' ? ' telefonisch' : ''))));
     return ['ok'=>true,'status'=>$status,'booking'=>$pub,
-        'message'=>$status==='confirmed' ? 'Buchung bestätigt: '.$room['name'].', '.hotel_human($r['checkin']).' bis '.hotel_human($r['checkout']).', '.$r['nights'].' Nächte, '.$q['total'].'. Code '.$code.'.'.($email!=='' ? ' Bestätigung per E-Mail an '.$email.'.' : '')
-                                         : 'Anfrage gespeichert (Code '.$code.'): '.$room['name'].', '.hotel_human($r['checkin']).' bis '.hotel_human($r['checkout']).', '.$q['total'].'. Die Rezeption bestätigt in Kürze'.($email!=='' ? ' per E-Mail an '.$email : ($phone!=='' ? ' telefonisch' : '')).'.'];
+        'message'=>$status==='confirmed' ? 'Buchung bestätigt: '.$room['name'].', '.hotel_human($r['checkin']).' bis '.hotel_human($r['checkout']).', '.hotel_nights_txt($r['nights']).', '.$q['total'].'. Code '.$code.'.'.($email!=='' ? ($silent ? HOTEL_DEMO_NOMAIL : ' Bestätigung per E-Mail an '.$email.'.') : '')
+                                         : 'Anfrage gespeichert (Code '.$code.'): '.$room['name'].', '.hotel_human($r['checkin']).' bis '.hotel_human($r['checkout']).', '.hotel_nights_txt($r['nights']).', '.$q['total'].'. Die Rezeption bestätigt in Kürze'.$via.'.'.($silent && $email!=='' ? HOTEL_DEMO_NOMAIL : '')];
 }
 function hotel_name_norm(string $x): string {
     $x=strtr(mb_strtolower($x),['ä'=>'ae','ö'=>'oe','ü'=>'ue','ß'=>'ss','é'=>'e','è'=>'e','ê'=>'e','ë'=>'e','á'=>'a','à'=>'a','â'=>'a','å'=>'a','ç'=>'c','ğ'=>'g','ı'=>'i','ş'=>'s','ñ'=>'n','ó'=>'o','ò'=>'o','ø'=>'o','ú'=>'u','í'=>'i','č'=>'c','š'=>'s','ž'=>'z']);
@@ -398,7 +446,7 @@ function hotel_guest_cancel(array $b, string $channel='guest'): array {
     $u=th_db()->prepare("UPDATE hotel_bookings SET status='cancelled', updated_at=NOW() WHERE id=? AND account_id=? AND status=?"); $u->execute([(int)$b['id'],(int)$b['account_id'],$b['status']]);
     if($u->rowCount()!==1) return ['error'=>'conflict','hint'=>'Die Buchung wurde gerade geändert – bitte erneut abrufen.'];
     $b=hotel_by_id((int)$b['account_id'],(int)$b['id']); hotel_notify($b,$s,'cancelled_guest');
-    return ['ok'=>true,'booking'=>hotel_public($b,$s),'message'=>'Buchung '.$b['code'].' wurde kostenfrei storniert.'.($b['email'] ? ' Bestätigung per E-Mail.' : '')];
+    return ['ok'=>true,'booking'=>hotel_public($b,$s),'message'=>'Buchung '.$b['code'].' wurde kostenfrei storniert.'.($b['email'] ? (hotel_silent((int)$b['account_id'],(string)$b['channel']) ? HOTEL_DEMO_NOMAIL : ' Bestätigung per E-Mail.') : '')];
 }
 /** Rezeption: confirm | decline | checkin (room_no) | checkout | cancel | noshow */
 function hotel_booking_action(int $acc, int $id, string $action, string $roomNo='', string $by='studio'): array {
@@ -415,7 +463,7 @@ function hotel_booking_action(int $acc, int $id, string $action, string $roomNo=
         if($b['checkin']>$today) return ['error'=>'not_arrival_day','hint'=>'Check-in ist ab dem Anreisetag ('.hotel_human($b['checkin']).') möglich.'];
         if($b['checkout']<=$today) return ['error'=>'stay_over','hint'=>'Der Aufenthalt ist bereits vorbei (Abreise '.hotel_human($b['checkout']).').'];
         $o=th_db()->prepare("SELECT guest_name FROM hotel_bookings WHERE account_id=? AND status='checked_in' AND room_no=? AND id<>? LIMIT 1"); $o->execute([$acc,$room,$id]);
-        if(($other=$o->fetchColumn())!==false) return ['error'=>'room_occupied','hint'=>'Zimmer '.$room.' ist noch belegt ('.$other.'). Bitte zuerst auschecken oder eine andere Nummer wählen.'];
+        if(($other=$o->fetchColumn())!==false) return ['error'=>'room_occupied','hint'=>'Zimmer '.$room.' ist noch belegt'.($acc>0 ? ' ('.$other.')' : '').'. Bitte zuerst auschecken oder eine andere Nummer wählen.'];   // Demo: kein Gastname
     }
     if($action==='noshow' && $b['checkin']>$today) return ['error'=>'too_early','hint'=>'No-Show erst ab dem Anreisetag.'];
     $u=th_db()->prepare("UPDATE hotel_bookings SET status=?, room_no=COALESCE(?,room_no), updated_at=NOW() WHERE id=? AND account_id=? AND status=?"); $u->execute([$to,$room,$id,$acc,$cur]);
@@ -451,8 +499,20 @@ function hotel_request_public(array $r, array $s): array {
         'ride_url'=>!empty($r['ref']) ? 'https://chat-help.com/chat/ride.php?c='.rawurlencode((string)$r['ref']) : null,
         'created'=>$c ? $c->format('H:i') : '','created_day'=>$c ? $c->format('d.m.') : '','created_iso'=>$c ? $c->format(DATE_ATOM) : null,'updated_iso'=>$u ? $u->format(DATE_ATOM) : null];
 }
-/** Gästewunsch anlegen: room_no (Pflicht außer Auskunft/Sonstiges), kind, details, due_time (Pflicht bei Weckruf/Taxi), guest_name?, contact? */
-function hotel_request_create(int $acc, array $d, string $channel, string $from='', string $status='open', string $ref=''): array {
+/**
+ * Gästewunsch anlegen (Werkzeug create_guest_request, Studio „Wunsch erfassen“): room_no (Pflicht außer Auskunft/Sonstiges), kind, details,
+ * due_time (Pflicht bei Weckruf/Taxi), guest_name?, contact?. Art „taxi“ läuft über hotel_order_taxi() – mit aktivem Taxi-Modul wird die
+ * Fahrt dort gebucht (Fahrtcode am Wunsch), sonst entsteht ein Taxi-Auftrag für die Rezeption. Ziel = destination bzw. details.
+ */
+function hotel_request_create(int $acc, array $d, string $channel, string $from=''): array {
+    $d=hotel_scalars($d);
+    if(hotel_kind((string)($d['kind'] ?? ''))!=='taxi') return hotel_request_insert($acc,$d,$channel,$from);
+    $dest=trim((string)($d['destination'] ?? '')); if($dest==='') $dest=trim(preg_replace('/^\s*(?:(?:ein|einen|bitte)\s+)*(?:taxi|cab|transfer|shuttle)\b[\s:,-]*(?:(?:zum|zur|zu|nach|in die|in den|ins|an den|an die|to)\s+)?/iu','',(string)($d['details'] ?? '')));
+    return hotel_order_taxi($acc,['room_no'=>$d['room_no'] ?? '','guest_name'=>$d['guest_name'] ?? '','pickup_time'=>$d['pickup_time'] ?? ($d['due_time'] ?? ''),'destination'=>$dest,
+        'passengers'=>$d['passengers'] ?? 1,'phone'=>$d['phone'] ?? ($d['contact'] ?? '')],$channel,$from);
+}
+/** Wunsch speichern (ohne Taxi-Weiterleitung) – $status/$ref für den Taxi-Auftrag aus hotel_order_taxi(). */
+function hotel_request_insert(int $acc, array $d, string $channel, string $from='', string $status='open', string $ref=''): array {
     $s=hotel_settings($acc); $tz=hotel_tz($s); $channel=mb_substr(preg_replace('/[^a-z_-]/','',strtolower($channel)) ?: 'chat',0,12);
     $kindRaw=mb_strtolower(trim((string)($d['kind'] ?? ''))); $kind=hotel_kind($kindRaw); $room=hotel_clean_room($d['room_no'] ?? ''); if(in_array(mb_strtolower($room),['unbekannt','keine','none','na','n a','-'],true)) $room='';
     $details=mb_substr(trim(preg_replace('/\s+/u',' ',(string)($d['details'] ?? ''))),0,500);
@@ -501,26 +561,31 @@ function hotel_ride_available(int $acc): bool {
 }
 /** Taxi für Gäste: über das Taxi-Modul (falls aktiv) buchen, sonst Auftrag an die Rezeption. Beides erscheint auf dem Board. */
 function hotel_order_taxi(int $acc, array $in, string $channel, string $from=''): array {
-    $s=hotel_settings($acc); $tz=hotel_tz($s);
-    $name=mb_substr(trim((string)($in['guest_name'] ?? $in['name'] ?? '')),0,120); if($name==='') return ['error'=>'name_required','hint'=>'Auf welchen Namen soll das Taxi bestellt werden?'];
+    $in=hotel_scalars($in); $s=hotel_settings($acc); $tz=hotel_tz($s);
+    $room=hotel_clean_room($in['room_no'] ?? ''); if(in_array(mb_strtolower($room),['unbekannt','keine','none','na','n a','-','lobby'],true)) $room='';
+    $name=mb_substr(trim((string)($in['guest_name'] ?? $in['name'] ?? '')),0,120);
+    if($name==='' && $room==='') return ['error'=>'name_required','hint'=>'Auf welchen Namen (oder für welches Zimmer) soll das Taxi bestellt werden?'];
+    $rideName=$name!=='' ? $name : 'Hotelgast Zimmer '.$room;   // ohne Namensangabe nie den Namen aus der Zimmerbelegung an Fahrer/Fahrtseite geben (Datenschutz)
     $dest=mb_substr(trim((string)($in['destination'] ?? '')),0,200); if($dest==='') return ['error'=>'destination_required','hint'=>'Wohin soll die Fahrt gehen?'];
-    $when=hotel_parse_when($in['pickup_time'] ?? '',$tz,true); if(isset($when['error'])) return $when;
-    $pax=max(1,min(8,(int)($in['passengers'] ?? 1))); $room=hotel_clean_room($in['room_no'] ?? '');
+    $when=hotel_parse_when($in['pickup_time'] ?? '',$tz,true); if(isset($when['error'])) return $when['error']==='time_required' ? ['error'=>'time_required','hint'=>'Wann soll das Taxi da sein (z. B. „sofort“ oder „morgen 05:00“)?'] : $when;
+    $pax=max(1,min(8,(int)($in['passengers'] ?? 1)));
     $phone=mb_substr(trim(preg_replace('/[^0-9+ ()\/-]/','',(string)($in['phone'] ?? ''))),0,40); $dg=preg_replace('/\D/','',$from);
     if($phone==='' && $dg!=='' && in_array($channel,['whatsapp','phone'],true)) $phone='+'.$dg;
     $ride=null; $rideErr='';
     if(hotel_ride_available($acc)){
-        try{ $r=ride_book($acc,['name'=>$name,'phone'=>$phone ?: $s['phone'],'pickup'=>trim($s['name'].', '.$s['address'],', '),'destination'=>$dest,'time'=>$when['asap'] ? 'sofort' : substr($when['at'],0,16),
+        try{ $r=ride_book($acc,['name'=>$rideName,'phone'=>$phone ?: $s['phone'],'pickup'=>trim($s['name'].', '.$s['address'],', '),'destination'=>$dest,'time'=>$when['asap'] ? 'sofort' : substr($when['at'],0,16),
                  'passengers'=>$pax,'note'=>'Hotelgast'.($room!=='' ? ' · Zimmer '.$room : '').' · '.$s['name']],'hotel',$dg);
              if(is_array($r) && !empty($r['ok']) && !empty($r['ride']['code'])) $ride=$r['ride']; else $rideErr=is_array($r) ? (string)($r['hint'] ?? $r['error'] ?? '') : ''; }
         catch(Throwable $e){ error_log('CH hotel taxi: '.$e->getMessage()); $rideErr='Taxi-Zentrale nicht erreichbar'; }
     }
-    $details='Taxi '.$when['human'].' nach '.$dest.' · '.$pax.' Pers.'.($phone!=='' ? ' · Tel. '.$phone : '')
-        .($ride ? ' · ✓ bei der Taxi-Zentrale bestellt (Fahrt '.$ride['code'].')' : ($rideErr!=='' ? ' · Taxi-Zentrale: '.$rideErr.' – bitte manuell bestellen' : ''));
-    $req=hotel_request_create($acc,['room_no'=>$room!=='' ? $room : 'Lobby','kind'=>'taxi','details'=>mb_substr($details,0,500),'due_time'=>$when['asap'] ? 'sofort' : substr($when['at'],0,16),'guest_name'=>$name,'contact'=>$phone],$channel,$from,$ride ? 'in_progress' : 'open',$ride ? (string)$ride['code'] : '');
+    $eta=$ride ? ((string)($ride['eta_text'] ?? '') ?: null) : null;
+    $details='Taxi '.$when['human'].' nach '.$dest.' · '.$pax.' Pers.'   // Telefonnummer steht nur in contact (Demo-Board blendet sie dort aus)
+        .($ride ? ' · ✓ bei der Taxi-Zentrale bestellt (Fahrt '.$ride['code'].($eta && $when['asap'] ? ', '.$eta : '').')' : ($rideErr!=='' ? ' · Taxi-Zentrale: '.$rideErr.' – bitte manuell bestellen' : ''));
+    $req=hotel_request_insert($acc,['room_no'=>$room!=='' ? $room : 'Lobby','kind'=>'taxi','details'=>mb_substr($details,0,500),'due_time'=>$when['asap'] ? 'sofort' : substr($when['at'],0,16),'guest_name'=>$name,'contact'=>$phone],$channel,$from,$ride ? 'in_progress' : 'open',$ride ? (string)$ride['code'] : '');
     if(isset($req['error'])) return $req;
-    if($ride) return ['ok'=>true,'via'=>'taxi_zentrale','request'=>$req['request'],'ride'=>['code'=>$ride['code'],'status'=>$ride['status_label'] ?? ($ride['status'] ?? ''),'when'=>$ride['when'] ?? $when['human'],'price'=>$ride['price'] ?? ($ride['price_text'] ?? null),'eta'=>$ride['eta'] ?? null,'track'=>$ride['track'] ?? null],
-        'message'=>'Taxi ist bestellt ('.$when['human'].', Fahrt '.$ride['code'].'), Abholung am Haupteingang. Die Rezeption ist informiert.'];
+    if($ride) return ['ok'=>true,'via'=>'taxi_zentrale','request'=>$req['request'],'ride'=>['code'=>$ride['code'],'status'=>$ride['status_label'] ?? ($ride['status'] ?? ''),'when'=>$ride['when'] ?? $when['human'],'price'=>$ride['price'] ?? ($ride['price_text'] ?? null),
+            'eta'=>$eta,'eta_min'=>isset($ride['eta_min']) && $ride['eta_min']!==null ? (int)$ride['eta_min'] : null,'track'=>$ride['track'] ?? null],
+        'message'=>'Taxi ist bestellt ('.$when['human'].($eta && $when['asap'] ? ', Wartezeit '.$eta : '').', Fahrt '.$ride['code'].'), Abholung am Haupteingang. Die Rezeption ist informiert.'];
     return ['ok'=>true,'via'=>'reception','request'=>$req['request'],'message'=>'Taxi-Wunsch ('.$when['human'].' nach '.$dest.', '.$pax.' Pers.) ist an die Rezeption übermittelt – sie bestellt das Taxi und meldet sich bei Rückfragen.'];
 }
 
@@ -536,18 +601,27 @@ function hotel_mail_html(array $s, string $title, string $intro, ?array $pub, st
         .$intro.$box.$extra.($pub ? '<p style="font-size:13px;color:#6b7083">Ihre Buchung ansehen, in den Kalender eintragen oder stornieren: <a href="'.$e($pub['stay_url']).'" style="color:#b8862b">'.$e($pub['stay_url']).'</a></p>' : '')
         .'<p style="font-size:12.5px;color:#9094a6;margin-top:18px">'.$e($s['name']).($s['address'] ? ' · '.$e($s['address']) : '').($s['phone'] ? ' · Tel. '.$e($s['phone']) : '').'</p></div>';
 }
-/** WhatsApp (Kanal whatsapp) bzw. SMS (Kanal phone) an den Gast – über die Konto-Zugänge des Bestellmoduls, falls eingerichtet. */
+/**
+ * WhatsApp (Kanal whatsapp) bzw. SMS (Kanal phone) an den Gast – über die Zugänge des Kontos (eigener Twilio-Account hat Vorrang).
+ * WhatsApp-Freitext ist nur im 24-h-Fenster zustellbar: Fenster zu oder Versand fehlgeschlagen → SMS an die Nummer der Buchung.
+ */
 function hotel_msg_guest(array $b, string $text): bool {
-    if((int)$b['account_id']<=0 || !is_file(__DIR__.'/order-lib.php')) return false; require_once __DIR__.'/order-lib.php';
+    $acc=(int)$b['account_id']; if($acc<=0 || hotel_silent($acc,(string)$b['channel']) || !is_file(__DIR__.'/order-lib.php')) return false; require_once __DIR__.'/order-lib.php';
+    $sms=function() use($b,$text,$acc): bool { $to=(string)$b['phone'] ?: ((string)$b['wa_from']!=='' ? '+'.preg_replace('/\D/','',(string)$b['wa_from']) : ''); return $to!=='' && function_exists('ord_sms_send') && ord_sms_send($to,$text,$acc); };
     try{
-        if($b['channel']==='whatsapp' && !empty($b['wa_from']) && function_exists('ord_wa_send')) return ord_wa_send(ord_settings((int)$b['account_id']),(string)$b['wa_from'],$text);
-        if($b['channel']==='phone' && $b['phone']!=='' && function_exists('ord_sms_send')) return ord_sms_send((string)$b['phone'],$text);
+        if($b['channel']==='whatsapp' && !empty($b['wa_from'])){
+            $os=ord_settings($acc); $open=true;
+            if(function_exists('ord_wa_window_open')){ try{ $open=ord_wa_window_open($acc,(string)$b['wa_from']); }catch(Throwable $e){ $open=true; } }
+            if($open && function_exists('ord_wa_send') && ord_wa_send($os,(string)$b['wa_from'],$text)) return true;
+            return $sms();
+        }
+        if($b['channel']==='phone' && (string)$b['phone']!=='') return $sms();
     }catch(Throwable $e){ error_log('CH hotel msg: '.$e->getMessage()); }
     return false;
 }
 /** Ereignisse: new · confirmed · declined · cancelled_guest · cancelled_hotel. Konto 0 und Demo-Kanäle: nie. */
 function hotel_notify(array $b, array $s, string $event): void {
-    $acc=(int)$b['account_id']; if($acc<=0 || in_array($b['channel'],['demo','seed'],true)) return;
+    $acc=(int)$b['account_id']; if(hotel_silent($acc,(string)$b['channel'])) return;
     $pub=hotel_public($b,$s); $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8'); $hello='<p>Guten Tag '.$e($b['guest_name']).',</p>';
     $hotelTo=$s['notify_email'] ?: hotel_owner_email($acc); $hn=$s['name'] ?: 'Hotel'; $dates=hotel_human($b['checkin']).' – '.hotel_human($b['checkout']);
     $contact='<p><b>'.$e($b['guest_name']).'</b>'.($b['phone'] ? ' · <a href="tel:'.$e(preg_replace('/[^0-9+]/','',$b['phone'])).'">'.$e($b['phone']).'</a>' : '').($b['email'] ? ' · <a href="mailto:'.$e($b['email']).'">'.$e($b['email']).'</a>' : '')
@@ -573,7 +647,7 @@ function hotel_notify(array $b, array $s, string $event): void {
     }catch(Throwable $ex){ error_log('CH hotel_notify: '.$ex->getMessage()); }
 }
 function hotel_notify_request(array $r, array $s, int $acc): void {
-    if($acc<=0 || in_array($r['channel'],['demo','seed'],true)) return; $to=$s['notify_email'] ?: hotel_owner_email($acc); if(!$to) return; $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
+    if(hotel_silent($acc,(string)$r['channel'])) return; $to=$s['notify_email'] ?: hotel_owner_email($acc); if(!$to) return; $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
     th_mail($to,'🛎️ '.$r['kind_label'].($r['room_no']!=='' ? ' · Zimmer '.$r['room_no'] : '').' · '.mb_substr($r['details'],0,60),
         hotel_mail_html($s,$e($r['kind_label']).($r['room_no']!=='' ? ' · Zimmer '.$e($r['room_no']) : ''),'<p style="font-size:16px">'.$e($r['details']).'</p><p>'.($r['guest_name'] ? $e($r['guest_name']).' · ' : '').($r['contact'] ? $e($r['contact']).' · ' : '').'Kanal: '.$e($r['channel']).' · '.$e($r['created']).' Uhr</p><p style="font-size:14px">Bitte kurzfristig kümmern bzw. den Gast zurückrufen. Status auf dem Rezeptions-Board setzen.</p>',null));
 }
@@ -604,17 +678,36 @@ function hotel_stats(int $acc): array {
         'open_requests'=>$one("SELECT COUNT(*) FROM hotel_requests WHERE account_id=? AND status IN ('open','in_progress')",[$acc]),
         'pending_requests'=>$one("SELECT COUNT(*) FROM hotel_bookings WHERE account_id=? AND status='requested' AND checkout>?",[$acc,$t])];
 }
+/** „Dr. Anna Weber“ → „Anna W.“ */
+function hotel_mask_name(string $n): string {
+    $parts=array_values(array_filter(preg_split('/\s+/u',trim($n)) ?: [],fn($w)=>$w!=='' && !in_array(mb_strtolower(rtrim($w,'.')),['dr','prof','herr','frau','mr','mrs','ms'],true)));
+    $first=array_shift($parts) ?? ''; $last=$parts ? mb_substr((string)end($parts),0,1).'.' : ''; return trim($first.' '.$last);
+}
+function hotel_mask_phone(string $p): string { $d=preg_replace('/\D/','',$p); return $d!=='' ? '••• '.substr($d,-2) : ''; }
+/** Freitext für die öffentliche Demo: Telefonnummern und E-Mail-Adressen unkenntlich machen. */
+function hotel_mask_text(string $t): string {
+    $t=preg_replace('/[^\s@<>]+@[^\s@<>]+\.[a-z]{2,}/iu','(E-Mail ausgeblendet)',$t);
+    return (string)preg_replace_callback('/(?<![\d.])(?:\+|0)\d[\d \/()-]{4,}\d/u',fn($m)=>strlen(preg_replace('/\D/','',$m[0]))>=7 ? hotel_mask_phone($m[0]) : $m[0],$t);   // nur Rufnummern (+… / 0…), keine Daten/Uhrzeiten
+}
+/**
+ * Öffentliche Demo (Board ohne Login): Name gekürzt, Telefon gekürzt, E-Mail/Notiz ausgeblendet – und weder Buchungscode noch
+ * Gästeseiten-/Kalender-Link (mit dem Code ließe sich auf stay.php alles einsehen und stornieren). Das Board arbeitet nur mit id.
+ */
 function hotel_mask(array $b): array {
-    $parts=array_values(array_filter(preg_split('/\s+/u',trim((string)$b['name'])) ?: [],fn($w)=>$w!=='' && !in_array(mb_strtolower(rtrim($w,'.')),['dr','prof','herr','frau','mr','mrs','ms'],true)));
-    $first=array_shift($parts) ?? ''; $last=$parts ? mb_substr((string)end($parts),0,1).'.' : '';   // „Dr. Anna Weber“ → „Anna W.“
-    $b['name']=trim($first.' '.$last); $d=preg_replace('/\D/','',(string)$b['phone']); $b['phone']=$d!=='' ? '••• '.substr($d,-2) : ''; $b['email']=''; $b['note']=$b['note']!=='' ? '(Notiz ausgeblendet)' : '';
+    $b['name']=hotel_mask_name((string)($b['name'] ?? '')); $b['phone']=hotel_mask_phone((string)($b['phone'] ?? '')); $b['email']=''; $b['note']=($b['note'] ?? '')!=='' ? '(Notiz ausgeblendet)' : '';
+    $b['code']=''; unset($b['stay_url'],$b['ics_url']);
     return $b;
+}
+/** Gästewunsch für die öffentliche Demo: Gastname gekürzt, Kontakt gekürzt, Nummern/E-Mails im Text ausgeblendet. */
+function hotel_mask_request(array $r): array {
+    $r['guest_name']=hotel_mask_name((string)($r['guest_name'] ?? '')); $r['contact']=hotel_mask_phone((string)($r['contact'] ?? '')); $r['details']=hotel_mask_text((string)($r['details'] ?? ''));
+    return $r;
 }
 /** Daten für das Rezeptions-Board (hotel-api.php?a=board). $mask = Demo: Kontaktdaten ausblenden. */
 function hotel_board(int $acc, bool $mask=false): array {
     $s=hotel_settings($acc); $t=hotel_today($s); $p=th_db(); $now=hotel_now($s);
     $q=function(string $sql,array $a) use($p,$s,$mask): array { $st=$p->prepare($sql); $st->execute($a); return array_map(function($b) use($s,$mask){ $x=hotel_public($b,$s); return $mask ? hotel_mask($x) : $x; },$st->fetchAll(PDO::FETCH_ASSOC)); };
-    $reqs=hotel_requests($acc,'board'); if($mask) $reqs=array_map(function($r){ $r['contact']=$r['contact']!=='' ? '••• '.substr(preg_replace('/\D/','',$r['contact']),-2) : ''; return $r; },$reqs);
+    $reqs=hotel_requests($acc,'board'); if($mask) $reqs=array_map('hotel_mask_request',$reqs);
     return ['hotel'=>['name'=>$s['name'],'phone'=>$s['phone'],'checkin_from'=>$s['checkin_from'],'checkout_until'=>$s['checkout_until']],'demo'=>$acc===0,
         'today'=>$t,'today_human'=>hotel_human($t,'long'),'now'=>$now->format('H:i'),'now_iso'=>$now->format(DATE_ATOM),
         'arrivals'=>$q("SELECT * FROM hotel_bookings WHERE account_id=? AND ((checkin=? AND status IN ('requested','confirmed','checked_in')) OR (checkin<? AND checkout>? AND status='confirmed')) ORDER BY FIELD(status,'confirmed','requested','checked_in'), checkin, guest_name",[$acc,$t,$t,$t]),
@@ -637,7 +730,12 @@ function hotel_links(int $acc): array {
 /** Demo-Board lebendig halten: fiktive Anreisen, Abreisen, Gäste im Haus und Wünsche für heute (einmal je Tag, Konto 0). */
 function hotel_demo_seed(): void {
     hotel_bootstrap(); $s=hotel_settings(0); $t=hotel_today($s); $p=th_db();
-    $c=$p->prepare("SELECT COUNT(*) FROM hotel_bookings WHERE account_id=0 AND channel='seed' AND checkin=?"); $c->execute([$t]); if((int)$c->fetchColumn()>0) return;
+    $seeded=function() use($p,$t): bool { $c=$p->prepare("SELECT COUNT(*) FROM hotel_bookings WHERE account_id=0 AND channel='seed' AND checkin=?"); $c->execute([$t]); return (int)$c->fetchColumn()>0; };
+    if($seeded()) return;
+    if(!th_lock('hotel_demo_seed',5)) return;   // parallele Board-Abrufe: nur einer legt an, die anderen sehen danach die Daten
+    try{ if(!$seeded()) hotel_demo_seed_rows($p,$s,$t); } finally { th_unlock('hotel_demo_seed'); }
+}
+function hotel_demo_seed_rows(PDO $p, array $s, string $t): void {
     $p->exec("DELETE FROM hotel_bookings WHERE account_id=0 AND channel='seed'"); $p->exec("DELETE FROM hotel_requests WHERE account_id=0 AND channel='seed'");
     $rooms=[]; foreach(hotel_rooms(0) as $r) $rooms[$r['id']]=$r; $day=fn(int $o)=>hotel_day($t)->modify(($o>=0 ? '+' : '').$o.' days')->format('Y-m-d');
     /* [Kategorie, Anreise relativ zu heute, Nächte, Gäste, Name, Telefon, E-Mail, Status, Zimmer, Frühstück, Notiz] – fiktive Gäste */
@@ -674,7 +772,7 @@ function hotel_tools(): array {
       ['name'=>'book_room','description'=>'Zimmer verbindlich buchen bzw. anfragen (je nach Buchungsmodus) – erst nach Zusammenfassung und ausdrücklichem Ja des Gastes. Ein Zimmer je Aufruf.','input_schema'=>['type'=>'object','properties'=>['room_id'=>['type'=>'integer'],'room_name'=>['type'=>'string'],'checkin'=>$date,'checkout'=>$date,'guests'=>['type'=>'integer'],'name'=>['type'=>'string','description'=>'Vor- und Nachname des Gastes'],'phone'=>['type'=>'string'],'email'=>['type'=>'string','description'=>'für die Bestätigung'],'breakfast'=>['type'=>'boolean','description'=>'Frühstück dazubuchen (nur wenn optional)'],'note'=>['type'=>'string','description'=>'Wünsche, z. B. Anreisezeit, Hund, Babybett']],'required'=>['checkin','checkout','guests','name']]],
       ['name'=>'get_booking','description'=>'Bestehende Buchung abrufen. Nur mit Buchungscode UND Name (oder Telefonnummer/E-Mail) des Gastes – ohne beides keine Auskunft.','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string'],'name_or_phone'=>['type'=>'string']],'required'=>['code','name_or_phone']]],
       ['name'=>'cancel_booking','description'=>'Buchung stornieren (Code UND Name/Telefon) – nur nach ausdrücklicher Bestätigung des Gastes. Die kostenfreie Stornofrist prüft das Werkzeug.','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string'],'name_or_phone'=>['type'=>'string']],'required'=>['code','name_or_phone']]],
-      ['name'=>'create_guest_request','description'=>'Wunsch eines Gastes im Haus an die Rezeption: Handtücher, Reinigung, Room-Service, Weckruf, Defekt, Late Check-out, Beschwerde … Zimmernummer erfragen; Weckruf braucht eine Uhrzeit.','input_schema'=>['type'=>'object','properties'=>['room_no'=>['type'=>'string','description'=>'Zimmernummer (Pflicht bei Gästen im Haus)'],'kind'=>['type'=>'string','enum'=>array_keys(HOTEL_KINDS)],'details'=>['type'=>'string','description'=>'Was genau, z. B. „2 zusätzliche Handtücher“'],'due_time'=>['type'=>'string','description'=>'Gewünschte Zeit, z. B. „06:30“, „morgen 6:30“, „2026-10-17 06:30“'],'guest_name'=>['type'=>'string']],'required'=>['room_no','kind','details']]],
+      ['name'=>'create_guest_request','description'=>'Wunsch eines Gastes im Haus an die Rezeption: Handtücher, Reinigung, Room-Service, Weckruf, Defekt, Late Check-out, Beschwerde … Zimmernummer erfragen; Weckruf braucht eine Uhrzeit. Taxi bevorzugt über order_taxi_for_guest (kind taxi wird genauso gebucht: details = Ziel, due_time = Abholzeit).','input_schema'=>['type'=>'object','properties'=>['room_no'=>['type'=>'string','description'=>'Zimmernummer (Pflicht bei Gästen im Haus)'],'kind'=>['type'=>'string','enum'=>array_keys(HOTEL_KINDS)],'details'=>['type'=>'string','description'=>'Was genau, z. B. „2 zusätzliche Handtücher“'],'due_time'=>['type'=>'string','description'=>'Gewünschte Zeit, z. B. „06:30“, „morgen 6:30“, „2026-10-17 06:30“'],'guest_name'=>['type'=>'string']],'required'=>['room_no','kind','details']]],
       ['name'=>'order_taxi_for_guest','description'=>'Taxi für einen Hotelgast bestellen (über die Taxi-Zentrale, falls angebunden, sonst bestellt die Rezeption). Abholung am Hotel.','input_schema'=>['type'=>'object','properties'=>['room_no'=>['type'=>'string'],'guest_name'=>['type'=>'string'],'pickup_time'=>['type'=>'string','description'=>'„sofort“ oder Zeit, z. B. „morgen 05:00“'],'destination'=>['type'=>'string'],'passengers'=>['type'=>'integer'],'phone'=>['type'=>'string']],'required'=>['guest_name','pickup_time','destination']]],
     ];
 }
@@ -710,7 +808,7 @@ function hotel_system_hint(int $acc, string $channel='chat'): string {
 Check-in ab ".$s['checkin_from']." Uhr, Check-out bis ".$s['checkout_until']." Uhr. Zimmer: ".$rt.". Frühstück: ".$bf.". City-Tax: ".($s['city_tax_pct']>0 ? number_format($s['city_tax_pct'],2,',','.').' % auf den Zimmerpreis (in den Gesamtpreisen enthalten)' : 'keine').". Aufenthalt ".$s['min_nights'].'–'.$s['max_nights']." Nächte. Storno: ".($s['cancel_hours']>0 ? 'kostenfrei bis '.$s['cancel_hours'].' Stunden vor Anreise (Anreisetag '.$s['checkin_from'].' Uhr), danach nur über die Rezeption' : 'kostenfrei bis zum Anreisetag').". Buchungsmodus: ".($s['auto_confirm'] ? 'SOFORTBUCHUNG – book_room bucht verbindlich.' : 'ANFRAGE – book_room legt eine Anfrage an, die Rezeption bestätigt in Kürze per E-Mail; nie „gebucht“ sagen, sondern „angefragt“.').($s['policies'] !== '' ? "\nHausregeln & Infos: ".str_replace("\n",' · ',$s['policies']) : '')."
 REGELN: 1) Buchung: Anreise, Abreise und Personenzahl erfragen; relative Angaben („nächstes Wochenende“, „morgen“) in konkrete Daten umrechnen und mit Wochentag nennen → check_room_availability → höchstens 3 passende Optionen mit Gesamtpreis nennen (Frühstück nur als Option mit Aufpreis, falls angeboten). Preise und Verfügbarkeit NIE raten oder selbst rechnen – nur Werte aus den Werkzeugen. Dann Vor- und Nachname sowie E-Mail (für die Bestätigung) oder Telefonnummer erfragen, alles in einem Satz zusammenfassen (Zimmer, Daten, Nächte, Personen, Frühstück, Gesamtpreis) und fragen: ".$ask." Erst nach ausdrücklichem Ja book_room aufrufen, danach Buchungscode und Status nennen. Mehrere Zimmer: je Zimmer ein book_room. 2) Bestehende Buchungen: get_booking/cancel_booking nur mit Buchungscode UND Name (oder Telefonnummer); ohne Übereinstimmung keine Auskunft. Storno erst nach ausdrücklicher Bestätigung; ist die Frist abgelaufen, freundlich an die Rezeption verweisen und Rückruf anbieten. 3) Gäste im Haus: immer zuerst die Zimmernummer erfragen, dann create_guest_request (kind: housekeeping, amenities, roomservice, wakeup, maintenance, late_checkout, info, other). Weckruf und Taxi brauchen eine konkrete Uhrzeit (heute oder morgen klären). Taxi: order_taxi_for_guest mit Name, Ziel, Abholzeit, Personen. Keine Zusagen zu genauen Erledigungszeiten; Late Check-out nur als Wunsch aufnehmen (die Rezeption bestätigt). 4) Datenschutz: niemals Daten anderer Gäste nennen – auch nicht, wer in welchem Zimmer wohnt oder ob jemand im Haus ist. 5) Beschwerden: zuerst Verständnis zeigen und entschuldigen, dann create_guest_request mit kind other (Zimmer, Anliegen) und einen Rückruf der Rezeption anbieten. 6) Notfall: 112, danach Rezeption informieren. Hausinfos nur aus diesen Angaben und der Wissensbasis.";
     if($channel==='phone') $h.="\nKANAL TELEFON: keine Links oder URLs vorlesen – die Bestätigung kommt per E-Mail. Buchungscode langsam Zeichen für Zeichen mit kurzen Pausen buchstabieren. Daten immer mit Wochentag aussprechen (z. B. „Freitag, der 20. November“). Die Anrufernummer ist bekannt und dient als Kontakt, außer der Gast möchte eine andere.";
-    elseif($channel==='whatsapp') $h.="\nKANAL WHATSAPP: Die WhatsApp-Nummer des Gastes ist bekannt und dient als Kontakt. Nach der Buchung den Link zur Buchungsübersicht (Feld stay_url) mitschicken.";
+    elseif($channel==='whatsapp') $h.="\nKANAL WHATSAPP: Die WhatsApp-Nummer des Gastes ist bekannt und dient als Kontakt.".($s['auto_confirm'] ? '' : ' Bei Anfragen zusätzlich die E-Mail-Adresse erfragen – die Bestätigung der Rezeption kann später kommen, wenn WhatsApp-Nachrichten nicht mehr zugestellt werden.')." Nach der Buchung den Link zur Buchungsübersicht (Feld stay_url) mitschicken.";
     else $h.="\nNach der Buchung den Link zur Buchungsübersicht (Feld stay_url) mitschicken – dort kann der Gast die Buchung ansehen, in den Kalender übernehmen und fristgerecht stornieren.";
     return $h;
 }
@@ -728,7 +826,9 @@ function hotel_api(string $route, string $method, int $aid, array $body, array $
         switch($route){
             case 'hotel/settings':
                 if($method==='GET') return [200,hotel_api_settings($aid)];
-                if($method==='POST'){ hotel_settings_save($aid,$body); return [200,['ok'=>true]+hotel_api_settings($aid)]; } break;
+                if($method==='POST'){
+                    if(isset($body['rooms']) && is_array($body['rooms'])){ $chk=hotel_rooms_check($aid,$body['rooms']); if(isset($chk['error'])) return [422,$chk]; }   // Kategorie mit anstehenden Buchungen nicht entfernen
+                    hotel_settings_save($aid,$body); return [200,['ok'=>true]+hotel_api_settings($aid)]; } break;
             case 'hotel/bookings':
                 if($method!=='GET') break; $t=hotel_today(hotel_settings($aid));
                 $from=$isDate($_GET['from'] ?? null) ? $_GET['from'] : $t; $to=$isDate($_GET['to'] ?? null) ? $_GET['to'] : hotel_day($from)->modify('+30 days')->format('Y-m-d'); if($to<$from) [$from,$to]=[$to,$from];
@@ -738,7 +838,7 @@ function hotel_api(string $route, string $method, int $aid, array $body, array $
                 if($method!=='POST') break; $r=hotel_booking_action($aid,(int)($body['id'] ?? 0),(string)($body['action'] ?? ''),(string)($body['room_no'] ?? ''),'studio');
                 return [isset($r['error']) ? ($r['error']==='not_found' ? 404 : 422) : 200,$r];
             case 'hotel/book':
-                if($method!=='POST') break; $r=hotel_book($aid,$body,'studio'); return [isset($r['error']) ? 422 : 200,$r];
+                if($method!=='POST') break; $r=hotel_book($aid,$body,'studio','',true); return [isset($r['error']) ? 422 : 200,$r];   // manueller Eintrag der Rezeption
             case 'hotel/availability':
                 if($method!=='GET') break; $r=hotel_availability($aid,(string)($_GET['checkin'] ?? ''),(string)($_GET['checkout'] ?? ''),(int)($_GET['guests'] ?? 2),$_GET['nights'] ?? null); return [isset($r['error']) ? 422 : 200,$r];
             case 'hotel/requests':

@@ -44,7 +44,7 @@
       +'<div class="grid g4" style="gap:8px"><div><label>Personen max.</label><input type="text" class="rCap" inputmode="numeric" value="'+(+r.capacity||2)+'"></div><div><label>Anzahl Zimmer</label><input type="text" class="rUnits" inputmode="numeric" value="'+(+r.units||1)+'"></div>'
       +'<div><label>€ pro Nacht</label><input type="text" class="rPrice" inputmode="decimal" value="'+eurOut(r.price_cents||0)+'"></div><div><label>€ Fr + Sa</label><input type="text" class="rWe" inputmode="decimal" placeholder="wie normal" value="'+(r.weekend_cents ? eurOut(r.weekend_cents) : '')+'"></div></div>'
       +'<div class="grid g2" style="gap:8px"><div><label>Beschreibung</label><input type="text" class="rDesc" placeholder="z. B. 24 m², Kingsize-Bett, Alsterblick" value="'+h(r.description)+'"></div><div><label>Ausstattung</label><input type="text" class="rAm" placeholder="WLAN, Minibar, Balkon" value="'+h(r.amenities)+'"></div></div>';
-    d.querySelector('button').onclick=function(){ d.remove(); };
+    d.querySelector('button').onclick=function(){ if(+r.id && !confirm('Zimmerkategorie „'+(d.querySelector('.rName').value.trim() || r.name || '')+'“ entfernen? Wird erst mit „Speichern“ übernommen – Kategorien mit anstehenden Buchungen bleiben erhalten.')) return; d.remove(); };
     el('htRooms').appendChild(d);
   }
   function collect(){
@@ -198,7 +198,7 @@
     return api('/hotel/settings').then(function(j){ stats(j.stats||{}); links(j.links||{}); })
       .catch(function(){}).then(function(){ return Promise.all([loadPending(),loadUpcoming(),loadReqs()]); }).then(done,done);
   }
-  function plan(){ try{ var on=typeof active==='function' && active('agent-hotel'); el('htActive').classList.toggle('hidden',!on); el('htRent').classList.toggle('hidden',!!on); }catch(e){} }
+  function plan(){ try{ var on=typeof active==='function' && (active('agent-hotel') || active('buy-hotel')); el('htActive').classList.toggle('hidden',!on); el('htRent').classList.toggle('hidden',!!on); }catch(e){} }
   function wire(){
     el('htSave').onclick=save; el('htAddRoom').onclick=function(){ roomRow({}); };
     el('htDemoRooms').onclick=function(){ if([].slice.call(document.querySelectorAll('#htRooms .rName')).some(function(i){ return i.value.trim(); }) && !confirm('Vorhandene Zimmerkategorien durch das Beispiel ersetzen? (Erst mit „Speichern“ übernommen.)')) return; el('htRooms').innerHTML=''; DEMO_ROOMS.forEach(roomRow); };

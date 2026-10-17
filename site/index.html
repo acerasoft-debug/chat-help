@@ -116,9 +116,24 @@ section{padding:100px 0;scroll-margin-top:84px}@media(max-width:720px){section{p
 .stepl .it b{display:block;font:700 14.5px var(--sans)}.stepl .it span{color:var(--ink2);font-size:13.5px}
 .dctl{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
 .live{display:none;background:var(--sur);border:1px solid var(--line);border-radius:var(--r2);padding:14px;box-shadow:var(--sh1)}
-.live.on{display:block}.live form{display:flex;gap:8px}.live input{flex:1;border:1px solid var(--line2);border-radius:14px;padding:12px 14px;font:15px var(--sans);outline:0}.live input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,43,.12)}
+.live.on{display:block}.live form{display:flex;gap:8px}.live input{flex:1;min-width:0;border:1px solid var(--line2);border-radius:14px;padding:12px 14px;font:15px var(--sans);outline:0}.live input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,43,.12)}
 .live .send{border:0;border-radius:14px;background:var(--ink);color:#fff;padding:0 16px;font:600 14px var(--sans)}.live .mic{border:1px solid var(--line2);border-radius:14px;background:#fff;padding:0 14px;font-size:18px}.live .mic.rec{background:var(--rosel);border-color:#f7c6d5;animation:pulse 1.4s infinite}
 .live small{display:block;color:var(--mute2);font-size:11.5px;margin-top:8px}
+.theater>.explain{min-width:0}
+/* Live-Leiste: Status, Stimme, Vorschläge */
+.live .lhd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-2px 0 10px}
+.live .lst{display:inline-flex;align-items:center;gap:8px;min-width:0;font:600 12.5px var(--sans);color:var(--ink2)}.live .lst span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live .eq{display:inline-flex;align-items:flex-end;justify-content:center;gap:2px;width:14px;height:14px;flex:0 0 auto}.live .eq b{width:3px;height:4px;border-radius:2px;background:var(--gold2);transition:height .2s,background .2s}
+.live.spk .eq b{animation:eq .8s ease-in-out infinite}.live.spk .eq b:nth-child(2),.live.lis .eq b:nth-child(2){animation-delay:.16s}.live.spk .eq b:nth-child(3),.live.lis .eq b:nth-child(3){animation-delay:.32s}
+.live.lis .eq b{background:var(--rose);animation:eq 1.1s ease-in-out infinite}.live.thk .eq b{animation:eqd 1.2s ease-in-out infinite}.live.thk .eq b:nth-child(2){animation-delay:.2s}.live.thk .eq b:nth-child(3){animation-delay:.4s}
+@keyframes eq{0%,100%{height:4px}50%{height:14px}}@keyframes eqd{0%,100%{opacity:.3}50%{opacity:1}}
+.live .vtg{flex:0 0 auto;border:1px solid var(--line2);background:#fff;border-radius:999px;padding:6px 12px;font:600 12.5px var(--sans);color:var(--ink2);white-space:nowrap;transition:background .18s,border-color .18s,color .18s}
+.live .vtg:hover{border-color:var(--gold2)}.live .vtg[aria-pressed="true"]{background:var(--goldl);border-color:#eadbb0;color:#8a6318}
+.lchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.lchips[hidden]{display:none}
+.lchip{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:7px 12px;font:500 12.5px/1.3 var(--sans);color:var(--ink2);text-align:left;transition:border-color .18s,background .18s,color .18s}
+.lchip:hover,.lchip:focus-visible{border-color:var(--gold2);background:#fffaf0;color:var(--ink);outline:0}.lchips.cmp .lchip{padding:5px 10px;font-size:11.5px;color:var(--mute)}
+@media(max-width:720px){.lchips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:10px -14px 0;padding:0 14px 2px}.lchips::-webkit-scrollbar{display:none}.lchip{flex:0 0 auto;white-space:nowrap}}
+.phone .wave i{transition:height .25s,opacity .25s,background .25s}.phone .wave.idle i{animation:none;height:6px;opacity:.45}.phone .wave.lis i{animation:wv 1.3s ease-in-out infinite;background:#e3c27a;opacity:.9}
 /* professions */
 .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}@media(max-width:1000px){.pgrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.pgrid{grid-template-columns:1fr}}
 .pro{display:flex;flex-direction:column;padding:26px;cursor:pointer}
@@ -262,7 +277,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 .ai form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);background:#fff}.ai input{flex:1;border:1px solid var(--line2);border-radius:12px;padding:11px 12px;font:14px var(--sans);outline:0}.ai input:focus{border-color:var(--gold)}
 .ai .send{border:0;border-radius:12px;background:var(--ink);color:#fff;padding:0 14px;font:600 13.5px var(--sans)}
 .reveal{opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .7s ease}.reveal.in{opacity:1;transform:none}
-@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.dot,.phone .wave i,.tl li.cur>i{animation:none}.tl li,.tl li>i,.trn li::after,.qs .rg,.qbar i,.kit,.drv,.dsp{transition:none!important}.trn li::after{opacity:1;transform:none}.qs .rg{stroke-dashoffset:11.3}.qbar i{width:94%}}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.dot,.phone .wave i,.tl li.cur>i{animation:none}.tl li,.tl li>i,.trn li::after,.qs .rg,.qbar i,.kit,.drv,.dsp{transition:none!important}.trn li::after{opacity:1;transform:none}.qs .rg{stroke-dashoffset:11.3}.qbar i{width:94%}
+  .live .eq b,.live .mic.rec,.phone .wave.lis i,.phone .wave.talk i{animation:none!important}.live.spk .eq b,.live.lis .eq b{height:12px}.phone .wave.talk i,.phone .wave.lis i{height:16px;opacity:1}.phone .wave i,.lchip,.live .vtg{transition:none}}
 </style>
 </head>
 <body>
@@ -294,7 +310,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 <section id="demo"><div class="wrap">
   <span class="eyebrow">Live-Demo</span>
   <h2 style="margin-top:12px">Sieh zu – <span class="g">oder sprich selbst</span> mit dem Agenten.</h2>
-  <p class="sub">Jede Demo ist ein echter ChatHelp-Agent mit einer Beispiel-Wissensbasis. Erst läuft ein typisches Gespräch ab, dann kannst du selbst schreiben – beim Telefon-Agenten sogar sprechen.</p>
+  <p class="sub">Jede Demo ist ein echter ChatHelp-Agent mit einer Beispiel-Wissensbasis. Erst läuft ein typisches Gespräch ab, dann schreibst oder sprichst du selbst – und jeder Agent antwortet auf Wunsch mit Stimme.</p>
   <div class="dtabs" id="dtabs"></div>
   <div class="theater">
     <div class="stage" id="stage"></div>
@@ -302,7 +318,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
       <div class="hd"><span class="tag indigo" id="exTag">Telefon-Agent</span><h3 id="exTitle" style="margin-top:12px">Nimmt jeden Anruf an – auch um 23 Uhr.</h3><p id="exText"></p></div>
       <div class="stepl" id="exSteps"></div>
       <div class="dctl"><button class="btn" id="btnReplay">↻ Demo abspielen</button><button class="btn p" id="btnLive">Selbst testen – live</button><a class="btn ghost" id="btnRent" href="/chat/tokens-checkout.php?plan=agent-phone">Agent mieten →</a></div>
-      <div class="live" id="live"><form id="liveForm"><input id="liveIn" placeholder="Schreib dem Agenten …" maxlength="800" autocomplete="off"><button type="button" class="mic" id="liveMic" title="Sprechen" style="display:none">🎙️</button><button class="send" type="submit">Senden</button></form><small id="liveNote">Echter Agent, Beispiel-Firma. Deine eigene Wissensbasis fügst du im Studio ein.</small></div>
+      <div class="live" id="live"><div class="lhd"><span class="lst"><i class="eq" aria-hidden="true"><b></b><b></b><b></b></i><span id="liveWho">Live</span></span><button type="button" class="vtg" id="liveVoice" aria-pressed="false" title="Antworten vorlesen">🔇 Stimme aus</button></div><form id="liveForm"><input id="liveIn" placeholder="Schreib dem Agenten …" maxlength="800" autocomplete="off" aria-label="Nachricht an den Agenten"><button type="button" class="mic" id="liveMic" title="Sprechen" aria-label="Sprechen" style="display:none">🎙️</button><button class="send" type="submit">Senden</button></form><div class="lchips" id="liveChips" role="group" aria-label="Vorschläge" hidden></div><small id="liveNote">Echter Agent, Beispiel-Firma. Deine eigene Wissensbasis fügst du im Studio ein.</small></div>
     </div>
   </div>
 </div></section>
@@ -772,7 +788,7 @@ const DEMOS=[
 ];
 let cur=null,playId=0,liveHist=[],liveOn=false;
 (function(){const w=$('#dtabs');DEMOS.forEach(d=>{const b=document.createElement('button');b.type='button';b.className='dtab';b.dataset.k=d.key;b.textContent=d.tab;b.onclick=()=>demoSelect(d.key);w.appendChild(b);});})();
-function demoSelect(key){const d=DEMOS.find(x=>x.key===key)||DEMOS.find(x=>x.key==='support')||DEMOS[0];cur=d;liveOn=false;liveHist=[];$('#live').classList.remove('on');$('#btnLive').textContent='Selbst testen – live';
+function demoSelect(key){const d=DEMOS.find(x=>x.key===key)||DEMOS.find(x=>x.key==='support')||DEMOS[0];liveLeave();cur=d;liveHist=[];
   document.querySelectorAll('.dtab').forEach(b=>b.classList.toggle('on',b.dataset.k===d.key));
   $('#exTag').textContent=d.tag;$('#exTitle').textContent=d.title;$('#exText').textContent=d.text;$('#btnRent').href=CHECKOUT+'?plan='+d.plan;
   $('#exSteps').innerHTML=d.steps.map((s,i)=>`<div class="it" data-i="${i}"><i>0${i+1}</i><div><b>${s[0]}</b><span>${s[1]}</span></div></div>`).join('');
@@ -798,33 +814,183 @@ async function playDemo(){const d=cur,my=++playId;const tr=$('#dTr');if(tr)tr.in
     else {await sleep(400);if(my!==playId||liveOn)return;dmsg('sys',text);await sleep(600);}
     if(text.includes('✓')&&out)out.style.opacity=1;}
   clearInterval(tick);if(out)out.style.opacity=1;stepOn(3);}
-$('#btnReplay').onclick=()=>{liveOn=false;$('#live').classList.remove('on');$('#btnLive').textContent='Selbst testen – live';playDemo();};
-$('#btnLive').onclick=()=>goLive();
+$('#btnReplay').onclick=()=>{liveLeave();playDemo();};
+$('#btnLive').onclick=()=>{vUnlock();goLive();};
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-async function goLive(voice){if(liveOn&&!voice)return;liveOn=true;playId++;liveHist=[];const d=cur;$('#live').classList.add('on');$('#btnLive').textContent='Live-Modus aktiv';
+/* ===== Live-Modus: Persona, Stimme (Server-TTS → Browser-Stimme), Füllsätze, Barge-in, Vorschläge ===== */
+const TTS_API='/chat/tts.php',LIVE_FALLBACK='Hallo! Was kann ich für Sie tun?',VKEY='chLiveVoice';
+/* Ansprechpartner je Demo, bis der Server die Persona nennt: [Nominativ, Dativ] */
+const LIVE_WHO={phone:['Lea','Lea'],termine:['Mia','Mia'],bestellung:['das Napoli-Team','dem Napoli-Team'],taxi:['die Zentrale','der Zentrale'],hotel:['die Rezeption','der Rezeption'],immo:['der Assistent','dem Assistenten'],kanzlei:['die Kanzlei','der Kanzlei'],steuer:['die Kanzlei','der Kanzlei']},LIVE_WHO_DEF=['der Assistent','dem Assistenten'];
+const LIVE_G={taxi:'m'};
+const LIVE_BASE={phone:'Echter Telefon-Agent (Beispiel-Praxis).',termine:'Echter Termin-Agent mit echtem Demo-Kalender (Salon Luna). Buche ruhig – Demo-Termine werden nach 2 Tagen gelöscht.',bestellung:'Echter Bestell-Agent (Pizzeria Napoli, Köln). Gib eine Demo-Bestellung auf – nichts wird geliefert, keine Nachricht verschickt.',taxi:'Echter Taxi-Agent (Taxi Rheinland, Köln). Bestell eine Demo-Fahrt – es kommt kein Taxi, keine SMS wird verschickt.',hotel:'Echte Hotel-Rezeption (Hotel Alster Residenz, Hamburg). Frag nach einem Zimmer oder äußere einen Wunsch – Demo, es wird nichts gebucht.',immo:'Echter Immobilien-Agent (Lindqvist Immobilien, Köln). Frag zur Wohnung LQ-2041 oder bitte um Rückruf – Demo, es ruft niemand an.'};
+const V={on:false,turn:0,demo:'',gender:'f',rate:1,pitch:1,tts:false,ttsDead:false,ttsPause:0,fillers:[],lastF:-1,fcache:new Map(),audio:null,ac:window.AbortController?new AbortController():null,end:null,utter:null,busy:false,unlocked:false,voices:[],vTried:false};
+/* 50 ms Stille (WAV) – entsperrt Audio auf iOS innerhalb der ersten Geste */
+const V_SILENT=(()=>{try{const n=400,u=(v,b)=>{let s='';for(let i=0;i<b;i++)s+=String.fromCharCode((v>>>(8*i))&255);return s;};return 'data:audio/wav;base64,'+btoa('RIFF'+u(36+n,4)+'WAVEfmt '+u(16,4)+u(1,2)+u(1,2)+u(8000,4)+u(8000,4)+u(1,2)+u(8,2)+'data'+u(n,4)+'\x80'.repeat(n));}catch(e){return '';}})();
+let liveWho=LIVE_WHO_DEF.slice(),liveChips=[],liveUser=0,liveSt='',liveSeq=0,liveTick=0,liveSec=0;
+let micWanted=false,rec=null;
+const vCap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const vClamp=(v,a,b,d)=>{v=Number(v);return isFinite(v)&&v>0?Math.min(b,Math.max(a,v)):d;};
+const vText=x=>x==null?'':typeof x==='string'?x:typeof x==='number'?String(x):typeof x==='object'?String(x.de||x.text||Object.values(x).find(v=>typeof v==='string')||''):'';
+const fmtT=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+const vCls=d=>d&&d.device==='phone'?'phone':'chat';
+function vPrefs(){let o=null;try{o=JSON.parse(localStorage.getItem(VKEY)||'{}');}catch(e){}return o&&typeof o==='object'?o:{};}
+function vPrefGet(cls){const o=vPrefs();return typeof o[cls]==='boolean'?o[cls]:cls==='phone';}
+function vPrefSet(cls,on){const o=vPrefs();o[cls]=!!on;try{localStorage.setItem(VKEY,JSON.stringify(o));}catch(e){}}
+function setVoice(on,persist){const was=V.on;V.on=!!on;if(persist&&cur)vPrefSet(vCls(cur),V.on);if(was&&!V.on)vStop();liveVoiceUI();}
+function liveVoiceUI(){const b=$('#liveVoice');if(b){b.textContent=V.on?'🔊 Stimme an':'🔇 Stimme aus';b.setAttribute('aria-pressed',V.on?'true':'false');}liveNoteSet();liveState();}
+function liveNoteSet(){const n=$('#liveNote');if(!n||!cur)return;const base=LIVE_BASE[cur.key]||'Echter Agent mit Beispiel-Wissensbasis. Deine eigene fügst du im Studio ein.';
+  n.textContent=base+' '+(V.on?(SR?'Sprich mit ':'Schreib ')+liveWho[1]+' – antwortet mit Stimme.':'Mit 🔊 antwortet '+liveWho[0]+' mit Stimme.');}
+/* Statuszeile: spricht / hört zu / überlegt – sonst „Im Gespräch mit …“ */
+function liveState(s){if(s!==undefined)liveSt=s;const l=$('#live'),w=$('#liveWho');if(!l||!w)return;const st=V.busy&&V.on?'spk':liveSt,N=vCap(liveWho[0]),ph=!!(cur&&cur.device==='phone');
+  l.classList.toggle('lis',st==='listen');l.classList.toggle('thk',st==='think');const wv=$('#dWave');if(wv&&liveOn)wv.classList.toggle('lis',st==='listen');
+  w.textContent=st==='spk'?N+' spricht …':st==='listen'?N+' hört zu …':st==='think'?N+(ph?' überlegt …':' schreibt …'):(ph?'Im Gespräch mit ':'Live-Chat mit ')+liveWho[1];}
+/* Wellenform/Equalizer nur, solange wirklich Ton läuft */
+function vTalk(on){const w=$('#dWave');if(w&&liveOn){w.classList.toggle('talk',!!on);w.classList.toggle('idle',!on);}const l=$('#live');if(l)l.classList.toggle('spk',!!on);}
+function vEl(){if(!V.audio){const a=new Audio();a.preload='auto';try{a.setAttribute('playsinline','');}catch(e){}V.audio=a;}return V.audio;}
+function vUnlock(){if(V.unlocked)return;V.unlocked=true;
+  try{if(V_SILENT){const a=vEl();a.src=V_SILENT;const p=a.play();if(p&&p.catch)p.catch(e=>{if(e&&e.name==='NotAllowedError')V.unlocked=false;});}}catch(e){V.unlocked=false;}
+  try{const ios=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);if(ios&&window.speechSynthesis&&window.SpeechSynthesisUtterance){const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}}catch(e){}}
+/* Barge-in: alles sofort stoppen – Server-Audio, Browser-Stimme, Warteschlange, Prefetches (Turn-ID) */
+function vStop(){V.turn++;V.busy=false;try{V.ac&&V.ac.abort();}catch(e){}V.ac=window.AbortController?new AbortController():null;
+  const e=V.end;V.end=null;try{if(V.audio&&!V.audio.paused)V.audio.pause();}catch(x){}try{window.speechSynthesis&&speechSynthesis.cancel();}catch(x){}
+  if(e)e();vTalk(false);liveState();}
+function vServer(){return V.tts&&!V.ttsDead&&Date.now()>V.ttsPause;}
+async function vFetch(it){if(!vServer()||!it||!it.t)return null;const ac=V.ac;
+  try{const r=await fetch(TTS_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({demo:V.demo,text:it.text,t:it.t}),cache:'no-store',signal:ac?ac.signal:undefined});
+    if(r.status===501)V.ttsDead=true;else if(r.status===429)V.ttsPause=Date.now()+120000;
+    if(!r.ok)return null;const ct=(r.headers.get('content-type')||'').toLowerCase();if(ct&&!/audio|octet-stream/.test(ct))return null;
+    const b=await r.blob();if(!b||!b.size||(ac&&ac.signal.aborted))return null;return URL.createObjectURL(b);}catch(e){return null;}}
+function vPlayUrl(url,turn){return new Promise(res=>{if(turn!==V.turn)return res(false);const a=vEl();let fin=false,to=0;
+  const done=r=>{if(fin)return;fin=true;clearTimeout(to);a.onended=a.onerror=a.onplaying=a.onloadedmetadata=null;if(V.end===stop)V.end=null;vTalk(false);res(r);};
+  const stop=()=>{try{a.pause();}catch(e){}done(false);};V.end=stop;
+  a.onplaying=()=>{if(!fin&&a.src===url)vTalk(true);};a.onended=()=>{if(a.src===url)done(true);};a.onerror=()=>{if(a.src===url)done('err');};
+  a.onloadedmetadata=()=>{if(!fin&&isFinite(a.duration)&&a.duration>0){clearTimeout(to);to=setTimeout(()=>done(true),a.duration*1000+2500);}};
+  to=setTimeout(()=>done(true),30000);
+  try{a.src=url;const p=a.play();if(p&&p.catch)p.catch(()=>done('err'));}catch(e){done('err');}});}
+function vVoicesReady(){const ss=window.speechSynthesis;let vs=[];try{vs=ss.getVoices()||[];}catch(e){}if(vs.length){V.voices=vs;return Promise.resolve();}
+  return new Promise(r=>{let t=0;const fin=()=>{clearTimeout(t);try{ss.removeEventListener('voiceschanged',fin);}catch(e){}try{V.voices=ss.getVoices()||[];}catch(e){}r();};t=setTimeout(fin,900);try{ss.addEventListener('voiceschanged',fin);}catch(e){}});}
+/* Natürlichste deutsche Browser-Stimme für das Geschlecht der Persona: Edge „Online (Natural)“, Chrome „Google Deutsch“, Safari „Premium/Enhanced“; de-DE vor de-AT/CH; Spaßstimmen nie */
+const VQ=/natural|online|neural|premium|enhanced|google|wavenet|network/i,
+  VFEM=/katja|seraphina|amala|\banna\b|petra|helena|vicki|marlene|hedda|elke|louisa|ingrid|leni|klara|gisela|tanja|sabine|google deutsch|\bfemale|\bfrau\b|weiblich/i,
+  VMAL=/conrad|florian|killian|markus|yannick|stefan|\bhans\b|ralf|bernd|christoph|kasper|klaus|jonas|viktor|martin|\bmale\b|\bmann\b|männlich/i,
+  VNOV=/\b(eddy|flo|reed|rocko|sandy|shelley|grandma|grandpa|oma|opa|großmutter|großvater)\b/i;
+function pickVoice(g){let vs=[];try{vs=(window.speechSynthesis&&speechSynthesis.getVoices())||[];}catch(e){}if(!vs.length)vs=V.voices||[];
+  const de=vs.filter(v=>v&&/^de([-_]|$)/i.test(v.lang||''));if(!de.length)return null;const want=g==='m'?VMAL:VFEM,other=g==='m'?VFEM:VMAL;
+  const sc=v=>{const n=v.name||'';let s=0;if(VQ.test(n))s+=6;s+=/^de[-_]de/i.test(v.lang)?3:1;if(want.test(n))s+=3;else if(other.test(n))s-=2;if(v.localService===false)s+=1;if(VNOV.test(n))s-=20;return s;};
+  return de.slice().sort((a,b)=>sc(b)-sc(a))[0]||null;}
+try{if(window.speechSynthesis){const f=()=>{try{V.voices=speechSynthesis.getVoices()||[];}catch(e){}};if(speechSynthesis.addEventListener)speechSynthesis.addEventListener('voiceschanged',f);f();}}catch(e){}
+/* Browser-Stimme, Satz für Satz (kurze Äußerungen umgehen Chromes 15-Sekunden-Abbruch) */
+async function vBrowser(text,turn){const ss=window.speechSynthesis;if(!ss||!window.SpeechSynthesisUtterance||!text)return 'none';
+  if(!V.vTried){V.vTried=true;await vVoicesReady();}if(turn!==V.turn)return false;
+  return new Promise(res=>{let u;try{u=new SpeechSynthesisUtterance(text);}catch(e){return res('none');}
+    u.lang='de-DE';const v=pickVoice(V.gender);if(v){try{u.voice=v;u.lang=v.lang||'de-DE';}catch(e){}}u.rate=V.rate;u.pitch=V.pitch;
+    let fin=false,to=0;const done=r=>{if(fin)return;fin=true;clearTimeout(to);if(V.end===stop)V.end=null;if(V.utter===u)V.utter=null;vTalk(false);res(r);};
+    const stop=()=>done(false);V.end=stop;V.utter=u;
+    u.onstart=()=>{if(!fin)vTalk(true);};u.onend=()=>done(true);u.onerror=e=>done(e&&/interrupted|canceled/.test(e.error||'')?false:'err');
+    to=setTimeout(()=>done(true),3500+text.length*95/(V.rate||1));
+    try{if(ss.paused)ss.resume();ss.speak(u);}catch(e){done('none');}});}
+/* Sätze nacheinander: Server-Stimme mit Prefetch des nächsten Satzes, bei Fehler Browser-Stimme für den Rest */
+async function vSay(items,turn){items=(items||[]).filter(x=>x&&x.text);if(!items.length||turn!==V.turn||!V.on)return false;
+  V.busy=true;liveState();let srv=vServer(),ok=true;const pre=[];const get=i=>pre[i]||(pre[i]=vFetch(items[i]));
+  try{for(let i=0;i<items.length;i++){if(turn!==V.turn||!V.on){ok=false;break;}let r='none';
+      if(srv&&items[i].t){const url=await get(i);if(turn!==V.turn){ok=false;break;}
+        if(url){if(i+1<items.length&&items[i+1].t)get(i+1);r=await vPlayUrl(url,turn);try{URL.revokeObjectURL(url);}catch(e){}if(r===false){ok=false;break;}}
+        if(r!==true)srv=false;}
+      if(r!==true){r=await vBrowser(items[i].text,turn);if(r===false){ok=false;break;}}
+      if(i<items.length-1){await sleep(120+Math.random()*80);}}}
+  finally{pre.forEach(p=>p&&p.then(u=>{if(u)try{URL.revokeObjectURL(u);}catch(e){}}));if(turn===V.turn){V.busy=false;liveState();}}
+  return ok&&turn===V.turn;}
+/* Füllsatz („Mhm, einen kleinen Moment …“) – höchstens einer pro Antwort, Audio wird gecacht */
+function vFillerPick(){const f=V.fillers;if(!f.length)return null;let i=Math.floor(Math.random()*f.length);if(f.length>1&&i===V.lastF)i=(i+1)%f.length;V.lastF=i;return f[i];}
+function vFillerAudio(f){if(!vServer()||!f.t)return Promise.resolve(null);const k=V.demo+'|'+f.text;let p=V.fcache.get(k);if(!p){p=vFetch(f).then(u=>{if(!u)V.fcache.delete(k);return u;});V.fcache.set(k,p);}return p;}
+async function vFiller(f,turn,st){const url=await vFillerAudio(f);if(st.answered||turn!==V.turn||!V.on)return;st.started=true;V.busy=true;liveState();
+  const r=url?await vPlayUrl(url,turn):'none';if(r!==true&&r!==false&&turn===V.turn)await vBrowser(f.text,turn);if(turn===V.turn){V.busy=false;liveState();}}
+/* Ersatz, falls der Server kein speech[] liefert: einfache Satztrennung + Sprechnormalisierung */
+const V_MON=/^(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Jan|Feb|Mär|Apr|Jun|Jul|Aug|Sep|Sept|Okt|Nov|Dez)\b/;let V_EMO=null;try{V_EMO=new RegExp('[\\p{Extended_Pictographic}\\u{FE0F}\\u{200D}]','gu');}catch(e){}
+function vSplit(text){let s=String(text||'').replace(/\[(WEITERLEITEN|ENDE)\]/g,' ').replace(/https?:\/\/\S+/g,' ').replace(/[*_#`>|]/g,' ');if(V_EMO)s=s.replace(V_EMO,' ');
+  s=s.replace(/[✓✔✗⚙→←•]/g,' ').replace(/\s*·\s*/g,', ').replace(/\s*…\s*/g,', ').replace(/\bz\.\s?B\./g,'zum Beispiel').replace(/\bca\./g,'circa').replace(/\binkl\./g,'inklusive').replace(/\bzzgl\./g,'zuzüglich').replace(/\bbzw\./g,'beziehungsweise').replace(/\bNr\./g,'Nummer').replace(/\bggf\./g,'gegebenenfalls').replace(/\busw\./g,'und so weiter').replace(/\s&\s/g,' und ')
+    .replace(/\s+/g,' ').replace(/\s+([,.!?;:])/g,'$1').replace(/([,;:])(?:\s*[,;:])+/g,'$1').replace(/^[\s,;:]+/,'').trim();
+  const out=[],re=/[.!?]+["“”»)]?(\s+|$)/g;let start=0,m;
+  while((m=re.exec(s))){const end=m.index+m[0].length,w=(s.slice(start,m.index).match(/(\S+)$/)||['',''])[1];
+    if(m[1]&&m[0].trim()==='.'){const nx=(s.slice(end).match(/^\S+/)||[''])[0];
+      if(/^([A-Za-zÄÖÜäöü]|Dr|Prof|Str|Hr|Fr|Tel|St|Mo|Di|Mi|Do|Sa|So|Abs|vgl|evtl|Min|Std|Mio|Mrd|max|min)$/.test(w)||(/^\d{1,2}$/.test(w)&&(/^[a-zäöü]/.test(nx)||V_MON.test(nx))))continue;}
+    const seg=s.slice(start,end).trim();if(seg)out.push(seg);start=end;}
+  const rest=s.slice(start).trim();if(rest)out.push(rest);
+  const res=[];out.forEach(x=>{while(x.length>150){let k=-1;for(const sep of [', ',' – ','; ',': ']){const i=x.lastIndexOf(sep,140);if(i>40){k=i+sep.length-1;break;}}if(k<0){k=x.lastIndexOf(' ',140);if(k<40)k=140;}res.push(x.slice(0,k+1).trim());x=x.slice(k+1).trim();}if(x)res.push(x);});
+  return res.filter(x=>/[0-9A-Za-zÄÖÜäöüß]/.test(x));}
+function vItems(sp,text){if(Array.isArray(sp)){const it=sp.map(x=>typeof x==='string'?{text:x.trim(),t:''}:x&&typeof x==='object'?{text:vText(x.text).trim(),t:typeof x.t==='string'?x.t:''}:null).filter(x=>x&&x.text);if(it.length)return it;}
+  return vSplit(text).map(s=>({text:s,t:''}));}
+function speak(text,done){vSay(vItems(null,text),V.turn).then(ok=>{done&&done(ok);});}
+/* Persona-Vorname aus dem Server (z. B. „Lea“), sonst Rollenbezeichnung */
+function livePersona(p){const s=vText(p&&typeof p==='object'?p.name:p).trim().split(/[,;:·–—(|]/)[0].trim().split(/\s+/)[0]||'';return /^[A-ZÄÖÜ][a-zäöüß]{1,13}$/.test(s)&&!/^(Der|Die|Das|Ein|Eine|Ihr|Ihre|Hier|Hallo)$/.test(s)?s:'';}
+function liveApply(j){if(!j||typeof j!=='object')return;const vo=j.voice&&typeof j.voice==='object'?j.voice:{};
+  if(vo.gender==='m'||vo.gender==='f')V.gender=vo.gender;V.rate=vClamp(vo.rate,.85,1.15,1);V.pitch=vClamp(vo.pitch,.8,1.2,1);
+  if(typeof j.demo==='string'&&/^[a-z0-9-]{2,40}$/.test(j.demo))V.demo=j.demo;V.tts=j.tts===true;
+  V.fillers=(Array.isArray(j.fillers)?j.fillers:[]).map(f=>typeof f==='string'?{text:f.trim(),t:''}:f&&typeof f==='object'?{text:vText(f.text).trim(),t:typeof f.t==='string'?f.t:''}:null).filter(f=>f&&f.text).slice(0,4);
+  liveChips=(Array.isArray(j.chips)?j.chips:[]).map(c=>vText(c).trim()).filter(Boolean).slice(0,4);const n=livePersona(j.persona);if(n)liveWho=[n,n];}
+/* Vorschläge unter der Eingabe – nach der ersten Nachricht nur noch zwei, kompakt */
+function liveChipsRender(used){const w=$('#liveChips');if(!w)return;if(used){const i=liveChips.indexOf(used);if(i>=0)liveChips.splice(i,1);}
+  const cmp=liveUser>0,list=liveChips.slice(0,cmp?2:4);w.classList.toggle('cmp',cmp);w.textContent='';
+  list.forEach(c=>{const b=document.createElement('button');b.type='button';b.className='lchip';b.textContent=c;b.onclick=()=>{vUnlock();micWanted=false;liveRecStop();liveSend(c);};w.appendChild(b);});w.hidden=!list.length||!liveOn;}
+function liveTimerStart(keep){liveTimerStop();const el=$('#dTimer');if(!el||!cur||cur.device!=='phone')return;if(!keep)liveSec=0;el.textContent=fmtT(liveSec);
+  liveTick=setInterval(()=>{const e=$('#dTimer');if(!liveOn||!e){liveTimerStop();return;}liveSec++;e.textContent=fmtT(liveSec);},1000);}
+function liveTimerStop(){clearInterval(liveTick);liveTick=0;}
+function liveRecStop(){micWanted=false;if(rec){const r=rec;rec=null;try{r.onresult=r.onend=r.onerror=null;r.abort();}catch(e){}}const m=$('#liveMic');if(m)m.classList.remove('rec');if(liveSt==='listen')liveState('');}
+/* Live-Modus verlassen (Demo-Wechsel, „Demo abspielen“) */
+function liveLeave(){vStop();liveRecStop();liveTimerStop();liveOn=false;liveSt='';liveSeq++;const l=$('#live');if(l)l.classList.remove('on','spk','lis','thk');const b=$('#btnLive');if(b)b.textContent='Selbst testen – live';
+  const w=$('#dWave');if(w)w.classList.remove('idle','talk','lis');const c=$('#liveChips');if(c){c.textContent='';c.hidden=true;}}
+async function goLive(voice){if(liveOn&&!voice)return;vUnlock();vStop();liveRecStop();
+  liveOn=true;playId++;liveSeq++;liveHist=[];liveUser=0;liveChips=[];liveSt='';const d=cur;$('#live').classList.add('on');$('#btnLive').textContent='Live-Modus aktiv';
   const tr=$('#dTr');if(tr)tr.innerHTML='';stepOn(3);const out=$('#dOut');if(out)out.style.opacity=0;
-  $('#liveMic').style.display=(d.device==='phone'&&SR)?'inline-flex':'none';$('#liveNote').textContent=d.key==='phone'?'Echter Telefon-Agent (Beispiel-Praxis). Tippe – oder drück 🎙️ und sprich; die Antwort wird vorgelesen.':d.key==='termine'?'Echter Termin-Agent mit echtem Demo-Kalender (Salon Luna). Buche ruhig – Demo-Termine werden nach 2 Tagen gelöscht.':d.key==='bestellung'?'Echter Bestell-Agent (Pizzeria Napoli, Köln). Gib eine Demo-Bestellung auf – nichts wird geliefert, keine Nachricht verschickt.':d.key==='taxi'?'Echter Taxi-Agent (Taxi Rheinland, Köln). Bestell eine Demo-Fahrt – tippen oder 🎙️ sprechen. Es kommt kein Taxi, keine SMS wird verschickt.':d.key==='hotel'?'Echte Hotel-Rezeption (Hotel Alster Residenz, Hamburg). Frag nach einem Zimmer oder äußere einen Wunsch – Demo, es wird nichts gebucht.':d.key==='immo'?'Echter Immobilien-Agent (Lindqvist Immobilien, Köln). Frag zur Wohnung LQ-2041 oder bitte um Rückruf – Demo, es ruft niemand an.':'Echter Agent mit Beispiel-Wissensbasis. Deine eigene fügst du im Studio ein.';
+  V.demo=d.plan;V.gender=LIVE_G[d.key]||'f';V.rate=1;V.pitch=1;V.tts=false;V.fillers=[];V.lastF=-1;liveWho=(LIVE_WHO[d.key]||LIVE_WHO_DEF).slice();
+  $('#liveMic').style.display=SR?'inline-flex':'none';setVoice(vPrefGet(vCls(d))||!!(voice&&d.key==='phone'&&SR),false);liveChipsRender();liveState('');
+  const wv=$('#dWave');if(wv){wv.classList.add('idle');wv.classList.remove('talk','lis');}liveTimerStart();
   dmsg('sys','Live-Modus · echter Agent · Beispiel-Firma '+d.company);
-  const my=playId;
-  try{const r=await fetch(DEMO_API+'?agent='+d.plan);const j=await r.json();if(my!==playId||cur!==d)return;const g=j.greeting||'Hallo! Was kann ich für Sie tun?';dmsg('a',g);if(j.greeting&&!liveHist.length)histPush('assistant',j.greeting);if(voice&&d.key==='phone')speak(g);}catch(e){if(my!==playId||cur!==d)return;dmsg('a','Hallo! Was kann ich für Sie tun?');}
-  if(voice&&d.key==='phone'&&SR)setTimeout(listen,1200);$('#liveIn').focus();}
+  const my=playId,turn=V.turn;let g=LIVE_FALLBACK,sp=null;
+  try{const r=await fetch(DEMO_API+'?agent='+encodeURIComponent(d.plan));const j=await r.json();if(my!==playId||cur!==d)return;
+    liveApply(j);const jg=vText(j&&j.greeting).trim();if(jg)g=jg;dmsg('a',g);if(jg&&!liveHist.length)histPush('assistant',g);sp=j&&j.speech;}
+  catch(e){if(my!==playId||cur!==d)return;dmsg('a',g);}
+  liveChipsRender();liveVoiceUI();
+  const auto=!!(voice&&d.key==='phone'&&SR);if(!auto)try{$('#liveIn').focus();}catch(e){}
+  const ok=V.on&&turn===V.turn?await vSay(vItems(sp,g),turn):false;
+  if(auto&&my===playId&&liveOn&&cur===d&&turn===V.turn)setTimeout(()=>{if(my===playId&&liveOn&&cur===d&&turn===V.turn)listen();},ok?200:1200);}
 /* Verlauf strikt abwechselnd user/assistant: gleiche Rolle hintereinander wird zusammengeführt, Fehlertexte kommen nie hinein */
 function histPush(role,content){const l=liveHist[liveHist.length-1];if(l&&l.role===role)l.content+='\n'+content;else liveHist.push({role,content});}
-async function liveSend(text){text=(text||$('#liveIn').value).trim();if(!text||!cur)return;$('#liveIn').value='';dmsg('u',text);histPush('user',text);const t=dmsg('a','',true);
-  try{const r=await fetch(DEMO_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent:cur.plan,channel:cur.device==='phone'?'phone':'chat',messages:liveHist.slice(-10),lang:'de'})});const j=await r.json();
-    const a=j.reply||j.message||'Gerade nicht erreichbar – bitte gleich erneut versuchen.';
-    if(j.tools&&j.tools.length){const s=document.createElement('div');s.className='m sys';s.textContent='⚙ '+j.tools.map(x=>x.name.replace(/_/g,' ')+(x.ok?' ✓':' ✗')).join(' · ');t.parentNode.insertBefore(s,t);}
-    t.textContent=a;t.classList.remove('typing');stamp(t,'a');if(j.reply)histPush('assistant',j.reply);
-    if(cur.device==='phone'&&micWanted)speak(a,()=>{if(micWanted&&!j.end)listen();});if(j.end)dmsg('sys','Gespräch beendet ✓');if(j.forward)dmsg('sys','→ Weiterleitung an Mitarbeiter');}
-  catch(e){t.textContent='Verbindungsfehler – bitte erneut versuchen.';t.classList.remove('typing');}}
-$('#liveForm').onsubmit=e=>{e.preventDefault();micWanted=false;liveSend();};
-let micWanted=false,rec=null;
-/* Browser-Vorschau: natürlichste verfügbare Systemstimme (Edge „Online (Natural)“, Chrome „Google“, Safari „Premium“); am echten Telefon spricht Amazon Polly Generative */
-function pickVoice(){const vs=speechSynthesis.getVoices().filter(v=>/^de/i.test(v.lang));const de=vs.filter(v=>/de[-_]DE/i.test(v.lang));const pool=de.length?de:vs;const score=v=>(/natural|online|neural|premium|enhanced|google|siri/i.test(v.name)?4:0)+(/vicki|katja|amala|anna|petra|helena|female|frau/i.test(v.name)?2:0)+(v.localService?0:1);return pool.sort((a,b)=>score(b)-score(a))[0];}
-function speak(text,done){try{if(!window.speechSynthesis)return done&&done();window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(text).replace(/\[(WEITERLEITEN|ENDE)\]/g,'').replace(/\s*…\s*/g,', '));u.lang='de-DE';const v=pickVoice();if(v)u.voice=v;u.rate=0.98;u.pitch=1;u.onend=()=>done&&done();speechSynthesis.speak(u);}catch(e){done&&done();}}
-function listen(){if(!SR)return;try{rec&&rec.abort();}catch(e){}rec=new SR();rec.lang='de-DE';rec.interimResults=false;rec.maxAlternatives=1;$('#liveMic').classList.add('rec');micWanted=true;
-  rec.onresult=e=>{const t=e.results[0][0].transcript;$('#liveMic').classList.remove('rec');liveSend(t);};rec.onerror=()=>{$('#liveMic').classList.remove('rec');};rec.onend=()=>{$('#liveMic').classList.remove('rec');};rec.start();}
-$('#liveMic').onclick=()=>{if($('#liveMic').classList.contains('rec')){try{rec&&rec.stop();}catch(e){}return;}speechSynthesis&&speechSynthesis.cancel();listen();};
+async function liveSend(text){text=String(text||$('#liveIn').value||'').trim();if(!text||!cur)return;vStop();
+  const d=cur,play=playId,turn=V.turn,seq=++liveSeq;$('#liveIn').value='';dmsg('u',text);histPush('user',text);liveUser++;liveChipsRender(text);
+  if(d.device==='phone'&&liveOn&&!liveTick)liveTimerStart(true);
+  const t=dmsg('a','',true);liveState('think');
+  const st={answered:false,started:false};let fp=null,ft=0;
+  if(V.on&&V.fillers.length){const f=vFillerPick();if(f){vFillerAudio(f);ft=setTimeout(()=>{if(!st.answered&&turn===V.turn&&V.on)fp=vFiller(f,turn,st);},1300);}}
+  let j=null;
+  try{const r=await fetch(DEMO_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent:d.plan,channel:d.device==='phone'?'phone':'chat',messages:liveHist.slice(-10),lang:'de'})});j=await r.json();}catch(e){j=null;}
+  st.answered=true;clearTimeout(ft);
+  if(d!==cur||play!==playId||!liveOn)return;
+  if(seq===liveSeq)liveState('');
+  if(!j||typeof j!=='object'){if(t){t.textContent='Verbindungsfehler – bitte erneut versuchen.';t.classList.remove('typing');}return;}
+  if(typeof j.tts==='boolean')V.tts=j.tts;
+  const a=vText(j.reply).trim()||vText(j.message).trim()||'Gerade nicht erreichbar – bitte gleich erneut versuchen.';
+  if(Array.isArray(j.tools)&&j.tools.length&&t&&t.parentNode){const s=document.createElement('div');s.className='m sys';s.textContent='⚙ '+j.tools.map(x=>String(x&&x.name||'Werkzeug').replace(/_/g,' ')+(x&&x.ok===false?' ✗':' ✓')).join(' · ');t.parentNode.insertBefore(s,t);}
+  if(t){t.textContent=a;t.classList.remove('typing');stamp(t,'a');}
+  if(vText(j.reply).trim()&&!j.error)histPush('assistant',a);
+  if(j.forward)dmsg('sys','→ Weiterleitung an Mitarbeiter');
+  let spoke=false;
+  if(V.on&&turn===V.turn){if(fp&&st.started)await fp;if(turn===V.turn)spoke=await vSay(vItems(j.speech,a),turn);}
+  if(d!==cur||play!==playId||!liveOn)return;
+  if(j.end){dmsg('sys','Gespräch beendet'+(d.device==='phone'&&liveSec?' · '+fmtT(liveSec):'')+' ✓');liveTimerStop();micWanted=false;}
+  else if(spoke&&micWanted&&SR&&turn===V.turn)listen();}
+$('#liveForm').onsubmit=e=>{e.preventDefault();vUnlock();liveRecStop();liveSend();};
+$('#liveIn').addEventListener('input',()=>{vStop();if(rec)liveRecStop();});
+$('#liveVoice').onclick=()=>{vUnlock();setVoice(!V.on,true);};
+/* Erste Geste für die Live-Demo entsperrt Audio (iOS): Live-Knopf, Live-Leiste, alle „live testen“-Links */
+document.addEventListener('click',e=>{const t=e.target;if(t&&t.closest&&t.closest('#btnLive,#live button,[onclick*="goLive"]'))vUnlock();},true);
+function listen(){if(!SR||!liveOn)return;vStop();if(rec){const o=rec;rec=null;try{o.onresult=o.onend=o.onerror=null;o.abort();}catch(e){}}
+  let r;try{r=new SR();}catch(e){return;}rec=r;r.lang='de-DE';r.interimResults=false;r.maxAlternatives=1;micWanted=true;
+  const off=()=>{if(rec!==r)return;rec=null;$('#liveMic').classList.remove('rec');if(liveSt==='listen')liveState('');};
+  r.onresult=e=>{let t='';try{t=String(e.results[0][0].transcript||'').trim();}catch(x){}off();if(t)liveSend(t);};
+  r.onerror=e=>{off();if(e&&/not-allowed|service-not-allowed/.test(e.error||'')){micWanted=false;const n=$('#liveNote');if(n)n.textContent='Mikrofon nicht freigegeben – du kannst auch tippen.';}};
+  r.onend=off;$('#liveMic').classList.add('rec');liveState('listen');try{r.start();}catch(e){off();}}
+$('#liveMic').onclick=()=>{vUnlock();if(rec&&$('#liveMic').classList.contains('rec')){try{rec.stop();}catch(e){}return;}if(!V.on)setVoice(true,true);listen();};
 demoSelect('phone');
 
 /* ===== Telefon-Sektion: Endlos-Mini-Demo ===== */

@@ -14,7 +14,7 @@ require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 require_once __DIR__.'/appt-lib.php';
 require_once __DIR__.'/order-lib.php';
-const CH_MODULE_LIBS = ['ride'=>['ride-lib.php','ride'],'hotel'=>['hotel-lib.php','hotel'],'callback'=>['callback-lib.php','cb'],'train'=>['train-lib.php','train']];
+const CH_MODULE_LIBS = ['ride'=>['ride-lib.php','ride'],'hotel'=>['hotel-lib.php','hotel'],'callback'=>['callback-lib.php','cb'],'train'=>['train-lib.php','train'],'assistant'=>['assistant-lib.php','assistant'],'push'=>['push-lib.php','push']];
 foreach(CH_MODULE_LIBS as [$f,$p]) if(is_file(__DIR__.'/'.$f)) require_once __DIR__.'/'.$f;
 
 /** Module: enabled(acc) · tools() · exec(acc,name,input,channel,from) · hint(acc,channel,lang) */
