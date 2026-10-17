@@ -69,7 +69,7 @@ const ASSISTANT_SECTOR_MAP = [
     ['/hausverwalt|weg-verwalt|mietverwalt/iu',['agent-hausverwaltung']],
     ['/immobil|makler|wohnung|vermiet/iu',['immo-agent']],
     ['/versicher/iu',['agent-versicherung']],
-    ['/autohaus|werkstatt|kfz|reifen|auto/iu',['agent-autohaus']],
+    ['/autohaus|werkstatt|kfz|reifen|\bauto(s|händler|service|vermietung)?\b/iu',['agent-autohaus']],
     ['/shop|onlineshop|e-commerce|ecommerce|handel|versand|boutique/iu',['agent-support']],
     ['/website|homepage|webseite/iu',['agent-website']],
     ['/handwerk|elektr|sanitär|maler|dachdeck|tischler|schreiner|installat/iu',['agent-phone','agent-backoffice']],
@@ -108,6 +108,8 @@ function assistant_now_text(): string {
     return $w.', '.$d->format('d.m.Y, H:i').' Uhr';
 }
 function assistant_plan_name(string $id): string { $p=ch_plan($id); return $p ? $p['name'] : $id; }
+/** Studio-Bereiche, die es in dieser Installation gibt (Modul-Panels nur, wenn ihre Dateien vorhanden sind). */
+function assistant_tabs_available(): array { return array_values(array_filter(array_keys(ASSISTANT_TABS),fn($k)=>$k!=='assistant' && assistant_has_tab($k))); }
 function assistant_has_tab(string $tab): bool {
     if(in_array($tab,['home','agents','phone','termine','bestellungen','tokens'],true)) return true;
     return isset(ASSISTANT_TABS[$tab]) && is_file(__DIR__.'/studio-panels/'.$tab.'.html') && is_file(__DIR__.'/studio-panels/'.$tab.'.js');
@@ -241,7 +243,8 @@ function assistant_role_label(array $pr): string {
 }
 function assistant_profile_public(array $pr): array {
     $pre=assistant_voice_presets()[$pr['voice']['preset']] ?? null;
-    return ['name'=>$pr['name'],'gender'=>$pr['gender'],'portrait'=>$pr['portrait'],'portrait_url'=>assistant_portrait_url($pr),'has_photo'=>!empty($pr['portrait_data']),'voice_label'=>$pre ? $pre['label'] : '',
+    return ['name'=>$pr['name'],'gender'=>$pr['gender'],'portrait'=>$pr['portrait'],'portrait_url'=>assistant_portrait_url($pr),'has_photo'=>!empty($pr['portrait_data']),
+        'photo_url'=>!empty($pr['portrait_data']) && $pr['portrait']!=='custom' ? (string)$pr['portrait_data'] : null,'voice_label'=>$pre ? $pre['label'] : '',
         'voice'=>$pr['voice'],'personality'=>$pr['personality'],'lang'=>$pr['lang'],'role'=>assistant_role_label($pr),'saved'=>$pr['saved']];
 }
 /**
@@ -452,7 +455,10 @@ function assistant_overview(int $acc): array {
             'has_profile'=>assistant_kb_section_get($kb,'Betriebsprofil')!==null,'faq'=>($faqTrain[$plan] ?? 0)+$kbFaq,'active'=>ch_plan_active_any($acc,$plan),'updated_at'=>$c['updated_at']]; }
     $mods=[];
     try{ $a=appt_settings($acc); $svc=appt_services($acc,true); $hRow=assistant_db_count("SELECT COUNT(*) FROM appt_settings WHERE account_id=? AND hours IS NOT NULL",[$acc]);
-        $mods['appt']=['label'=>'Termine','tab'=>'termine','on'=>(int)$a['appt_on']===1,'company'=>(string)$a['company'],'address'=>(string)$a['address'],'services'=>count($svc),'service_names'=>array_slice(array_map(fn($x)=>$x['name'],$svc),0,8),'hours_saved'=>$hRow>0]; }catch(Throwable $e){}
+        /* appt_settings_save schreibt immer auch die Standardzeiten – „eingerichtet“ erst, wenn eingeschaltet oder von den Standardzeiten abweichend */
+        $custom=defined('APPT_DEFAULT_HOURS') ? assistant_hours_sig($a['hours'])!==assistant_hours_sig(APPT_DEFAULT_HOURS) : true;
+        $mods['appt']=['label'=>'Termine','tab'=>'termine','on'=>(int)$a['appt_on']===1,'company'=>(string)$a['company'],'address'=>(string)$a['address'],'services'=>count($svc),'service_names'=>array_slice(array_map(fn($x)=>$x['name'],$svc),0,8),
+            'hours_saved'=>$hRow>0 && ((int)$a['appt_on']===1 || $custom),'hours_text'=>$hRow>0 ? assistant_hours_text($a['hours']) : '']; }catch(Throwable $e){}
     try{ $o=ord_settings($acc); $menu=ord_menu($acc,true); $hRow=assistant_db_count("SELECT COUNT(*) FROM order_settings WHERE account_id=? AND hours IS NOT NULL",[$acc]);
         $mods['order']=['label'=>'Bestellungen','tab'=>'bestellungen','on'=>(int)$o['order_on']===1,'company'=>(string)$o['name'],'address'=>(string)$o['address'],'items'=>count($menu),'whatsapp'=>(string)$o['wa_number']!=='' || (string)$o['wa_phone_id']!=='','hours_saved'=>$hRow>0]; }catch(Throwable $e){}
     if(function_exists('ride_settings')) try{ $r=ride_settings($acc); $mods['ride']=['label'=>'Taxi','tab'=>'taxi','on'=>(int)$r['ride_on']===1,'company'=>(string)$r['name'],'address'=>(string)$r['address'],'saved'=>!empty($r['saved'])]; }catch(Throwable $e){}
@@ -517,17 +523,22 @@ function assistant_cfg_save(int $acc, string $plan, array $d): void {
 }
 
 /* ======================================================================= Checkliste */
+/** key => [Bezeichnung, Hinweis (neutral formuliert, passt zu du und Sie), Vorschlag des Inhabers an den Assistenten] */
 const ASSISTANT_CHECK = [
-    'profil'=>['Betriebsprofil','Name, Adresse, Telefon und was dein Betrieb macht.','Ich erzähle dir kurz von meinem Betrieb.'],
-    'zeiten'=>['Öffnungszeiten','Wann bist du für Kundinnen und Kunden da?','Trag bitte unsere Öffnungszeiten ein.'],
-    'angebot'=>['Leistungen, Preise & Karte','Was bietest du an – und zu welchem Preis?','Lass uns meine Leistungen und Preise anlegen.'],
-    'faq'=>['Häufige Fragen (mind. 5)','Die Fragen, die Kunden dir ständig stellen – mit deinen Antworten.','Welche Fragen stellen meine Kunden am häufigsten?'],
-    'ton'=>['Ton & Sprache','Wie soll dein Agent klingen – du oder Sie, locker oder seriös?','Wie soll mein Agent mit Kunden sprechen?'],
-    'kanaele'=>['Website, Telefon oder WhatsApp','Wo sollen Kunden deinen Agenten erreichen?','Wie bringe ich den Agenten auf meine Website oder ans Telefon?'],
+    'profil'=>['Betriebsprofil','Name, Adresse, Telefon und was der Betrieb macht.','Ich erzähle dir kurz von meinem Betrieb.'],
+    'zeiten'=>['Öffnungszeiten','Wann ist der Betrieb für Kundinnen und Kunden da?','Trag bitte unsere Öffnungszeiten ein.'],
+    'angebot'=>['Leistungen, Preise & Karte','Was bietet der Betrieb an – und zu welchem Preis?','Lass uns meine Leistungen und Preise anlegen.'],
+    'faq'=>['Häufige Fragen (mind. 5)','Die Fragen, die Kunden ständig stellen – mit den passenden Antworten.','Welche Fragen stellen meine Kunden am häufigsten?'],
+    'ton'=>['Ton & Sprache','Wie soll der Agent klingen – du oder Sie, locker oder seriös?','Wie soll mein Agent mit Kunden sprechen?'],
+    'kanaele'=>['Website, Telefon oder WhatsApp','Wo sollen Kunden den Agenten erreichen?','Wie bringe ich den Agenten auf meine Website oder ans Telefon?'],
     'aktiv'=>['Agent aktiv','Gemietet oder gekauft – dann läuft er rund um die Uhr.','Welcher Agent passt am besten zu meinem Betrieb?'],
-    'test'=>['Testgespräch geführt','Einmal selbst ausprobieren, wie er antwortet.','Wie teste ich meinen Agenten am besten?'],
+    'test'=>['Testgespräch geführt','Einmal selbst ausprobieren, wie der Agent antwortet.','Wie teste ich meinen Agenten am besten?'],
 ];
 function assistant_mem_has(array $mem, string $re): bool { foreach($mem as $m) if(preg_match($re,$m['topic'])) return true; return false; }
+/** Öffnungszeiten im Freitext der Wissensbasis (mit Uhrzeiten, nicht nur die Überschrift einer Vorlage). */
+const ASSISTANT_RE_HOURS = '/(öffnungszeit|geöffnet|sprechzeit|sprechstunde)[^\n]{0,80}\d|\b(mo|di|mi|do|fr|sa|so)[a-z]*\.?\s*[–-]\s*(mo|di|mi|do|fr|sa|so)[a-z]*\.?:?\s+\d|\d{1,2}([:.]\d{2})?\s*[–-]\s*\d{1,2}([:.]\d{2})?\s*uhr/iu';
+/** Leistungen/Preise in der Wissensbasis: eigener Abschnitt oder Leistungen mit echten Euro-Preisen. */
+const ASSISTANT_RE_OFFER = '/^##[ \t]+(Leistungen|Angebot|Preise|Speisekarte|Sortiment|Zimmer|Tarife)|(leistung|preis|angebot|karte|tarif)[^\n]{0,200}\d+([,.]\d{1,2})?\s*(€|eur\b|euro\b)/miu';
 /** Checkliste aus echten Daten (Agenten, Module, Training) + Gedächtnis. Rückgabe [items, progress 0–100]. */
 function assistant_checklist(int $acc, ?array $ov=null, ?array $mem=null): array {
     $ov=$ov ?? assistant_overview($acc); $mem=$mem ?? assistant_memory($acc,150); $m=$ov['modules']; $c=$ov['configs']; $done=[]; $info=[];
@@ -536,16 +547,19 @@ function assistant_checklist(int $acc, ?array $ov=null, ?array $mem=null): array
     if($co==='') foreach(['appt','order','hotel','ride'] as $k) if(!empty($m[$k]['company']) && !empty($m[$k]['address'])){ $co=$m[$k]['company']; break; }
     $done['profil']=$co!==''; if($co!=='') $info['profil']='„'.$co.'“';
     $done['zeiten']=!empty($m['appt']['hours_saved']) || (!empty($m['order']['hours_saved']) && !empty($m['order']['on']))
-        || (bool)preg_match('/öffnungszeit|geöffnet|sprechzeit|erreichbar|\b(mo|di|mi|do|fr|sa|so)[a-z]*\.?\s*[–-]\s*(mo|di|mi|do|fr|sa|so)[a-z]*\.?\s+\d|\d{1,2}([:.]\d{2})?\s*[–-]\s*\d{1,2}([:.]\d{2})?\s*uhr/iu',$kbAll)
-        || (bool)array_filter($c,fn($x)=>$x['phone_hours']!=='') || assistant_mem_has($mem,'/öffnungszeit|zeiten|geöffnet/iu');
+        || (bool)preg_match(ASSISTANT_RE_HOURS,$kbAll)
+        || (bool)array_filter($c,fn($x)=>$x['phone_hours']!=='') || assistant_mem_has($mem,'/öffnungszeit|zeiten|geöffnet|sprechzeit/iu');
+    if(!empty($m['appt']['hours_saved']) && $m['appt']['hours_text']!=='') $info['zeiten']=$m['appt']['hours_text'];
     $offer=(int)($m['appt']['services'] ?? 0)+(int)($m['order']['items'] ?? 0)+(int)($m['hotel']['rooms'] ?? 0);
-    $done['angebot']=$offer>0 || !empty($m['ride']['saved']) || (bool)preg_match('/^##[ \t]+(Leistungen|Angebot|Preise|Speisekarte|Sortiment)/miu',$kbAll)
-        || assistant_mem_has($mem,'/angebot|leistung|preis|karte|sortiment|produkt/iu');
-    if($offer>0) $info['angebot']=$offer.' Einträge';
-    $faq=array_sum(array_map(fn($x)=>$x['faq'],$c)); $done['faq']=$faq>=5; $info['faq']=$faq>=5 ? $faq.' Antworten hinterlegt' : ($faq>0 ? 'Noch '.(5-$faq).' bis 5 – '.$faq.' vorhanden' : null);
+    $done['angebot']=$offer>0 || (!empty($m['ride']['saved']) && !empty($m['ride']['on'])) || (bool)preg_match(ASSISTANT_RE_OFFER,$kbAll)
+        || assistant_mem_has($mem,'/angebot|leistung|preis|karte|sortiment|produkt|tarif/iu');
+    if($offer>0) $info['angebot']=$offer.' '.($offer===1 ? 'Eintrag' : 'Einträge').' angelegt';
+    $faq=array_sum(array_map(fn($x)=>$x['faq'],$c)); $done['faq']=$faq>=5; $info['faq']=$faq>=5 ? $faq.' Antworten hinterlegt' : ($faq>0 ? $faq.' von 5 – noch '.(5-$faq).' Antwort'.(5-$faq===1 ? '' : 'en') : null);
     $done['ton']=(bool)array_filter($c,fn($x)=>$x['tone']!=='' && $x['tone']!=='freundlich-professionell') || assistant_mem_has($mem,'/^(ton|tonalität|anrede|sprache)/iu');
-    $done['kanaele']=(bool)array_filter($c,fn($x)=>$x['widget_on'] || $x['phone_on']) || !empty($m['order']['whatsapp']);
-    $done['aktiv']=count($ov['plans'])>0; if($ov['plans']) $info['aktiv']=$ov['plans'][0]['name'];
+    $chan=[]; foreach($c as $x){ if($x['widget_on']) $chan['Website']=1; if($x['phone_on']) $chan['Telefon']=1; } if(!empty($m['order']['whatsapp'])) $chan['WhatsApp']=1;
+    $done['kanaele']=(bool)$chan; if($chan) $info['kanaele']=implode(', ',array_keys($chan));
+    $agents=array_values(array_filter($ov['plans'],fn($p)=>in_array($p['kind'],['agent','buy'],true)));
+    $done['aktiv']=(bool)$agents; if($agents) $info['aktiv']=$agents[0]['name'];
     $done['test']=$ov['tested']>0;
     $items=[]; foreach(ASSISTANT_CHECK as $k=>[$label,$hint,$prompt]) $items[]=['key'=>$k,'label'=>$label,'done'=>$done[$k],'hint'=>$done[$k] ? ($info[$k] ?? 'Erledigt') : ($info[$k] ?? $hint),'prompt'=>$prompt];
     $n=count(array_filter($items,fn($i)=>$i['done']));
@@ -580,7 +594,7 @@ function assistant_system(int $acc, array $pr, array $ov, array $items, int $pro
     $s.="\n5. Danach: kurz bestätigen, was geändert wurde, und den nächsten offenen Punkt der Checkliste ansprechen.";
     $s.="\n6. Fakten: Erfinde nie Preise, Zeiten, Adressen oder Leistungen – nur, was der Inhaber gesagt hat. Fehlt etwas, frag nach.";
     $s.="\n7. Grenzen: Du kannst keine Zahlungen auslösen, keine Pläne kaufen und keine Telefonnummern schalten. Für einen Agenten empfiehlst du mit recommend_agent den passenden Plan (Preis + Link im Chat, nie vorlesen). Eine eigene Rufnummer richtet support@chat-help.com ein. Keine Rechts- oder Steuerberatung.";
-    $s.="\n8. Tabs: Will der Inhaber etwas selbst sehen oder bearbeiten, öffne mit open_studio_tab den passenden Bereich (".implode(', ',array_keys(array_filter(ASSISTANT_TABS,fn($l,$k)=>assistant_has_tab($k),ARRAY_FILTER_USE_BOTH))).').';
+    $s.="\n8. Tabs: Will der Inhaber etwas selbst sehen oder bearbeiten, öffne mit open_studio_tab den passenden Bereich (".implode(', ',assistant_tabs_available()).').';
     $s.="\n\nKONTO-ÜBERBLICK (live)\n".assistant_overview_text($ov);
     $s.="\n\nWAS DU SCHON WEISST (Gedächtnis)\n".($mem ? '- '.implode("\n- ",array_map(fn($m)=>$m['topic'].': '.$m['fact'],array_slice($mem,0,80))) : '- noch nichts – lerne den Betrieb kennen.');
     $s.="\n\nCHECKLISTE (".$progress." % erledigt)";
@@ -626,7 +640,7 @@ function assistant_tools(): array {
             'enable'=>['type'=>'boolean'],'notify_email'=>['type'=>'string'],'ai_callback'=>['type'=>'boolean'],'lead_instant'=>['type'=>'boolean'],'call_window'=>['type'=>'object','description'=>$hoursDesc]]]],
         ['name'=>'recommend_agent','description'=>'Passende Agenten (Plan, Preis, Mietlink) für eine Branche und die Wünsche des Inhabers ermitteln.','input_schema'=>['type'=>'object','properties'=>[
             'sector'=>['type'=>'string','description'=>'Branche, z. B. „Pizzeria“, „Friseursalon“, „Steuerkanzlei“'],'needs'=>['type'=>'string','description'=>'Wünsche, z. B. „Telefon annehmen, Termine buchen“']],'required'=>['sector']]],
-        ['name'=>'open_studio_tab','description'=>'Einen Bereich des Studios für den Inhaber öffnen.','input_schema'=>['type'=>'object','properties'=>['tab'=>['type'=>'string','enum'=>array_keys(ASSISTANT_TABS)]],'required'=>['tab']]],
+        ['name'=>'open_studio_tab','description'=>'Einen Bereich des Studios für den Inhaber öffnen.','input_schema'=>['type'=>'object','properties'=>['tab'=>['type'=>'string','enum'=>assistant_tabs_available()]],'required'=>['tab']]],
     ];
 }
 /** Öffnungszeiten aus der KI (Schlüssel 0–6 oder Tagesnamen, [von,bis] / {from,to} / "9-18") → {"0":[["HH:MM","HH:MM"]],…}. */
@@ -644,6 +658,8 @@ function assistant_hours_norm($raw): ?array {
     }
     return $any ? $out : null;
 }
+/** Vergleichsform für Öffnungszeiten (Schlüsselreihenfolge egal). */
+function assistant_hours_sig($h): string { $o=[]; for($w=0;$w<=6;$w++) $o[]=json_encode(array_values((array)(is_array($h) ? ($h[(string)$w] ?? ($h[$w] ?? [])) : []))); return implode('|',$o); }
 function assistant_hours_text(array $h): string {
     $wd=['So','Mo','Di','Mi','Do','Fr','Sa']; $parts=[];
     foreach([1,2,3,4,5,6,0] as $w){ $iv=$h[(string)$w] ?? []; $parts[]=$wd[$w].' '.($iv ? implode(', ',array_map(fn($x)=>$x[0].'–'.$x[1],$iv)) : 'zu'); }
@@ -652,8 +668,9 @@ function assistant_hours_text(array $h): string {
 /** Ergebnis eines Werkzeugs als Aktions-Chip fürs Panel. */
 function assistant_action(string $name, array $r): array {
     $ok=empty($r['error']);
+    $link=null; if($ok && !empty($r['agents'][0]['checkout_url']) && empty($r['agents'][0]['active'])) $link=['url'=>(string)$r['agents'][0]['checkout_url'],'label'=>'Mieten · '.(string)$r['agents'][0]['price']];
     return ['name'=>$name,'ok'=>$ok,'summary'=>mb_substr((string)($ok ? ($r['summary'] ?? 'Erledigt.') : ($r['message'] ?? $r['hint'] ?? 'Das hat nicht geklappt.')),0,300),
-        'tab'=>isset($r['tab']) && assistant_has_tab((string)$r['tab']) ? (string)$r['tab'] : null,'plan'=>$r['plan'] ?? null,'open'=>!empty($r['open'])];
+        'tab'=>isset($r['tab']) && assistant_has_tab((string)$r['tab']) ? (string)$r['tab'] : null,'plan'=>$r['plan'] ?? null,'open'=>!empty($r['open']),'link'=>$link];
 }
 /**
  * Werkzeug ausführen. Nur Kanal 'studio' (bzw. 'selftest'): der angemeldete Inhaber selbst. Fehler als ['error','hint'] (nie Exceptions für Nutzerfehler).
@@ -683,7 +700,7 @@ function assistant_exec(int $acc, string $name, array $in, string $channel='stud
             case 'recommend_agent': return assistant_tool_recommend($acc,$in);
             case 'open_studio_tab':
                 $t=assistant_str($in['tab'] ?? '',20);
-                if(!isset(ASSISTANT_TABS[$t]) || !assistant_has_tab($t)) return ['error'=>'unknown_tab','hint'=>'Diesen Bereich gibt es nicht. Möglich: '.implode(', ',array_keys(array_filter(ASSISTANT_TABS,fn($l,$k)=>assistant_has_tab($k),ARRAY_FILTER_USE_BOTH)))];
+                if(!in_array($t,assistant_tabs_available(),true)) return ['error'=>'unknown_tab','hint'=>'Diesen Bereich gibt es nicht. Möglich: '.implode(', ',assistant_tabs_available())];
                 return ['ok'=>true,'open'=>true,'tab'=>$t,'summary'=>'Bereich „'.ASSISTANT_TABS[$t].'“ geöffnet'];
         }
     }catch(Throwable $e){ error_log('CH assistant tool '.$name.': '.$e->getMessage()); return ['error'=>'internal','hint'=>'Technischer Fehler beim Speichern – bitte dem Inhaber sagen, dass es gerade nicht geklappt hat.']; }
@@ -790,7 +807,8 @@ function assistant_tool_appt(int $acc, array $in): array {
     $d=[]; if($hours!==null) $d['hours']=$hours; if($en!==null) $d['appt_on']=$en ? 1 : 0;
     $cur=appt_settings($acc); if(trim((string)$cur['company'])===''){ $mc=th_agent_cfg($acc,assistant_main_plan($acc))['company'] ?? ''; if($mc!=='') $d['company']=$mc; }
     if($d){ $err=null; $st=appt_settings_save($acc,$d,$err); if($err) return ['error'=>$err['error'] ?? 'hours_invalid','hint'=>$err['message'] ?? 'Öffnungszeiten ungültig.'];
-        if($hours!==null) $sum[]='Öffnungszeiten '.assistant_hours_text($st['hours']); if($en!==null) $sum[]='Online-Buchung '.($en ? 'eingeschaltet' : 'ausgeschaltet'); }
+        if($hours!==null){ $sum[]='Öffnungszeiten '.assistant_hours_text($st['hours']); assistant_remember($acc,'Öffnungszeiten',assistant_hours_text($st['hours']),'tool',true); }
+        if($en!==null) $sum[]='Online-Buchung '.($en ? 'eingeschaltet' : 'ausgeschaltet'); }
     return ['ok'=>true,'tab'=>'termine','services'=>count(appt_services($acc,true)),'summary'=>'Termine: '.implode(' · ',$sum)];
 }
 function assistant_tool_menu(int $acc, array $in): array {
@@ -844,7 +862,7 @@ function assistant_tool_callbacks(int $acc, array $in): array {
 }
 function assistant_tool_recommend(int $acc, array $in): array {
     $sector=assistant_line($in['sector'] ?? '',120); $needs=assistant_line($in['needs'] ?? '',300);
-    $ids=assistant_sector_plans($sector.' '.$needs);
+    $ids=assistant_sector_plans($sector) ?: assistant_sector_plans($needs);   // Branche zuerst – „Lieferung“ in den Wünschen macht noch keine Pizzeria
     if(preg_match('/telefon|anruf|anrufe|erreichbar/iu',$needs) && !in_array('agent-phone',$ids,true)) $ids[]='agent-phone';
     if(preg_match('/whatsapp|website|webseite|chat|online/iu',$needs) && !$ids) $ids[]='agent-support';
     if(!$ids) $ids=['agent-phone','agent-support'];
