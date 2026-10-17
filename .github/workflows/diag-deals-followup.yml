@@ -1,0 +1,82 @@
+name: (Teşhis) İndirimli ürünler + eski müşteri takibi + günlük gönderim (salt okunur)
+
+# 17 Eki 2026, operatör: "önce önceden gönderdiğimiz ilk müşterilere tekrar indirimli ürünleri gönder 300 e-mail …
+# günlük kendi serverdan 500, Brevo'dan 150". Ölçer: canlı ilanlarda indirimli (sale / aktion) ürün sayısı ve en
+# yüksek indirimler; takip mektubuna uygun eski müşteri sayısı (ülke dağılımı); bugün sunucu / Brevo gönderimi;
+# gönderime hazır yeni müşteri sayısı. Adres basmaz, hiçbir şey yazmaz.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            mkdir -p ~/vestra_tmp
+            cat > ~/vestra_tmp/df.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors', '1'); error_reporting(E_ALL);
+            chdir(getenv('HOME').'/public_html');
+            require_once 'inc/products.php'; require_once 'inc/leads.php'; require_once 'inc/notify.php'; require_once 'inc/finder.php'; require_once 'inc/mailbox.php';
+            $live = function_exists('vestra_live_listings') ? vestra_live_listings() : vestra_products();
+            $sale = []; $ak = 0; $brands = [];
+            foreach ($live as $p) {
+              $a = vestra_aktion($p); $d = vestra_on_sale($p) ? vestra_discount($p) : 0;
+              if ($a) { $ak++; $d = max($d, (int)$a['pct']); }
+              if ($d <= 0) continue;
+              $img = !empty($p['images'][0]) || !empty($p['image']);
+              $sale[] = ['b' => (string)($p['brand'] ?? ''), 'n' => mb_substr((string)($p['name'] ?? ''), 0, 40), 'd' => $d, 'img' => $img, 'ak' => (bool)$a];
+              $brands[(string)($p['brand'] ?? '')] = max($brands[(string)($p['brand'] ?? '')] ?? 0, $d);
+            }
+            usort($sale, fn($x, $y) => $y['d'] <=> $x['d']);
+            echo "canli ilan: ".count($live)." · indirimli: ".count($sale)." (aktion ".$ak.") · gorselli indirimli: ".count(array_filter($sale, fn($s) => $s['img']))."\n";
+            arsort($brands); echo "marka bazinda en yuksek indirim: ".json_encode(array_slice($brands, 0, 25, true), JSON_UNESCAPED_UNICODE)."\n";
+            foreach (array_slice($sale, 0, 20) as $s) echo "  -".$s['d']."% ".str_pad($s['b'], 18)." ".$s['n'].($s['img'] ? '' : ' [gorsel yok]').($s['ak'] ? ' [aktion]' : '')."\n";
+            $leads = vestra_leads(); $now = time();
+            $cnt = ['contacted' => 0, 'ok5' => 0, 'ok3' => 0, 'guessed' => 0, 'paused' => 0, 'off' => 0, 'blocked' => 0, 'bounced' => 0, 'unsub' => 0, 'owner' => 0];
+            $byC = []; $letters = [];
+            foreach ($leads as $l) {
+              $st = (string)($l['status'] ?? '');
+              if ($st === 'bounced') { $cnt['bounced']++; continue; }
+              if ($st === 'unsubscribed' || !empty($l['unsubscribed'])) { $cnt['unsub']++; continue; }
+              if (trim((string)($l['last_contacted_at'] ?? '')) === '' || $st !== 'contacted') continue;
+              $cnt['contacted']++;
+              if ((string)($l['owner_uid'] ?? '') !== '') { $cnt['owner']++; continue; }
+              if (vestra_lead_source_guessed($l)) { $cnt['guessed']++; continue; }
+              if (vestra_lead_send_paused($l)) { $cnt['paused']++; continue; }
+              if (vestra_lead_off_target($l) || vestra_lead_looks_dead($l)) { $cnt['off']++; continue; }
+              if (function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) { $cnt['blocked']++; continue; }
+              $lt = vestra_lead_letters($l);
+              $letters[$lt['count']] = ($letters[$lt['count']] ?? 0) + 1;
+              if ($lt['last'] <= $now - 5 * 86400) { $cnt['ok5']++; $c = (string)($l['country'] ?? '?'); $byC[$c] = ($byC[$c] ?? 0) + 1; }
+              if ($lt['last'] <= $now - 3 * 86400) $cnt['ok3']++;
+            }
+            echo "\nlead toplam ".count($leads)." · ".json_encode($cnt)."\n";
+            echo "uygun eski musteri mektup sayisi dagilimi: ".json_encode($letters)."\n";
+            arsort($byC); echo "5+ gun dinlenmis uygun (ulke, ilk 15): ".json_encode(array_slice($byC, 0, 15, true), JSON_UNESCAPED_UNICODE)."\n";
+            echo "mevcut takip hedefi (followup_targets 2000): ".count(vestra_mailbox_followup_targets(2000))."\n";
+            echo "gonderime hazir yeni (web): ".count(vestra_finder_send_targets(2000, 'web'))." · (all): ".count(vestra_finder_send_targets(2000, 'all'))."\n";
+            $today = date('Y-m-d'); $mb = 0; $br = 0; $brW = 0;
+            foreach ($leads as $l) {
+              if ((string)($l['contact_via'] ?? '') === 'mailbox' && str_starts_with((string)($l['last_contacted_at'] ?? ''), $today)) $mb++;
+              foreach ($l as $k => $v) if (is_string($k) && (in_array($k, ['last_newcollection_at', 'last_wave3_at'], true) || preg_match('/^offer_[a-z0-9]{3,20}_at$/', $k)) && str_starts_with((string)$v, $today)) $br++;
+            }
+            echo "\nbugun ({$today}, sunucu saati ".date('H:i T').") sunucu: {$mb} · Brevo ikinci/ucuncu mektup: {$br} · tavan bugun ".vestra_mailbox_cap_today()." · kalan ".vestra_mailbox_left_today()."\n";
+            echo "geri donme freni: ".json_encode(vestra_mailbox_bounce_stats())."\n";
+            $cfg = vestra_mailbox_cfg(); unset($cfg['smtp_host'], $cfg['smtp_user']);
+            echo "mailbox.json: ".json_encode(array_intersect_key($cfg, array_flip(['auto_send','auto_campaign','auto_limit','auto_pool','followup','followup_day','followup_note','paused_countries','daily_cap','warmup'])), JSON_UNESCAPED_UNICODE)."\n";
+            echo "Brevo kalan gunluk kota: ".var_export(vestra_mail_credits_left(), true)."\n";
+            echo "son istekler:\n"; foreach (array_slice(vestra_mailbox_runs(), -8) as $r) echo "  ".($r['id'] ?? '')." ".($r['mode'] ?? '')." ".($r['status'] ?? '')." limit ".($r['limit'] ?? '')." gonderildi ".($r['sent'] ?? '-')." · ".mb_substr((string)($r['note'] ?? ''), 0, 60)."\n";
+            PHPEOF
+            php ~/vestra_tmp/df.php; rc=$?; rm -f ~/vestra_tmp/df.php; exit $rc
