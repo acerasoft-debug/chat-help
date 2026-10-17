@@ -121,7 +121,7 @@ switch(true){
   case $r==='appt/settings' && $m==='GET':
     th_json(200,['settings'=>appt_settings($aid),'services'=>appt_services($aid,false),'booking_url'=>appt_booking_url($aid)]);
   case $r==='appt/settings' && $m==='POST':
-    $st=appt_settings_save($aid,$b); th_json(200,['ok'=>true,'settings'=>$st,'services'=>appt_services($aid,false),'booking_url'=>appt_booking_url($aid)]);
+    $st=appt_settings_save($aid,$b,$aerr); if($aerr) th_json(422,$aerr); th_json(200,['ok'=>true,'settings'=>$st,'services'=>appt_services($aid,false),'booking_url'=>appt_booking_url($aid)]);
   case $r==='appt/slots' && $m==='GET':
     th_json(200,appt_slots($aid,(string)($_GET['date'] ?? date('Y-m-d')),isset($_GET['service'])?(int)$_GET['service']:null));
   case $r==='appt/bookings' && $m==='GET':
@@ -134,7 +134,7 @@ switch(true){
   case $r==='appt/cancel' && $m==='POST':
     $res=appt_cancel((string)($b['code']??''),$aid); th_json(isset($res['error'])?404:200,$res);
   case $r==='appt/status' && $m==='POST':
-    th_json(appt_set_status($aid,(int)($b['id']??0),(string)($b['status']??''))?200:400,['ok'=>true]);
+    $ares=appt_status_update($aid,(int)($b['id']??0),(string)($b['status']??'')); th_json(!empty($ares['ok']) ? 200 : (['invalid_status'=>400,'not_found'=>404,'slot_conflict'=>409][$ares['error'] ?? ''] ?? 500),$ares);
 
   /* ---- Bestellannahme (Restaurant, Pizzeria, Lieferdienst): Einstellungen, Karte, Fahrer, Live-Bestellungen ---- */
   case $r==='order/settings' && $m==='GET':
