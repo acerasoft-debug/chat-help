@@ -16,20 +16,31 @@ jobs:
           ref: claude/chat-help-system-video-x0nofb
       - name: Kandidaten laden und verkleinern
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq webp imagemagick > /dev/null
+          sudo apt-get update -qq && sudo apt-get install -y -qq webp imagemagick jq > /dev/null
           mkdir -p site/media/avatars/_cand /tmp/raw
           N=$(grep -oE '^count=[0-9]+' site/media/avatars/_fetch.txt | cut -d= -f2); N=${N:-36}
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36"
+          # Quelle 1: thispersondoesnotexist.com (StyleGAN, synthetisch)
           for i in $(seq 1 $N); do
-            curl -sSL -m 30 -A "Mozilla/5.0 (X11; Linux x86_64)" -o /tmp/raw/c$i.jpg "https://thispersondoesnotexist.com/?r=$i$RANDOM" || true
-            sleep 1.5
+            code=$(curl -sSL -m 30 -A "$UA" -H "Accept: image/avif,image/webp,image/jpeg,*/*" -o /tmp/raw/a$i.jpg -w "%{http_code} %{content_type} %{size_download}" "https://thispersondoesnotexist.com/" || echo "curl-fail")
+            echo "tpdne $i: $code"; sleep 1.2
           done
+          # Quelle 2: this-person-does-not-exist.com (synthetisch, Filter Geschlecht/Alter)
+          for g in female male; do for a in 19-25 26-35 35-50 50; do for k in 1 2 3; do
+            j=$(curl -sS -m 30 -A "$UA" "https://this-person-does-not-exist.com/new?time=$RANDOM$k&gender=$g&age=$a&etnic=all" || true)
+            src=$(echo "$j" | jq -r '.src // empty' 2>/dev/null)
+            echo "tpdne2 $g $a $k: ${src:-none} $(echo "$j" | head -c 120)"
+            if [ -n "$src" ]; then curl -sSL -m 30 -A "$UA" -o "/tmp/raw/b-$g-$a-$k.jpg" "https://this-person-does-not-exist.com$src" || true; fi
+            sleep 1
+          done; done; done
+          ls -la /tmp/raw | head -80
           for f in /tmp/raw/*.jpg; do
             b=$(basename "$f" .jpg)
-            if file "$f" | grep -qi 'jpeg\|image'; then
-              convert "$f" -resize 512x512 -strip /tmp/raw/$b-512.png && cwebp -quiet -q 84 /tmp/raw/$b-512.png -o site/media/avatars/_cand/$b.webp
-            fi
+            if file "$f" | grep -qiE 'JPEG|PNG|WebP|image data'; then
+              convert "$f" -resize 512x512^ -gravity center -extent 512x512 -strip /tmp/raw/$b-512.png && cwebp -quiet -q 84 /tmp/raw/$b-512.png -o site/media/avatars/_cand/$b.webp
+            else echo "kein Bild: $b ($(file -b "$f" | head -c 80))"; fi
           done
-          ls -la site/media/avatars/_cand | head -60
+          ls -la site/media/avatars/_cand | head -90
           du -sh site/media/avatars/_cand
       - name: Commit
         run: |
