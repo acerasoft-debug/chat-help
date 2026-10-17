@@ -9,8 +9,8 @@ require_once __DIR__.'/order-lib.php';
 th_nocache(); th_bootstrap(); th_fresh();
 $code=strtoupper(preg_replace('/[^A-Za-z0-9]/','',(string)($_GET['c'] ?? '')));
 $o=$code!=='' ? ord_by_code($code) : null;
-if($o && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['do'] ?? '')==='cancel' && $o['status']==='new'){
-    ord_set_status((int)$o['account_id'],(int)$o['id'],'cancelled',null,'customer');   // atomar: kein Storno, falls das Restaurant inzwischen weiter ist
+if($o && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['do'] ?? '')==='cancel'){
+    if($o['status']==='new') ord_set_status((int)$o['account_id'],(int)$o['id'],'cancelled',null,'customer');   // atomar: kein Storno, falls das Restaurant inzwischen weiter ist
     header('Location: ?c='.$o['code'].'&_='.dechex(time()).'&x=1',true,303); exit;
 }
 $s=$o ? ord_settings((int)$o['account_id']) : null; $p=$o ? ord_public($o,$s) : null;
@@ -48,7 +48,7 @@ $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
   <div class="eb"><?= $e($p['restaurant'] ?: 'Bestellung') ?></div>
   <h1><?= $p['status']==='cancelled' ? 'Bestellung storniert' : ($p['status']==='delivered' ? ($p['type']==='pickup'?'Abgeholt – guten Appetit!':'Zugestellt – guten Appetit!') : 'Danke'.($first?', '.$e($first):'').'! Deine Bestellung läuft.') ?></h1>
   <div style="color:var(--mute);font-size:14px">Bestellcode <b style="color:var(--ink)"><?= $e($p['code']) ?></b> · <?= $p['type']==='delivery'?'Lieferung':'Abholung' ?> · bestellt <?= $e($p['created']) ?> Uhr<?= $live ? ' · <span class="pulse"></span>live' : '' ?></div>
-  <?php if(isset($_GET['x']) && $p['status']==='cancelled'): ?><div class="cx">Deine Bestellung wurde storniert. Das Restaurant ist informiert.</div><?php endif; ?>
+  <?php if(isset($_GET['x']) && $p['status']==='cancelled'): ?><div class="cx">Deine Bestellung wurde storniert. Das Restaurant ist informiert.</div><?php elseif(isset($_GET['x'])): ?><div class="cx">Stornieren ist nicht mehr möglich – das Restaurant hat die Bestellung bereits angenommen.<?= $s['phone'] ? ' Bitte ruf an: '.$e($s['phone']) : '' ?></div><?php endif; ?>
   <?php if($p['status']==='cancelled'): ?>
     <?php if(!isset($_GET['x'])): ?><div class="cx">Diese Bestellung wurde storniert.<?= $s['phone'] ? ' Fragen? '.$e($s['phone']) : '' ?></div><?php endif; ?>
   <?php else: ?>

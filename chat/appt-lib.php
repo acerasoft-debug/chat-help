@@ -45,7 +45,7 @@ function appt_settings(int $acc): array {
 }
 /** Öffnungszeiten prüfen: je Wochentag 0–6 Liste [von,bis] im Format HH:MM (00–23:00–59), bis darf 24:00 sein; bis 00:00/24:00 = Tagesende.
  *  Über Mitternacht hinaus gibt es bei Terminen nicht – andere bis<=von sind ein Fehler ($err = deutscher Hinweis, Rückgabe ohne das Intervall). */
-function appt_hours_parse(array $raw, ?string &$err=null): array {
+function appt_hours_parse(array $raw, &$err=null): array {
     $err=null; $wd=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']; $hm='/^([01]\d|2[0-3]):[0-5]\d$/'; $out=[];
     for($w=0;$w<=6;$w++){ $rows=[]; $list=$raw[(string)$w] ?? $raw[$w] ?? [];
         foreach(is_array($list)?$list:[$list] as $iv){
@@ -58,7 +58,7 @@ function appt_hours_parse(array $raw, ?string &$err=null): array {
 }
 /** Speichert Einstellungen. Ungültige Öffnungszeiten → nichts wird gespeichert: $err=['error'=>'hours_invalid','message'=>…];
  *  ruft ein Web-Aufrufer ohne $err auf (Altaufruf), wird der Fehler direkt als HTTP 422 beantwortet (nie stilles Verwerfen). */
-function appt_settings_save(int $acc, array $d, ?array &$err=null): array {
+function appt_settings_save(int $acc, array $d, &$err=null): array {
     appt_bootstrap(); $cur=appt_settings($acc); $err=null;
     $hours=$cur['hours'];
     if(isset($d['hours']) && is_array($d['hours'])){ $hours=appt_hours_parse($d['hours'],$herr);
@@ -238,7 +238,7 @@ function appt_status_update(int $acc, int $id, string $status): array {
 }
 /** Kompatibel: true nur bei Erfolg; false bei ungültigem Status, unbekannter ID (not_found) oder Überschneidung – Details in $res.
  *  Altaufruf aus dem Web ohne $res (tokens-api /v1/appt/status): Fehler werden direkt als JSON beantwortet (400/404/409/500), statt „ok“ zu melden. */
-function appt_set_status(int $acc, int $id, string $status, ?array &$res=null): bool {
+function appt_set_status(int $acc, int $id, string $status, &$res=null): bool {
     $res=appt_status_update($acc,$id,$status); if(!empty($res['ok'])) return true;
     if(func_num_args()<4 && PHP_SAPI!=='cli') th_json(['invalid_status'=>400,'not_found'=>404,'slot_conflict'=>409][$res['error'] ?? ''] ?? 500,$res);
     return false;

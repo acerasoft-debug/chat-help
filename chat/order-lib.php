@@ -270,20 +270,21 @@ function ord_code(): string { $a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; $c=''; for(
  * Artikel zu id oder Name finden. Reihenfolge: id (nur aktive Karte, kein Namens-Ersatz auf Ziffern) → exakter Name → normalisiert (Umlaute/ß) →
  * wortweise (alle Suchwörter in Name/Kategorie, der Name mit den wenigsten Zusatzwörtern gewinnt: „Margherita“ → „Pizza Margherita“, nicht „… Bufala“) → Tippfehler.
  * Leere Angabe trifft nichts. Mehrere gleich gute Treffer → null und $amb = Kandidaten (Namen) zum Nachfragen.
+ * $rest = übergangene Zusatzwörter der Angabe (z. B. „gross“ aus „Funghi groß“) – ord_create ordnet sie als Option zu statt sie still zu verlieren.
  */
-function ord_find_item(array $menu, $ref, ?array &$amb=null): ?array {
-    $amb=null; if(!is_scalar($ref)) return null; $raw=trim((string)$ref); if($raw==='') return null;
+function ord_find_item(array $menu, $ref, ?array &$amb=null, ?array &$rest=null): ?array {
+    $amb=null; $rest=[]; if(!is_scalar($ref)) return null; $raw=trim((string)$ref); if($raw==='') return null;
     if(is_int($ref) || is_numeric($raw)){ foreach($menu as $m) if((string)$m['id']===(string)(int)$raw) return $m; return null; }
     $ql=mb_strtolower($raw); foreach($menu as $m) if(mb_strtolower(trim((string)$m['name']))===$ql) return $m;
     $qn=ord_norm($raw); if($qn==='') return null; foreach($menu as $m) if(ord_norm((string)$m['name'])===$qn) return $m;
     $stop=['bitte','mal','stuck','x','mit','und','ein','eine','einen','einer','gross','grosse','grosser','grosses','klein','kleine','kleiner','kleines','normal','normale','portion','die','der','das','den'];
     $qw=array_values(array_filter(explode(' ',$qn),fn($w)=>$w!==''));
     foreach([false,true] as $fuzzy){ $hits=[]; $cat=[];
-        foreach($menu as $m){ $nw=explode(' ',ord_norm((string)$m['name'])); $cw=explode(' ',ord_norm((string)($m['category']??''))); $inN=0; $inC=0; $ok=true;
+        foreach($menu as $m){ $nw=explode(' ',ord_norm((string)$m['name'])); $cw=explode(' ',ord_norm((string)($m['category']??''))); $inN=0; $inC=0; $ok=true; $rw=[];
             foreach($qw as $w){ $f=function(array $list) use($w,$fuzzy){ foreach($list as $x){ if($x==='') continue; if(ord_word_eq($w,$x)) return true; if($fuzzy && mb_strlen($w)>=4 && mb_strlen($x)>=4){ similar_text($w,$x,$pct); if($pct>=80) return true; } } return false; };
-                if($f($nw)) $inN++; elseif($f($cw)) $inC++; elseif(!in_array($w,$stop,true)){ $ok=false; break; } }
-            if(!$ok) continue; if($inN>0) $hits[]=['m'=>$m,'x'=>count($nw)-$inN]; elseif($inC>0) $cat[]=$m; }
-        if($hits){ usort($hits,fn($a,$b)=>$a['x']<=>$b['x']); if(count($hits)===1 || $hits[0]['x']<$hits[1]['x']) return $hits[0]['m']; $amb=array_slice(array_map(fn($h)=>$h['m']['name'],array_filter($hits,fn($h)=>$h['x']===$hits[0]['x'])),0,8); return null; }
+                if($f($nw)) $inN++; elseif($f($cw)) $inC++; elseif(!in_array($w,$stop,true)){ $ok=false; break; } else $rw[]=$w; }
+            if(!$ok) continue; if($inN>0) $hits[]=['m'=>$m,'x'=>count($nw)-$inN,'r'=>$rw]; elseif($inC>0) $cat[]=$m; }
+        if($hits){ usort($hits,fn($a,$b)=>$a['x']<=>$b['x']); if(count($hits)===1 || $hits[0]['x']<$hits[1]['x']){ $rest=$hits[0]['r']; return $hits[0]['m']; } $amb=array_slice(array_map(fn($h)=>$h['m']['name'],array_filter($hits,fn($h)=>$h['x']===$hits[0]['x'])),0,8); return null; }
         if($cat && !$fuzzy){ $amb=array_slice(array_map(fn($m)=>$m['name'],$cat),0,8); return null; }   // nur Kategorie getroffen („Pizza“) → nachfragen
     }
     $best=null; $bs=0; $second=0; foreach($menu as $m){ similar_text($qn,ord_norm((string)$m['name']),$pct); if($pct>$bs){ $second=$bs; $bs=$pct; $best=$m; } elseif($pct>$second) $second=$pct; }
@@ -337,9 +338,9 @@ function ord_create(int $acc, array $d, string $channel, string $waFrom=''): arr
     $type=($d['type']??'delivery')==='pickup'?'pickup':'delivery'; if($type==='delivery'&&!$s['delivery_on']) return ['error'=>'delivery_disabled','hint'=>'Nur Abholung möglich.']; if($type==='pickup'&&!$s['pickup_on']) return ['error'=>'pickup_disabled'];
     $tm=ord_timing($s,$type,$d); if(isset($tm['error'])) return $tm; $eta=$tm['eta'];
     $menu=ord_menu($acc); $items=[]; $sub=0; $problems=[];
-    foreach((array)($d['items']??[]) as $it){ if(!is_array($it)) continue; $nm=is_scalar($it['name']??null) ? trim((string)$it['name']) : ''; $amb=null; $m=null;
+    foreach((array)($d['items']??[]) as $it){ if(!is_array($it)) continue; $nm=is_scalar($it['name']??null) ? trim((string)$it['name']) : ''; $amb=null; $m=null; $rest=[];
         if(isset($it['id']) && is_scalar($it['id']) && trim((string)$it['id'])!=='') $m=ord_find_item($menu,$it['id']);   // unbekannte id → kein Ziffern-Namenstreffer; nur ein mitgeschickter Name zählt
-        if(!$m && $nm!=='') $m=ord_find_item($menu,$nm,$amb);
+        if(!$m && $nm!=='') $m=ord_find_item($menu,$nm,$amb,$rest);
         if(!$m && $amb) return ['error'=>'ambiguous','item'=>$nm,'candidates'=>$amb,'problems'=>$problems ?: null,'hint'=>'Mehrere Artikel passen zu „'.$nm.'“: '.implode(', ',$amb).'. Bitte beim Kunden nachfragen und dann mit id bestellen.'];
         if(!$m){ $problems[]='Nicht auf der Karte: '.($nm!=='' ? $nm : (is_scalar($it['id']??null) && (string)$it['id']!=='' ? 'id '.$it['id'] : '?')); continue; }
         $qty=max(1,min(50,(int)($it['qty']??1))); $unit=(int)$m['price_cents']; $chosen=[]; $taken=[]; $seen=[]; $grps=array_values(array_filter((array)($m['options']??[]),fn($g)=>is_array($g) && !empty($g['choices'])));
@@ -350,6 +351,13 @@ function ord_create(int $acc, array $d, string $channel, string $waFrom=''): arr
             $g=$grps[$r['g']]; $c=$r['c']; $k=$r['g'].'|'.$c['label']; if(isset($seen[$k])) continue;   // doppelt genannt
             $single=ord_group_single($g); if($single && isset($taken[$r['g']])){ $problems[]=$m['name'].': '.$g['name'].' nur einmal wählbar – „'.$c['label'].'“ ignoriert (gewählt: '.$taken[$r['g']].').'; continue; }
             $seen[$k]=1; if($single) $taken[$r['g']]=$c['label']; $unit+=(int)($c['delta']??0); $chosen[]=$g['name'].': '.$c['label']; }
+        /* Größe nur im Artikelnamen („Funghi groß“) → als Option übernehmen, sonst melden – nie still zum Grundpreis */
+        $sz=implode(' ',array_diff($rest,['bitte','mal','stuck','x','mit','und','ein','eine','einen','einer','die','der','das','den','portion']));
+        if($sz!==''){ $r=$grps ? ord_match_option($grps,$sz,'',array_keys($taken)) : null;
+            if(!$r || isset($r['amb'])) $problems[]=$m['name'].': „'.$sz.'“ aus dem Artikelnamen '.($grps ? 'keiner Option eindeutig zuzuordnen – nicht berechnet. Möglich: '.ord_options_text($grps).'.' : 'nicht berücksichtigt (keine Optionen auf der Karte).');
+            else { $g=$grps[$r['g']]; $c=$r['c']; $k=$r['g'].'|'.$c['label'];
+                if(!isset($seen[$k])){ if(ord_group_single($g) && isset($taken[$r['g']])) $problems[]=$m['name'].': „'.$sz.'“ im Artikelnamen, gewählt ist '.$g['name'].' '.$taken[$r['g']].' – so berechnet.';
+                    else { $seen[$k]=1; if(ord_group_single($g)) $taken[$r['g']]=$c['label']; $unit+=(int)($c['delta']??0); $chosen[]=$g['name'].': '.$c['label']; } } } }
         $unit=max(0,$unit);
         $items[]=['id'=>$m['id'],'name'=>$m['name'],'qty'=>$qty,'options'=>$chosen,'unit_cents'=>$unit,'total_cents'=>$unit*$qty,'note'=>mb_substr((string)($it['note']??''),0,120)]; $sub+=$unit*$qty; }
     if(!$items) return ['error'=>'no_items','problems'=>$problems,'hint'=>'Keine gültigen Positionen. Karte mit get_menu prüfen.'];
