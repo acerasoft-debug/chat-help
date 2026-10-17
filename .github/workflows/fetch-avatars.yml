@@ -23,8 +23,8 @@ jobs:
           curl -sSL -m 30 -A "$UA" -o site/media/avatars/_diag/tpdne.html "https://thispersondoesnotexist.com/" || true
           head -c 1500 site/media/avatars/_diag/tpdne.html; echo
           for i in $(seq 1 $N); do
-            for u in "https://thispersondoesnotexist.com/image" "https://thispersondoesnotexist.com/"; do
-              code=$(curl -sSL -m 30 -A "$UA" -H "Accept: image/avif,image/webp,image/jpeg,*/*" -H "Referer: https://thispersondoesnotexist.com/" -o /tmp/raw/a$i.jpg -w "%{http_code} %{content_type} %{size_download}" "$u?$RANDOM" || echo fail)
+            for u in "https://thispersondoesnotexist.com/random-person.jpeg" "https://thispersondoesnotexist.com/image"; do
+              code=$(curl -sSL -m 30 -A "$UA" -H "Accept: image/avif,image/webp,image/jpeg,*/*" -H "Referer: https://thispersondoesnotexist.com/" -o /tmp/raw/a$i.jpg -w "%{http_code} %{content_type} %{size_download}" "$u?r=$i$RANDOM" || echo fail)
               echo "tpdne $i $u: $code"
               if file /tmp/raw/a$i.jpg | grep -qi jpeg; then break; fi
             done

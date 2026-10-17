@@ -1,2 +1,2 @@
-count=30
-# Lauf 3: thispersondoesnotexist (ohne Wasserzeichen) + Studio-Hintergrund
+count=40
+# Lauf 4: random-person.jpeg (ohne Wasserzeichen) + Studio-Hintergrund
