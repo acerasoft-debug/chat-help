@@ -219,7 +219,7 @@ function ord_day_label(DateTimeImmutable $t, DateTimeImmutable $now): string { r
 function ord_is_open(array $s, ?DateTimeImmutable $at=null): array {
     $tz=ord_tz($s); $now=($at ?: new DateTimeImmutable('now',$tz))->setTimezone($tz); $ranges=$s['hours'][(string)(int)$now->format('w')] ?? [];
     foreach(ord_windows($s,$now) as [$a,$b]){
-        if($a<=$now && $now<$b) return ['open'=>true,'until'=>$b->format('H:i'),'until_at'=>$b->format('Y-m-d H:i'),'today'=>$ranges];
+        if($a<=$now && $now<$b) return ['open'=>true,'until'=>$b->format('H:i'),'until_at'=>$b->format('Y-m-d H:i'),'until_label'=>ord_day_label($b,$now),'today'=>$ranges];
         if($a>$now) return ['open'=>false,'next'=>$a->format('H:i'),'next_at'=>$a->format('Y-m-d H:i'),'next_label'=>ord_day_label($a,$now),'next_until'=>$b->format('H:i'),'today'=>$ranges];
     }
     return ['open'=>false,'next'=>'','next_at'=>null,'next_label'=>null,'today'=>$ranges];
@@ -293,7 +293,7 @@ function ord_find_item(array $menu, $ref, ?array &$amb=null): ?array {
 function ord_options_text(array $grps): string { return mb_substr(implode('; ',array_map(fn($g)=>$g['name'].': '.implode(', ',array_map(fn($c)=>$c['label'].(!empty($c['delta'])?' ('.($c['delta']>0?'+':'').number_format($c['delta']/100,2,',','.').' €)':''),(array)$g['choices'])),$grps)),0,400); }
 /**
  * Wunschzeit (requested_time): 'HH:MM' (heute) oder 'YYYY-MM-DD HH:MM' (auch 'TT.MM.[JJJJ] HH:MM'); leer/„sofort“ = so schnell wie möglich.
- * 'HH:MM' schon vorbei → Folgetag nur, wenn gerade geschlossen ist oder die Zeit ins laufende Nacht-Fenster bzw. die nächsten 6 h fällt (jetzt 23:50, Wunsch 00:30); sonst Fehler mit Hinweis.
+ * 'HH:MM' schon vorbei → Folgetag nur, wenn gerade geschlossen ist oder die Zeit in den nächsten 6 h bzw. im laufenden Nacht-Fenster (höchstens 12 h) liegt (jetzt 23:50, Wunsch 00:30); sonst Fehler mit Hinweis.
  * Rückgabe ['at'=>DateTimeImmutable|null] oder ['error'=>…,'hint'=>…].
  */
 function ord_requested_time(array $s, string $raw, ?DateTimeImmutable $now=null): array {
@@ -307,7 +307,7 @@ function ord_requested_time(array $s, string $raw, ?DateTimeImmutable $now=null)
     if($y!==null){ $at=(new DateTimeImmutable(sprintf('%04d-%02d-%02d',$y,$mo,$dd),$tz))->setTime($h,$i); if($at<$now->modify('-15 minutes')) return ['error'=>'requested_time_past','hint'=>'Die Wunschzeit '.$at->format('d.m.Y H:i').' liegt in der Vergangenheit.']; }
     else { $at=$now->setTime($h,$i);
         if($at<$now->modify('-15 minutes')){ $cur=ord_is_open($s,$now); $t=$at->modify('+1 day');
-            if(!$cur['open'] || $t<new DateTimeImmutable($cur['until_at'],$tz) || $t<=$now->modify('+6 hours')) $at=$t;   // spät abends „01:45“ = heute Nacht
+            if(!$cur['open'] || $t<=$now->modify('+6 hours') || ($t<new DateTimeImmutable($cur['until_at'],$tz) && $t<=$now->modify('+12 hours'))) $at=$t;   // spät abends „01:45“ = heute Nacht; „06:00“ um 09:00 (auch bei 24/7) = Fehler statt still morgen
             else return ['error'=>'requested_time_past','hint'=>$raw.' Uhr ist heute schon vorbei. Für einen anderen Tag die Wunschzeit mit Datum angeben (YYYY-MM-DD HH:MM).']; } }
     if($at<$now) $at=$now;   // knapp vorbei = so schnell wie möglich
     if($at>$now->modify('+7 days')) return ['error'=>'requested_time_too_far','hint'=>'Vorbestellungen höchstens 7 Tage im Voraus.'];
@@ -557,7 +557,7 @@ function ord_system_hint(int $acc): string {
     $wd=['So','Mo','Di','Mi','Do','Fr','Sa']; $h=[]; for($w=1;$w<=7;$w++){ $k=(string)($w%7); $r=$s['hours'][$k]??[]; $h[]=$wd[$w%7].' '.($r?implode(', ',array_map(fn($x)=>$x[0].'–'.$x[1],$r)):'Ruhetag'); }
     $zones=$s['zones']?implode('; ',array_map(fn($z)=>$z['name'].' (PLZ '.$z['plz'].'): Gebühr '.number_format($z['fee_cents']/100,2,',','.').' €, Mindestbestellwert '.number_format($z['min_cents']/100,2,',','.').' €',$s['zones'])):'Liefergebiet nach PLZ-Prüfung';
     $cats=array_count_values(array_column(ord_menu($acc),'category'));
-    return "\n\nBESTELLANNAHME (aktiv) für ".($s['name']?:'das Restaurant').($s['address']?', '.$s['address']:'').". Jetzt: ".$now->format('l H:i')." – ".($open['open']?'GEÖFFNET bis '.$open['until']:'GESCHLOSSEN'.($open['next_label']?', öffnet '.$open['next_label'].' (Vorbestellung für dieses Fenster mit requested_time möglich)':'')).". Öffnungszeiten: ".implode(' · ',$h).". Lieferung ".($s['delivery_on']?'ja':'nein').", Abholung ".($s['pickup_on']?'ja':'nein').". Liefergebiete: $zones. Zahlarten: ".$s['payment_methods'].". Lieferzeit ca. ".$s['eta_delivery_min']." Min, Abholung ca. ".$s['eta_pickup_min']." Min.".($s['pickup_discount_pct']>0?" Abholrabatt: ".$s['pickup_discount_pct']." % auf den Warenwert (wird bei create_order automatisch abgezogen).":" Es gibt KEINEN Abholrabatt – auch wenn die Wissensbasis etwas anderes sagt.")." Karte: ".implode(', ',array_map(fn($c,$n)=>"$c ($n)",array_keys($cats),$cats)).".
+    return "\n\nBESTELLANNAHME (aktiv) für ".($s['name']?:'das Restaurant').($s['address']?', '.$s['address']:'').". Jetzt: ".$now->format('l H:i')." – ".($open['open']?'GEÖFFNET bis '.(new DateTimeImmutable($open['until_at'],$tz)<=$now->modify('+12 hours') ? $open['until'] : $open['until_label']):'GESCHLOSSEN'.($open['next_label']?', öffnet '.$open['next_label'].' (Vorbestellung für dieses Fenster mit requested_time möglich)':'')).". Öffnungszeiten: ".implode(' · ',$h).". Lieferung ".($s['delivery_on']?'ja':'nein').", Abholung ".($s['pickup_on']?'ja':'nein').". Liefergebiete: $zones. Zahlarten: ".$s['payment_methods'].". Lieferzeit ca. ".$s['eta_delivery_min']." Min, Abholung ca. ".$s['eta_pickup_min']." Min.".($s['pickup_discount_pct']>0?" Abholrabatt: ".$s['pickup_discount_pct']." % auf den Warenwert (wird bei create_order automatisch abgezogen).":" Es gibt KEINEN Abholrabatt – auch wenn die Wissensbasis etwas anderes sagt.")." Karte: ".implode(', ',array_map(fn($c,$n)=>"$c ($n)",array_keys($cats),$cats)).".
 REGELN: Karte/Preise NUR über get_menu (nicht raten). Gesamtsummen nie selbst anders ankündigen als die Werkzeuge: nach create_order gilt ausschließlich das Feld total (inkl. Liefergebühr bzw. Abholrabatt). In der Zusammenfassung vor der Bestellung: Positionen mit Einzelpreisen + Liefergebühr bzw. Abholrabatt laut Einstellungen. Bestellung aufnehmen: Positionen mit Menge und Größe/Optionen, Lieferung oder Abholung, bei Lieferung Adresse mit Straße, Hausnummer, PLZ, Ort → check_delivery_address (nur im Liefergebiet weiter; sonst Abholung anbieten), Name, Telefonnummer, Zahlart. Dann Zusammenfassung mit Gesamtsumme (inkl. Liefergebühr) und „Soll ich die Bestellung so aufgeben?“ – erst nach Ja create_order. Danach Bestellcode, Gesamtsumme und voraussichtliche Zeit nennen; im Chat/WhatsApp zusätzlich den Status-Link (Feld track) mitschicken, am Telefon den Link NICHT vorlesen (Bestätigung kommt per SMS). Upselling höchstens einmal, dezent (Getränk/Dessert). Allergien/Unverträglichkeiten: Hinweise aus der Karte nennen, bei Unsicherheit ans Team verweisen. Kurz, freundlich, in der Sprache des Kunden.";
 }
 
