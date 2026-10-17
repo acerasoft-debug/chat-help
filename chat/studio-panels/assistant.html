@@ -1,0 +1,248 @@
+<style>
+/* Persönlicher Assistent – alle Regeln auf #panel-assistant begrenzt (keine globalen Stile), Animationen mit Präfix as */
+#panel-assistant .as-grid{display:grid;grid-template-columns:300px minmax(0,1fr) 300px;gap:18px;align-items:start}
+#panel-assistant .as-left{position:sticky;top:118px}
+#panel-assistant .as-pcard{padding:16px 16px 18px}
+#panel-assistant .as-por{position:relative;border-radius:28px;aspect-ratio:4/5;background:linear-gradient(160deg,#f5eddc,#e8d9b9);box-shadow:0 2px 6px rgba(15,18,34,.06),0 26px 60px rgba(15,18,34,.16);isolation:isolate}
+#panel-assistant .as-por::before{content:"";position:absolute;inset:-6px;border-radius:34px;border:2px solid rgba(184,134,43,0);transition:border-color .35s,box-shadow .35s;pointer-events:none;z-index:3}
+#panel-assistant .as-por[data-state="speaking"]::before{border-color:#d4a84a;box-shadow:0 0 0 4px rgba(212,168,74,.16),0 0 34px 4px rgba(212,168,74,.45);animation:asGlow 1.6s ease-in-out infinite}
+#panel-assistant .as-por[data-state="listening"]::before{border-color:rgba(217,51,107,.55);box-shadow:0 0 0 4px rgba(217,51,107,.10),0 0 26px rgba(217,51,107,.22)}
+#panel-assistant .as-por[data-state="thinking"]::before{border-color:rgba(79,70,229,.32);box-shadow:0 0 0 4px rgba(79,70,229,.06)}
+#panel-assistant .as-ph{position:absolute;inset:0;border-radius:28px;overflow:hidden}
+#panel-assistant .as-ph img{width:100%;height:100%;object-fit:cover;object-position:50% 32%;display:block;transform-origin:50% 62%;animation:asBreath 6.5s ease-in-out infinite}
+#panel-assistant .as-ph::after{content:"";position:absolute;left:0;right:0;bottom:0;height:40%;background:linear-gradient(to top,rgba(15,18,34,.5),rgba(15,18,34,0));pointer-events:none}
+#panel-assistant .as-st{position:absolute;left:14px;bottom:14px;z-index:2;display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.9);backdrop-filter:blur(6px);font:600 12.5px var(--sans);color:var(--ink);box-shadow:0 4px 14px rgba(15,18,34,.12)}
+#panel-assistant .as-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(26,158,90,.16)}
+#panel-assistant .as-por[data-state="listening"] .as-dot{background:var(--rose);box-shadow:0 0 0 3px rgba(217,51,107,.18);animation:asBlink 1s ease-in-out infinite}
+#panel-assistant .as-por[data-state="thinking"] .as-dot{background:var(--indigo);box-shadow:0 0 0 3px rgba(79,70,229,.16);animation:asBlink .8s ease-in-out infinite}
+#panel-assistant .as-por[data-state="speaking"] .as-dot{background:var(--gold2);box-shadow:0 0 0 3px rgba(212,168,74,.25)}
+#panel-assistant .as-bars{position:absolute;right:16px;bottom:16px;z-index:2;display:flex;gap:3px;align-items:flex-end;height:24px;opacity:0;transition:opacity .25s}
+#panel-assistant .as-bars i{display:block;width:4px;height:100%;border-radius:3px;background:linear-gradient(#fff,#f3dfa6);transform-origin:50% 100%;transform:scaleY(.22)}
+#panel-assistant .as-por[data-state="speaking"] .as-bars{opacity:1}
+#panel-assistant .as-por[data-state="speaking"] .as-bars i{animation:asBar .82s ease-in-out infinite alternate}
+#panel-assistant .as-por[data-state="speaking"] .as-bars i:nth-child(2){animation-duration:.61s;animation-delay:-.2s}
+#panel-assistant .as-por[data-state="speaking"] .as-bars i:nth-child(3){animation-duration:.95s;animation-delay:-.45s}
+#panel-assistant .as-por[data-state="speaking"] .as-bars i:nth-child(4){animation-duration:.7s;animation-delay:-.1s}
+#panel-assistant .as-por[data-state="speaking"] .as-bars i:nth-child(5){animation-duration:.88s;animation-delay:-.6s}
+#panel-assistant .as-who{margin-top:16px}
+#panel-assistant .as-who h3{font-size:25px;line-height:1.15}
+#panel-assistant .as-ctrls{margin-top:14px;gap:8px}
+#panel-assistant .as-ctrls .btn{flex:1 1 auto}
+#panel-assistant .as-tip{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--goldl);color:#5c4411;font-size:12.5px;border:1px solid #eadbb0}
+#panel-assistant .as-chat{display:flex;flex-direction:column;height:calc(100vh - 196px);min-height:560px;padding:0;overflow:hidden}
+#panel-assistant .as-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+#panel-assistant .as-head b{font:600 16px var(--serif)}
+#panel-assistant .as-msgs{flex:1;overflow:auto;padding:20px 18px;display:flex;flex-direction:column;gap:14px;overscroll-behavior:contain}
+#panel-assistant .as-m{display:flex;gap:10px;max-width:90%;align-items:flex-start}
+#panel-assistant .as-m.u{align-self:flex-end;flex-direction:row-reverse}
+#panel-assistant .as-av{width:32px;height:32px;border-radius:50%;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 2px #fff,0 0 0 3px #eadbb0;background:var(--goldl)}
+#panel-assistant .as-col{display:flex;flex-direction:column;min-width:0}
+#panel-assistant .as-b{padding:11px 15px;border-radius:18px;white-space:pre-wrap;line-height:1.55;font-size:14.5px;overflow-wrap:anywhere}
+#panel-assistant .as-m.a .as-b{background:var(--sur2);border-top-left-radius:6px;color:var(--ink)}
+#panel-assistant .as-m.u .as-b{background:var(--ink);color:#fff;border-top-right-radius:6px}
+#panel-assistant .as-m.u .as-b a{color:#f3dfa6}
+#panel-assistant .as-m.sys{align-self:center;max-width:100%}
+#panel-assistant .as-m.sys .as-b{background:transparent;color:var(--mute);font-size:12.5px;padding:2px 8px;text-align:center}
+#panel-assistant .as-acts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+#panel-assistant .as-act{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:12px;font-size:12.5px;line-height:1.4;background:var(--okl);color:#15703f;border:1px solid #bfe8cf}
+#panel-assistant .as-act.err{background:var(--rosel);color:#9f2448;border-color:#f7c6d5}
+#panel-assistant .as-act .ic{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:#fff;font-size:11px;font-weight:800}
+#panel-assistant .as-go{margin-left:auto;border:0;background:transparent;color:inherit;font-weight:700;cursor:pointer;white-space:nowrap;padding:2px 4px}
+#panel-assistant .as-go:hover{text-decoration:underline}
+#panel-assistant .as-play{align-self:flex-start;border:0;background:transparent;cursor:pointer;color:var(--mute2);font-size:12px;padding:3px 6px;margin-top:3px;border-radius:8px}
+#panel-assistant .as-play:hover{color:var(--gold);background:var(--goldl)}
+#panel-assistant .as-typing .as-b{display:inline-flex;gap:5px;padding:15px 16px}
+#panel-assistant .as-typing i{width:7px;height:7px;border-radius:50%;background:var(--mute2);animation:asDot 1.2s ease-in-out infinite}
+#panel-assistant .as-typing i:nth-child(2){animation-delay:.15s}#panel-assistant .as-typing i:nth-child(3){animation-delay:.3s}
+#panel-assistant .as-foot{border-top:1px solid var(--line);padding:12px 14px 14px;background:linear-gradient(#fff,#fbfaf6)}
+#panel-assistant .as-sg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+#panel-assistant .as-sg button{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--ink2);cursor:pointer;text-align:left;transition:border-color .15s,color .15s}
+#panel-assistant .as-sg button:hover{border-color:var(--gold);color:var(--ink)}
+#panel-assistant .as-form{display:flex;gap:8px;align-items:flex-end;margin:0}
+#panel-assistant .as-form textarea{min-height:46px;max-height:160px;height:46px;resize:none;flex:1;padding:12px 14px;border-radius:14px}
+#panel-assistant .as-mic{width:46px;height:46px;flex:0 0 auto;border-radius:14px;border:1px solid var(--line2);background:#fff;font-size:18px;cursor:pointer;display:grid;place-items:center;touch-action:none;user-select:none;-webkit-user-select:none}
+#panel-assistant .as-mic.rec{background:var(--rosel);border-color:#f7c6d5;animation:asPulse 1.4s infinite}
+#panel-assistant .as-mic:disabled{opacity:.45;cursor:not-allowed}
+#panel-assistant .as-send{height:46px;border-radius:14px}
+#panel-assistant .as-right{display:flex;flex-direction:column;gap:16px}
+#panel-assistant .as-ringw{display:flex;align-items:center;gap:14px}
+#panel-assistant .as-ring{position:relative;width:66px;height:66px;flex:0 0 auto}
+#panel-assistant .as-ring svg{transform:rotate(-90deg);display:block}
+#panel-assistant .as-ring circle{fill:none;stroke-width:6}
+#panel-assistant .as-ring .bg{stroke:var(--sur2)}
+#panel-assistant .as-ring .fg{stroke:url(#asGold);stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1)}
+#panel-assistant .as-ring b{position:absolute;inset:0;display:grid;place-items:center;font:800 15px var(--sans)}
+#panel-assistant .as-cl{list-style:none;margin:12px 0 0;padding:0}
+#panel-assistant .as-cl li{display:flex;gap:10px;padding:9px 8px;border-top:1px solid var(--line);cursor:pointer;border-radius:10px;transition:background .15s}
+#panel-assistant .as-cl li:hover{background:var(--sur2)}
+#panel-assistant .as-cl li:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+#panel-assistant .as-ck{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line2);display:grid;place-items:center;flex:0 0 auto;font-size:12px;font-weight:800;color:#fff;margin-top:1px;background:#fff}
+#panel-assistant .as-cl li.done .as-ck{background:var(--ok);border-color:var(--ok)}
+#panel-assistant .as-cl b{font-size:13.5px;display:block;font-weight:600}
+#panel-assistant .as-cl span{font-size:12px;color:var(--mute);display:block;line-height:1.4}
+#panel-assistant .as-cl li.done b{color:var(--ink2)}
+#panel-assistant .as-mem{list-style:none;margin:10px 0 0;padding:0;max-height:340px;overflow:auto}
+#panel-assistant .as-mem li{display:flex;gap:8px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);font-size:13px;line-height:1.45}
+#panel-assistant .as-mem .tp{display:block;font:700 10.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:2px}
+#panel-assistant .as-x{margin-left:auto;border:0;background:transparent;color:var(--mute2);cursor:pointer;font-size:17px;line-height:1;padding:3px 7px;border-radius:8px;flex:0 0 auto}
+#panel-assistant .as-x:hover{background:var(--rosel);color:var(--rose)}
+#panel-assistant .as-drawer{position:fixed;inset:0;z-index:60;display:flex;justify-content:flex-end}
+#panel-assistant .as-scrim{position:absolute;inset:0;background:rgba(15,18,34,.38);backdrop-filter:blur(2px);animation:asFade .2s ease-out}
+#panel-assistant .as-sheet{position:relative;width:min(540px,100%);height:100%;background:#fff;box-shadow:-20px 0 60px rgba(15,18,34,.18);display:flex;flex-direction:column;animation:asSlide .28s cubic-bezier(.2,.8,.2,1)}
+#panel-assistant .as-sh-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+#panel-assistant .as-sh-h img{width:46px;height:46px;border-radius:14px;object-fit:cover;box-shadow:0 0 0 2px #fff,0 0 0 3px #eadbb0}
+#panel-assistant .as-sh-b{flex:1;overflow:auto;padding:4px 20px 24px}
+#panel-assistant .as-sh-f{padding:12px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;align-items:center;background:#fbfaf6}
+#panel-assistant .as-sh-b h4{margin:20px 0 4px;font:600 15px var(--serif)}
+#panel-assistant .as-seg{display:inline-flex;padding:4px;border-radius:14px;background:var(--sur2);border:1px solid var(--line);gap:4px;flex-wrap:wrap}
+#panel-assistant .as-seg button{border:0;background:transparent;padding:8px 14px;border-radius:10px;font-weight:600;color:var(--ink2);cursor:pointer}
+#panel-assistant .as-seg button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(15,18,34,.08),0 4px 12px rgba(15,18,34,.08)}
+#panel-assistant .as-pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px;margin-top:8px}
+#panel-assistant .as-pg button{position:relative;aspect-ratio:1;border-radius:18px;overflow:hidden;border:2px solid transparent;padding:0;cursor:pointer;background:var(--sur2);transition:transform .15s}
+#panel-assistant .as-pg button:hover{transform:translateY(-1px)}
+#panel-assistant .as-pg img{width:100%;height:100%;object-fit:cover;display:block}
+#panel-assistant .as-pg button[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,43,.2)}
+#panel-assistant .as-pg .lb{position:absolute;left:0;right:0;bottom:0;font-size:11px;font-weight:600;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.6));padding:12px 4px 5px;text-align:center}
+#panel-assistant .as-pg .up{border:2px dashed var(--line2);background:#fff;display:grid;place-items:center;color:var(--mute);font-size:12px;font-weight:600;text-align:center;line-height:1.3;padding:6px}
+#panel-assistant .as-vc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+#panel-assistant .as-vc button{text-align:left;border:1.5px solid var(--line);border-radius:14px;padding:10px 12px;background:#fff;cursor:pointer;font-size:12px;color:var(--mute);line-height:1.35}
+#panel-assistant .as-vc button b{display:block;font-size:14px;color:var(--ink);margin-bottom:2px}
+#panel-assistant .as-vc button[aria-pressed="true"]{border-color:var(--gold);background:#fffbf2;box-shadow:0 0 0 3px rgba(184,134,43,.14)}
+#panel-assistant .as-range{display:flex;align-items:center;gap:12px}
+#panel-assistant .as-range input{flex:1;accent-color:var(--gold)}
+#panel-assistant .as-range output{min-width:46px;text-align:right;font-weight:700;font-size:13px}
+#panel-assistant .as-consent{font-size:12px;color:var(--mute);margin-top:8px}
+@keyframes asBreath{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.018) translateY(-2px)}}
+@keyframes asGlow{50%{box-shadow:0 0 0 7px rgba(212,168,74,.10),0 0 54px 10px rgba(212,168,74,.55)}}
+@keyframes asBar{0%{transform:scaleY(.2)}100%{transform:scaleY(1)}}
+@keyframes asBlink{50%{opacity:.35}}
+@keyframes asDot{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-4px);opacity:1}}
+@keyframes asPulse{70%{box-shadow:0 0 0 9px rgba(217,51,107,0)}100%{box-shadow:0 0 0 0 rgba(217,51,107,0)}}
+@keyframes asFade{from{opacity:0}}
+@keyframes asSlide{from{transform:translateX(40px);opacity:0}}
+@media(max-width:1180px){#panel-assistant .as-grid{grid-template-columns:260px minmax(0,1fr)}#panel-assistant .as-right{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr}}
+@media(max-width:820px){
+  #panel-assistant .as-grid{grid-template-columns:minmax(0,1fr);gap:14px}
+  #panel-assistant .as-left{position:static}
+  #panel-assistant .as-pin{display:grid;grid-template-columns:116px minmax(0,1fr);gap:14px;align-items:center}
+  #panel-assistant .as-por{aspect-ratio:1;border-radius:22px}
+  #panel-assistant .as-por::before{border-radius:28px;inset:-5px}
+  #panel-assistant .as-ph{border-radius:22px}
+  #panel-assistant .as-st{left:50%;transform:translateX(-50%);bottom:8px;padding:4px 9px;font-size:11px;white-space:nowrap}
+  #panel-assistant .as-bars{right:10px;bottom:auto;top:10px;height:16px}
+  #panel-assistant .as-who{margin-top:0}
+  #panel-assistant .as-who h3{font-size:21px}
+  #panel-assistant .as-ctrls{margin-top:10px}
+  #panel-assistant .as-ctrls .btn{padding:7px 10px}
+  #panel-assistant .as-chat{height:72vh;min-height:460px}
+  #panel-assistant .as-right{grid-template-columns:1fr}
+  #panel-assistant .as-m{max-width:96%}
+  #panel-assistant .as-vc{grid-template-columns:1fr}
+  #panel-assistant .as-head .mute{display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  #panel-assistant *,#panel-assistant *::before,#panel-assistant *::after{animation:none !important;transition:none !important}
+  #panel-assistant .as-por[data-state="speaking"] .as-bars i{transform:scaleY(.7)}
+}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="asGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd08a"/><stop offset="1" stop-color="#b8862b"/></linearGradient></defs></svg>
+
+<div class="row" style="justify-content:space-between;margin-bottom:14px">
+  <div><h2 style="font-size:26px" id="asTitle">Deine persönliche Assistentin</h2>
+    <p class="mute" style="margin:4px 0 0">Erzähl einfach, was erledigt werden soll – <span id="asTitleName">Lea</span> fragt nach, was noch fehlt, merkt sich alles und richtet deine Agenten mit dir ein.</p></div>
+  <span class="tag gold" id="asCost">≈ 6 Tokens je Antwort</span>
+</div>
+
+<div class="as-grid">
+  <aside class="as-left">
+    <div class="card as-pcard">
+      <div class="as-pin">
+        <div class="as-por" id="asPor" data-state="idle">
+          <div class="as-ph"><img id="asImg" alt="" width="400" height="500"></div>
+          <div class="as-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="as-st" role="status" aria-live="polite"><span class="as-dot"></span><span id="asStatus">bereit</span></div>
+        </div>
+        <div>
+          <div class="as-who"><h3 id="asName">Lea</h3><div class="mute small" id="asRole">Deine persönliche Assistentin</div></div>
+          <div class="row as-ctrls">
+            <button class="btn s" type="button" id="asCustomize">✎ Anpassen</button>
+            <button class="btn s" type="button" id="asVoiceBtn" aria-pressed="false" title="Antworten vorlesen">🔇 Stimme aus</button>
+            <button class="btn s as-mic" type="button" id="asMicBig" title="Gedrückt halten zum Sprechen – oder antippen" aria-label="Sprechen">🎙</button>
+          </div>
+        </div>
+      </div>
+      <div class="mute small" id="asVoiceInfo" style="margin-top:10px"></div>
+      <div class="as-tip hidden" id="asTip">Tipp: Unter <b>Anpassen</b> legst du Aussehen, Stimme und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.</div>
+    </div>
+  </aside>
+
+  <section class="card as-chat" aria-label="Gespräch mit dem Assistenten">
+    <div class="as-head"><b>Gespräch</b><span class="mute small" id="asHeadInfo">Ich ändere nichts, ohne dich vorher zu fragen.</span><button class="btn ghost s" type="button" id="asReset" title="Verlauf leeren – Gedächtnis bleibt">Neu beginnen</button></div>
+    <div class="as-msgs" id="asMsgs" aria-live="polite"></div>
+    <div class="as-foot">
+      <div class="as-sg" id="asSugg"></div>
+      <form class="as-form" id="asForm" autocomplete="off">
+        <textarea id="asInput" rows="1" maxlength="2000" placeholder="Erzähl mir, was ich erledigen soll …" aria-label="Nachricht an den Assistenten"></textarea>
+        <button class="as-mic" type="button" id="asMic" title="Gedrückt halten zum Sprechen – oder antippen" aria-label="Sprechen">🎙</button>
+        <button class="btn p as-send" type="submit" id="asSend">Senden</button>
+      </form>
+      <div id="asNote"></div>
+    </div>
+  </section>
+
+  <aside class="as-right">
+    <div class="card">
+      <div class="as-ringw">
+        <div class="as-ring"><svg width="66" height="66" viewBox="0 0 66 66"><circle class="bg" cx="33" cy="33" r="27"/><circle class="fg" id="asRingFg" cx="33" cy="33" r="27" stroke-dasharray="169.65" stroke-dashoffset="169.65"/></svg><b id="asPct">0 %</b></div>
+        <div><h3 style="font-size:17px">Einrichtung</h3><div class="mute small" id="asPctTxt">Wir starten gemeinsam.</div></div>
+      </div>
+      <ul class="as-cl" id="asCheck"></ul>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:17px" id="asMemTitle">Was ich über dich weiß</h3><span class="tag" id="asMemN">0</span></div>
+      <ul class="as-mem" id="asMem"></ul>
+      <div class="mute small" id="asMemEmpty" style="margin-top:10px">Noch nichts – erzähl mir von deinem Betrieb, ich merke mir das Wichtigste.</div>
+    </div>
+  </aside>
+</div>
+
+<div class="as-drawer hidden" id="asDrawer" role="dialog" aria-modal="true" aria-labelledby="asDrTitle">
+  <div class="as-scrim" id="asScrim"></div>
+  <div class="as-sheet">
+    <div class="as-sh-h"><img id="asDrImg" alt=""><div style="flex:1;min-width:0"><h3 style="font-size:19px" id="asDrTitle">Assistent anpassen</h3><div class="mute small" id="asDrSub">Aussehen, Stimme und Persönlichkeit</div></div><button class="btn ghost s" type="button" id="asDrClose" aria-label="Schließen">✕</button></div>
+    <div class="as-sh-b">
+      <label for="asFName">Name</label>
+      <input type="text" id="asFName" maxlength="30" autocomplete="off" placeholder="z. B. Lea">
+      <label>Wer soll dich begleiten?</label>
+      <div class="as-seg" id="asFGender"><button type="button" data-v="f">Frau</button><button type="button" data-v="m">Mann</button></div>
+
+      <h4>Porträt</h4>
+      <div class="as-pg" id="asFPortraits"></div>
+      <input type="file" id="asFFile" accept="image/jpeg,image/png,image/webp" class="hidden">
+      <div class="as-consent">📷 Eigenes Foto: JPEG, PNG oder WebP – wird im Browser auf 512 px verkleinert. <b>Nur Fotos verwenden, für die du die Rechte hast.</b></div>
+      <div class="mute small" style="margin-top:4px" id="asFCredit">Die Studio-Porträts sind synthetisch erzeugte Gesichter – keine realen Personen.</div>
+
+      <h4>Stimme</h4>
+      <div class="as-vc" id="asFVoices"></div>
+      <label>Sprechweise</label>
+      <div class="as-seg" id="asFTone"><button type="button" data-v="warm">Warm</button><button type="button" data-v="ruhig">Ruhig</button><button type="button" data-v="energisch">Energisch</button><button type="button" data-v="sachlich">Sachlich</button></div>
+      <label for="asFRate">Tempo</label>
+      <div class="as-range"><input type="range" id="asFRate" min="0.8" max="1.2" step="0.05"><output id="asFRateO">1,00×</output></div>
+      <label for="asFPitch">Tonhöhe</label>
+      <div class="as-range"><input type="range" id="asFPitch" min="0.8" max="1.2" step="0.05"><output id="asFPitchO">1,00×</output></div>
+      <div class="row" style="margin-top:12px"><button class="btn s" type="button" id="asFPreview">▶ Hörprobe</button><span class="mute small" id="asFPrevInfo"></span></div>
+
+      <h4>Persönlichkeit</h4>
+      <label>Anrede</label>
+      <div class="as-seg" id="asFAddress"><button type="button" data-v="du">du</button><button type="button" data-v="sie">Sie</button></div>
+      <label>Art</label>
+      <div class="as-seg" id="asFMood"><button type="button" data-v="herzlich">Herzlich</button><button type="button" data-v="professionell">Professionell</button><button type="button" data-v="locker">Locker</button></div>
+      <label>Humor</label>
+      <div class="as-seg" id="asFHumor"><button type="button" data-v="0">Kein</button><button type="button" data-v="1">Ein wenig</button><button type="button" data-v="2">Gern</button></div>
+      <label>Antwortlänge</label>
+      <div class="as-seg" id="asFDetail"><button type="button" data-v="kurz">Kurz &amp; knapp</button><button type="button" data-v="ausführlich">Ausführlich</button></div>
+      <div id="asFMsg"></div>
+    </div>
+    <div class="as-sh-f"><button class="btn" type="button" id="asFCancel">Abbrechen</button><button class="btn p" type="button" id="asFSave">Speichern</button></div>
+  </div>
+</div>
