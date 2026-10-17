@@ -7,7 +7,8 @@
  * (14 Eki 09:12 hiç çalışmadı, 13 Eki gece taraması 3 saat geç). Bulucuda olduğu gibi (vestra_finder_server_tick)
  * sunucu, kayıtlı GitHub anahtarıyla iş akışını KENDİSİ başlatır:
  *   - brevo-daily.yml: 09:12 ve 15:12 (Avrupa saati) 50'lik parti, 23:45 gece taraması (kalan hakla 50'lik partiler);
- *     her koşu Brevo hakkından en az 100'ü bırakır (brevo-daily.yml quota_reserve=100).
+ *     her koşu Brevo hakkından en az 100'ü bırakır (brevo-daily.yml quota_reserve=100). 17 Eki 2026: günde EN ÇOK 150
+ *     (member_spec daily=150; send-outreach bugün gideni sayar) — gece taraması günün kalanını 150'ye tamamlar.
  *   - mailbox-send.yml bounces: saatte bir — support@ kutusundaki teslim hatası bildirimlerini toplar, adresi
  *     "geri döndü" işaretler (bir daha yazılmaz) ve bildirimi VESTRA-Bounces klasörüne taşır.
  * Her slot Avrupa gününde bir kez (data/ops_tick.json). Anahtar yoksa hiçbir şey yapmaz. GitHub'ın kendi zamanlaması
@@ -23,6 +24,9 @@ const VESTRA_OPS_SLOTS = [
   'brevo_night' => ['23:45', 'brevo-daily.yml', ['count' => '50', 'dry_run' => 'false', 'sweep' => 'true'], 14],
 ];
 const VESTRA_OPS_BOUNCE_EVERY = 3600;
+/* Brevo olaylarının (hard bounce / spam / çıkma) müşteri listesine işlenmesi (17 Eki 2026, inc/brevo_events.php): sunucuda,
+   GitHub'sız. 08:00 indirim partisinden (08:30) önce, 20:30 gece turundan (23:45) önce; ilk başarılı koşu 90 gün geriye bakar. */
+const VESTRA_OPS_BREVO_SYNC = ['brevo_sync_am' => ['08:00', 720], 'brevo_sync_pm' => ['20:30', 150]];   // sabah penceresi geniş: kaçarsa ilk tikte
 
 function vestra_ops_state(): array { $d = vestra_read_json('ops_tick.json'); return is_array($d) ? $d : []; }
 function vestra_ops_save(array $s): void { vestra_write_json('ops_tick.json', $s); }
@@ -38,12 +42,33 @@ function vestra_ops_dispatch(string $wf, array $inputs, ?callable $gh = null): a
   return ($c === 204 || $c === 200) ? [true, $wf.' başlatıldı'] : [false, $wf.' GitHub HTTP '.$c];
 }
 
-/** Zamanı gelen işleri başlatır. Döner: kayda yazılacak satırlar. */
-function vestra_ops_tick(?int $now = null, ?callable $gh = null): array {
-  if ($gh === null && vestra_finder_gh_token() === '') return [];
-  $now = $now ?? time();
+/** Brevo olay eşitlemesi (slot başına günde bir; başarısızsa pencere içinde 10 dk sonra yeniden). Döner: kayıt satırları. */
+function vestra_ops_brevo_sync(int $now, ?callable $http = null): array {
+  require_once __DIR__.'/brevo_events.php';
   $dt = (new DateTimeImmutable('@'.$now))->setTimezone(new DateTimeZone(VESTRA_OPS_TZ));
   $day = $dt->format('Y-m-d'); $st = vestra_ops_state(); $out = [];
+  foreach (VESTRA_OPS_BREVO_SYNC as $key => [$hm, $win]) {
+    [$H, $M] = array_map('intval', explode(':', $hm));
+    $slot = $dt->setTime($H, $M)->getTimestamp();
+    if ($now < $slot || $now > $slot + $win * 60 || ($st[$key] ?? '') === $day) continue;
+    $days = empty($st['brevo_sync_full']) ? 90 : 3;
+    $r = vestra_brevo_bounce_sync($days, $http);
+    if (!$r['ok']) { if ($http !== null || (string)vestra_cfg('mail_api_key', '') !== '') $out[] = $key.': Brevo olaylari okunamadi ('.$r['note'].')'; break; }
+    $st = vestra_ops_state(); $st[$key] = $day; $st['brevo_sync_full'] = 1; vestra_ops_save($st);
+    $out[] = $key.': Brevo olaylari '.$days.' gun · '.$r['events'].' adres · yeni geri donmus '.$r['bounced'].' · yeni cikmis '.$r['unsub'];
+    break;
+  }
+  return $out;
+}
+
+/** Zamanı gelen işleri başlatır. Döner: kayda yazılacak satırlar. $brevoHttp: Brevo API (test). */
+function vestra_ops_tick(?int $now = null, ?callable $gh = null, ?callable $brevoHttp = null): array {
+  $now = $now ?? time();
+  $pre = [];
+  try { $pre = vestra_ops_brevo_sync($now, $brevoHttp); } catch (\Throwable $e) { $pre[] = 'brevo_sync: '.$e->getMessage(); }
+  if ($gh === null && vestra_finder_gh_token() === '') return $pre;
+  $dt = (new DateTimeImmutable('@'.$now))->setTimezone(new DateTimeZone(VESTRA_OPS_TZ));
+  $day = $dt->format('Y-m-d'); $st = vestra_ops_state(); $out = $pre;
   foreach (VESTRA_OPS_SLOTS as $key => [$hm, $wf, $inputs, $win]) {
     [$H, $M] = array_map('intval', explode(':', $hm));
     $slot = $dt->setTime($H, $M)->getTimestamp();

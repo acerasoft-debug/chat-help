@@ -16,16 +16,53 @@
 
 function vestra_leads(): array { return vestra_read_json('leads.json'); }
 
-function vestra_save_leads(array $list): void { vestra_write_json('leads.json', array_values($list)); }
+/* leads.json'a AYNI ANDA yazan işler (17 Eki 2026 incelemesi): sunucunun kendi gönderimi (mektup başına damga, 8–11 sn),
+ * Brevo partisi (send-outreach, mektup başına damga), saatlik geri dönme taraması, Brevo geri dönüş eşitlemesi ve bulucu.
+ * Hepsi "oku → değiştir → yaz" yapıyordu, kilitsiz: biri ötekinin arada yazdığını eski kopyasıyla ezebiliyordu (damga
+ * kaybı = aynı dükkâna ikinci mektup; "geri döndü" kaybı = ölü adrese yeniden mektup). Ayrıca yazım dosyayı önce
+ * kesip sonra dolduruyordu: o anda okuyan [] görüp boş listeyle çalışabiliyordu.
+ * Artık: kayıt yazımı geçici dosya + rename (okuyan ya eskiyi ya yeniyi görür) ve sıcak yollar
+ * vestra_leads_update() ile data/leads.lock altında okur-değiştirir-yazar. */
+function vestra_save_leads(array $list): void {
+  $f = vestra_data_dir().'/leads.json';
+  $tmp = $f.'.tmp-'.getmypid().'-'.bin2hex(random_bytes(3));
+  $json = json_encode(array_values($list), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE);
+  if ($json === false || @file_put_contents($tmp, $json) === false) { @unlink($tmp); vestra_write_json('leads.json', array_values($list)); return; }
+  if (is_file($f)) @chmod($tmp, fileperms($f) & 0777);
+  if (!@rename($tmp, $f)) { @unlink($tmp); vestra_write_json('leads.json', array_values($list)); }
+}
+
+/** leads.json'u kilit altında oku → $fn(&$leads) → yaz. $fn false dönerse yazılmaz. Dosya dolu ama okunamıyorsa
+ *  (bozuk JSON) hiçbir şey yazılmaz — boş listeyle üzerine yazmak bütün müşteri kaydını silerdi. Kilit iç içe
+ *  çağrıda yeniden alınmaz. Döner: $fn'in dönüşü. */
+function vestra_leads_update(callable $fn) {
+  static $depth = 0;
+  $lk = null;
+  if ($depth === 0) { $lk = @fopen(vestra_data_dir().'/leads.lock', 'c'); if ($lk) flock($lk, LOCK_EX); }
+  $depth++;
+  try {
+    $f = vestra_data_dir().'/leads.json';
+    clearstatcache(true, $f);
+    $leads = vestra_leads();
+    if (!$leads && is_file($f) && filesize($f) > 2) { error_log('[VESTRA leads] leads.json okunamadi -- yazim iptal'); return false; }
+    $r = $fn($leads);
+    if ($r !== false) vestra_save_leads($leads);
+    return $r;
+  } finally {
+    $depth--;
+    if ($lk) { flock($lk, LOCK_UN); fclose($lk); }
+  }
+}
 
 /* Sağlayıcının "geçersiz alıcı" dediği adresi işaretle — gönderim listelerinden düşsün, her
  * gönderimde yeniden denenip hak harcamasın (8 Eki 2026: 6 × "email is not valid in to").
  * TAZE listeye yazılır (uzun gönderimler sırasında başka işlerin eklediği kayıt kaybolmasın). */
 function vestra_lead_mark_bad_email(string $leadId, string $why = 'provider: invalid recipient'): void {
   if ($leadId === '') return;
-  $L = vestra_leads(); $hit = false;
-  foreach ($L as $i => $l) if (($l['id'] ?? '') === $leadId) { $L[$i]['status'] = 'bounced'; $L[$i]['bounce_reason'] = $why; $L[$i]['bounced_at'] = date('c'); $hit = true; break; }
-  if ($hit) vestra_save_leads($L);
+  vestra_leads_update(static function (array &$L) use ($leadId, $why) {
+    foreach ($L as $i => $l) if (($l['id'] ?? '') === $leadId) { $L[$i]['status'] = 'bounced'; $L[$i]['bounce_reason'] = $why; $L[$i]['bounced_at'] = date('c'); return true; }
+    return false;
+  });
 }
 
 function vestra_lead_by_token(string $token): ?array {
@@ -188,10 +225,12 @@ function vestra_leads_by_owner(string $uid): array {
  * id/unsub_token), so a caller can chain straight into per-row work (e.g. live email lookup)
  * without guessing IDs. Caps at 500 per call. */
 function vestra_leads_add(array $rows, string $owner=''): array {
-  $leads=vestra_leads();
+  $addedRows=[]; $skipped=0;
+  /* 17 Eki 2026: kilit altında taze listeye (vestra_leads_update) — gönderim damgaları aynı anda yazılıyor. */
+  vestra_leads_update(function (array &$leads) use ($rows, $owner, &$addedRows, &$skipped) {
   $seenEmail=[]; $seenCompany=[];
   foreach($leads as $l){ $e=strtolower($l['email']??''); if($e!=='') $seenEmail[$e]=true; $seenCompany[strtolower($l['company']??'')]=true; }
-  $addedRows=[]; $skipped=0; $max=500;
+  $max=500;
   foreach($rows as $r){
     if((count($addedRows)+$skipped)>=$max) break;
     $company=trim((string)($r['company']??'')); if($company===''){ $skipped++; continue; }
@@ -219,7 +258,8 @@ function vestra_leads_add(array $rows, string $owner=''): array {
     ];
     $leads[]=$new; $addedRows[]=$new;
   }
-  vestra_save_leads($leads);
+  return (bool)$addedRows;
+  });
   return [$addedRows,$skipped];
 }
 function vestra_lead_import_csv(string $tmpPath, string $owner=''): array {
@@ -229,14 +269,16 @@ function vestra_lead_import_csv(string $tmpPath, string $owner=''): array {
     if (!$header) { fclose($fh); return [0, 0]; }
     $header = array_map(fn($h) => strtolower(trim((string) $h)), $header);
 
-    $leads = vestra_leads();
+    $added = 0; $skipped = 0;
+    /* 17 Eki 2026: kilit altında taze listeye (vestra_leads_update). */
+    vestra_leads_update(function (array &$leads) use ($fh, $header, $owner, &$added, &$skipped) {
     $seenEmail = []; $seenCompany = [];
     foreach ($leads as $l) {
         $e = strtolower($l['email'] ?? ''); if ($e !== '') $seenEmail[$e] = true;
         $seenCompany[strtolower($l['company'] ?? '')] = true;
     }
 
-    $added = 0; $skipped = 0; $max = 500;
+    $max = 500;
     while (($added + $skipped) < $max && ($row = fgetcsv($fh, null, ',', '"', '\\')) !== false) {
         $n = count($header);
         $r = array_combine($header, array_slice(array_pad($row, $n, ''), 0, $n));
@@ -270,7 +312,8 @@ function vestra_lead_import_csv(string $tmpPath, string $owner=''): array {
         ];
         $added++;
     }
+    return $added > 0;
+    });
     fclose($fh);
-    vestra_save_leads($leads);
     return [$added, $skipped];
 }

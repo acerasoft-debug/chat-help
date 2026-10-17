@@ -14,12 +14,18 @@ $lead  = vestra_lead_by_token($token);
 $done  = false;
 
 if ($lead && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $leads = vestra_leads();
-    foreach ($leads as &$l) {
-        if (($l['id'] ?? '') === $lead['id']) { $l['status'] = 'unsubscribed'; break; }
-    }
-    unset($l);
-    vestra_save_leads($leads);
+    /* 17 Eki 2026: kilit altında taze listeye (sunucu / Brevo damgası aynı anda yazarsa çıkış işareti EZİLMESİN) ve aynı
+       adresin BÜTÜN kayıtlarına (büyük/küçük harf / boşluk farkıyla kopya kayıt bir daha yazılmasın). */
+    $em = strtolower(trim((string)($lead['email'] ?? '')));
+    vestra_leads_update(static function (array &$leads) use ($lead, $em) {
+        foreach ($leads as &$l) {
+            if (($l['id'] ?? '') === $lead['id'] || ($em !== '' && strtolower(trim((string)($l['email'] ?? ''))) === $em)) {
+                $l['status'] = 'unsubscribed'; $l['unsubscribed'] = true; $l['unsubscribed_at'] = date('c');
+            }
+        }
+        unset($l);
+        return true;
+    });
     $done = true;
 }
 

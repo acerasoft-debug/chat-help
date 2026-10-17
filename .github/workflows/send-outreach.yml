@@ -182,6 +182,8 @@ jobs:
             require $home."/public_html/inc/notify.php";
             require $home."/public_html/inc/products.php";
             require $home."/public_html/inc/leads.php";
+            require_once $home."/public_html/inc/finder.php";   // 17 Eki 2026: sunucu yolunun kalite suzgecleri (tahmin listesi, hedef disi, durdurulan ulke)
+            require_once $home."/public_html/inc/mailbox.php";  // 17 Eki 2026: adres + dukkan duzeyinde mektup ozeti (vestra_mailbox_letter_index)
 
             $DRY = strtolower(trim((string)getenv("SEND_DRY"))) !== 'false'; // send ONLY when explicitly false
             $COUNT = (int)(getenv("SEND_COUNT") ?: 10);
@@ -282,7 +284,14 @@ jobs:
             foreach (explode(',', (string)getenv("SEND_NAME_ANY"))  as $s) { $s = strtolower(trim($s)); if ($s !== '') $NAME_ANY[]  = $s; }
             foreach (explode(',', (string)getenv("SEND_SKIP_NAME")) as $s) { $s = strtolower(trim($s)); if ($s !== '') $SKIP_NAME[] = $s; }
 
+            $RUN_START = time();
             $leads = vestra_leads();
+            /* Adres + dukkan (alan adi) duzeyinde mektup ozeti (17 Eki 2026): kopya kayittan cikmis adres, ayni dukkanin
+               baska adresine son gunlerde yazilmis olmasi -- secimde ve her gonderimden once bu ozetle bakilir. */
+            $LIX0 = vestra_mailbox_letter_index($leads);
+            /* Kayitli hesaplar (alici + satici; saticida alan adi da): lead mektubu ("ucretsiz kayit olun") almaz. */
+            $ACC0 = vestra_mailbox_account_index();
+            $isAccount = function (string $em) use ($ACC0): bool { $ce = vestra_email_clean($em); $cd = vestra_mailbox_shop_domain($ce); return isset($ACC0['mail'][$ce]) || ($cd !== '' && isset($ACC0['sellerDom'][$cd])); };
 
             // BAKIM MODU: sadece damga temizler, HICBIR SEY GONDERMEZ, hemen cikar. Yanlis
             // dilde gitmis bir adrese kasitli duzeltme gondermeden once last_contacted_at'i
@@ -390,6 +399,11 @@ jobs:
                 [$k, $v] = explode('=', $kv, 2);
                 $SPEC[strtolower(trim($k))] = trim($v);
             }
+            /* GUNLUK BREVO SINIRI (17 Eki 2026, operator: "Brevo'dan gunde 150, hak kalirsa 23.45'te tamamlansin"):
+               member_spec'te daily=<n>. Bugun (sunucu gunu) Brevo'dan giden kampanya mektuplari sayilir (ilk mektup
+               les-garage, ikinci / ucuncu / teklif / takip damgalari) ve parti kalanla kirpilir; doluysa 0 gonderip
+               "BITTI. gonderildi: 0" yazar (gece taramasi orada durur). Yeni girdi degil: dosya 25 girdi sinirinda. */
+            $DAILY_MAX = max(0, (int)($SPEC['daily'] ?? 0));
             $OFFER_TAG = strtolower((string)($SPEC['tag'] ?? ''));
             $OFFER_PIDS = array_values(array_filter(array_map('trim', explode(',', (string)($SPEC['pids'] ?? '')))));
             $offerStampOf = function (string $tag): string { return 'offer_'.$tag.'_at'; };
@@ -740,7 +754,7 @@ jobs:
                     if ($sDom !== '') $SELLER_DOM[$sDom] = true;
                 }
             }
-            $sellerSkipped = 0;
+            $sellerSkipped = 0; $bouncedSkipped = 0; $qualSkipped = 0;
             /* Yeni koleksiyon kipinde firma (alan adi) basina TEK duyuru; bkz. secim dongusu.
                Harita KOSULAR ARASI da dolu olmali: gercek gonderim 50'ye kirpiliyor ve
                ikinci 50'lik koşu ilkinin gonderdigi firmalari bilmiyordu -- 2 Eyl 2026'da
@@ -1050,7 +1064,7 @@ jobs:
                  kodunu eziyordu) -- 39 uyelik "basarili" kosuda 0 mail gitti. */
               $leads2 = vestra_leads(); $idx2 = [];
               foreach ($leads2 as $j => $l2) { $e2 = strtolower(trim((string)($l2['email'] ?? ''))); if ($e2 !== '') $idx2[$e2] = $j; }
-              $sent = 0; $fail = 0; $leadsTouched = false;
+              $sent = 0; $fail = 0; $leadsTouched = false; $xUpd = []; $accStamped = [];
 
               /* Mektubu TEK yerde kuruyoruz: hem musteriye giden hem operator
                  kopyasi ayni cagridan cikiyor. Iki ayri kurulum, bu depoda
@@ -1096,6 +1110,7 @@ jobs:
                   $sent++;
                   $accts[$i][$STAMP] = date('c');
                   $em = strtolower(trim((string)$a['email']));
+                  $accStamped[$em] = $accts[$i][$STAMP];
                   /* Lead tarafina CAPRAZ damga YALNIZ Winter icin: o damga
                      ("last_newcollection_at") lead kipinin YENI KOLEKSIYON
                      mektubunu tuketiyor. Angebot'u oraya yazmak, bu musteriye
@@ -1110,18 +1125,33 @@ jobs:
                   $XSTAMP = ['winter' => 'last_newcollection_at', 'wave3' => 'last_wave3_at',
                              'offer' => ($MLETTER === 'offer' ? $STAMP : '')][$MLETTER] ?? '';
                   if ($XSTAMP !== '' && isset($idx2[$em]) && trim((string)($leads2[$idx2[$em]][$XSTAMP] ?? '')) === '') {
-                    $leads2[$idx2[$em]][$XSTAMP] = date('c');
-                    $n2 = trim((string)($leads2[$idx2[$em]]['notes'] ?? ''));
                     $tag2 = ($MLETTER === 'offer' ? 'offer-'.$OFFER_TAG : ($MLETTER === 'wave3' ? 'wave3' : 'winter2627')).'-member';
-                    $leads2[$idx2[$em]]['notes'] = trim($n2.($n2!==''?' · ':'').$tag2.'('.$lang.') '.date('Y-m-d'));
+                    $xUpd[$em] = [$XSTAMP, $tag2.'('.$lang.') '.date('Y-m-d')];
                     $leadsTouched = true;
                   }
                   echo "  + GONDERILDI: {$who} <".$maskMail((string)$a['email'])."> | dil={$lang}\n";
                 } else { $fail++; echo "  x HATA      : ".$maskMail((string)$a['email'])."\n"; }
                 flush();
               }
-              if ($sent > 0) auth_save_accounts($accts);
-              if ($leadsTouched) vestra_save_leads($leads2);
+              /* 17 Eki 2026: TAZE listelere yazilir. Eskiden kosunun basinda okunan hesap ve lead dizileri sonda BUTUNUYLE geri
+                 yaziliyordu: aradaki yeni kayit / sunucu damgasi / "geri dondu" isareti siliniyordu. */
+              if ($sent > 0) {
+                $accFresh = auth_accounts();
+                foreach ($accFresh as $fi => $fa) { $fk = strtolower(trim((string)($fa['email'] ?? ''))); if (isset($accStamped[$fk])) $accFresh[$fi][$STAMP] = $accStamped[$fk]; }
+                auth_save_accounts($accFresh);
+              }
+              if ($leadsTouched && $xUpd) vestra_leads_update(function (array &$FL) use ($xUpd) {
+                $ch = false;
+                foreach ($FL as &$fl) {
+                  $fe = strtolower(trim((string)($fl['email'] ?? '')));
+                  if (!isset($xUpd[$fe]) || trim((string)($fl[$xUpd[$fe][0]] ?? '')) !== '') continue;
+                  $fl[$xUpd[$fe][0]] = date('c');
+                  $fn = trim((string)($fl['notes'] ?? '')); $fl['notes'] = trim($fn.($fn !== '' ? ' · ' : '').$xUpd[$fe][1]);
+                  $ch = true;
+                }
+                unset($fl);
+                return $ch;
+              });
               echo "BITTI. gonderildi: {$sent}, hata: {$fail}. kayitli hesap: ".count($accts)."\n";
               exit(0);
             }
@@ -1134,6 +1164,7 @@ jobs:
                 unset($missing[$email]);
                 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { echo "  - ATLANDI (gecersiz adres): ".$maskMail($email)."\n"; continue; }
                 if (($l['status'] ?? '') === 'unsubscribed' || !empty($l['unsubscribed'])) { echo "  - ATLANDI (abonelikten cikmis): ".$maskMail($email)."\n"; continue; }
+                if (($l['status'] ?? '') === 'bounced') { echo "  - ATLANDI (geri donmus adres): ".$maskMail($email)."\n"; continue; }   // 17 Eki 2026
                 /* Hic yazilmamis birine "gecen mektubumuz ulasti mi" demek, olmayan bir
                    mektuba atifta bulunmak olur. */
                 if (trim((string)($l['last_contacted_at'] ?? '')) === '') { echo "  - ATLANDI (ilk mektup hic gitmemis): ".$maskMail($email)."\n"; continue; }
@@ -1180,6 +1211,21 @@ jobs:
                 if ($named) echo "  - ATLANDI (abonelikten cikmis): ".$maskMail($email)."\n";
                 continue;
               }
+              /* GERI DONMUS ADRES (17 Eki 2026, operator: "hatalari en aza indir, hata e-maili gelmesin"): bu secim
+                 status=bounced kayitlari HIC elemiyordu -- ilk mektubu geri donmus dukkana ikinci / ucuncu mektup ve
+                 teklif Brevo'dan gidebiliyordu (her biri yeni bir geri donus, gonderen itibarina zarar). Sunucu yolunun
+                 kalite suzgecleri de burada: tahmin listeleri (manual / asia-select / global-multibrand, %38-49 geri
+                 donus), hedef disi (distributor / medya / turizm), durdurulan ulkeler, olu gorunen kayitlar. Operatorun
+                 adiyla verdigi adres (only_emails) yalniz geri donus suzgecinden gecer. */
+              if (($l['status'] ?? '') === 'bounced' || vestra_mailbox_addr_stopped($email, $LIX0)) {   // kopya kaydi / dukkanin baska adresi cikmis, geri donmus adres
+                if ($named || $DRY) echo "  - ATLANDI (geri donmus / cikmis adres ya da dukkan): ".$maskMail($email)."\n";
+                $bouncedSkipped++; continue;
+              }
+              if ($isAccount($email)) {                                          // kayitli alici / satici (uye mektubu uye kosusundan)
+                if ($named || $DRY) echo "  - ATLANDI (kayitli hesap): ".$maskMail($email)."\n";
+                $sellerSkipped++; continue;
+              }
+              if (!$ONLY && (vestra_lead_source_guessed($l) || vestra_lead_off_target($l) || vestra_lead_send_paused($l) || vestra_lead_looks_dead($l))) { $qualSkipped++; continue; }
               /* Kendi saticimiz: kampanya disi (operator, 10 Eyl 2026). */
               $slDom = (string)substr((string)strrchr($email, '@'), 1);
               if (isset($SELLER_MAIL[$email])
@@ -1201,6 +1247,18 @@ jobs:
                 if (trim((string)($l['last_contacted_at'] ?? '')) === '') {
                   if ($ONLY) echo "  - ATLANDI (ilk mektup hic gitmemis): ".$maskMail($email)."\n";
                   continue;
+                }
+                /* 17 Eki 2026: ikinci / ucuncu mektup ve teklif YALNIZ 'contacted' kayda (sunucu takibiyle ayni kural):
+                   yanit veren, reddeden, musteri olan toplu duyuru almaz; 8 Eki lemlist disa aktarimi hic gonderilmedi. */
+                if (($l['status'] ?? '') !== 'contacted' || (string)($l['contact_via'] ?? '') === 'lemlist') {
+                  if ($ONLY || $DRY) echo "  - ATLANDI (durum '".(string)($l['status'] ?? '')."' / lemlist): ".$maskMail($email)."\n";
+                  continue;
+                }
+                /* Dukkan duzeyinde dinlenme: bu adrese YA DA ayni dukkanin baska adresine (sunucunun indirim mektubu dahil)
+                   son NC_MIN_DAYS gunde yazildiysa atlanir -- ayni dukkana iki kanaldan ust uste mektup gitmesin. */
+                if ($NC_MIN_DAYS > 0 && vestra_mailbox_letters_for($email, $LIX0)['last'] > time() - $NC_MIN_DAYS * 86400) {
+                  if ($ONLY || $DRY) echo "  - ATLANDI (dukkana son {$NC_MIN_DAYS} gunde yazildi): ".$maskMail($email)."\n";
+                  $ncTooNew++; continue;
                 }
                 /* UCUNCU MEKTUP IKI damga birden ariyor. Mektubun ilk cumlesi
                    "size iki kez yazmistik" diyor; yalnizca ilk mektubu almis
@@ -1381,6 +1439,7 @@ jobs:
                           : ($IS_NEWCOLL ? ($NC_LABEL[$NC_LETTER] ?? $NC_LETTER)
                                          : 'Les Garage de Paris');
             if ($sellerSkipped) echo "SATICI: kendi satici hesabimiz oldugu icin elenen: {$sellerSkipped}\n";
+            if ($bouncedSkipped || $qualSkipped) echo "KALITE: geri donmus adres {$bouncedSkipped} | tahmin listesi / hedef disi / durdurulan ulke / olu {$qualSkipped} -- elendi\n";
             /* Mektubun ICINDEKI rakamlar OZETTE de yazilir. Ilk surumde yalniz
                dongunun ustunde basiliyordu ve 1900 satirlik bir kuru kosuda
                kuyruktan dusuyordu -- yani gonderilmeden once okunacak sey tam
@@ -1409,12 +1468,57 @@ jobs:
                kisi -- linkini bekleyen musteri -- cevapsiz kaliyor. Bir gun ertelenen
                kampanyanin bedeli yok; ulasmayan bir sifirlama linkinin bedeli hesabin
                kendisi. */
+            if ($DAILY_MAX > 0 && $picked) {
+              $bDay = date('Y-m-d'); $bToday = 0;
+              foreach ($leads as $bl) {
+                foreach ($bl as $bk => $bv)
+                  if (is_string($bk) && is_string($bv) && str_starts_with($bv, $bDay)
+                      && (in_array($bk, ['last_newcollection_at', 'last_wave3_at', 'last_followup_at'], true) || preg_match('/^offer_[a-z0-9]{3,20}_at$/', $bk))) $bToday++;
+                if (str_starts_with((string)($bl['last_campaign'] ?? ''), 'les-garage/') && str_starts_with((string)($bl['last_contacted_at'] ?? ''), $bDay)) $bToday++;
+              }
+              $bRoom = max(0, $DAILY_MAX - $bToday);
+              echo "gunluk Brevo siniri: {$DAILY_MAX} | bugun giden: {$bToday} | bu partiye kalan: {$bRoom}\n";
+              if (count($picked) > $bRoom) $picked = array_slice($picked, 0, $bRoom);
+              if (!$picked && !$DRY) { echo "\nDURDURULDU. Bugunku Brevo siniri ({$DAILY_MAX}) doldu.\nBITTI. gonderildi: 0, hata: 0. toplam lead: ".count($leads)."\n"; exit(0); }
+            }
             if (!$DRY && $picked) {
               [$mayGo, $why] = vestra_mail_bulk_allowed(count($picked), $RESERVE);
+              /* 17 Eki 2026: kalan kota partiden azsa parti KUCULUR (eskiden butun parti reddediliyordu ve gece
+                 taramasi gunun son 1-49 hakkini hic kullanamiyordu). Ayrilan islemsel pay yine korunur. */
+              if (!$mayGo && ($cLeft = vestra_mail_credits_left()) !== null && $cLeft - $RESERVE > 0 && count($picked) > $cLeft - $RESERVE) {
+                $picked = array_slice($picked, 0, $cLeft - $RESERVE);
+                [$mayGo, $why] = vestra_mail_bulk_allowed(count($picked), $RESERVE);
+                $why .= ' (parti kalan kotaya gore kucultuldu)';
+              }
               echo "kota  : {$why}\n";
-              if (!$mayGo) { echo "\nDURDURULDU. Hicbir e-posta gonderilmedi.\n"; exit(0); }
+              if (!$mayGo) { echo "\nDURDURULDU. Hicbir e-posta gonderilmedi.\nBITTI. gonderildi: 0, hata: 0. toplam lead: ".count($leads)."\n"; exit(0); }
             }
             echo "uygun secilen: " . count($picked) . " / hedef: {$COUNT}\n\n";
+            /* TAZE KAYIT (17 Eki 2026): bu kosu leads.json'u BASTA okuyor, gonderim dakikalar suruyor. Bu arada sunucunun
+               kendi gonderimi (10 dk'lik cron, mektup basina damga), saatlik geri donme taramasi ve bulucu ayni dosyaya
+               yaziyor. Eskiden sonda TUM eski dizi geri yaziliyordu: aradaki "geri dondu" isaretleri ve sunucu damgalari
+               siliniyordu -- olu adrese yeniden yazilmasinin ve ayni dukkana ayni gun iki mektubun yolu buydu. Artik
+               her gonderimden hemen ONCE kayit tazeden okunur (bu arada yazilmis / cikmis / geri donmus ise atlanir) ve
+               hemen SONRA yalniz o kaydin damgasi taze listeye yazilir. */
+            $freshLead = function (string $id): ?array {
+              if ($id === '') return null;
+              foreach (vestra_leads() as $fl) if ((string)($fl['id'] ?? '') === $id) return $fl;
+              return null;
+            };
+            $stampFresh = function (string $id, array $set, bool $contacted) use ($maskMail): void {
+              if ($id === '') return;
+              /* Kilit altinda (vestra_leads_update): sunucunun kendi damgasi ve geri donme taramasi ayni dosyaya yaziyor. */
+              $hit = vestra_leads_update(function (array &$FL) use ($id, $set, $contacted) {
+                foreach ($FL as $fk => $fl) {
+                  if ((string)($fl['id'] ?? '') !== $id) continue;
+                  foreach ($set as $sk => $sv) $FL[$fk][$sk] = $sv;
+                  if ($contacted && (($FL[$fk]['status'] ?? 'new') === 'new')) $FL[$fk]['status'] = 'contacted';
+                  return true;
+                }
+                return false;
+              });
+              if ($hit !== true) echo "  ! DAMGA YAZILAMADI (kayit bulunamadi ya da liste okunamadi): {$id}\n";
+            };
 
             // id -> index, so a successful send stamps the master array (not the picked copy).
             $idx = [];
@@ -1461,6 +1565,23 @@ jobs:
                 echo "MUSTERIYE HICBIR SEY GITMEDI, damga dusmedi.\n";
                 exit($ok0 ? 0 : 1);
               }
+              /* Gonderimden HEMEN once taze bakis -- kosunun BASINDA okunanla karsilastirilir (secim, DNS ve kota sorgulari
+                 suresince yazilanlar da yakalansin): bu arada geri donmus / cikmis, bu arada sunucudan ya da baska bir
+                 kanaldan yazilmis (bu adrese veya ayni dukkanin baska adresine), bu mektubu bu arada almis kayit atlanir. */
+              $fr = $freshLead((string)($l['id'] ?? ''));
+              if ($fr === null) { echo "  ~ ATLANDI (kayit artik listede yok / liste okunamadi): " . $maskMail($email) . "\n"; continue; }
+              {
+                $frWhy = '';
+                $frSt = (string)($fr['status'] ?? '');
+                $fIx = vestra_mailbox_letter_index(vestra_leads());
+                if ($frSt === 'bounced' || $frSt === 'unsubscribed' || !empty($fr['unsubscribed']) || vestra_mailbox_addr_stopped($email, $fIx) || $isAccount($email)) $frWhy = 'bu arada geri dondu / cikti / kayit oldu';
+                elseif (trim((string)($fr['last_contacted_at'] ?? '')) !== trim((string)($l['last_contacted_at'] ?? ''))
+                        || count((array)($fr['followups'] ?? [])) !== count((array)($l['followups'] ?? []))
+                        || vestra_mailbox_letters_for($email, $fIx)['last'] > vestra_mailbox_letters_for($email, $LIX0)['last']) $frWhy = 'bu arada sunucudan / baska kanaldan yazildi';
+                elseif ($IS_NEWCOLL && trim((string)($fr[$NC_STAMP] ?? '')) !== '') $frWhy = 'bu arada bu mektubu aldi';
+                elseif ($IS_FOLLOWUP && trim((string)($fr['last_followup_at'] ?? '')) !== trim((string)($l['last_followup_at'] ?? ''))) $frWhy = 'bu arada takip aldi';
+                if ($frWhy !== '') { echo "  ~ ATLANDI ({$frWhy}): " . $maskMail($email) . "\n"; continue; }
+              }
               if ($IS_FOLLOWUP) {
                 list($subject, $body, $opts) = vestra_tpl_lead_followup($lang, $company);
               } elseif ($IS_NEWCOLL) {
@@ -1487,6 +1608,7 @@ jobs:
                 $sent++;
                 $i = $idx[(string)($l['id'] ?? '')] ?? null;
                 if ($i !== null) {
+                  $before = $leads[$i];
                   if ($IS_FOLLOWUP) {
                     $leads[$i]['last_followup_at'] = date('c');
                     $note = trim((string)($leads[$i]['notes'] ?? ''));
@@ -1509,6 +1631,15 @@ jobs:
                     $note = trim((string)($leads[$i]['notes'] ?? ''));
                     $leads[$i]['notes'] = trim($note . ($note !== '' ? ' · ' : '') . 'campaign(' . $lang . ') ' . date('Y-m-d'));
                   }
+                  /* Yalniz bu kosunun degistirdigi alanlar, TAZE listeye (notlar tazenin ustune eklenir). */
+                  $set = [];
+                  foreach ($leads[$i] as $sk => $sv) if ($sk !== 'notes' && $sk !== 'status' && (!array_key_exists($sk, $before) || $before[$sk] !== $sv)) $set[$sk] = $sv;
+                  $frN = $freshLead((string)($l['id'] ?? ''));
+                  $oldN = trim((string)($before['notes'] ?? '')); $newN = (string)$leads[$i]['notes'];
+                  $addN = ($oldN !== '' && str_starts_with($newN, $oldN.' · ')) ? substr($newN, strlen($oldN.' · ')) : ($oldN === '' ? $newN : '');
+                  $baseN = trim((string)($frN['notes'] ?? $oldN));
+                  $set['notes'] = trim($baseN . ($baseN !== '' && $addN !== '' ? ' · ' : '') . $addN);
+                  $stampFresh((string)($l['id'] ?? ''), $set, ($leads[$i]['status'] ?? '') === 'contacted' && ($before['status'] ?? 'new') === 'new');
                 }
                 echo "  + GONDERILDI: {$company} <" . $maskMail($email) . "> | dil={$flag}\n";
               } else {
@@ -1517,7 +1648,7 @@ jobs:
               }
             }
 
-            if (!$DRY && $sent > 0) vestra_save_leads($leads);
+            /* Toplu geri yazma YOK (17 Eki 2026): damgalar her gonderimden hemen sonra taze listeye yazildi. */
 
             echo "\n----\n";
             echo "dil dagilimi (secilen): ";

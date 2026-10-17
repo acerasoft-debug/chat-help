@@ -736,6 +736,15 @@ function applyFilters(){
   document.getElementById('shopcount').textContent=cnt+' '+(cnt===1?'<?= addslashes(t('product')) ?>':'<?= addslashes(t('products')) ?>');
   document.getElementById('noresult').style.display=cnt?'none':'block';
 }
+/* Kampanya bağlantısı (17 Eki 2026, indirim mektubu): /shop?mode=sale ve/veya ?brand=X süzgeci önceden seçer.
+   Misafirde mod kutuları yok — süzgeç yine uygulanır, marka şeridi de işaretlenir. */
+(function(){ try{
+  var u=new URLSearchParams(location.search), m=u.get('mode')||'', b=u.get('brand')||'';
+  if(['fixed','sale','offer'].indexOf(m)>=0){ curMode=m; document.querySelectorAll('.fcheck[data-type="mode"]').forEach(function(x){ x.classList.toggle('on', x.dataset.val===m); }); }
+  if(b){ var bl=b.toLowerCase(), bc=null;   /* büyük/küçük harf duyarsız: kayıtta "BALMAIN", bağlantıda "Balmain" olabilir */
+    document.querySelectorAll('.brail-cell[data-brand]').forEach(function(x){ if(!bc && (x.dataset.brand||'').toLowerCase()===bl) bc=x; });
+    if(bc){ curBrand=bc.dataset.brand; document.querySelectorAll('.brail-cell').forEach(function(x){ x.classList.remove('on'); }); bc.classList.add('on'); } }
+}catch(e){} })();
 applyFilters();
 /* "/" arama kutusuna odaklanir (price-list ile ayni aliskanlik). Misafirde
    kutu yok; bir form alaninda yazarken de tetiklenmez. */

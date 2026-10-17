@@ -778,14 +778,41 @@ $lk = array_column(vestra_leads(), null, 'id');
 $t('seçili listede de: katı alıcı bekletilir (gönderilmez, damgalanmaz), diğeri gider', $rk['sent'] === 1 && ($rk['deferred'] ?? 0) === 1 && $capK === ['info@normal.example']
   && ($lk['K1']['last_contacted_at'] ?? '') === '' && ($lk['K1']['status'] ?? '') === 'new');
 vestra_write_json('leads.json', []); @unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
-echo "\n== 8l. gece takip turu: tavandan artan pay en az mektup alan butiklere (23:45 Avrupa, günde bir) ==\n";
+echo "\n== 8l. gece turu + takip mektubu = İNDİRİM mektubu (17 Eki 2026): tavandan artan pay eski müşterilere (23:45 Avrupa, günde bir) ==\n";
 @unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
+/* İndirimli ilanlar: DSQUARED2 −42 %, BALMAIN −34 %, Lacoste AKTION −30 %; premium olmayan Polvich, %2,5'lik Lacoste ve indirimsiz Burberry seçilmez. */
+$dealsListings = [
+  ['id' => 'D1', 'brand' => 'DSQUARED2', 'name' => 'Logo T-Shirt', 'mode' => 'sale', 'list' => 50, 'tiers' => [['min' => 5, 'price' => 29]], 'images' => ['/uploads/d1.jpg'], 'status' => 'approved'],
+  ['id' => 'D2', 'brand' => 'BALMAIN', 'name' => 'Swimsuit', 'mode' => 'sale', 'list' => 100, 'tiers' => [['min' => 3, 'price' => 66]], 'images' => ['https://cdn.example/d2.jpg'], 'status' => 'approved'],
+  ['id' => 'D3', 'brand' => 'Polvich', 'name' => 'Knit', 'mode' => 'sale', 'list' => 100, 'tiers' => [['min' => 3, 'price' => 50]], 'images' => ['/uploads/d3.jpg'], 'status' => 'approved'],
+  ['id' => 'D4', 'brand' => 'Lacoste', 'name' => 'Polo Basic', 'mode' => 'sale', 'list' => 40, 'tiers' => [['min' => 3, 'price' => 39]], 'images' => ['/uploads/d4.jpg'], 'status' => 'approved'],
+  ['id' => 'D5', 'brand' => 'Burberry', 'name' => 'Swim Shorts', 'mode' => 'fixed', 'tiers' => [['min' => 3, 'price' => 80]], 'images' => ['/uploads/d5.jpg'], 'status' => 'approved'],
+  vestra_aktion_set(['id' => 'D6', 'brand' => 'Lacoste', 'name' => 'Monogram Polo', 'mode' => 'fixed', 'tiers' => [['min' => 3, 'price' => 30]], 'images' => ['/uploads/d6.jpg'], 'status' => 'approved'], 21.0, 50, time() + 3 * 86400),
+  ['id' => 'D7', 'brand' => 'DSQUARED2', 'name' => 'Pending Tee', 'mode' => 'sale', 'list' => 50, 'tiers' => [['min' => 5, 'price' => 20]], 'images' => ['/uploads/d7.jpg'], 'status' => 'pending'],
+];
+vestra_write_json('listings.json', $dealsListings);
+require_once $root.'/inc/campaign_deals.php';
+$dp = vestra_deals_pick();
+$t('indirim seçkisi: yalnız onaylı, premium, ≥%10, görselli; marka başına bir, en yüksek indirim önce', array_column($dp['items'], 'brand') === ['DSQUARED2', 'BALMAIN', 'Lacoste']
+   && array_column($dp['items'], 'pct') === [42, 34, 30] && $dp['max'] === 42 && $dp['count'] === 3 && array_keys($dp['brands']) === ['DSQUARED2', 'Balmain', 'Lacoste']);
+$t('görsel tam adrese çevrilir, bağlantı ürüne + utm', $dp['items'][0]['img'] === 'https://vestrasales.com/uploads/d1.jpg' && str_starts_with($dp['items'][0]['url'], 'https://vestrasales.com/product?id=D1&utm_source=email'));
+$campsD = vestra_finder_campaigns();
+$t('kampanya listesinde "deals" (indirimli ürün varken)', isset($campsD['deals']));
+[$dS, $dB, $dO] = vestra_campaign_deals('Boutique Une', 'en');
+$t('mektup: konu markalar + en yüksek indirim, FİYAT YOK (KURAL 19), indirim yüzdeleri ve düğmeler var',
+   $dS === 'DSQUARED2, Balmain, Lacoste: trade markdowns up to −42% · VESTRA' && !preg_match('/€|EUR|29[.,]|66[.,]|21[.,]/', $dB.$dO['html'])
+   && str_contains($dO['html'], '−42%') && str_contains($dO['html'], '−34%') && str_contains($dO['html'], 'shop?mode=sale&amp;utm_source=email') && str_contains($dB, 'register?type=buyer')
+   && str_contains($dB, "\n\n—\n") && str_contains($dB, 'lead-unsubscribe') && $dO['hero']['title'] === 'Up to −42% on DSQUARED2, Balmain & Lacoste.');
+[$dSde] = vestra_campaign_deals('', 'de');
+$t('Almanca konu; bilinmeyen dil İngilizceye düşer', str_contains($dSde, 'Händlerrabatte bis −42%') && vestra_campaign_deals('', 'pl')[0] === 'DSQUARED2, Balmain, Lacoste: trade markdowns up to −42% · VESTRA');
+$t('indirimli ürün yoksa mektup boş', vestra_campaign_deals('X', 'en', ['items' => [], 'brands' => [], 'max' => 0, 'count' => 0])[0] === '');
+$t('marka adı: BALMAIN → Balmain, DSQUARED2 ve Dolce & Gabbana korunur', vestra_deals_brand_label('BALMAIN') === 'Balmain' && vestra_deals_brand_label('DSQUARED2') === 'DSQUARED2' && vestra_deals_brand_label('Dolce & Gabbana') === 'Dolce & Gabbana');
 $ago = static fn(int $d): string => date('c', time() - $d * 86400);
 $ltA = vestra_lead_letters(['last_contacted_at' => '2026-10-11T09:00:00+00:00', 'contact_via' => 'mailbox', 'last_newcollection_at' => '2026-10-12T20:00:00+00:00']);
-$t('mektup sayımı: ilk (10 Eki sonrası sunucu → edit) + Brevo Winter = 2, son temas Winter, sıradaki takip polos', $ltA['count'] === 2 && $ltA['camps'] === ['edit', 'brevo:winter'] && $ltA['last'] === strtotime('2026-10-12T20:00:00+00:00') && vestra_mailbox_followup_next($ltA['camps']) === 'polos');
+$t('mektup sayımı: ilk (10 Eki sonrası sunucu → edit) + Brevo Winter = 2, son temas Winter, sıradaki takip indirim', $ltA['count'] === 2 && $ltA['camps'] === ['edit', 'brevo:winter'] && $ltA['last'] === strtotime('2026-10-12T20:00:00+00:00') && vestra_mailbox_followup_next($ltA['camps']) === 'deals');
 $ltB = vestra_lead_letters(['last_contacted_at' => '2026-10-05T10:00:00+00:00', 'contact_via' => 'brevo', 'followups' => [['at' => '2026-10-08T22:00:00+00:00', 'campaign' => 'polos']], 'offer_bur2909_at' => '2026-10-07T00:00:00+00:00']);
-$t('eski ilk mektup lesgarage sayılır; teklif ve takip kayıtları da sayılır; sıradaki edit', $ltB['count'] === 3 && in_array('lesgarage', $ltB['camps'], true) && in_array('brevo:offer_bur2909_at', $ltB['camps'], true) && vestra_mailbox_followup_next($ltB['camps']) === 'edit');
-$t('hepsini almış dükkâna sıradaki yok', vestra_mailbox_followup_next(['edit', 'polos', 'lesgarage', 'standard']) === '');
+$t('eski ilk mektup lesgarage sayılır; teklif ve eski polo takibi de sayılır; sıradaki indirim', $ltB['count'] === 3 && in_array('lesgarage', $ltB['camps'], true) && in_array('brevo:offer_bur2909_at', $ltB['camps'], true) && vestra_mailbox_followup_next($ltB['camps']) === 'deals');
+$t('indirimi almış dükkâna sıradaki yok; indirim kampanyası yoksa da yok', vestra_mailbox_followup_next(['deals']) === '' && vestra_mailbox_followup_next([], ['edit' => 1]) === '');
 $fuBase = ['country' => 'France', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'contacted', 'contact_via' => 'mailbox', 'added_at' => $ago(12)];
 vestra_write_json('leads.json', [
   ['id' => 'F1', 'company' => 'Boutique Une', 'email' => 'info@boutique-une.example', 'last_contacted_at' => $ago(10), 'unsub_token' => 'f1'] + $fuBase,
@@ -794,44 +821,199 @@ vestra_write_json('leads.json', [
   ['id' => 'F4', 'company' => 'Boutique Replied', 'email' => 'info@replied.example', 'last_contacted_at' => $ago(10), 'status' => 'replied'] + $fuBase,
   ['id' => 'F5', 'company' => 'Boutique Neuve', 'email' => 'info@neuve.example', 'last_contacted_at' => '', 'status' => 'new'] + $fuBase,
   ['id' => 'F6', 'company' => 'Seller Shop', 'email' => 'info@sellershop.example', 'last_contacted_at' => $ago(10), 'owner_uid' => 'sellX'] + $fuBase,
-  ['id' => 'F7', 'company' => 'Boutique Pleine', 'email' => 'info@pleine.example', 'last_contacted_at' => $ago(10), 'followups' => [['at' => $ago(9), 'campaign' => 'polos'], ['at' => $ago(8), 'campaign' => 'edit'], ['at' => $ago(7), 'campaign' => 'lesgarage'], ['at' => $ago(6), 'campaign' => 'standard']]] + $fuBase,
+  ['id' => 'F7', 'company' => 'Boutique Pleine', 'email' => 'info@pleine.example', 'last_contacted_at' => $ago(10), 'followups' => [['at' => $ago(9), 'campaign' => 'deals']]] + $fuBase,
   ['id' => 'F8', 'company' => 'Boutique Vieille', 'email' => 'info@vieille.example', 'last_contacted_at' => $ago(30), 'unsub_token' => 'f8'] + $fuBase,
   ['id' => 'F9', 'company' => 'Boutique Dup', 'email' => 'INFO@boutique-une.example', 'last_contacted_at' => $ago(7)] + $fuBase,
   ['id' => 'F10', 'company' => 'Amazon Seller X', 'email' => 'x@amz.example', 'last_contacted_at' => $ago(10), 'source' => 'amazon seller'] + $fuBase,
+  ['id' => 'F11', 'company' => 'Shop Ohio', 'email' => 'info@shop-ohio.example', 'last_contacted_at' => $ago(40), 'country' => 'United States'] + $fuBase,
+  ['id' => 'F12', 'company' => 'Guess List', 'email' => 'info@guess.example', 'last_contacted_at' => $ago(20), 'source' => 'manual'] + $fuBase,
 ]);
 $ft = vestra_mailbox_followup_targets(10);
-$t('takip alıcıları: en uzun süredir yazılmamış tek-mektuplular önce, sonra 2 mektuplu; taze/yanıtlı/yeni/satıcı/dolu/pazaryeri yok; aynı adres bir kez',
-   array_column($ft, 'id') === ['F8', 'F1', 'F2'] && array_column($ft, '_followup') === ['polos', 'polos', 'polos']);
+$t('takip alıcıları: Avrupa önce (en uzun süredir yazılmamış tek-mektuplular, sonra 2 mektuplu), sonra ABD; taze/yanıtlı/yeni/satıcı/indirimi almış/pazaryeri/tahmin listesi yok; aynı adres bir kez',
+   array_column($ft, 'id') === ['F8', 'F1', 'F2', 'F11'] && array_unique(array_column($ft, '_followup')) === ['deals']);
 $t('sınır uygulanır', count(vestra_mailbox_followup_targets(2)) === 2);
 $bf = vestra_mailbox_batch(10, 'edit', [], 'web', ['followup' => true, 'dkim_ok' => true]);
-$t('takip partisi: 3 mektup, kampanya lead başına, gönderen polos için Les Garage de Paris', count($bf['items']) === 3 && $bf['campaign'] === 'followup'
-   && array_unique(array_column($bf['items'], 'followup')) === ['polos'] && $bf['items'][0]['from'] === 'Les Garage de Paris' && str_contains((string)$bf['items'][0]['subject'], 'olo'));
+$t('takip partisi: 4 mektup, indirim mektubu, gönderen VESTRA, konu indirim', count($bf['items']) === 4 && $bf['campaign'] === 'followup'
+   && array_unique(array_column($bf['items'], 'followup')) === ['deals'] && $bf['items'][0]['from'] === 'VESTRA' && str_contains((string)$bf['items'][0]['subject'], 'remises professionnelles jusqu’à −42%')
+   && str_contains((string)$bf['items'][0]['text'], 'token=f'));
 $berlin = new DateTimeZone('Europe/Berlin');
-$nowEarly = (new DateTimeImmutable('today 23:40', $berlin))->getTimestamp();
-$nowLate = (new DateTimeImmutable('today 23:50', $berlin))->getTimestamp();
+/* Sunucu gününe (tavan günü) bağlı anlar: test hangi saatte koşarsa koşsun aynı gün (Berlin "today" gece yarısından sonra ertesi gündü). */
+$nowEarly = vestra_mailbox_at('23:40'); $nowLate = vestra_mailbox_at('23:50');
+$cfgW = vestra_mailbox_cfg(); $cfgW['warmup'] = false; file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode($cfgW));
 $t('23:40 Avrupa: gece turu açılmaz', vestra_mailbox_nightly($nowEarly) === '' && vestra_mailbox_runs() === []);
 $nm = vestra_mailbox_nightly($nowLate);
 $rN = vestra_mailbox_runs();
 $t('23:50 Avrupa: takip isteği açılır, kip followup, sınır bugünkü kalan', $nm !== '' && count($rN) === 1 && $rN[0]['mode'] === 'followup' && $rN[0]['status'] === 'requested' && (int)$rN[0]['limit'] === vestra_mailbox_left_today());
-$t('aynı gece ikinci kez açılmaz (followup_day)', vestra_mailbox_nightly($nowLate + 600) === '' && count(vestra_mailbox_runs()) === 1 && (vestra_mailbox_cfg()['followup_day'] ?? '') === (new DateTimeImmutable('@'.$nowLate))->setTimezone($berlin)->format('Y-m-d'));
+$t('aynı gece ikinci kez açılmaz (followup_day = sunucu günü)', vestra_mailbox_nightly($nowLate + 600) === '' && count(vestra_mailbox_runs()) === 1 && (vestra_mailbox_cfg()['followup_day'] ?? '') === date('Y-m-d', $nowLate));
 $capF = []; $fmF = function ($to, $s, $b, $h, $p) use (&$capF) { $capF[] = $to; return true; };
 $reqF = vestra_mailbox_take();
 $rf = vestra_mailbox_run($reqF, ['mail' => $fmF, 'sleep' => fn($x) => null, 'dns' => fn($d) => 'ok', 'log' => fn($m) => null, 'dkim_ok' => true]);
 vestra_mailbox_finish((string)$reqF['id'], $rf);
 $lf = array_column(vestra_leads(), null, 'id');
-$t('takip gönderimi: 3 gitti, sıra F8→F1→F2', $rf['sent'] === 3 && $capF === ['info@vieille.example', 'info@boutique-une.example', 'info@boutique-deux.example']);
-$t('damga: ilk mektup tarihi korunur, takip kaydı polos, son temas bugün, not takip/polos, tavana sayılır',
-   str_starts_with((string)$lf['F1']['first_contacted_at'], substr($ago(10), 0, 10)) && ($lf['F1']['followups'][0]['campaign'] ?? '') === 'polos'
-   && str_starts_with((string)$lf['F1']['last_contacted_at'], date('Y-m-d')) && str_contains((string)$lf['F1']['notes'], 'takip/polos') && $lf['F1']['status'] === 'contacted' && vestra_mailbox_sent_today(vestra_leads()) === 3 && !isset($lf['F9']['followups']));
-$t('dokunulmayanlar: F3/F4/F5/F6/F7 damgasız', ($lf['F5']['last_contacted_at'] ?? '') === '' && !isset($lf['F3']['followups']) && !isset($lf['F4']['followups']) && !isset($lf['F6']['followups']) && count($lf['F7']['followups']) === 4);
+$t('takip gönderimi: 4 gitti, sıra F8→F1→F2→F11', $rf['sent'] === 4 && $capF === ['info@vieille.example', 'info@boutique-une.example', 'info@boutique-deux.example', 'info@shop-ohio.example']);
+$t('damga: ilk mektup tarihi korunur, takip kaydı deals, son temas bugün, not takip/deals, tavana ve indirim sayısına sayılır',
+   str_starts_with((string)$lf['F1']['first_contacted_at'], substr($ago(10), 0, 10)) && ($lf['F1']['followups'][0]['campaign'] ?? '') === 'deals'
+   && str_starts_with((string)$lf['F1']['last_contacted_at'], date('Y-m-d')) && str_contains((string)$lf['F1']['notes'], 'takip/deals') && $lf['F1']['status'] === 'contacted'
+   && vestra_mailbox_sent_today(vestra_leads()) === 4 && vestra_mailbox_followups_today('deals') === 4 && vestra_mailbox_followups_today('polos') === 0 && !isset($lf['F9']['followups']));
+$t('dokunulmayanlar: F3/F4/F5/F6/F7/F12 damgasız', ($lf['F5']['last_contacted_at'] ?? '') === '' && !isset($lf['F3']['followups']) && !isset($lf['F4']['followups']) && !isset($lf['F6']['followups']) && count($lf['F7']['followups']) === 1 && !isset($lf['F12']['followups']));
 $t('ertesi aday listesi: bugün yazılanlar 5 gün dinlenir → boş', vestra_mailbox_followup_targets(10) === []);
-$t('yeni mektuplar sayımda: F1 artık 2 mektup (ilk + polos), sıradaki polos değil', vestra_lead_letters($lf['F1'])['count'] === 2 && in_array(vestra_mailbox_followup_next(vestra_lead_letters($lf['F1'])['camps']), ['edit', 'lesgarage'], true));
+$t('yeni mektuplar sayımda: F1 artık 2 mektup (ilk + indirim), sıradaki yok', vestra_lead_letters($lf['F1'])['count'] === 2 && vestra_mailbox_followup_next(vestra_lead_letters($lf['F1'])['camps']) === '');
 vestra_mailbox_runs_save([]); $cfgF = vestra_mailbox_cfg(); unset($cfgF['followup_day']); $cfgF['followup'] = false;
 file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode($cfgF));
 $t('followup=false ile gece turu kapalı', vestra_mailbox_nightly($nowLate) === '' && vestra_mailbox_runs() === []);
-$t('cron: gece turu otomatik istekten sonra, isteği almadan önce', strpos($cm0 = (string)file_get_contents($root.'/cron_mailbox.php'), 'vestra_mailbox_nightly()') !== false
+if (date_default_timezone_get() === 'UTC') {
+  /* Pencere 23:45 Avrupa → SUNUCU günü (UTC) sonu: 23:45 + 55 dk = ertesi gün 00:40 Avrupa, sunucu günü aynı. */
+  $after = vestra_mailbox_at('23:45') + 55 * 60; $nextDay = vestra_mailbox_at('23:45') + 3 * 3600;
+  vestra_write_json('leads.json', [['id' => 'W1', 'company' => 'Boutique Nuit', 'email' => 'info@nuit.example', 'last_contacted_at' => $ago(20), 'unsub_token' => 'w1'] + $fuBase]);
+  vestra_mailbox_runs_save([]); $cfgF['followup'] = true; unset($cfgF['followup_day']); file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode($cfgF));
+  $nmA = vestra_mailbox_nightly($after);
+  $t('00:40 Avrupa (sunucu günü sürüyor, tur yapılmamış): gece turu AÇILIR', $nmA !== '' && count(vestra_mailbox_runs()) === 1 && (vestra_mailbox_cfg()['followup_day'] ?? '') === date('Y-m-d', $after) && date('Y-m-d', $after) === date('Y-m-d', vestra_mailbox_at('23:45')));
+  $t('aynı sunucu gününde ikinci kez açılmaz', vestra_mailbox_nightly($after + 600) === '' && count(vestra_mailbox_runs()) === 1);
+  vestra_mailbox_runs_save([]); $cfgF2 = vestra_mailbox_cfg(); unset($cfgF2['followup_day']); file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode($cfgF2));
+  $t('sunucu günü bitince (ertesi gün, 23:45 öncesi) açılmaz', date('Y-m-d', $nextDay) !== date('Y-m-d', $after) && vestra_mailbox_nightly($nextDay) === '' && vestra_mailbox_runs() === []);
+  vestra_write_json('leads.json', []); unset($cfgF2['followup']); $cfgF2['followup'] = false; file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode($cfgF2));
+}
+$t('cron: indirim partisi otomatikten önce, gece turu otomatikten sonra, isteği almadan önce', strpos($cm0 = (string)file_get_contents($root.'/cron_mailbox.php'), 'vestra_mailbox_nightly()') !== false
+   && strpos($cm0, 'vestra_mailbox_deals_daily()') !== false && strpos($cm0, 'vestra_mailbox_deals_daily()') < strpos($cm0, 'vestra_mailbox_auto_catchup()')
    && strpos($cm0, 'vestra_mailbox_nightly()') > strpos($cm0, 'vestra_mailbox_auto_catchup()') && strpos($cm0, 'vestra_mailbox_nightly()') < strpos($cm0, '$req = vestra_mailbox_take();'));
 @unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); vestra_write_json('leads.json', []);
+
+echo "\n== 8r. günlük bölüşüm (17 Eki 2026): sunucu 500 = önce 300 indirim (eski müşteri) + 200 yeni; indirim payı yeni butiklere harcanmaz ==\n";
+@unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
+file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode(['warmup' => false, 'auto_pool' => 'web']));
+$old = []; for ($k = 1; $k <= 6; $k++) $old[] = ['id' => 'O'.$k, 'company' => 'Ancienne '.$k, 'email' => 'info@ancienne'.$k.'.example', 'last_contacted_at' => $ago(10 + $k), 'unsub_token' => 'o'.$k] + $fuBase;
+$new = []; for ($k = 1; $k <= 3; $k++) $new[] = ['id' => 'N'.$k, 'company' => 'Nuova '.$k, 'email' => 'info@nuova'.$k.'.example', 'country' => 'Italy', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'n'.$k];
+vestra_write_json('leads.json', array_merge($old, $new));
+$d0800 = vestra_mailbox_at('08:00'); $d0835 = $d0800 + 35 * 60; $d0900 = $d0800 + 60 * 60;
+$t('pay: tam tavanda 300; ısınma 1. gün (50) → 30', vestra_mailbox_deals_quota() === 300);
+$t('08:00: indirim partisi henüz yok, ama 300 ayrılmış', vestra_mailbox_deals_daily($d0800) === '' && vestra_mailbox_deals_reserve($d0800) === 300);
+$cu0 = vestra_mailbox_auto_catchup($d0800); $r0 = vestra_mailbox_runs();
+$t('08:00 yeni butikler: istek açılır, sınır 500 − 300 = 200', $cu0 !== '' && count($r0) === 1 && $r0[0]['mode'] === 'send' && (int)$r0[0]['limit'] === 200);
+$cntS = []; $fmS = function ($to, $s, $b, $h, $p) use (&$cntS) { $cntS[] = $to; return true; };
+$q0 = vestra_mailbox_take(); $rs0 = vestra_mailbox_run($q0, ['mail' => $fmS, 'sleep' => fn($x) => null, 'dns' => fn($d) => 'ok', 'log' => fn($m) => null, 'dkim_ok' => true]); vestra_mailbox_finish((string)$q0['id'], $rs0);
+$t('yeni butiklere 3 gitti (ilk mektup)', $rs0['sent'] === 3 && count(array_filter($cntS, fn($e) => str_contains($e, 'nuova'))) === 3);
+$dd = vestra_mailbox_deals_daily($d0835); $r1 = vestra_mailbox_runs(); $last1 = end($r1);
+$t('08:35: indirim partisi açılır — kip followup, sınır 300', $dd !== '' && $last1['mode'] === 'followup' && (int)$last1['limit'] === 300 && (int)(vestra_mailbox_cfg()['deals_tries'] ?? 0) === 1);
+$t('açık istek varken yeni butik isteği / ikinci indirim isteği açılmaz', vestra_mailbox_auto_catchup($d0835 + 1800) === '' && vestra_mailbox_deals_daily($d0835 + 600) === '');
+$capD = []; $fmD = function ($to, $s, $b, $h, $p) use (&$capD) { $capD[] = [$to, $s]; return true; };
+$q1 = vestra_mailbox_take(); $rs1 = vestra_mailbox_run($q1, ['mail' => $fmD, 'sleep' => fn($x) => null, 'dns' => fn($d) => 'ok', 'log' => fn($m) => null, 'dkim_ok' => true]); vestra_mailbox_finish((string)$q1['id'], $rs1);
+$t('indirim partisi: 6 eski müşteriye indirim mektubu, en uzun süredir yazılmamış önce, yenilere değil', $rs1['sent'] === 6 && $capD[0][0] === 'info@ancienne6.example'
+   && !array_filter($capD, fn($x) => str_contains($x[0], 'nuova')) && str_contains(mb_decode_mimeheader((string)$capD[0][1]), '−42%') && vestra_mailbox_followups_today('deals') === 6);
+$t('09:00: aday kalmadı → bugün boş işaretlenir, ayrılan pay serbest', vestra_mailbox_deals_daily($d0900) === '' && (vestra_mailbox_cfg()['deals_empty'] ?? '') === date('Y-m-d', $d0900) && vestra_mailbox_deals_reserve($d0900) === 0);
+/* Korumalar, aday VARKEN sınansın (aday yokken deals_daily zaten '' döner): yeni bir uygun eski müşteri. */
+vestra_write_json('leads.json', array_merge(vestra_leads(), [['id' => 'O7', 'company' => 'Ancienne 7', 'email' => 'info@ancienne7.example', 'last_contacted_at' => $ago(12), 'unsub_token' => 'o7'] + $fuBase]));
+$cfgR = vestra_mailbox_cfg(); unset($cfgR['deals_empty']); $cfgR['deals_tries'] = 3; $cfgR['deals_day'] = date('Y-m-d', $d0900); file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode($cfgR));
+$t('aday var ama günde en çok 3 deneme; deneme bitince pay serbest', count(vestra_mailbox_followup_targets(5, null, $d0900)) === 1 && vestra_mailbox_deals_daily($d0900) === '' && vestra_mailbox_deals_reserve($d0900) === 0 && !isset(vestra_mailbox_cfg()['deals_empty']));
+$cfgR['deals_tries'] = 0; file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode($cfgR));
+$t('kalan pay: 300 − bugün giden 6 = 294; 23:45 sonrası 0', vestra_mailbox_deals_reserve($d0900) === 294 && vestra_mailbox_deals_reserve($nowLate) === 0);
+$nRuns = count(vestra_mailbox_runs());
+$t('23:50 (aday varken): indirim partisi değil gece turu', vestra_mailbox_deals_daily($nowLate) === '' && count(vestra_mailbox_runs()) === $nRuns && !isset(vestra_mailbox_cfg()['deals_empty']));
+$cfgR['deals'] = false; file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode($cfgR));
+$t('deals=false: indirim partisi ve ayrılan pay kapalı', vestra_mailbox_deals_daily($d0900) === '' && vestra_mailbox_deals_reserve($d0900) === 0);
+$cfgR['deals'] = true; $cfgR['auto_send'] = false; file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode($cfgR));
+$t('gönderim durdurulmuşsa (mailbox-pause) indirim partisi de durur', vestra_mailbox_deals_daily($d0900) === '' && vestra_mailbox_deals_reserve($d0900) === 0);
+$cfgR['auto_send'] = true; file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode($cfgR));
+vestra_mailbox_runs_save([]);
+$camKeys = array_keys(vestra_finder_campaigns());
+vestra_write_json('leads.json', array_merge(vestra_leads(), [['id' => 'N9', 'company' => 'Nuova 9', 'email' => 'info@nuova9.example', 'country' => 'Italy', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'n9']]));
+[$okAR] = vestra_mailbox_auto_request($camKeys, '', $d0900); $rAR = vestra_mailbox_runs();
+$t('arama sonrası otomatik istek de indirim payını bırakır (sınır 500 − 9 − 294)', $okAR && (int)($rAR[0]['limit'] ?? 0) === 500 - 9 - 294);
+vestra_mailbox_runs_save([]);
+vestra_finder_save_runs([['id' => 'FRdeal1', 'owner' => '', 'status' => 'done', 'requested_at' => date('c'), 'send_campaign' => 'edit']]);
+[$okPS] = vestra_mailbox_auto_request($camKeys, 'FRdeal1', $d0900); $rPS = vestra_mailbox_runs();
+$t('panelden başlatılan arama (seçili kampanya) da indirim payını bırakır', $okPS && (int)($rPS[0]['limit'] ?? 0) === 500 - 9 - 294 && ($rPS[0]['campaign'] ?? '') === 'edit');
+vestra_mailbox_runs_save([]); vestra_finder_save_runs([]);
+[$okD1, $msgD1] = vestra_mailbox_request('send', 10, 'deals', '', $camKeys);
+$aD = vestra_mailbox_auto_save(true, 'deals', 20, 'web');
+$t('indirim mektubu İLK mektup olamaz: istek, otomatik kampanya ve bulucu gönderimi reddeder', !$okD1 && str_contains($msgD1, 'ilk mektup') && $aD['auto_campaign'] !== 'deals'
+   && str_contains(implode(' ', vestra_finder_send('deals', 5, true)[2]), 'ilk mektup') && vestra_mailbox_batch(5, 'deals', [], 'web', ['dkim_ok' => true])['ok'] === false);
+vestra_mailbox_runs_save([]);
+$cfgR['warmup'] = true; $cfgR['warmup_start'] = date('Y-m-d'); file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode($cfgR));
+$t('ısınma 1. gün (tavan 50) → indirim payı 30', vestra_mailbox_deals_quota() === 30);
+@unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); vestra_write_json('leads.json', []); @unlink(VESTRA_DATA_DIR.'/listings.json');
+$t('indirimli ilan kalmayınca "deals" kampanya listesinden düşer (boş mektup gitmez)', !isset(vestra_finder_campaigns()['deals']));
+
+echo "\n== 8s. inceleme düzeltmeleri (17 Eki 2026): dükkân / adres düzeyinde tek mektup, kopya kayıt, kayıtlı hesap, lemlist, kilitli yazım ==\n";
+@unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
+file_put_contents(VESTRA_DATA_DIR.'/mailbox.json', json_encode(['warmup' => false]));
+vestra_write_json('listings.json', $dealsListings);
+$sx = static fn(string $id, string $em, int $ago, array $x = []) => ['id' => $id, 'company' => 'Shop '.$id, 'email' => $em, 'last_contacted_at' => date('c', time() - $ago * 86400), 'unsub_token' => 't'.$id] + $x + $fuBase;
+$accFile = defined('VESTRA_ACCOUNTS') ? '' : VESTRA_DATA_DIR.'/accounts.json';
+if ($accFile !== '') file_put_contents($accFile, json_encode([['email' => 'Buyer@Registered.example', 'type' => 'buyer'], ['email' => 'sales@myseller.example', 'type' => 'seller'], ['email' => 'seller.x@gmail.com', 'type' => 'seller']]));
+vestra_write_json('leads.json', [
+  $sx('S1', 'info@alpha-shop.example', 30), $sx('S2', 'sales@alpha-shop.example', 25),             // aynı dükkânın iki adresi
+  $sx('P1', 'info@dupe.example', 30), $sx('P2', 'INFO@dupe.example ', 30),                         // aynı adresin iki kaydı
+  $sx('U1', 'info@unsub.example', 30, ['status' => 'unsubscribed']), $sx('U2', 'Info@Unsub.example', 30),   // kopya kaydı çıkmış
+  $sx('R1', 'buyer@registered.example', 30), $sx('R2', 'info@myseller.example', 30),               // kayıtlı alıcı / satıcının alan adı
+  $sx('G1', 'boutique.g@gmail.com', 30),                                                           // gmail'deki satıcı başka gmail'i elemez
+  $sx('L1', 'info@lemlist-x.example', 30, ['contact_via' => 'lemlist']),                           // 8 Eki lemlist: hiç gönderilmedi
+  $sx('Y1', 'info@replied-dup.example', 30), $sx('Y2', 'info@replied-dup.example', 30, ['status' => 'replied']),
+]);
+$ftS = array_column(vestra_mailbox_followup_targets(50), null, 'id');
+$t('dükkân başına bir alıcı (S1/S2 birlikte seçilmez), aynı adres bir kez (P1/P2)', (isset($ftS['S1']) xor isset($ftS['S2'])) && (isset($ftS['P1']) xor isset($ftS['P2'])));
+$t('kopya kaydı çıkmış / yanıt vermiş adres seçilmez (U2, Y1)', !isset($ftS['U2']) && !isset($ftS['U1']) && !isset($ftS['Y1']));
+if ($accFile !== '') $t('kayıtlı alıcı ve satıcının dükkânı seçilmez; gmail\'deki satıcı başka gmail adresini elemez', !isset($ftS['R1']) && !isset($ftS['R2']) && isset($ftS['G1']));
+$t('lemlist kaydı (hiç gönderilmemiş) seçilmez', !isset($ftS['L1']));
+$t('gönderim anı kontrolü: kopya kaydı çıkmış adrese ve kayıtlı alıcıya gitmez', !vestra_mailbox_still_sendable('U2', 'Info@Unsub.example') && ($accFile === '' || !vestra_mailbox_still_sendable('R1', 'buyer@registered.example')) && vestra_mailbox_still_sendable('G1', 'boutique.g@gmail.com'));
+/* S-dükkânına indirim gitti → ikinci deneme (10 dk sonra) ve 6 gün sonra kardeş adrese / kopya kayda yine gitmez */
+$firstS = isset($ftS['S1']) ? 'S1' : 'S2'; $otherS = $firstS === 'S1' ? 'S2' : 'S1'; $firstP = isset($ftS['P1']) ? 'P1' : 'P2'; $otherP = $firstP === 'P1' ? 'P2' : 'P1';
+vestra_mailbox_stamp([['leadId' => $firstS, 'email' => $firstS === 'S1' ? 'info@alpha-shop.example' : 'sales@alpha-shop.example', 'status' => 'sent', 'lang' => 'en', 'followup' => 'deals'],
+                      ['leadId' => $firstP, 'email' => 'info@dupe.example', 'status' => 'sent', 'lang' => 'en', 'followup' => 'deals']]);
+$ft2 = array_column(vestra_mailbox_followup_targets(50, null, time() + 600), null, 'id');
+$ft6 = array_column(vestra_mailbox_followup_targets(50, null, time() + 6 * 86400), null, 'id');
+$t('ikinci denemede aynı dükkânın öteki adresi / aynı adresin öteki kaydı YOK', !isset($ft2[$otherS]) && !isset($ft2[$otherP]));
+$t('6 gün sonra da yok (dükkân ve adres indirimi almış sayılır)', !isset($ft6[$otherS]) && !isset($ft6[$otherP]) && !isset($ft6[$firstS]));
+$t('takip anı kontrolü: dükkânın öteki adresine bugün yazıldı → atlanır', !vestra_mailbox_followup_still_ok($otherS));
+echo "\n  -- dükkân düzeyinde çıkış, kardeş adrese ilk mektup, bekleme kontrolden önce --\n";
+vestra_write_json('leads.json', [
+  $sx('T1', 'info@stopshop.example', 30, ['status' => 'declined']), $sx('T2', 'sales@stopshop.example', 30),    // dükkân reddetti
+  $sx('V1', 'info@vbounce.example', 30, ['status' => 'bounced']), $sx('V2', 'sales@vbounce.example', 30),      // tek kutu geri döndü
+  $sx('W1', 'info@wshop.example', 1), ['id' => 'W2', 'company' => 'W new', 'email' => 'sales@wshop.example', 'status' => 'new', 'last_contacted_at' => '', 'country' => 'France', 'source' => 'web-search', 'owner_uid' => ''],
+  $sx('Z1', 'z1@gmail.com', 1), ['id' => 'Z2', 'company' => 'Z new', 'email' => 'z2@gmail.com', 'status' => 'new', 'last_contacted_at' => '', 'country' => 'France', 'source' => 'web-search', 'owner_uid' => ''],
+]);
+$ftT = array_column(vestra_mailbox_followup_targets(50), null, 'id');
+$t('dükkân reddettiyse öteki adresine de yazılmaz; tek kutunun geri dönmesi dükkânı durdurmaz', !isset($ftT['T2']) && isset($ftT['V2']) && !vestra_mailbox_still_sendable('T2', 'sales@stopshop.example'));
+$t('dün yazılmış dükkânın yeni adresine İLK mektup da beklenir; gmail\'de komşu adres etkilemez', !vestra_mailbox_still_sendable('W2', 'sales@wshop.example') && vestra_mailbox_still_sendable('Z2', 'z2@gmail.com'));
+vestra_write_json('leads.json', [$sx('Q1', 'info@qa.example', 30), $sx('Q2', 'info@qb.example', 31), $sx('Q3', 'sales@qb.example', 40, ['last_contacted_at' => date('c', time() - 40 * 86400)])]);
+$capQ = []; $fmQ = function ($to, $s, $b, $h, $p) use (&$capQ) { $capQ[] = $to; return true; };
+/* Sıra: Q3 (sales@qb, en eski) sonra Q1 (qa). İlk gönderimden sonraki bekleme sırasında "Brevo" qa'ya yazıyor: kontrol
+   beklemeden SONRA olduğu için Q1 atlanmalı. */
+$slQ = function ($sec) { vestra_leads_update(function (array &$L) { foreach ($L as &$l) if ($l['id'] === 'Q1') $l['last_newcollection_at'] = date('c'); unset($l); return true; }); };
+$bQ = vestra_mailbox_batch(10, 'edit', [], 'web', ['followup' => true, 'dkim_ok' => true]);
+$rQ = vestra_mailbox_run(['mode' => 'followup', 'limit' => 10], ['mail' => $fmQ, 'sleep' => $slQ, 'dns' => fn($d) => 'ok', 'log' => fn($m) => null, 'dkim_ok' => true]);
+$t('bekleme kontrolden ÖNCE: bekleme sırasında dükkâna başka kanaldan yazıldıysa o mektup atlanır', count($bQ['items']) === 2 && $rQ['sent'] === 1 && ($rQ['deferred'] ?? 0) === 1 && count($capQ) === 1);
+
+$bz = new DateTimeZone('Europe/Berlin'); $b0900 = (new DateTimeImmutable('2026-10-20 09:00', $bz))->getTimestamp(); $b1230 = (new DateTimeImmutable('2026-10-20 12:30', $bz))->getTimestamp();
+vestra_write_json('ops_tick.json', []);
+$t('Brevo anahtarı varken indirim partisi o günün Brevo eşitlemesini bekler; 12:00\'den sonra yine çıkar; anahtar yoksa beklemez',
+   !vestra_mailbox_brevo_synced($b0900, true) && vestra_mailbox_brevo_synced($b1230, true) && vestra_mailbox_brevo_synced($b0900, false));
+vestra_write_json('ops_tick.json', ['brevo_sync_am' => '2026-10-20']);
+$t('eşitleme yapıldıysa 09:00\'da çıkar', vestra_mailbox_brevo_synced($b0900, true));
+@unlink(VESTRA_DATA_DIR.'/ops_tick.json');
+echo "\n  -- indirim seçkisi: satılmış ilan, katalog adı bağlantıda, tek marka --\n";
+$dl2 = $dealsListings; $dl2[] = ['id' => 'D8', 'brand' => 'Burberry', 'name' => 'Sold Coat', 'mode' => 'sale', 'list' => 100, 'tiers' => [['min' => 3, 'price' => 40]], 'images' => ['/uploads/d8.jpg'], 'status' => 'approved', 'sold_out' => true];
+$pk = vestra_deals_pick(6, $dl2);
+$t('satılmış (sold_out) ilan seçkiye ve konuya girmez', !in_array('Burberry', array_column($pk['items'], 'brand'), true) && $pk['max'] === 42);
+[, $bodyRaw, $optRaw] = vestra_campaign_deals('X', 'en', $pk);
+$t('marka bağlantısı katalogdaki adla (BALMAIN), görünen ad Balmain', str_contains($optRaw['html'], 'brand=BALMAIN') && !str_contains($optRaw['html'], 'brand=Balmain') && str_contains($optRaw['html'], '>Balmain<'));
+$one = vestra_deals_pick(6, [$dealsListings[1]]);
+[$s1, $b1] = vestra_campaign_deals('X', 'en', $one);
+[, $b1fr] = vestra_campaign_deals('X', 'fr', $one);
+$t('tek marka: "several houses" denmez, marka adı geçer', !str_contains($b1, 'several houses') && str_contains($b1, 'Balmain has trade markdowns') && str_contains($b1fr, 'les articles Balmain sont') && $s1 === 'Balmain: trade markdowns up to −34% · VESTRA');
+[, $b3] = vestra_campaign_deals('X', 'en', $pk);
+$t('çok marka: "several houses … up to 42% off"', str_contains($b3, 'several houses have trade markdowns right now — up to 42% off'));
+echo "\n  -- leads.json kilitli / atomik yazım --\n";
+vestra_write_json('leads.json', [['id' => 'K1', 'email' => 'a@k.example', 'status' => 'new']]);
+$rK = vestra_leads_update(function (array &$L) { $L[] = ['id' => 'K2', 'email' => 'b@k.example', 'status' => 'new']; return true; });
+$t('güncelleme taze listeye eklenir, geçici dosya kalmaz, kilit dosyası var', $rK === true && count(vestra_leads()) === 2 && !glob(VESTRA_DATA_DIR.'/leads.json.tmp-*') && is_file(VESTRA_DATA_DIR.'/leads.lock'));
+file_put_contents(VESTRA_DATA_DIR.'/leads.json', '[{"id":"K1","email":"a@k.example"');   // bozuk (yarım) dosya
+$rB = vestra_leads_update(function (array &$L) { $L[] = ['id' => 'K9']; return true; });
+$t('bozuk dosyada yazım İPTAL (boş listeyle üzerine yazılmaz)', $rB === false && str_starts_with((string)file_get_contents(VESTRA_DATA_DIR.'/leads.json'), '[{"id":"K1"'));
+vestra_write_json('leads.json', []);
+$t('iç içe çağrı kilitlenmez', vestra_leads_update(fn(array &$L) => vestra_leads_update(function (array &$M) { $M[] = ['id' => 'N1']; return true; }) && false) === false && count(vestra_leads()) === 1);
+if ($accFile !== '') @unlink($accFile);
+@unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json'); vestra_write_json('leads.json', []); @unlink(VESTRA_DATA_DIR.'/listings.json');
+
 echo "\n== 8m. RTL olayı (14 Eki): moda dükkânı olmayan hiçbir yere gitmez; Almanya şimdilik durduruldu ==\n";
 foreach ([['company' => 'rtl.de', 'email' => 'info@rtl.de', 'website' => 'https://www.rtl.de'], ['company' => 'Kölner Stadt-Anzeiger', 'email' => 'ksta@ksta.de'],
           ['company' => 'Belfort Tourisme -', 'email' => 'accueil@belfort-tourisme.com'], ['company' => 'Süddeutsche.de', 'email' => 'kontakt@sueddeutsche.de'],

@@ -12824,3 +12824,75 @@ outlet & stok mağazaları, concept store & bağımsız büyük mağaza** — he
   eliyordu; spor gazeteleri alan adı listesinde), `camping` aynı daraltma. Test 8p.
 - **find-customers.yml:** sunucu listesi 3 deneme (20/40 sn); yine olmazsa tur aramayı atlar.
 - **Geri dönüş nedeni:** GoDaddy düz metin bildiriminden de kod + cevap (`dsn_reason`).
+
+## Günlük bölüşüm: sunucu 500 = 300 indirim (eski müşteri) + 200 yeni · Brevo 150 · 23:45 tamamlama (operatör, 17 Eki 2026)
+
+Operatör: *"müşteri bulmada kusursuz çalış, hataları en aza indirge, e-mail gelmesin; her gün kendi serverda 500 e-mail
+ve yeni müşteriler bulunsun; önce önceden gönderdiğimiz ilk müşterilere tekrar indirimli ürünleri gönder 300 e-mail,
+sonra Brevo ile devam et … günlük kendi serverdan 500, Brevo'dan 150 e-mail gitmeli, hak kalırsa 23.45'te tamamlanmalı"*.
+- **Ölçüm (17 Eki 07:34 UTC, diag-deals-followup.yml):** canlıda 70 indirimli ilan (DSQUARED2 −42, Balmain/Burberry −34,
+  Lacoste −32, Ralph Lauren −25, Balenciaga/D&G −15); indirim mektubuna uygun eski müşteri 2.629 (5+ gün dinlenmiş);
+  gönderime hazır YENİ müşteri 0 (bulucu buldukça gidiyor); 3 günlük geri dönüş %2,0; Brevo bugün 50.
+- **İndirim mektubu (`inc/campaign_deals.php`, kampanya `deals`):** canlı + onaylı + premium (`VESTRA_EDIT_PREMIUM`)
+  + ≥%10 indirimli (`vestra_on_sale` ya da aktif AKTION) + görselli ilanlar; marka başına bir ürün, −% rozeti; markaya
+  göre indirim satırı; düğmeler `/shop?mode=sale` (shop.php artık `?mode=` / `?brand=` ön süzgecini okur) ve ücretsiz
+  kayıt. **FİYAT YOK** (KURAL 19), yalnız yüzde. 7 dil (EN/DE/FR/IT/ES/NL/PT, diğerleri EN). Güven satırı escrow DEMİYOR
+  (escrow kapalı): "Sipariş ve teslimat VESTRA denetiminde". İndirimli ürün yoksa kampanya listede yok → boş mektup gitmez.
+- **Takip sırası (`VESTRA_MAILBOX_FOLLOWUP_ORDER`) artık yalnız `['deals']`** (polo promosyonu sabit eski fiyat
+  yazıyordu). Hedefler: Avrupa önce, sonra en az mektup alan, en uzun süredir yazılmamış; kurallar aynı (contacted,
+  5 gün dinlenme, kara liste / tahmin listesi / durdurulan ülke / hedef dışı yok, gönderim anında yeniden kontrol).
+- **Sunucu bölüşümü (`inc/mailbox.php`):** `vestra_mailbox_deals_daily()` Avrupa 08:30'dan sonra (cron, 10 dk) indirim
+  isteği açar: en çok `vestra_mailbox_deals_quota()` (tam tavanda 300; ısınma/düşük tavanda %60) − bugün giden; günde en
+  çok 3 deneme; aday yoksa `deals_empty`. `vestra_mailbox_deals_reserve()` 23:45'e kadar bu payı yeni butik isteklerinden
+  (`auto_catchup`, `auto_request`) ayırır. Gece turu (`vestra_mailbox_nightly`) penceresi artık 23:45 Avrupa → SUNUCU
+  GÜNÜ sonu (UTC; yazın 02:00 Avrupa); `followup_day` sunucu günü. `mailbox.json`: `deals=false` kapatır; otomatik
+  gönderim durdurulunca (mailbox-pause) indirim partisi de durur; gece turu `followup` bayrağıyla.
+- **Brevo (`send-outreach.yml`, dağıtım dalı):** `member_spec` içinde `daily=N` (yeni girdi yok, 25 sınırı) — bugün
+  Brevo'dan giden (ilk mektup les-garage, NC/wave3/teklif/takip damgaları) sayılır, parti kalanla kırpılır, dolunca
+  `BITTI. gonderildi: 0`. Kota partiden azsa parti küçülür. **Seçim artık `status=bounced`'ı eliyor** (eskiden ilk
+  mektubu geri dönmüş dükkâna ikinci mektup Brevo'dan gidebiliyordu) + tahmin listesi / hedef dışı / durdurulan ülke /
+  ölü. **Taze kayıt:** eskiden koşu başta okuduğu leads.json'u sonda BÜTÜNÜYLE geri yazıyordu → aradaki sunucu
+  damgaları, saatlik "geri döndü" işaretleri ve bulucunun yeni kayıtları siliniyordu. Artık her gönderimden önce kayıt
+  tazeden okunur (bu arada geri dönen / sunucudan yazılan atlanır), sonra yalnız o kaydın damgası taze listeye yazılır.
+  chat-help `brevo-daily.yml` her partiye `member_spec="daily=150"`; 09:12 / 15:12 50'şer, 23:45 tarama 150'ye tamamlar.
+- **Testler:** finder_test 8l (indirim mektubu, gece turu) + 8r (bölüşüm), `tests/brevo_daily_cap_test.php` (iş akışının
+  gerçek PHP'si kum havuzunda: sınır, eşzamanlı yazımlar korunur, kalite süzgeçleri).
+- **Çok ajanlı inceleme (17 Eki 2026, 5 boyut + her bulguya 2 bağımsız çürütme; 38 bulgu, 32 doğrulandı) — düzeltilenler:**
+  - *Dükkân / adres düzeyi:* takip hedefleri artık `vestra_mailbox_letter_index()` ile TÜM kayıtlar üzerinden: son mektup ve
+    alınan kampanyalar adres + dükkân alan adı (serbest posta sağlayıcıları hariç, `vestra_mailbox_shop_domain`) genelinde
+    birleşir; dükkân başına tek alıcı; herhangi bir kaydı çıkmış / geri dönmüş / yanıt vermiş / reddetmiş / müşteri olmuş
+    adres (`stop`) atlanır. Eskiden info@ gidince sales@ 10 dk sonraki denemede ikinci indirim mektubunu, aynı adresin
+    kopya kaydı 6 gün sonra aynı mektubu alıyordu; kopya kaydı çıkmış adres yazılıyordu.
+  - *Kayıtlı hesaplar:* `vestra_mailbox_account_index()` — kayıtlı alıcı ve satıcı (satıcıda alan adı da) ne takip ne ilk
+    mektup alır (`still_sendable` gönderim anında da bakar). lemlist kaydı (`contact_via=lemlist`, hiç gönderilmedi) takip almaz.
+  - *Panel araması da indirim payını bırakır* (`auto_request` seçili kampanya dalı). `deals` ilk mektup olamaz
+    (istek / otomatik kampanya / `vestra_finder_send` / parti reddeder); boş konulu mektup kuyruğa girmez.
+  - *Mektup:* satılmış (`sold_out`) ve onaysız ilan seçilmez; marka bağlantısı katalogdaki adla (`brand=BALMAIN`),
+    shop.php ön süzgeci büyük/küçük harf duyarsız; tek markada "birkaç marka" denmez (`intro1`); FR/IT/EN ifadeleri düzeldi.
+  - *leads.json kilidi:* `vestra_leads_update()` (data/leads.lock, iç içe çağrı güvenli, bozuk dosyada yazım İPTAL) +
+    `vestra_save_leads()` geçici dosya + rename. Kullananlar: sunucu damgası, `vestra_lead_mark_bad_email`, Brevo
+    `stampFresh` ve üye kipi çapraz damgası, Brevo olay eşitlemesi, chat-help `vestra-push-leads.php` (yalnız yeni
+    satırlar; kütükte adres artık MASKELİ) ve `vestra-mailbox-queue.php stamp`.
+  - *Brevo betiği:* taze kontrol koşunun başında okunanla karşılaştırır (seçim/DNS süresince yazılanlar da yakalanır) +
+    dükkân/adres düzeyi; NC/teklif kipinde yalnız `status=contacted`, lemlist yok, dükkâna son `newcoll_min_days` (artık 5)
+    günde herhangi bir kanaldan yazıldıysa atlanır; üye kipi hesap ve lead dizilerini artık bütünüyle geri yazmıyor.
+  - *Gece taraması (chat-help brevo-daily):* dur kararı seçilen sayıya göre ("uygun secilen" < 50, sınır/kota doldu);
+    49 gönderen parti artık taramayı durdurmuyor.
+  - *Brevo olayları → leads.json (`inc/brevo_events.php`, ops_tick 08:00 + 20:30, sunucuda):* hardBounces / invalid /
+    blocked → bounced, spam / unsubscribed → unsubscribed; ilk koşu 90 gün. Eskiden Brevo'nun bildiği ölü adreslere sunucu
+    indirim mektubu yollayıp support@'a yeni hata bildirimi getirecekti (purge-bounced.yml elle + kuru koşuydu).
+  - *Gece turu bayrağı:* canlıda `mailbox.json followup=false` (14 Eki acil durdurma) — 23:45 tamamlaması için dağıtımdan
+    sonra `mailbox-pause.yml paused=false followup=true` koşuldu.
+  - *Testler saatten bağımsız* (anlar `vestra_mailbox_at()` ile sunucu gününe bağlı; `auto_request` `$now` alır); 8s bölümü,
+    brevo_daily_cap_test (kota küçültme dalı sahte krediyle gerçekten koşar), ops_tick_test Brevo eşitlemesi.
+- **İkinci doğrulama turu (17 Eki 2026) — ek düzeltmeler:** dükkân düzeyinde ÇIKIŞ (`stopDom`: dükkânın herhangi bir
+  adresi çıkmış / yanıt vermiş / reddetmiş / müşteri olmuşsa öteki adreslerine de yazılmaz; tek kutunun geri dönmesi
+  dükkânı durdurmaz; `vestra_mailbox_addr_stopped`); `still_sendable` artık aynı dükkânın/adresin BAŞKA kaydına son 5 günde
+  yazıldıysa İLK mektubu da bekletir; gönderim döngüsünde 8–11 sn bekleme son kontrollerden ÖNCE (beklerken Brevo'nun
+  yazdığı görülür); Brevo seçimi kayıtlı ALICI hesaplarını da eler, kaydı silinmiş lead'e göndermez; abonelikten çıkma
+  sayfası kilitli ve aynı adresin bütün kayıtlarına işler (`tests/lead_unsubscribe_all_records_test.php`);
+  `vestra_leads_add`, CSV içe aktarma, lemlist işaretleme ve `vestra_finder_send` damgası kilit altında; Rumence /
+  Moldovaca "magazin" (= dükkân) medya süzgecine takılmaz; chat-help `vestra-mailbox-queue.php list` (GitHub yedek yolu)
+  `deals`'ı ilk mektup olarak reddeder, boş mektup ve `still_sendable` kontrolü; `mailbox-pause.yml` açarken gece
+  tamamlama turu varsayılan AÇIK. Admin / satıcı panelindeki elle düzenlemeler (insan hızında, ms'lik pencere) hâlâ
+  doğrudan `vestra_save_leads` — artık atomik rename ile yazıldığı için yarım dosya okunmaz.

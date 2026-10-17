@@ -492,6 +492,13 @@ function vestra_finder_campaigns(): array {
     'standard' => ['VESTRA standart toptan teklif', 'Müşteriler sekmesindeki düzenlenebilir şablon (İngilizce).',
       function (array $l) { $tpl = vestra_lead_template(); [$s, $b] = vestra_lead_render_email($l, $tpl); return [$s, $b, [], '']; }],
   ];
+  /* 17 Eki 2026 (operatör: "önceden gönderdiğimiz ilk müşterilere tekrar indirimli ürünleri gönder"): eski müşterilere
+     takip mektubu. Yalnız indirimde premium ürün varken listede — yoksa boş mektup gitmesin. */
+  require_once __DIR__.'/campaign_deals.php';
+  if (vestra_deals_pick()['items']) {
+    $out['deals'] = ['🏷️ İndirimli ürünler — eski müşterilere takip (−% rozetli seçki, fiyatsız)', 'Daha önce yazılmış dükkânlara: şu an indirimdeki premium ürünler (marka başına bir, −% rozetiyle), markaya göre indirim satırı, "indirimli ürünler" + "ücretsiz kayıt" düğmeleri. Dil: EN, DE, FR, IT, ES, NL, PT.',
+      function (array $l) use ($tok) { [$s, $b, $o] = vestra_campaign_deals((string)($l['company'] ?? ''), vestra_finder_lead_lang($l)); return [$s, $tok($b, $l), $o, 'VESTRA']; }];
+  }
   if (is_readable(__DIR__.'/ai_campaign.php')) {
     require_once __DIR__.'/ai_campaign.php';
     foreach (array_slice(vestra_ai_camp_list(''), 0, 8) as $c) {
@@ -551,7 +558,10 @@ function vestra_lead_not_retail(array $l): bool {
   $loc = $p !== false ? substr($em, 0, $p) : '';
   $wd = strtolower(preg_replace('#^(https?://)?(www\.)?#', '', explode('/', preg_replace('#^https?://#', '', (string)($l['website'] ?? '')))[0]));
   $co = mb_strtolower((string)($l['company'] ?? ''));
-  foreach ([$ed, $wd] as $d) {
+  /* 17 Eki 2026: e-posta alan adı TAM OLARAK bir serbest posta sağlayıcısıysa (wp.pl, onet.pl, interia.pl, gmx.at…) etiket
+     listesi uygulanmaz — oradaki butik (butikania@wp.pl) portalın haber masası değil; pomoc.wp.pl gibi alt alan yine elenir. */
+  $edShared = $ed !== '' && function_exists('vestra_email_is_shared_provider') && vestra_email_is_shared_provider($ed);
+  foreach ([$edShared ? '' : $ed, $wd] as $d) {
     if ($d === '') continue;
     $labs = array_slice(explode('.', $d), 0, -1);   // TLD hariç bütün etiketler: pomoc.wp.pl → pomoc, wp
     if (array_intersect($labs, VESTRA_NOT_RETAIL_DOMAINS) || in_array($d, VESTRA_NOT_RETAIL_DOMAINS, true)) return true;
@@ -559,7 +569,10 @@ function vestra_lead_not_retail(array $l): bool {
   /* 15 Eki 2026: "redac.region@midilibre.com" (gazete) ve "mdonline@mundodeportivo.com" (spor gazetesi) mektup
      aldi -- yerel kisim 'redac' ile baslayinca da medya; alan adlari listeye. */
   if (preg_match('/^(zuschauer|leserservice|leserbrief|redaktion|redazione|redaction|redac\b|redac[._-]|newsdesk|newsroom|editor|abo(?:nnement)?\b|hinweis\b|einladung\b|tipps?\b|presse\b|press\b)/', $loc)) return true;
-  return (bool)preg_match('/touris|turism|tourist|office de tourisme|fremdenverkehr|stadtmarketing|city ?marketing|zeitung|anzeiger|morgenpost|tagblatt|nachrichten|\bnews\b|news\.|magazin|journal\b|\bpresse\b|verlag|rundfunk|fernseh|\btv\b|\bradio\b|mediathek|feuerwehr|behörden|gemeinde|\bmairie\b|ville de |ayuntamiento|\bcomune\b|\bhotel\b|campingplatz|camping municipal|campground|campsite|camping village|\bmuseum\b|brauerei|bier(?![a-zäöü])|weingut|immobili|versicherung|\bbank\b|safety shoes|scrubs|kostüm|costumes?\b|orthop|sanitätshaus|\barmy\b|surplus|jagd|waidmann|moto\b|motorrad|embroider|stickerei|broderie|uniform|workwear|berufsbekleidung|arbeitskleidung|teamwear|clubwear|club ?fashion|vereinsbedarf|vereinsausstatter|gundog|airsoft|paintball|farmers|landhandel|promotional|werbemittel|textil-?druck|publi-?sport|sportzeitung|gazzetta|kicker\b|eurosport/u', $co.' '.$ed.' '.$wd);
+  /* 17 Eki 2026: Rumence / Moldovaca "magazin" = DÜKKÂN (Magazin Haine Bella); Almancadaki "dergi" anlamı orada geçerli değil. */
+  $hay = $co.' '.$ed.' '.$wd;
+  if (preg_match('/^(romania|românia|moldova|republic of moldova|ro|md)$/u', mb_strtolower(trim((string)($l['country'] ?? '')))) || preg_match('/\.(ro|md)$/', $ed)) $hay = preg_replace('/magazin/u', '', $hay);
+  return (bool)preg_match('/touris|turism|tourist|office de tourisme|fremdenverkehr|stadtmarketing|city ?marketing|zeitung|anzeiger|morgenpost|tagblatt|nachrichten|\bnews\b|news\.|magazin|journal\b|\bpresse\b|verlag|rundfunk|fernseh|\btv\b|\bradio\b|mediathek|feuerwehr|behörden|gemeinde|\bmairie\b|ville de |ayuntamiento|\bcomune\b|\bhotel\b|campingplatz|camping municipal|campground|campsite|camping village|\bmuseum\b|brauerei|bier(?![a-zäöü])|weingut|immobili|versicherung|\bbank\b|safety shoes|scrubs|kostüm|costumes?\b|orthop|sanitätshaus|\barmy\b|surplus|jagd|waidmann|moto\b|motorrad|embroider|stickerei|broderie|uniform|workwear|berufsbekleidung|arbeitskleidung|teamwear|clubwear|club ?fashion|vereinsbedarf|vereinsausstatter|gundog|airsoft|paintball|farmers|landhandel|promotional|werbemittel|textil-?druck|publi-?sport|sportzeitung|gazzetta|kicker\b|eurosport/u', $hay);
 }
 const VESTRA_NOT_RETAIL_DOMAINS = ['rtl', 'ksta', 'morgenpost', 'sueddeutsche', 'bunte', 'news', 'wp', 'manager-magazin', 'spiegel', 'bild',
   'focus', 'welt', 'faz', 'stern', 'zeit', 'tagesschau', 'zdf', 'ard', 'n-tv', 'ntv', 'sat1', 'prosieben', 'vox', 't-online.de', 'gmx', 'web.de',
@@ -662,14 +675,16 @@ function vestra_lemlist_export(int $limit, string $pool, bool $mark): array {
     $ids[(string)($l['id'] ?? '')] = true;
   }
   if ($mark && $ids) {
-    $leads = vestra_leads(); $now = date('c');
-    foreach ($leads as &$l) {
-      if (!isset($ids[(string)($l['id'] ?? '')])) continue;
-      $l['last_contacted_at'] = $now; $l['contact_via'] = 'lemlist';
-      if (($l['status'] ?? 'new') === 'new') $l['status'] = 'contacted';
-    }
-    unset($l);
-    vestra_save_leads($leads);
+    vestra_leads_update(static function (array &$leads) use ($ids) {
+      $now = date('c');
+      foreach ($leads as &$l) {
+        if (!isset($ids[(string)($l['id'] ?? '')])) continue;
+        $l['last_contacted_at'] = $now; $l['contact_via'] = 'lemlist';
+        if (($l['status'] ?? 'new') === 'new') $l['status'] = 'contacted';
+      }
+      unset($l);
+      return true;
+    });
   }
   return $rows;
 }
@@ -700,6 +715,7 @@ function vestra_finder_send_test(string $key, string $to, ?callable $send = null
 function vestra_finder_send(string $key, int $limit, bool $dry, string $pool = 'web'): array {
   $camps = vestra_finder_campaigns();
   if (!isset($camps[$key])) return [0, 0, ['Kampanya bulunamadı.']];
+  if ($key === 'deals') return [0, 0, ['İndirim mektubu yalnız daha önce yazılmış müşterilere gider — ilk mektup olarak seçilemez.']];
   $limit = max(1, min(100, $limit));
   $targets = vestra_finder_send_targets($limit, $pool === 'all' ? 'all' : 'web');
   $builder = $camps[$key][2];
@@ -707,6 +723,7 @@ function vestra_finder_send(string $key, int $limit, bool $dry, string $pool = '
   @set_time_limit(0);
   foreach ($targets as $i => $l) {
     [$s, $b, $o, $from] = $builder($l);
+    if (trim((string)$s) === '' || trim((string)$b) === '') continue;   // boş mektup gitmez
     $who = (string)($l['company'] ?? '').' <'.(string)$l['email'].'> · '.vestra_finder_lead_lang($l);
     if ($dry) { $lines[] = '• '.$who.' — '.$s; continue; }
     /* Brevo kredisi sipariş/fatura payına indiyse DUR (8 Eki 2026: kredi bitince Brevo
@@ -724,14 +741,15 @@ function vestra_finder_send(string $key, int $limit, bool $dry, string $pool = '
   }
   if ($stamp) {
     /* Gönderim uzun sürer: damgayı TAZE listeye yaz ki bu arada başka bir işin
-       eklediği kayıt kaybolmasın (bilinen leads.json yarışı). */
-    $leads = vestra_leads();
-    foreach ($leads as $i => $lx) if (($k = $stamp[(string)($lx['id'] ?? '')] ?? null) !== null) {
-      $leads[$i]['last_contacted_at'] = date('c');
-      if (($leads[$i]['status'] ?? 'new') === 'new') $leads[$i]['status'] = 'contacted';
-      $leads[$i]['last_campaign'] = 'finder/'.$k;
-    }
-    vestra_save_leads($leads);
+       eklediği kayıt kaybolmasın (bilinen leads.json yarışı) — 17 Eki 2026'dan beri kilit altında. */
+    vestra_leads_update(static function (array &$leads) use ($stamp) {
+      foreach ($leads as $i => $lx) if (($k = $stamp[(string)($lx['id'] ?? '')] ?? null) !== null) {
+        $leads[$i]['last_contacted_at'] = date('c');
+        if (($leads[$i]['status'] ?? 'new') === 'new') $leads[$i]['status'] = 'contacted';
+        $leads[$i]['last_campaign'] = 'finder/'.$k;
+      }
+      return true;
+    });
   }
   return [$sent, $fail, $lines];
 }

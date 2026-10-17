@@ -67,9 +67,12 @@ if ($dry) {
   exit(0);
 }
 
+/* Sabah indirim partisi (17 Eki 2026): Avrupa 08:30'dan sonra ÖNCE eski müşterilere en çok 300 indirim mektubu;
+   yeni butikler kalan payla (indirim payı onlara harcanmaz, vestra_mailbox_deals_reserve). */
+if (($dd = vestra_mailbox_deals_daily()) !== '') echo '[mailbox '.date('Y-m-d H:i').'] indirim partisi: '.$dd."\n";
 /* Otomatik modda bekleyen yeni butiklere kendiliğinden istek aç (açık istek yokken, bugünkü hak varken). */
 if (($cu = vestra_mailbox_auto_catchup()) !== '') echo '[mailbox '.date('Y-m-d H:i').'] otomatik: '.$cu."\n";
-/* Gece takip turu (13 Eki 2026): Avrupa saatiyle 23:45'ten sonra bugünkü tavandan artan pay, en az mektup almış butiklere. */
+/* Gece turu (13 Eki 2026; 17 Eki: indirim mektubu, pencere sunucu günü sonuna dek): Avrupa 23:45'ten sonra bugünkü tavandan artan pay. */
 if (($nt = vestra_mailbox_nightly()) !== '') echo '[mailbox '.date('Y-m-d H:i').'] gece takip: '.$nt."\n";
 $req = vestra_mailbox_take();
 if (!$req) exit(0);
