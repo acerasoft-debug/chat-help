@@ -39,31 +39,11 @@ if ($order === null) {
     exit;
 }
 
-// Kripto işlem özeti (varsa) + track id — her durumda kaydet.
-$crypto = '';
-if (!empty($d['txs'][0]) && is_array($d['txs'][0])) {
-    $t = $d['txs'][0];
-    $crypto = trim((string)($t['amount'] ?? '') . ' ' . (string)($t['currency'] ?? '') . ' ' . (string)($t['network'] ?? ''));
-}
-vr_order_update($orderId, ['payment_method' => 'crypto', 'oxapay' => array_filter([
-    'track_id'    => (string)($d['track_id'] ?? ($order['oxapay']['track_id'] ?? '')),
-    'status'      => $status,
-    'paid_crypto' => $crypto,
-    'updated_at'  => time(),
-])]);
-
+// Durumu uygula — sorgu yedeğiyle (vr_oxapay_sync) AYNI yol: paid → ödendi,
+// expired → failed, refunded → stok iadesi; ara durumlar yalnız kaydedilir.
 try {
-    if ($new === 'paid') {
-        vr_order_mark_paid($orderId);                 // stok/los/kupon/payout/mail (idempotent)
-    } elseif ($new === 'expired') {
-        if ((string)($order['status'] ?? '') !== 'paid') vr_order_mark_failed($orderId, 'oxapay_expired');
-    } elseif ($new === 'refunded') {
-        if ((string)($order['status'] ?? '') === 'paid') {
-            vr_order_update($orderId, ['status' => 'refunded', 'refunded_at' => time()]);
-            vr_stock_restore((array)$order['lines']);
-        }
-    }
-    // 'confirming' (paying): yalnız oxapay durumu güncellendi; sipariş pending kalır.
+    vr_oxapay_apply($order, $d);
+    vr_log('oxapay_callback', ['order' => $orderId, 'status' => $status, 'mapped' => $new]);
 } catch (Throwable $e) {
     http_response_code(500);                           // OxaPay tekrar dener
     vr_log('oxapay_callback_exception', ['order' => $orderId, 'err' => $e->getMessage()]);

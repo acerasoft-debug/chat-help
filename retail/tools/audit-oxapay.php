@@ -196,14 +196,17 @@ foreach (array_merge(glob($home . '/access-logs/*') ?: [], glob($home . '/logs/*
     if (!is_file($lf) || !is_readable($lf)) continue;
     $out['access_log']['files'][] = basename($lf) . ' (' . filesize($lf) . ' B)';
     if (filesize($lf) > 300 * 1024 * 1024) continue;
-    $fh = fopen($lf, 'r');
+    // cPanel günlükleri .gz arşivdir (ay içinde günlük güncellenir).
+    $gz = str_ends_with($lf, '.gz');
+    if ($gz && !function_exists('gzopen')) { $out['access_log']['files'][] = '  (zlib yok, gz okunamadı)'; continue; }
+    $fh = $gz ? gzopen($lf, 'rb') : fopen($lf, 'r');
     if (!$fh) continue;
-    while (($ln = fgets($fh)) !== false) {
+    while (($ln = $gz ? gzgets($fh, 8192) : fgets($fh)) !== false) {
         if (strpos($ln, 'oxapay-callback') === false && strpos($ln, 'tesekkurler') === false) continue;
         $ln = preg_replace('/(\d+\.\d+\.\d+)\.\d+/', '$1.x', trim($ln)) ?? '';
         $out['access_log']['hits'][] = mb_substr($ln, 0, 260);
     }
-    fclose($fh);
+    $gz ? gzclose($fh) : fclose($fh);
 }
 $out['access_log']['hits'] = array_slice($out['access_log']['hits'], -30);
 

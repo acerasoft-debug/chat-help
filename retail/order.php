@@ -42,6 +42,15 @@ if ($order === null && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 }
 
+// ------------------------------------------- OxaPay (kripto) durum eşitleme
+// Webhook gecikse ya da engellense bile müşteri bu sayfada doğru durumu görsün:
+// bekleyen kripto siparişi OxaPay'e sorulur (dönüşte hemen, sonra 20 sn'de bir).
+if ($order !== null && (string)($order['payment_method'] ?? '') === 'crypto' && (string)$order['status'] === 'pending') {
+    require_once __DIR__ . '/inc/oxapay.php';
+    $synced = vr_oxapay_sync($order, !empty($_GET['paid']) ? 0 : 20);
+    if ($synced !== null) $order = $synced;
+}
+
 // ----------------------------------------------- Stripe'tan dönüş doğrulaması
 if ($order !== null && (string)$order['status'] !== 'paid' && !empty($_GET['paid'])) {
     $sid = (string)($order['stripe']['session_id'] ?? '');

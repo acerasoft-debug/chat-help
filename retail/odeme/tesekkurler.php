@@ -10,11 +10,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../inc/view.php';
 require_once __DIR__ . '/../inc/orders.php';
+require_once __DIR__ . '/../inc/oxapay.php';
 
 $id  = trim((string)($_GET['order'] ?? ''));
 $tok = trim((string)($_GET['t'] ?? ''));
 
-if ($id !== '' && $tok !== '' && vr_order_get($id, $tok) !== null) {
+$order = ($id !== '' && $tok !== '') ? vr_order_get($id, $tok) : null;
+if ($order !== null) {
+    // OxaPay'den dönüş: webhook henüz gelmediyse (gecikme/engel) durumu şimdi
+    // sor — müşteri sipariş sayfasını doğru durumla ("ödendi") görsün.
+    vr_oxapay_sync($order, 0);
     vr_redirect('order.php', ['id' => $id, 'token' => $tok, 'paid' => 1]);
 }
 // Token yoksa/eşleşmezse sipariş arama ekranına.
