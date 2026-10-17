@@ -1,4 +1,4 @@
-name: (Zamanlı) Brevo ikinci mektup — günde 2 × 50
+name: (Zamanlı) Brevo ikinci mektup — günde 150 (2 × 50 + 23:45 tamamlama)
 # 13 Eki 2026 (operatör: "her gün … 100 adet de Brevo'dan gidebilir"). Günde iki parti: 07:12 ve 13:12 UTC
 # (09:12 / 15:12 Avrupa). Her parti send-outreach.yml'i DAĞITIM dalından (claude/wizardly-planck-7ylnmk —
 # tam sürüm orada) Winter 26/27 ikinci mektubu için başlatır: ilk mektubu en az 2 gün önce almış, abonelikten
@@ -13,6 +13,14 @@ name: (Zamanlı) Brevo ikinci mektup — günde 2 × 50
 # gönderilsin"): her parti Brevo'nun günlük hakkından EN AZ 100'ü bırakır (quota_reserve=100); gece taraması 23:45 Avrupa.
 # Asıl tetikleyici SUNUCU (vestra/inc/ops_tick.php, 09:12 / 15:12 / 23:45 Avrupa) — GitHub'ın kendi zamanlaması koşuları
 # atlıyordu; aşağıdaki cron'lar yalnız yedek. "Çift koşu" adımı: son 100 dk içinde başka bir brevo-daily koşusu varsa atlar.
+#
+# 17 Eki 2026 (operatör: "Brevo'dan günde 150 e-mail gitmeli, hak kalırsa 23.45'te tamamlanmalı … hataları en aza
+# indir"): GÜNLÜK SINIR 150 — her parti member_spec "daily=150" taşır; send-outreach bugün (sunucu günü) Brevo'dan
+# gideni sayar ve partiyi kalanla kırpar. 09:12 ve 15:12'de 50'şer, 23:45 gece taraması günün kalanını (150'ye kadar)
+# tamamlar; sınır dolunca parti "gonderildi: 0" yazar ve tarama durur. Kota partiden azsa parti artık küçülür (eskiden
+# bütünüyle reddediliyordu). Seçim artık geri dönmüş adresleri, tahmin listelerini, hedef dışı ve durdurulan ülke
+# kayıtlarını da eler; damgalar her gönderimden hemen sonra taze listeye yazılır (sunucunun eşzamanlı "geri döndü"
+# işaretleri ve damgaları artık ezilmez).
 #
 # GECE TARAMASI (13 Eki, operatör: "her gün gece 11.45'te ne kadar açık varsa … Brevo'nun 300'ünden arta kalan …
 # en az e-posta alan butiklere"): 20:45 UTC (22:45 Avrupa yaz / 21:45 kış) — Brevo'nun o günkü kotasından kalanla
@@ -70,7 +78,7 @@ jobs:
             -f count="${{ github.event.inputs.count || '50' }}" \
             -f dry_run="${{ github.event.inputs.dry_run || 'false' }}" \
             -f new_collection=true -f newcoll_letter=winter -f min_brands=1 -f newcoll_min_days=2 \
-            -f exclude_countries="United States,Canada,South Korea,Germany,Deutschland" -f quota_reserve=100 \
+            -f exclude_countries="United States,Canada,South Korea,Germany,Deutschland" -f quota_reserve=100 -f member_spec="daily=150" \
             -f skip_names="Fielmann,BSTN,CNCPTS,Altermundi,Capel,Kaotiko,Oktshirt,Team Store,targetcenter,Racing Club,Strasbourg,Loretxiki,Fantasía Kids,Lola Jiménez,Mandarina,Black in Black,Piluka,Glamcult,Mackintosh,Joseph,Lyle & Scott,Kicks,Hatstore,Kids Brand Store,Limoneti,Lapin House,Klamöttchen,Petit Ilu,W&G,Shi Cashmere,Kindermode,kids,Scalpers,Pedro del Hierro,Claudia Sträter,Soccerfanshop,Lesage Bridal,Ashley Stewart,Bealls,Tuckernuck,260 Sample Sale,StofShop,Atlas Stoked,Milk,Golf Club"
           echo "Brevo partisi dağıtım dalında başlatıldı (send-outreach.yml, count=${{ github.event.inputs.count || '50' }})."
 
@@ -91,7 +99,7 @@ jobs:
                 --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.createdAt > \"$since\")] | length")
           echo "son 100 dk: $n başka koşu"
           if [ "${n:-0}" -gt 0 ] && [ "${{ github.event.inputs.dry_run || 'false' }}" != "true" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "atlandı: aynı slot zaten çalıştı"; fi
-      - name: Kotadan kalanla 50'lik partiler (0 gönderene kadar, en çok 5)
+      - name: Günün kalanı (150'ye kadar) 50'lik partilerle (0 gönderene kadar, en çok 5)
         if: steps.guard.outputs.skip != 'true'
         run: |
           set -u
@@ -102,7 +110,7 @@ jobs:
             gh workflow run send-outreach.yml --repo "$REPO" --ref claude/wizardly-planck-7ylnmk \
               -f count=50 -f dry_run="$DRY" \
               -f new_collection=true -f newcoll_letter=winter -f min_brands=1 -f newcoll_min_days=2 \
-              -f exclude_countries="United States,Canada,South Korea,Germany,Deutschland" -f quota_reserve=100 -f skip_names="$SKIP" || { echo "parti $n başlatılamadı"; break; }
+              -f exclude_countries="United States,Canada,South Korea,Germany,Deutschland" -f quota_reserve=100 -f member_spec="daily=150" -f skip_names="$SKIP" || { echo "parti $n başlatılamadı"; break; }
             # başlattığımız koşuyu bul (bizden sonra yaratılan, bu dalda, workflow_dispatch)
             rid=""
             for i in $(seq 1 30); do
