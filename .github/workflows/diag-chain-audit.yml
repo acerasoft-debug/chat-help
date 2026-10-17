@@ -1,0 +1,65 @@
+name: (Teşhis) Zincir / marka mağazası / market denetimi — bugünkü indirim alıcıları + takip havuzu (salt okunur)
+
+# 17 Eki 2026, operatör: "noreply@g-star.com buna neden e-mail gönderiyorsun? distribütör ve büyük zincir butiklere ya da
+# marketlere göndermemen gerektiğini söylemiştim". G-Star Gent mağazası 31 Tem OSM listesinden gelmiş, eski kayıt; bugünkü
+# indirim partisi yazdı. Bu teşhis: (1) bugün indirim mektubu alan HER kayıt — firma, e-posta ALAN ADI (yerel kısım
+# maskeli), site, kaynak, eklenme; (2) takip havuzunda ALAN ADINI paylaşan kayıtlar (zincir işareti); (3) sitesi mağaza
+# bulucu sayfası olanlar (/stores/, /winkels/, /filialen/…); (4) kaynak / eklenme tarihi dağılımı. Hiçbir şey yazmaz.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          script: |
+            mkdir -p ~/vestra_tmp
+            cat > ~/vestra_tmp/ca.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors', '1'); error_reporting(E_ALL);
+            chdir(getenv('HOME').'/public_html');
+            require_once 'inc/products.php'; require_once 'inc/leads.php'; require_once 'inc/notify.php'; require_once 'inc/finder.php'; require_once 'inc/mailbox.php';
+            $dom = fn(string $e) => strtolower(substr((string)strrchr($e, '@'), 1));
+            $host = function (string $u): string { $u = trim($u); if ($u === '') return ''; if (!preg_match('#^https?://#i', $u)) $u = 'https://'.$u; return (string)preg_replace('/^www\d*\./', '', strtolower((string)parse_url($u, PHP_URL_HOST))); };
+            $leads = vestra_leads(); $today = date('Y-m-d');
+            echo "== BUGUN indirim mektubu alanlar ==\n"; $k = 0;
+            foreach ($leads as $l) {
+              $got = false; foreach ((array)($l['followups'] ?? []) as $f) if (is_array($f) && ($f['campaign'] ?? '') === 'deals' && str_starts_with((string)($f['at'] ?? ''), $today)) $got = true;
+              if (!$got) continue; $k++;
+              $w = (string)($l['website'] ?? ''); $wp = (string)parse_url(preg_match('#^https?://#i', $w) ? $w : 'https://'.$w, PHP_URL_PATH);
+              printf("%3d %-34s @%-28s %-30s %-14s %s %s\n", $k, mb_substr((string)($l['company'] ?? ''), 0, 34), $dom((string)($l['email'] ?? '')), mb_substr($host($w).($wp && $wp !== '/' ? mb_substr($wp, 0, 22) : ''), 0, 30), mb_substr((string)($l['source'] ?? ''), 0, 14), substr((string)($l['added_at'] ?? ''), 0, 10), mb_substr((string)($l['country'] ?? ''), 0, 12));
+            }
+            $pool = vestra_mailbox_followup_targets(5000);
+            echo "\n== TAKIP HAVUZU: ".count($pool)." kayit ==\n";
+            $src = []; $mon = []; $byDom = []; $loc = 0; $locRows = [];
+            foreach ($leads as $l) { $d = vestra_mailbox_shop_domain(vestra_email_clean((string)($l['email'] ?? ''))); if ($d !== '') $byDom[$d][] = $l; $h = $host((string)($l['website'] ?? '')); if ($h !== '' && $h !== $d) $byDom['site:'.$h][] = $l; }
+            foreach ($pool as $l) {
+              $src[(string)($l['source'] ?? '?')] = ($src[(string)($l['source'] ?? '?')] ?? 0) + 1;
+              $m = substr((string)($l['added_at'] ?? ''), 0, 7); $mon[$m] = ($mon[$m] ?? 0) + 1;
+              $w = strtolower((string)($l['website'] ?? ''));
+              if (preg_match('#/(stores?|store-?locator|storelocator|winkels?|filiale[n]?|boutiques?|negozi|tiendas|lojas|magasins?|shops?/[a-z-]+/[a-z-]+|find-a-store|storefinder|standorte)(/|$|\?)#', $w)) { $loc++; if (count($locRows) < 40) $locRows[] = mb_substr((string)($l['company'] ?? ''), 0, 30).' · '.mb_substr(preg_replace('#^https?://(www\.)?#', '', $w), 0, 60); }
+            }
+            arsort($src); echo "kaynak: ".json_encode($src, JSON_UNESCAPED_UNICODE)."\n"; ksort($mon); echo "eklenme ayi: ".json_encode($mon)."\n";
+            echo "\nsitesi magaza-bulucu sayfasi olan (zincir/marka magazasi isareti): {$loc}\n"; foreach ($locRows as $r) echo "  {$r}\n";
+            echo "\nalan adini / siteyi 3+ KAYITLA paylasan (zincir isareti; havuzdakiler):\n";
+            $poolIds = array_flip(array_map(fn($l) => (string)($l['id'] ?? ''), $pool)); $chains = [];
+            foreach ($byDom as $d => $ls) { if (count($ls) < 3) continue; $inPool = count(array_filter($ls, fn($x) => isset($poolIds[(string)($x['id'] ?? '')]))); if ($inPool) $chains[$d] = [count($ls), $inPool, mb_substr((string)($ls[0]['company'] ?? ''), 0, 28)]; }
+            uasort($chains, fn($a, $b) => $b[0] <=> $a[0]);
+            foreach (array_slice($chains, 0, 60, true) as $d => [$n, $p, $c]) printf("  %-40s kayit %3d · havuzda %3d · %s\n", $d, $n, $p, $c);
+            echo "  toplam: ".count($chains)." alan adi\n";
+            echo "\nmarket / supermarket / hipermarket / magaza zinciri adlari (havuzda):\n"; $mk = 0;
+            foreach ($pool as $l) { $hay = mb_strtolower((string)($l['company'] ?? '').' '.(string)($l['website'] ?? '')); if (preg_match('/supermar|hypermar|hipermer|ipermerc|\bmarket\b|\bmarkt\b|mercado|carrefour|lidl|aldi|spar\b|migros|coop\b|kaufland|auchan|leclerc|intermarch|monoprix|rewe|edeka|tesco|sainsbury|asda|albert heijn|jumbo|delhaize|colruyt|walmart|target\b|costco|primark|kik\b|takko|ernsting|c&a|h&m|zara|mango|bershka|pull&bear|stradivarius|massimo dutti|uniqlo|gap\b|next\b|marks|tk ?maxx|tj ?maxx|peek|galeria|karstadt|kaufhof|el corte|printemps|galeries lafayette|bijenkorf|hema\b|action\b|woolworth|pepco|sinsay|reserved|lpp|decathlon|intersport|jd sports|foot ?locker|snipes|zalando|about you|boozt/u', $hay)) { $mk++; if ($mk <= 40) echo "  ".mb_substr((string)($l['company'] ?? ''), 0, 40)." · @".$dom((string)($l['email'] ?? ''))."\n"; } }
+            echo "  toplam: {$mk}\n";
+            PHPEOF
+            php ~/vestra_tmp/ca.php; rc=$?; rm -f ~/vestra_tmp/ca.php; exit $rc
