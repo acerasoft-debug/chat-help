@@ -17,6 +17,11 @@ $to   = trim((string)($_GET['to'] ?? ''));
 $fromTs = $from !== '' ? (strtotime($from . ' 00:00:00') ?: 0) : 0;
 $toTs   = $to !== '' ? (strtotime($to . ' 23:59:59') ?: PHP_INT_MAX) : PHP_INT_MAX;
 
+// Kripto (OxaPay) yedeği: webhook gelmemiş bekleyen faturaları liste açılırken
+// OxaPay'e sor — en çok 5 dakikada bir, 2 dk'dan eski olanlar; cron gerekmez.
+require_once __DIR__ . '/../inc/oxapay.php';
+vr_oxapay_sweep(300, 120);
+
 $all = vr_orders();
 usort($all, fn($a, $b) => (int)($b['created_at'] ?? 0) <=> (int)($a['created_at'] ?? 0));
 $count = fn(string $k) => count(array_filter($all, fn($o) => vr_admin_order_match($o, $k)));

@@ -26,18 +26,18 @@ require_once $root . '/inc/oxapay.php';
 
 if (!vr_oxapay_ready()) { echo gmdate('c'), " oxapay: anahtar yapılandırılmamış\n"; exit(0); }
 
-$checked = 0;
-$changed = [];
+$before = [];
 foreach (vr_orders() as $o) {
-    if (!is_array($o)) continue;
-    if ((string)($o['payment_method'] ?? '') !== 'crypto' || (string)($o['status'] ?? '') !== 'pending') continue;
-    if ((string)($o['oxapay']['track_id'] ?? '') === '') continue;
-    if (time() - (int)($o['created_at'] ?? 0) < $minAge) continue;
-    $checked++;
-    $u = vr_oxapay_sync($o, 0);
-    if ($u !== null && (string)($u['status'] ?? '') !== 'pending') {
-        $changed[] = (string)($u['number'] ?? $u['id']) . ' → ' . (string)$u['status'];
+    if (is_array($o) && (string)($o['payment_method'] ?? '') === 'crypto' && (string)($o['status'] ?? '') === 'pending') {
+        $before[(string)$o['id']] = (string)($o['number'] ?? $o['id']);
     }
 }
-echo gmdate('c'), " kontrol edilen: $checked · değişen: ", count($changed),
-     ($changed ? "\n  " . implode("\n  ", $changed) : ''), "\n";
+$changed = vr_oxapay_sweep(0, $minAge, 200);        // admin ile aynı yol, eşiksiz
+$after   = [];
+foreach (vr_orders() as $o) {
+    if (is_array($o) && isset($before[(string)$o['id']]) && (string)($o['status'] ?? '') !== 'pending') {
+        $after[] = $before[(string)$o['id']] . ' → ' . (string)$o['status'];
+    }
+}
+echo gmdate('c'), ' bekleyen: ', count($before), " · değişen: $changed",
+     ($after ? "\n  " . implode("\n  ", $after) : ''), "\n";

@@ -253,3 +253,40 @@ function vr_oxapay_sync(array $order, int $minInterval = 20): ?array
     }
     return vr_order_get((string)$order['id']);
 }
+
+/**
+ * Bekleyen TÜM kripto siparişlerini OxaPay ile eşitle (webhook yedeği, cron
+ * gerekmez: admin sipariş listesi açılınca ve CLI'dan çağrılır).
+ * $minEvery: en çok bu sıklıkta çalışsın (0 = hemen; data/oxapay-sync-state.json),
+ * $minAge: bu kadar saniyeden yeni siparişlere sorma, $max: tek seferde en çok
+ * bu kadar sipariş (her biri bir API çağrısı). Dönüş: durumu değişen sayısı.
+ * Çağıranın inc/orders.php'yi yüklemiş olması gerekir.
+ */
+function vr_oxapay_sweep(int $minEvery = 300, int $minAge = 120, int $max = 10): int
+{
+    if (!vr_oxapay_ready()) return 0;
+    $now = time();
+    if ($minEvery > 0) {
+        $run = false;
+        vr_store_mutate('oxapay-sync-state.json', static function ($s) use ($now, $minEvery, &$run) {
+            if (!is_array($s)) $s = [];
+            if ($now - (int)($s['last_sweep'] ?? 0) < $minEvery) return null;   // yazma yok
+            $s['last_sweep'] = $now;
+            $run = true;
+            return $s;
+        });
+        if (!$run) return 0;
+    }
+    $changed = 0;
+    $asked   = 0;
+    foreach (vr_orders() as $o) {
+        if (!is_array($o)) continue;
+        if ((string)($o['payment_method'] ?? '') !== 'crypto' || (string)($o['status'] ?? '') !== 'pending') continue;
+        if ((string)($o['oxapay']['track_id'] ?? '') === '') continue;
+        if ($now - (int)($o['created_at'] ?? 0) < $minAge) continue;
+        if ($asked++ >= $max) break;
+        $u = vr_oxapay_sync($o, 0);
+        if ($u !== null && (string)($u['status'] ?? '') !== 'pending') $changed++;
+    }
+    return $changed;
+}

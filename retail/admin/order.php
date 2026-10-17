@@ -18,6 +18,11 @@ require_once __DIR__ . '/_nav.php';
 $who = vr_admin_require();
 
 $o = vr_order_get((string)($_GET['id'] ?? ''));
+// Bekleyen kripto siparişi: OxaPay'e sor (webhook gelmemişse bile doğru durum).
+if ($o !== null && (string)($o['payment_method'] ?? '') === 'crypto' && (string)($o['status'] ?? '') === 'pending') {
+    require_once __DIR__ . '/../inc/oxapay.php';
+    $o = vr_oxapay_sync($o, 10) ?? $o;
+}
 if ($o === null) { http_response_code(404); vr_admin_head('Nicht gefunden'); echo '<p>Bestellung nicht gefunden.</p>'; vr_admin_foot(); exit; }
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
