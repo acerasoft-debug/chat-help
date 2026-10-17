@@ -1123,4 +1123,24 @@ document.addEventListener('error', function (e) {
   } else {
     sync();
   }
+
+  /* Çift gönderimi önle: ödeme sayfasına geçiş (sipariş yazımı + sağlayıcı
+     faturası) birkaç saniye sürebilir; bu sırada ikinci tıklama ikinci bir
+     sipariş yazıyordu. Düğme bir sonraki döngüde kapatılır ki ilk gönderim
+     eksiksiz gitsin; geri tuşuyla dönüşte (bfcache) yeniden açılır. */
+  var payForm = btn && btn.form;
+  if (payForm) {
+    var paySent = false;
+    payForm.addEventListener('submit', function (e) {
+      if (paySent) { e.preventDefault(); return; }
+      paySent = true;
+      btn.setAttribute('aria-busy', 'true');
+      setTimeout(function () { btn.disabled = true; }, 0);
+    });
+    window.addEventListener('pageshow', function () {
+      paySent = false;
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+    });
+  }
 })();

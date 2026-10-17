@@ -77,7 +77,12 @@ function vr_security_headers(): void
         . "script-src 'self'; "
         . "frame-src https://js.stripe.com https://hooks.stripe.com; "
         . "connect-src 'self' https://api.stripe.com; "
-        . "form-action 'self' https://checkout.stripe.com; "
+        // form-action: Chrome/Edge bu kuralı form POST'unu İZLEYEN yönlendirmeye
+        // de uygular. Kasa formu bize POST eder, biz 303 ile ödeme sayfasına
+        // göndeririz — hedef burada listeli değilse tarayıcı geçişi sessizce
+        // engeller (sipariş yazılır, müşteri ödeme sayfasını hiç görmez).
+        // Bu yüzden her ödeme sağlayıcısının sayfa adresi burada olmak zorunda.
+        . "form-action 'self' https://checkout.stripe.com https://pay.oxapay.com https://*.oxapay.com; "
         . "base-uri 'self'; object-src 'none'"
     );
 }
