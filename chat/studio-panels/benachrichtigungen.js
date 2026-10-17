@@ -115,6 +115,7 @@
     g('bnStTitle').textContent = o.title || '';
     g('bnStText').innerHTML = o.text || '';
     var st = g('bnStSteps'); st.innerHTML = (o.steps || []).map(function (s) { return '<li>' + s + '</li>'; }).join(''); st.classList.toggle('hidden', !(o.steps && o.steps.length));
+    var nt = g('bnStNote'); nt.textContent = o.note || ''; nt.classList.toggle('hidden', !o.note);
     var en = g('bnEnable'); show('bnEnable', !!o.enable); if (o.enable) en.textContent = o.enable;
     show('bnTest', !!o.test); show('bnDisable', !!o.disable); show('bnRecheck', !!o.recheck);
     var A = B(); show('bnInstall', !!(A && A.canInstall));
@@ -149,8 +150,7 @@
         paintStatus({ tone: 'gold', icon: 'share', tag: 'gold', tagText: 'iPhone & iPad', dev: dev, title: 'Zuerst zum Home-Bildschirm hinzufügen',
           text: 'Apple erlaubt Benachrichtigungen nur für installierte Web-Apps (ab iOS 16.4). So geht’s – dauert 20 Sekunden:',
           steps: ['In Safari unten auf <b>Teilen</b> tippen (Quadrat mit Pfeil nach oben).', '<b>„Zum Home-Bildschirm“</b> wählen und <b>„Hinzufügen“</b> tippen.',
-            'ChatHelp über das <b>neue Symbol</b> öffnen, hier „Benachrichtigungen“ wählen und <b>„Benachrichtigungen aktivieren“</b> tippen.'], recheck: false });
-        g('bnStText').innerHTML += mailHint ? '<br><span class="mute small">' + h(mailHint.trim()) + '</span>' : '';
+            'ChatHelp über das <b>neue Symbol</b> öffnen, hier „Benachrichtigungen“ wählen und <b>„Benachrichtigungen aktivieren“</b> tippen.'], note: mailHint.trim() });
       } else {
         paintStatus({ tone: 'mute', icon: 'block', tag: '', tagText: 'Nicht unterstützt', dev: dev, title: 'Dieser Browser kann keine Push-Benachrichtigungen',
           text: h(A.installHint() && A.isIOS ? A.installHint() : 'Nutze Chrome, Edge, Firefox oder Safari – oder die ChatHelp-App.') + mailHint });
@@ -295,12 +295,12 @@
     var c = colors(it.event, it.group), tgt = panelTarget(it.url);
     return '<div class="call" data-id="' + it.id + '" role="button" tabindex="0" style="display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:.15s' + (it.read ? '' : ';background:#fffcf4;border-color:#eadbb0') + '">' +
       iconBox(it.event, it.group) +
-      '<div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">' +
-      '<span style="font-weight:' + (it.read ? '500' : '700') + ';color:' + (it.read ? 'var(--ink2)' : 'var(--ink)') + ';min-width:0;overflow-wrap:anywhere">' + h(it.title) + '</span>' +
-      '<span class="mute small" style="white-space:nowrap;flex:0 0 auto" title="' + h(dfull(it.created)) + '">' + h(ago(it.created)) + '</span></div>' +
-      (it.body ? '<div class="small" style="color:var(--ink2);margin-top:3px;white-space:pre-line;overflow-wrap:anywhere">' + h(it.body) + '</div>' : '') +
-      '<div class="row" style="gap:6px;margin-top:7px"><span class="tag ' + c[2] + '" style="font-size:10px;padding:3px 8px">' + h(it.label) + '</span>' +
-      (it.url && tgt !== 'benachrichtigungen' ? '<span class="small" style="color:var(--gold);font-weight:600">Öffnen →</span>' : '') + '</div></div>' +
+      '<div style="flex:1;min-width:0">' +
+      '<div style="font-weight:' + (it.read ? '500' : '700') + ';color:' + (it.read ? 'var(--ink2)' : 'var(--ink)') + ';overflow-wrap:break-word;line-height:1.4">' + h(it.title) + '</div>' +
+      (it.body ? '<div class="small" style="color:var(--ink2);margin-top:3px;white-space:pre-line;overflow-wrap:break-word">' + h(it.body) + '</div>' : '') +
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap"><div class="row" style="gap:8px"><span class="tag ' + c[2] + '" style="font-size:10px;padding:3px 8px">' + h(it.label) + '</span>' +
+      (it.url && tgt !== 'benachrichtigungen' ? '<span class="small" style="color:var(--gold);font-weight:600">Öffnen →</span>' : '') + '</div>' +
+      '<span class="mute small" style="white-space:nowrap" title="' + h(dfull(it.created)) + '">' + h(ago(it.created)) + '</span></div></div>' +
       (it.read ? '' : '<span title="ungelesen" style="width:9px;height:9px;border-radius:50%;background:var(--gold);flex:0 0 auto;margin-top:7px;box-shadow:0 0 0 3px var(--goldl)"></span>') +
       '</div>';
   }

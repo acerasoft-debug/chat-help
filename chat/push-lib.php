@@ -287,7 +287,7 @@ function push_resubscribe(string $oldEndpoint, array $sub): int {
     foreach($s->fetchAll(PDO::FETCH_ASSOC) as $d){
         if(!hash_equals((string)$d['endpoint'],$oldEndpoint)) continue;
         th_db()->prepare("DELETE FROM push_devices WHERE id=?")->execute([$d['id']]);
-        push_device_upsert((int)$d['account_id'],$d['scope'],$d['ref'],'webpush',$parsed['data']+['label'=>$d['label']]); $n++;
+        push_device_upsert((int)$d['account_id'],$d['scope'],$d['ref'],'webpush',array_merge($parsed['data'],$d['label']!=='' ? ['label'=>$d['label']] : [])); $n++;   // Bezeichnung des Geräts bleibt
     }
     return $n;
 }

@@ -37,6 +37,12 @@
     if (extra) for (var k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) r[k] = extra[k];
     return r;
   }
+  function withTimeout(promise, ms, label) {
+    return new Promise(function (resolve, reject) {
+      var t = setTimeout(function () { var e = new Error(label || 'timeout'); e.name = 'TimeoutError'; reject(e); }, ms);
+      Promise.resolve(promise).then(function (v) { clearTimeout(t); resolve(v); }, function (e) { clearTimeout(t); reject(e); });
+    });
+  }
   function mkErr(reason, message) { var e = new Error(message || reason); e.reason = reason; e.userMessage = message; return e; }
   function emit(name, detail) {
     safe(function () {
@@ -192,11 +198,12 @@
       var old = s && s.options && s.options.applicationServerKey;
       if (s && (!old || bytesEqual(old, key))) return s;
       return (s ? s.unsubscribe().catch(noop) : Promise.resolve()).then(function () {
-        return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+        return withTimeout(reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }), 25000, 'Zeitüberschreitung');
       });
     }).catch(function (e) {
       var n = (e && e.name) || '', m = (e && e.message) || '';
-      if (n === 'NotAllowedError') throw mkErr('denied', deniedHint());
+      if (n === 'NotAllowedError' && safe(function () { return Notification.permission; }) !== 'granted') throw mkErr('denied', deniedHint());
+      if (/permission denied|incognito|private/i.test(m) || n === 'NotAllowedError') throw mkErr('private_mode', 'In privaten Fenstern (Inkognito) erlaubt der Browser keine Push-Benachrichtigungen. Bitte ChatHelp in einem normalen Fenster öffnen und dort aktivieren.');
       if (/brave/i.test(ua) || (navigator.brave && true)) throw mkErr('push_service', 'Der Push-Dienst ist im Browser ausgeschaltet. In Brave: Einstellungen → Datenschutz und Sicherheit → „Google-Dienste für Push-Nachrichten verwenden“ einschalten und erneut versuchen.');
       throw mkErr('push_service', 'Der Push-Dienst des Browsers ist gerade nicht erreichbar' + (m ? ' (' + m + ')' : '') + '. Bitte Internetverbindung prüfen und erneut versuchen.');
     });
