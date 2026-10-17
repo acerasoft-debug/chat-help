@@ -1015,6 +1015,9 @@ $ftK = array_column(vestra_mailbox_followup_targets(50), null, 'id');
 $t('operatörün Brevo için ayıkladığı adlar (Fielmann, Scalpers…) indirim de almaz; gözlükçü moda dışı', !isset($ftK['FI']) && !isset($ftK['SC']) && vestra_lead_off_target(['company' => 'Optik Muster', 'email' => 'a@optik-muster.example']));
 $t('market / süpermarket moda dışı (Supermercado discount, Fish Market)', vestra_lead_off_target(['company' => 'Supermercado discount', 'email' => 'a@stockoutlet.es']) && vestra_lead_off_target(['company' => 'Fish Market', 'email' => 'a@fishmarketstudio.ca'])
    && !vestra_lead_off_target(['company' => 'Soho Boutique', 'email' => 'a@sohoboutique.example']));
+foreach (['Premium Secondhand', 'Tola Vintage', 'Labels Resale Boutique', 'GardeRobe', 'Mari Fin Bridal', 'De Stafford Bridal', 'Dépôt-vente Chic'] as $xn)
+  $t('indirim takibi ikinci el / vintage / gelinlik dükkânına gitmez: '.$xn, vestra_mailbox_deals_excluded(['company' => $xn, 'email' => $xn === 'GardeRobe' ? 'a@garderobe-secondhand.at' : 'a@x.example']));
+$t('normal butik indirim takibinden çıkarılmaz', !vestra_mailbox_deals_excluded(['company' => 'Moosbrugger', 'email' => 'a@mode-moosbrugger.at', 'website' => 'mode-moosbrugger.at']));
 $t('eski OSM kaydında tek marka yetmez, iki marka gerekir', !isset($ftK['O1B']) && isset($ftK['O2B']));
 vestra_write_json('leads.json', [$gstar, ['premium_brands' => []] + $sx('NB', 'info@nobrands.example', 30), $sx('YB', 'info@withbrands.example', 30)]);
 $t('indirim takibi: G-Star yok, sitesinde premium marka görülmemiş dükkân yok, marka kanıtlı dükkân var', !isset($ftG['GS']) && !isset($ftG['NB']) && isset($ftG['YB']) && !vestra_mailbox_followup_still_ok('NB') && !vestra_mailbox_followup_still_ok('GS'));

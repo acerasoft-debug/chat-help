@@ -12932,3 +12932,6 @@ bulucu süzgecinden (marka kanıtı) hiç geçmemiş OSM kayıtları.
   bulucudan geçmemiş kaynaklarda (OSM / listeler) EN AZ İKİ premium marka şartı (`vestra_mailbox_brand_evidence_ok`);
   gözlükçü / fan-kulüp mağazası moda dışı; bu zincirlerin alan adları `vestra_chain_domains()`'te.
 - **İndirim partisi KAPALI bırakıldı** (operatör onayı olmadan yeniden açılmaz): `mailbox-deals-switch.yml enable=true`.
+- **Operatör kararı (17 Eki 2026, 19:2x Avrupa):** indirim partisi temizlenmiş havuzla YENİDEN AÇIK, ama ikinci el / vintage /
+  konsinye ve gelinlik dükkânları çıkarıldı (`vestra_mailbox_deals_excluded`); başlangıç ertesi gün 08:30
+  (`mailbox-deals-switch.yml enable=true start=tomorrow`: o günün denemeleri ve 23:45 turu tükenmiş sayılır).

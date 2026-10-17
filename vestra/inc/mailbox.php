@@ -461,6 +461,14 @@ function vestra_campaign_name_skipped(array $l): bool {
   foreach (VESTRA_CAMPAIGN_SKIP_NAMES as $k) if (str_contains($n, $k)) return true;
   return false;
 }
+/* 17 Eki 2026 (operatör, G-Star olayından sonra havuz denetimi: "ikinci el / vintage ve gelinlikçileri de çıkar"): indirim
+   takibi toptan alıcı olmayan ikinci el / vintage / konsinye ve gelinlik dükkânlarına gitmez (ad, site, e-posta alan adı). */
+function vestra_mailbox_deals_excluded(array $l): bool {
+  $em = strtolower((string)($l['email'] ?? '')); $ed = ($p = strrpos($em, '@')) !== false ? substr($em, $p + 1) : '';
+  $hay = mb_strtolower((string)($l['company'] ?? '').' '.(string)($l['website'] ?? '').' '.$ed);
+  return (bool)preg_match('/second ?hand|secondhand|2nd ?hand|seconde ?main|tweede ?hands|segunda ?mano|second ?mano|gebraucht|usato|resale|re-?sale|vintage|consign|d[ée]p[ôo]t[- ]vente|brocante|thrift|bridal|bride|braut|mari[ée]e|mariage|sposa|novia|bruid|wedding|hochzeit|br[uú]dkjole|brudklänning/u', $hay);
+}
+
 /** Takip (indirim) için marka kanıtı yeterli mi? Bulucunun kendi kayıtları ('web-search') 1, eski kaynaklar 2 marka. */
 function vestra_mailbox_brand_evidence_ok(array $l): bool {
   $n = count(array_filter((array)($l['premium_brands'] ?? [])));
@@ -671,7 +679,7 @@ function vestra_mailbox_followup_targets(int $limit, ?array $leads = null, ?int 
     if ((function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) || vestra_lead_looks_dead($l) || vestra_lead_off_target($l)) continue;
     if (vestra_lead_send_paused($l)) continue;   // 14 Eki 2026: Almanya şimdilik durduruldu
     if (vestra_lead_source_guessed($l)) continue;   // 15 Eki 2026: tahmin listelerine takip de yok
-    if (!vestra_mailbox_brand_evidence_ok($l) || vestra_campaign_name_skipped($l)) continue;   // 17 Eki 2026: marka kanıtı şart, operatörün ayıkladığı adlar yok
+    if (!vestra_mailbox_brand_evidence_ok($l) || vestra_campaign_name_skipped($l) || vestra_mailbox_deals_excluded($l)) continue;   // 17 Eki 2026: marka kanıtı şart; ayıklanan adlar, ikinci el / gelinlik yok
     $lf = vestra_mailbox_letters_for($e, $ix);
     if (isset($acc['mail'][$e]) || ($lf['dom'] !== '' && isset($acc['sellerDom'][$lf['dom']]))) continue;   // kayıtlı alıcı / satıcı
     $lt = vestra_lead_letters($l);
@@ -727,7 +735,7 @@ function vestra_mailbox_followup_still_ok(string $leadId, ?int $now = null): boo
   foreach ($leads as $l) {
     if ((string)($l['id'] ?? '') !== $leadId) continue;
     if ((string)($l['status'] ?? '') !== 'contacted' || !empty($l['unsubscribed'])) return false;
-    if (!vestra_mailbox_brand_evidence_ok($l) || vestra_campaign_name_skipped($l)) return false;
+    if (!vestra_mailbox_brand_evidence_ok($l) || vestra_campaign_name_skipped($l) || vestra_mailbox_deals_excluded($l)) return false;
     if ((function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) || vestra_lead_off_target($l) || vestra_email_is_junk((string)($l['email'] ?? ''))) return false;
     $ix = vestra_mailbox_letter_index($leads); $e = vestra_email_clean((string)($l['email'] ?? ''));
     if (vestra_mailbox_addr_stopped($e, $ix)) return false;
