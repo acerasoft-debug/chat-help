@@ -65,7 +65,6 @@ jobs:
             echo "\nlead toplam ".count($leads)." · ".json_encode($cnt)."\n";
             echo "uygun eski musteri mektup sayisi dagilimi: ".json_encode($letters)."\n";
             arsort($byC); echo "5+ gun dinlenmis uygun (ulke, ilk 15): ".json_encode(array_slice($byC, 0, 15, true), JSON_UNESCAPED_UNICODE)."\n";
-            echo "mevcut takip hedefi (followup_targets 2000): ".count(vestra_mailbox_followup_targets(2000))."\n";
             echo "gonderime hazir yeni (web): ".count(vestra_finder_send_targets(2000, 'web'))." · (all): ".count(vestra_finder_send_targets(2000, 'all'))."\n";
             $today = date('Y-m-d'); $mb = 0; $br = 0; $brW = 0;
             foreach ($leads as $l) {
@@ -75,7 +74,11 @@ jobs:
             echo "\nbugun ({$today}, sunucu saati ".date('H:i T').") sunucu: {$mb} · Brevo ikinci/ucuncu mektup: {$br} · tavan bugun ".vestra_mailbox_cap_today()." · kalan ".vestra_mailbox_left_today()."\n";
             echo "geri donme freni: ".json_encode(vestra_mailbox_bounce_stats())."\n";
             $cfg = vestra_mailbox_cfg(); unset($cfg['smtp_host'], $cfg['smtp_user']);
-            echo "mailbox.json: ".json_encode(array_intersect_key($cfg, array_flip(['auto_send','auto_campaign','auto_limit','auto_pool','followup','followup_day','followup_note','paused_countries','daily_cap','warmup'])), JSON_UNESCAPED_UNICODE)."\n";
+            echo "mailbox.json: ".json_encode(array_intersect_key($cfg, array_flip(['auto_send','auto_campaign','auto_limit','auto_pool','followup','followup_day','followup_note','paused_countries','daily_cap','warmup','deals','deals_day','deals_tries','deals_empty','deals_note'])), JSON_UNESCAPED_UNICODE)."\n";
+            if (function_exists('vestra_mailbox_followups_today')) echo "bugun indirim mektubu: ".vestra_mailbox_followups_today('deals')." · pay ".vestra_mailbox_deals_quota()." · ayrilan ".vestra_mailbox_deals_reserve()." · Brevo esitlendi: ".(vestra_mailbox_brevo_synced(time()) ? 'evet' : 'hayir')."\n";
+            $ot = vestra_read_json('ops_tick.json'); echo "ops_tick: ".json_encode(array_intersect_key($ot, array_flip(['brevo_am','brevo_pm','brevo_night','brevo_sync_am','brevo_sync_pm','brevo_sync_full'])))."\n";
+            $bb = 0; foreach ($leads as $l) if (str_starts_with((string)($l['bounce_reason'] ?? ''), 'brevo ')) $bb++; echo "Brevo esitlemesiyle isaretli geri donmus: {$bb}\n";
+            if (function_exists('vestra_mailbox_followup_targets')) echo "takip hedefi (yeni kurallarla, 3000): ".count(vestra_mailbox_followup_targets(3000))."\n";
             echo "Brevo kalan gunluk kota: ".var_export(vestra_mail_credits_left(), true)."\n";
             echo "son istekler:\n"; foreach (array_slice(vestra_mailbox_runs(), -8) as $r) echo "  ".($r['id'] ?? '')." ".($r['mode'] ?? '')." ".($r['status'] ?? '')." limit ".($r['limit'] ?? '')." gonderildi ".($r['sent'] ?? '-')." · ".mb_substr((string)($r['note'] ?? ''), 0, 60)."\n";
             PHPEOF
