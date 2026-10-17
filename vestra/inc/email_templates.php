@@ -310,6 +310,28 @@ function vestra_tpl_kyb_approved(string $lang, string $name, string $type, strin
   return [$subject, $body, $opts];
 }
 
+/* Hesap yeniden erişime açıldı (17 Eki 2026, operatör: "bu müşterinin hesabındaki kısıtlamayı kaldır ve müşteriye hesabının
+ * tekrar erişime açıldığını e-mail ile belirt"). chat-help account-reopen.yml notify=true gönderir. Kısıtlamanın nedenini
+ * TEKRARLAMAZ (ödenmemiş fatura vb. — müşteriye suçlayıcı bir hatırlatma değil, yalnız açılış haberi). */
+function vestra_tpl_account_reopened(string $lang, string $name, string $panelUrl): array {
+  $Lb = vestra_email_labels($lang);
+  $opts = ['button' => ['label' => $Lb['btn_dashboard'], 'url' => $panelUrl]];
+  $T = [
+    'en'=>["VESTRA — your account is open again",
+           "Hello %1\$s,\n\nGood news: the restriction on your VESTRA account has been lifted and your account is fully open again. You can sign in, see trade prices and place orders as usual.\n\nIf you have any questions, simply reply to this e-mail — we are happy to help."],
+    'de'=>["VESTRA — Ihr Konto ist wieder freigeschaltet",
+           "Hallo %1\$s,\n\ngute Nachrichten: Die Einschränkung Ihres VESTRA-Kontos wurde aufgehoben, Ihr Konto ist wieder vollständig freigeschaltet. Sie können sich anmelden, die Großhandelspreise sehen und wie gewohnt bestellen.\n\nBei Fragen antworten Sie einfach auf diese E-Mail — wir helfen gern."],
+    'fr'=>["VESTRA — votre compte est de nouveau accessible",
+           "Bonjour %1\$s,\n\nBonne nouvelle : la restriction sur votre compte VESTRA a été levée et votre compte est de nouveau pleinement accessible. Vous pouvez vous connecter, consulter les prix de gros et passer commande comme d'habitude.\n\nPour toute question, répondez simplement à cet e-mail — nous serons ravis de vous aider."],
+    'it'=>["VESTRA — il tuo account è di nuovo attivo",
+           "Ciao %1\$s,\n\nbuone notizie: la limitazione sul tuo account VESTRA è stata rimossa e il tuo account è di nuovo pienamente accessibile. Puoi accedere, vedere i prezzi all'ingrosso e ordinare come sempre.\n\nPer qualsiasi domanda, rispondi semplicemente a questa e-mail — saremo felici di aiutarti."],
+    'es'=>["VESTRA — tu cuenta vuelve a estar activa",
+           "Hola %1\$s,\n\nbuenas noticias: se ha levantado la restricción de tu cuenta de VESTRA y vuelve a estar plenamente accesible. Puedes iniciar sesión, ver los precios mayoristas y hacer pedidos como siempre.\n\nSi tienes cualquier pregunta, responde a este correo — te ayudaremos encantados."],
+  ];
+  [$subj, $bodyT] = $T[$lang] ?? $T['en'];
+  return [$subj, sprintf($bodyT, $name)."\n\n—\nVESTRA · vestrasales.com", $opts];
+}
+
 /* Belge talebi. Bu e-posta yoktu: auth_request_doc() talebi acikca kaydediyor ama
    kimseye haber vermiyordu -- musteri ancak kendiliginden panele girerse gorurdu,
    ki girmesi icin bir sebebi yok. Talep, ulasmadigi surece talep degil.
