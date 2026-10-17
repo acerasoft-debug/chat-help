@@ -4,15 +4,17 @@
  * =====================================================================
  * Reine Textfunktionen (keine DB):
  *   ch_speech_sentences($text,$lang,$du)  Agenten-Antwort → sprechbare Sätze (max. 12, je ca. 220 Zeichen):
- *        Markdown/Emojis/Links raus, Listen → Sätze, Preise, Uhrzeiten, Daten, Codes, Telefonnummern, Abkürzungen ausgeschrieben.
- *   ch_speech_payload($demo,$text)        → [['text'=>…,'t'=>Token],…]  (für concierge.php)
+ *        Markdown/Emojis/Links raus, Listen → Aufzählung bzw. „Erstens, …“, Preise, Uhrzeiten, Daten, Codes, Telefonnummern, Abkürzungen ausgeschrieben.
+ *   ch_speech_payload($demo,$text,$sector,$du) → [['text'=>…,'t'=>Token],…]  (für concierge.php)
  * Token (HMAC, 2 h gültig): nur Sätze, die der Demo-Agent selbst erzeugt hat, dürfen über tts.php vertont werden.
- *   t = "<exp>.<base64url(hash_hmac('sha256', demo|exp|text, ch_tts_key(), true))>"
+ *   t = "<exp>.<base64url(hash_hmac('sha256', demo|sector|exp|text, ch_tts_key(), true))>"   (sector = '' außer bei agent-phone)
+ * Stimm-Voreinstellungen: ch_tts_voices() – je Geschlecht vier Stimmen (f_warm, f_klar, f_frisch, f_sanft, m_ruhig, m_freundlich, m_souveraen, m_tief)
+ *   mit Stimme je Anbieter + Sprechstil-Anweisung (OpenAI) + Browser-Stimmen; ch_tts_voice_for($cfgVoice,$presetId) → Stimme für ch_tts_synth().
  * Server-Stimme — erste verfügbare (TTS_PROVIDER erzwingt eine, 'off' schaltet ab):
  *   openai      OPENAI_KEY | OPENAI_API_KEY          Modell TTS_OPENAI_MODEL (Standard gpt-4o-mini-tts, mit Sprechstil-Anweisung)
- *   elevenlabs  ELEVENLABS_KEY | ELEVENLABS_API_KEY  Stimmen ELEVENLABS_VOICE_F / ELEVENLABS_VOICE_M
- *   google      GOOGLE_TTS_KEY                       Chirp 3 HD
- *   azure       AZURE_SPEECH_KEY + AZURE_SPEECH_REGION
+ *   elevenlabs  ELEVENLABS_KEY | ELEVENLABS_API_KEY  Stimme je Voreinstellung, überschreibbar mit ELEVENLABS_VOICE_<ID> (z. B. ELEVENLABS_VOICE_F_WARM)
+ *   google      GOOGLE_TTS_KEY                       Chirp 3 HD (de-DE)
+ *   azure       AZURE_SPEECH_KEY + AZURE_SPEECH_REGION  Neural (de-DE)
  * Datei-Cache: sys_get_temp_dir()/ch_tts/<sha256>.mp3 (Ordner 0700); Dateien älter als 14 Tage werden gelegentlich gelöscht.
  * Tests: TTS_TEST_BASE lenkt alle Anbieter-Aufrufe auf einen lokalen Mock – wird NUR beachtet, wenn es auf 127.0.0.1/localhost zeigt.
  */
@@ -22,6 +24,11 @@ const CH_TTS_PROVIDERS = ['openai','elevenlabs','google','azure'];
 const CH_TTS_FALLBACK_SECRET = 'chathelp-tts-fallback-v1';  // nur wenn gar kein Schlüssel in db.php steht
 const CH_SPEECH_MAX = 12;
 const CH_SPEECH_LEN = 220;
+const CH_TTS_MAXLEN = 400;                                 // max. Zeichen je Vertonung (tts.php, Studio-Assistent)
+const CH_SPEECH_AND = ['de'=>'und','en'=>'and','fr'=>'et','es'=>'y','tr'=>'ve','ru'=>'и'];
+/* Nummerierte Listen am Telefon: „Erstens, …“ */
+const CH_SPEECH_ORD = ['de'=>['Erstens','Zweitens','Drittens','Viertens','Fünftens','Sechstens','Siebtens','Achtens','Neuntens','Zehntens'],
+                       'en'=>['First','Second','Third','Fourth','Fifth','Sixth','Seventh','Eighth','Ninth','Tenth']];
 const CH_SPEECH_MONTHS = [1=>'Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const CH_SPEECH_DAYS = ['Mo'=>'Montag','Di'=>'Dienstag','Mi'=>'Mittwoch','Do'=>'Donnerstag','Fr'=>'Freitag','Sa'=>'Samstag','So'=>'Sonntag'];
 /* Großbuchstaben+Ziffern, die KEIN Code sind (werden nicht buchstabiert) */
@@ -58,7 +65,7 @@ function ch_speech_rx(string $s, string $re, callable $fn): string {
         $after=substr($s,$m[0][1]+strlen($m[0][0])); $mm=[];
         foreach($m as $k=>$v) $mm[$k]=(is_array($v) && $v[1]>=0) ? $v[0] : '';
         return $fn($mm,$after);
-    }, $s, -1, $cnt, PREG_OFFSET_CAPTURE);
+    }, $s, -1, $cnt, PREG_OFFSET_CAPTURE|PREG_UNMATCHED_AS_NULL);   // nicht getroffene (auch hintere) Gruppen → ''
     return is_string($r) ? $r : $s;
 }
 function ch_speech_final(string $after): bool { return preg_match('/^(?:\s*$|\s+[\p{Lu}\x{E100}-\x{F8FF}])/u',$after)===1; }
@@ -71,7 +78,19 @@ function ch_speech_restore(string $s, array $P): string {
 }
 /** Zeichen einzeln: "TK4729" → "T K 4 7 2 9" */
 function ch_speech_spell(string $s): string { $c=preg_replace('/[^\p{L}\p{N}]/u','',$s); return implode(' ', mb_str_split((string)$c,1,'UTF-8')); }
-function ch_speech_pairs(string $digits): string { return implode(', ', str_split($digits,2)); }
+/** Ziffernblock am Telefon: ungerade Länge → erste Ziffer allein, dann Zweiergruppen; „05“/„00“ Ziffer für Ziffer ("2000000" → "2, 0 0, 0 0, 0 0"). */
+function ch_speech_pairs(string $digits): string {
+    $d=(string)preg_replace('/\D/','',$digits); if($d==='') return '';
+    $out=[]; if(strlen($d)%2===1){ $out[]=$d[0]; $d=substr($d,1); }
+    foreach($d==='' ? [] : str_split($d,2) as $p) $out[]=$p[0]==='0' ? ch_speech_spell($p) : $p;
+    return implode(', ',$out);
+}
+/** Kurze, vom Schreiber gesetzte Gruppe beibehalten: 3 Ziffern einzeln, 2 Ziffern als Zahl (außer mit führender 0). */
+function ch_speech_grp(string $g): string {
+    if(strlen($g)>=4) return ch_speech_pairs($g);
+    if(strlen($g)===3 || $g[0]==='0') return ch_speech_spell($g);
+    return $g;
+}
 function ch_speech_time(int $h, int $m): string { return $h.' Uhr'.($m>0 ? ' '.$m : ''); }
 
 /* ====================================================================== */
@@ -103,7 +122,7 @@ function ch_speech_blocks(string $text, string $lang, bool $du, array &$P): stri
     $s=ch_speech_RC('/(?<![\w.+-])([A-Za-z0-9][A-Za-z0-9._%+-]*)@([A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,})(?![\w-])/u',
         function($m) use(&$P,$lang){ return ch_speech_p($P, ch_speech_email($m[1],$m[2],$lang)); }, $s);
     /* URLs → Link-Marke (wird später zu „Den Link finden Sie im Chat.“) */
-    $url=function($m){ $u=$m[0]; $tail=''; while($u!=='' && strpbrk(substr($u,-1),".,;:!?)]»\"'")!==false){ $tail=substr($u,-1).$tail; $u=substr($u,0,-1); } return "\u{E000}".$tail; };
+    $url=function($m){ $tail=preg_match('/[.,;:!?)\]»"\']+$/u',$m[0],$t) ? $t[0] : ''; return "\u{E000}".$tail; };   // Satzzeichen am Ende gehören nicht zur URL (mehrbyte-sicher)
     $s=ch_speech_RC('~\bhttps?://[^\s<>"\[\]]+~iu',$url,$s);
     $s=ch_speech_RC('~(?<![\w.@-])www\.[^\s<>"\[\]]+~iu',$url,$s);
     $s=ch_speech_RC('~(?<![\w.@/-])[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)*\.(?:de|com|at|ch|eu|net|org|io|info|shop|app|online)/[^\s<>"\[\]]*~iu',$url,$s);
@@ -119,27 +138,59 @@ function ch_speech_blocks(string $text, string $lang, bool $du, array &$P): stri
         if(substr_count($ln,'|')>=2){ $cells=array_values(array_filter(array_map('trim',explode('|',trim($ln,'| '))),fn($c)=>$c!=='')); $ln=implode(', ',$cells); }
         $ln=ch_speech_R('/^#{1,6}\s*/u','',$ln);
         $ln=ch_speech_R('/^(?:>\s*)+/u','',$ln);
+        /* Listenpunkt merken: u = Aufzählung, n = nummeriert */
+        $b=preg_match('/^[-*+•▪◦‣–—✓✔☐☑]\s+/u',$ln) ? 'u' : (preg_match('/^(?:\d{1,2}[.)]\s+(?!(?:'.$months.')\b)|[a-z]\)\s+)/u',$ln) ? 'n' : '');
         $ln=ch_speech_R('/^(?:[-*+•▪◦‣–—✓✔☐☑]\s+|\d{1,2}[.)]\s+(?!(?:'.$months.')\b)|[a-z]\)\s+)/u','',$ln);
         $ln=ch_speech_R('/^\[[ xX]\]\s*/u','',$ln);
+        /* Aufzählung im Fließtext: „Termine: 1. Kontrolle 2. Reinigung“ → „Termine: erstens Kontrolle, zweitens Reinigung“ */
+        if(isset(CH_SPEECH_ORD[$lang]) && preg_match('/(?:^|[\s:])1[.)]\s+\p{Lu}.*?\s2[.)]\s+\p{Lu}/u',$ln)){
+            $ord=CH_SPEECH_ORD[$lang];
+            $ln=ch_speech_RC('/(^|[\s:])([1-9])[.)]\s+(?=\p{Lu})(?!(?:'.$months.')\b)/u', fn($m)=>$m[1].((int)$m[2]>1 ? ', ' : '').mb_strtolower($ord[(int)$m[2]-1]).' ', $ln);
+        }
         $ln=ch_speech_R('/`([^`]*)`/u','$1',$ln);
         $ln=ch_speech_R('/(\*\*|__)(.+?)\1/u','$2',$ln);
         $ln=ch_speech_R('/(?<![\p{L}\p{N}*_])[*_](?=\S)(.+?)(?<=\S)[*_](?![\p{L}\p{N}*_])/u','$1',$ln);
         $ln=ch_speech_R('/~~(.+?)~~/u','$1',$ln);
         $ln=str_replace(['**','__','~~'],'',$ln);
         if(str_contains($ln,"\u{E000}")){
+            $ln=ch_speech_R('/\x{E000}(?:\s*(?:,|oder|und|bzw\.|or|and|ou|et|o|y|veya|ve|или|и)\s*\x{E000})+/iu',"\u{E000}",$ln);   // „Link oder Link“ → ein Link
             $ln=ch_speech_R('/\s*(?:\b(?:unter|auf|über|via|hier|bei|at|on|here|sur|ici)\b\s*)?[:→]?\s*\x{E000}/iu','',$ln);
-            $ln=trim(rtrim($ln," :,;–-"));
+            $ln=trim(ch_speech_R('/[\s:,;–—-]+$/u','',$ln));                                   // mehrbyte-sicher (kein rtrim mit „–“)
             if(!$linkDone){ $ln=($ln!=='' ? ch_speech_term($ln).' ' : '').ch_speech_linkphrase($lang,$du); $linkDone=true; }
         }
         if($ln==='') continue;
-        $out[]=$ln;
+        $out[]=['t'=>$ln,'b'=>$b];
     }
-    $txt='';
-    foreach($out as $i=>$ln){ $txt.=($i ? ' ' : '').(preg_match('/[:,;]$/u',$ln) ? $ln : ch_speech_term($ln)); }
+    /* zusammensetzen: Folgen gleicher Listenpunkte gemeinsam sprechen */
+    $txt=''; $n=count($out);
+    for($i=0; $i<$n;){
+        if($out[$i]['b']===''){ $ln=$out[$i]['t']; $txt.=($txt!=='' ? ' ' : '').(preg_match('/[:,;]$/u',$ln) ? $ln : ch_speech_term($ln)); $i++; continue; }
+        $grp=[]; $b=$out[$i]['b'];
+        while($i<$n && $out[$i]['b']===$b){ $grp[]=$out[$i]['t']; $i++; }
+        $txt.=($txt!=='' ? ' ' : '').ch_speech_list($grp,$b,$lang);
+    }
     return $txt;
 }
 /** Zeile ohne Satzzeichen am Ende → Punkt anhängen (Listenpunkte werden zu Sätzen). */
 function ch_speech_term(string $ln): string { return preg_match('/[.!?…:;,]$/u',$ln) ? $ln : $ln.'.'; }
+/**
+ * Liste sprechen: kurze Stichpunkte → eine Aufzählung („A, B und C.“); ganze Sätze → je ein Satz;
+ * nummerierte Schritte → „Erstens, …. Zweitens, ….“ (de/en).
+ */
+function ch_speech_list(array $grp, string $b, string $lang): string {
+    if(count($grp)===1) return ch_speech_term($grp[0]);
+    if($b==='n' && isset(CH_SPEECH_ORD[$lang]) && count($grp)<=10){
+        $o=[]; foreach($grp as $k=>$t) $o[]=ch_speech_term(CH_SPEECH_ORD[$lang][$k].', '.$t);
+        return implode(' ',$o);
+    }
+    $short=count($grp)<=8;
+    foreach($grp as $t) if(mb_strlen($t)>70 || preg_match('/[.!?…]\s+\S/u',$t) || str_contains($t,"\u{E000}")) $short=false;
+    if($b==='u' && $short){
+        $items=array_values(array_filter(array_map(fn($t)=>trim(ch_speech_R('/[\s.,;]+$/u','',$t)),$grp),fn($t)=>$t!==''));
+        if(count($items)>=2){ $last=array_pop($items); return implode(', ',$items).' '.(CH_SPEECH_AND[$lang] ?? 'und').' '.$last.'.'; }
+    }
+    return implode(' ',array_map('ch_speech_term',$grp));
+}
 function ch_speech_linkphrase(string $lang, bool $du): string { $p=CH_SPEECH_LINK[$lang] ?? CH_SPEECH_LINK['de']; return $p[$du ? 1 : 0]; }
 function ch_speech_tld(string $tld, string $lang): string {
     $t=strtolower($tld);
@@ -164,7 +215,10 @@ function ch_speech_symbols(string $s): string {
     $s=ch_speech_R('/\s*[\x{2190}-\x{21FF}\x{27F0}-\x{27FF}\x{2900}-\x{297F}\x{2B05}-\x{2B07}\x{2794}-\x{27BF}]\s*/u',', ',$s);   // → ⇒ ➜
     $s=ch_speech_R('/(?<!\S)[:;]-?[)(DPp](?!\S)/u','',$s);                                                                      // :) ;-)
     $s=ch_speech_R('/\s*[•·▪◦‣|]\s*/u',', ',$s);
-    $s=ch_speech_R('/[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{2300}-\x{23FF}\x{2B00}-\x{2BFF}\x{25A0}-\x{25FF}\x{FE00}-\x{FE0F}\x{200D}\x{20E3}\x{E0020}-\x{E007F}\x{3030}\x{303D}\x{3297}\x{3299}\x{00A9}\x{00AE}\x{2122}]/u',' ',$s);
+    /* Emoji zwischen zwei Sätzen ohne Satzzeichen („Gebucht 👍 Bis Donnerstag“) → Satzende */
+    $em='[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{2301}-\x{23FF}\x{2B00}-\x{2BFF}\x{25A0}-\x{25FF}][\x{FE00}-\x{FE0F}\x{200D}\x{20E3}\x{1F3FB}-\x{1F3FF}]*';
+    $s=ch_speech_R('/(?<=[\p{L}\p{N}])(?:\s*'.$em.')+\s+(?=\p{Lu})/u','. ',$s);
+    $s=ch_speech_R('/[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{2301}-\x{23FF}\x{2B00}-\x{2BFF}\x{25A0}-\x{25FF}\x{FE00}-\x{FE0F}\x{200D}\x{20E3}\x{E0020}-\x{E007F}\x{3030}\x{303D}\x{3297}\x{3299}\x{00A9}\x{00AE}\x{2122}]/u',' ',$s);
     return $s;
 }
 
@@ -177,7 +231,12 @@ function ch_speech_iban(string $s, array &$P): string {
 }
 /** Telefonnummern: Vorwahl einzeln, Rufnummer in Zweiergruppen – "0221 2000000" → "0 2 2 1, 20, 00, 00, 0" */
 function ch_speech_phone(string $s, array &$P, string $lang='de'): string {
-    $plus=$lang==='de' ? 'plus' : 'plus';
+    $plus='plus';
+    /* Notrufe/Sperr-Notruf, wie man sie spricht: „116 116“ → „1 1 6, 1 1 6“, „die 112“ → „die 1 1 2“ */
+    $s=ch_speech_RC('/(?<![\p{N}+\/.,:-])116\s?(116|117|006|123)(?![\p{N}])/u', function($m) use(&$P){ return ch_speech_p($P,'1 1 6, '.ch_speech_spell($m[1])); }, $s);
+    $unit='(?!\s?(?:€|Euro|EUR|Prozent|%|km|Kilometer|Meter|m\b|Stück|Tage|Minuten|Stunden|Kilo|Personen|Zimmer|Quadratmeter|Grad|Mal|Jahre))';
+    $s=ch_speech_RC('/\b(Notruf(?:nummer)?|Notarzt|Rettungsdienst|Feuerwehr|Polizei|die|der|unter|sofort|bitte|direkt|emergency|call|dial)\s+(11[02])(?!\d|[,.]\d)'.$unit.'/u', function($m) use(&$P){ return $m[1].' '.ch_speech_p($P,ch_speech_spell($m[2])); }, $s);
+    $s=ch_speech_RC('/(?<![\p{N},.\x{E100}-\x{F8FF}])(11[02])(?=\s+(?:an\b|anrufen|wählen|rufen|alarmieren))/u', function($m) use(&$P){ return ch_speech_p($P,ch_speech_spell($m[1])); }, $s);
     $s=ch_speech_RC('/(?<![\p{L}\p{N}\x{E100}-\x{F8FF}.,:\/+-])(\+\d{1,3}(?:\s?\(0\))?|0\d{1,5})((?:[ \/-]\d{2,8}){1,4})(?![\p{N}])/u', function($m) use(&$P,$plus){
         $groups=preg_split('/[ \/-]+/',trim($m[2],' /-')) ?: [];
         $isPlus=$m[1][0]==='+'; $prefix=preg_replace('/\D/','',str_replace('(0)','',$m[1]));
@@ -197,8 +256,9 @@ function ch_speech_phone(string $s, array &$P, string $lang='de'): string {
         }
         if($isPlus){ $area=array_shift($keep); $head=$plus.' '.ch_speech_spell($prefix).', '.ch_speech_spell($area); }
         else $head=ch_speech_spell($prefix);
-        $sub=implode('',$keep);
-        return ch_speech_p($P, $head.($sub!=='' ? ', '.ch_speech_pairs($sub) : '')).$tailTxt;
+        /* Gruppierung des Schreibers beibehalten ("0800 123 45 67"), lange Blöcke in Zweiergruppen ("2000000" → "2, 0 0, 0 0, 0 0") */
+        $sub=implode(', ',array_map('ch_speech_grp',array_values(array_filter($keep,fn($g)=>$g!==''))));
+        return ch_speech_p($P, $head.($sub!=='' ? ', '.$sub : '')).$tailTxt;
     }, $s);
     /* ohne Trennzeichen: 02212000000 */
     $s=ch_speech_RC('/(?<![\p{L}\p{N}\x{E100}-\x{F8FF}.,:\/+-])0\d{6,14}(?![\p{N}])/u', function($m) use(&$P){
@@ -212,6 +272,11 @@ function ch_speech_codes(string $s, array &$P): string {
     return ch_speech_RC('/(?<![\p{L}\p{N}\x{E100}-\x{F8FF}])(?=[A-Z0-9-]*[A-Z])(?=[A-Z0-9-]*\d)[A-Z0-9]+(?:-[A-Z0-9]+)*(?![\p{L}\p{N}])/u', function($m) use(&$P){
         $raw=$m[0]; $an=str_replace('-','',$raw);
         if(strlen($an)<4 || in_array($raw,CH_SPEECH_KEEP,true)) return $raw;
+        /* mit Bindestrich: Teile mit kurzer Pause, Jahreszahl in der Mitte bleibt Zahl ("CF-2026-0912" → "C F, 2026, 0 9 1 2") */
+        $parts=explode('-',$raw);
+        if(count($parts)>1){ $o=[]; $last=count($parts)-1;
+            foreach($parts as $i=>$p) $o[]=($i>0 && $i<$last && preg_match('/^(?:19|20)\d\d$/',$p)) ? $p : ch_speech_spell($p);
+            return ch_speech_p($P, implode(', ',$o)); }
         return ch_speech_p($P, ch_speech_spell($an));
     }, $s);
 }
@@ -284,8 +349,11 @@ function ch_speech_de(string $s, array &$P): string {
         if($int==='0' && $c!=='') return $c.' '.$small;
         return $int.' '.$big.($c!=='' ? ' '.$c : '');
     };
-    $s=ch_speech_RC('/(€|EUR|CHF)\s?(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}|-{1,2}|–))?(?![\p{N}])/u', fn($m)=>$money($m[2],$m[3]??'',$m[1]==='CHF'?'CHF':'EUR'), $s);
-    $s=ch_speech_RC('/(?<![\p{N}.,])(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}|-{1,2}|–))?\s?(€|EUR\b|Euro\b|CHF\b|Franken\b)/u', fn($m)=>$money($m[1],$m[2]??'',in_array($m[3],['CHF','Franken'],true)?'CHF':'EUR'), $s);
+    /* Dezimalpunkt mit genau 2 Stellen ("CHF 12.50", "12.50 €") ist kein Tausenderpunkt */
+    $s=ch_speech_RC('/(€|EUR|CHF)\s?(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}|-{1,2}|–)|\.(\d{2})(?![\p{N}]))?(?![\p{N}])/u',
+        fn($m)=>$money($m[2],($m[3]??'')!=='' ? $m[3] : ($m[4]??''),$m[1]==='CHF'?'CHF':'EUR'), $s);
+    $s=ch_speech_RC('/(?<![\p{N}.,])(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}|-{1,2}|–)|\.(\d{2}))?\s?(€|EUR\b|Euro\b|CHF\b|Franken\b)/u',
+        fn($m)=>$money($m[1],($m[2]??'')!=='' ? $m[2] : ($m[3]??''),in_array($m[4],['CHF','Franken'],true)?'CHF':'EUR'), $s);
     $s=ch_speech_R('/\s?€/u',' Euro',$s); $s=ch_speech_R('/\bEUR\b/u','Euro',$s);
     /* Tausenderpunkte: 650.000 → 650000 */
     $s=ch_speech_RC('/(?<![\p{N}.,])\d{1,3}(?:\.\d{3})+(?![\p{N}]|\.\d)/u', fn($m)=>str_replace('.','',$m[0]), $s);
@@ -446,19 +514,104 @@ function ch_tts_key(): string {
     return $k=hash('sha256','ch-tts|'.$base);
 }
 function ch_tts_b64u(string $b): string { return rtrim(strtr(base64_encode($b),'+/','-_'),'='); }
-function ch_tts_sig(string $demo, int $exp, string $text): string { return ch_tts_b64u(hash_hmac('sha256',$demo.'|'.$exp.'|'.$text,ch_tts_key(),true)); }
-function ch_tts_sign(string $demo, string $text): string { $exp=time()+CH_TTS_TTL; return $exp.'.'.ch_tts_sig($demo,$exp,$text); }
-function ch_tts_verify(string $demo, string $text, string $t): bool {
+/** HMAC über demo|sector|exp|text (sector '' außer bei agent-phone). */
+function ch_tts_sig(string $demo, string $sector, int $exp, string $text): string { return ch_tts_b64u(hash_hmac('sha256',$demo.'|'.$sector.'|'.$exp.'|'.$text,ch_tts_key(),true)); }
+function ch_tts_sign(string $demo, string $text, string $sector=''): string { $exp=time()+CH_TTS_TTL; return $exp.'.'.ch_tts_sig($demo,$sector,$exp,$text); }
+function ch_tts_verify(string $demo, string $text, string $t, string $sector=''): bool {
     if(!preg_match('/^(\d{9,12})\.([A-Za-z0-9_-]{43})$/',$t,$m)) return false;
     $exp=(int)$m[1]; $now=time();
     if($exp<$now || $exp>$now+CH_TTS_TTL+300) return false;
-    return hash_equals(ch_tts_sig($demo,$exp,$text),$m[2]);
+    return hash_equals(ch_tts_sig($demo,$sector,$exp,$text),$m[2]);
 }
-/** Antwort → [['text'=>Satz,'t'=>Token],…] für die Startseite (Sprache der Antwort wird erkannt; du/Sie aus CH_DEMO). */
-function ch_speech_payload(string $demo, string $text): array {
-    $du=defined('CH_DEMO') && !empty(CH_DEMO[$demo]['du']);
-    $o=[]; foreach(ch_speech_sentences($text,ch_speech_guess_lang($text),$du) as $s) $o[]=['text'=>$s,'t'=>ch_tts_sign($demo,$s)];
+/** Branche des Telefon-Agenten: nur agent-phone hat eine; unbekannt/leer → Standard (zahnarzt). Sonst ''. */
+function ch_demo_sector(string $demo, $sector): string {
+    if($demo!=='agent-phone') return '';
+    $s=is_string($sector) ? strtolower(trim($sector)) : '';
+    if(defined('CH_PHONE_SECTORS') && $s!=='' && isset(CH_PHONE_SECTORS[$s])) return $s;
+    return 'zahnarzt';
+}
+/** Konfiguration eines Demos (bei agent-phone die der Branche). */
+function ch_demo_conf(string $demo, string $sector=''): array {
+    if($demo==='agent-phone' && function_exists('ch_phone_sector_cfg')) return ch_phone_sector_cfg(ch_demo_sector($demo,$sector));
+    return function_exists('ch_demo_cfg') ? ch_demo_cfg($demo) : [];
+}
+/** Antwort → [['text'=>Satz,'t'=>Token],…] für die Startseite (Sprache der Antwort wird erkannt; du/Sie aus der Demo-Konfiguration). */
+function ch_speech_payload(string $demo, string $text, string $sector='', ?bool $du=null): array {
+    if($du===null) $du=defined('CH_DEMO') && !empty(CH_DEMO[$demo]['du']);
+    $o=[]; foreach(ch_speech_sentences($text,ch_speech_guess_lang($text),$du) as $s) $o[]=['text'=>$s,'t'=>ch_tts_sign($demo,$s,$sector)];
     return $o;
+}
+
+/* ====================================================================== */
+/* Stimm-Voreinstellungen (gleiche IDs im Studio-Assistenten und auf der Startseite) */
+const CH_TTS_VOICES = [
+  'f_warm'=>['label'=>'Lea · warm & herzlich','gender'=>'f','desc'=>'Herzlich, ruhig und zugewandt – wie die vertraute Stimme am Empfang.','rate'=>0.98,'pitch'=>1.0,
+    'openai'=>'coral','instructions'=>'Voice: warm, kind and reassuring, with a gentle smile you can hear. Pace: calm and unhurried, short natural pauses between sentences. Emotion: genuinely caring; softer and slower when the caller is worried or in pain. Speak natural, native German from Germany; never robotic, never like an announcer.',
+    'google'=>'de-DE-Chirp3-HD-Aoede','azure'=>'de-DE-SeraphinaMultilingualNeural','elevenlabs'=>'EXAVITQu4vr4xnSDxMaL','eleven'=>['stability'=>0.5,'similarity_boost'=>0.8,'style'=>0.25],
+    'browser'=>['names'=>['Seraphina','Katja','Google Deutsch','Anna','Petra','Helena','Marlene'],'rate'=>0.98,'pitch'=>1.0]],
+  'f_klar'=>['label'=>'Sophie · klar & professionell','gender'=>'f','desc'=>'Deutlich, souverän und freundlich-sachlich – ideal für Kanzlei, Hotel und Büro.','rate'=>1.0,'pitch'=>1.0,
+    'openai'=>'sage','instructions'=>'Voice: clear, composed and professional; friendly but matter-of-fact. Pace: steady and moderate; names, numbers, dates and codes are articulated very distinctly. Emotion: calm confidence and courtesy. Speak natural, native German from Germany with precise articulation; never stiff or robotic.',
+    'google'=>'de-DE-Chirp3-HD-Kore','azure'=>'de-DE-KatjaNeural','elevenlabs'=>'XB0fDUnXU5powFXDhCwa','eleven'=>['stability'=>0.6,'similarity_boost'=>0.8,'style'=>0.15],
+    'browser'=>['names'=>['Katja','Seraphina','Google Deutsch','Petra','Anna','Helena'],'rate'=>1.0,'pitch'=>1.0]],
+  'f_frisch'=>['label'=>'Mia · frisch & lebendig','gender'=>'f','desc'=>'Gut gelaunt, schwungvoll und nahbar – passt zu Salon, Café und Studio.','rate'=>1.05,'pitch'=>1.04,
+    'openai'=>'nova','instructions'=>'Voice: bright, cheerful and lively, a young friendly woman who enjoys her job. Pace: brisk but relaxed, never rushed. Emotion: upbeat and smiling, warm enthusiasm without exaggeration. Speak natural, casual native German from Germany; conversational, never salesy or over the top.',
+    'google'=>'de-DE-Chirp3-HD-Leda','azure'=>'de-DE-AmalaNeural','elevenlabs'=>'pFZP5JQG7iQjIQuC4Bku','eleven'=>['stability'=>0.4,'similarity_boost'=>0.8,'style'=>0.4],
+    'browser'=>['names'=>['Amala','Seraphina','Google Deutsch','Anna','Petra','Helena'],'rate'=>1.05,'pitch'=>1.04]],
+  'f_sanft'=>['label'=>'Hanna · sanft & geduldig','gender'=>'f','desc'=>'Leise, geduldig und beruhigend – für Schaden, Sorgen und Gesundheit.','rate'=>0.94,'pitch'=>0.98,
+    'openai'=>'shimmer','instructions'=>'Voice: soft, gentle and soothing. Pace: slow and patient with calm pauses; gives the caller time. Emotion: empathetic and steady, especially when someone is upset, worried or in a hurry. Speak natural, native German from Germany; quiet confidence, never sugary.',
+    'google'=>'de-DE-Chirp3-HD-Zephyr','azure'=>'de-DE-LouisaNeural','elevenlabs'=>'21m00Tcm4TlvDq8ikWAM','eleven'=>['stability'=>0.6,'similarity_boost'=>0.75,'style'=>0.2],
+    'browser'=>['names'=>['Louisa','Seraphina','Katja','Anna','Helena','Petra','Google Deutsch'],'rate'=>0.94,'pitch'=>0.98]],
+  'm_ruhig'=>['label'=>'Jonas · ruhig & vertrauensvoll','gender'=>'m','desc'=>'Gelassen, warm und vertrauenswürdig – bleibt auch im Notfall ruhig.','rate'=>0.96,'pitch'=>0.97,
+    'openai'=>'ballad','instructions'=>'Voice: calm, warm and trustworthy, a grounded man in his forties. Pace: measured and relaxed with natural pauses; in emergencies clear and firm but never hectic. Emotion: reassuring and patient. Speak natural, native German from Germany; never robotic, never like a radio announcer.',
+    'google'=>'de-DE-Chirp3-HD-Charon','azure'=>'de-DE-FlorianMultilingualNeural','elevenlabs'=>'pNInz6obpgDQGcFmaJgB','eleven'=>['stability'=>0.6,'similarity_boost'=>0.8,'style'=>0.2],
+    'browser'=>['names'=>['Florian','Conrad','Killian','Markus','Viktor','Yannick'],'rate'=>0.96,'pitch'=>0.97]],
+  'm_freundlich'=>['label'=>'Max · freundlich & locker','gender'=>'m','desc'=>'Nahbar, gut gelaunt und unkompliziert – wie der Lieblingsladen um die Ecke.','rate'=>1.03,'pitch'=>1.0,
+    'openai'=>'ash','instructions'=>'Voice: friendly, relaxed and approachable, a cheerful man in his thirties. Pace: natural conversational tempo, quick short confirmations. Emotion: good-humoured and helpful, smiles audibly. Speak natural, casual native German from Germany; never pushy, never like an advert.',
+    'google'=>'de-DE-Chirp3-HD-Fenrir','azure'=>'de-DE-ConradNeural','elevenlabs'=>'onwK4e9ZLuTAKqWW03F9','eleven'=>['stability'=>0.45,'similarity_boost'=>0.8,'style'=>0.35],
+    'browser'=>['names'=>['Conrad','Killian','Florian','Yannick','Markus'],'rate'=>1.03,'pitch'=>1.0]],
+  'm_souveraen'=>['label'=>'Thomas · souverän & seriös','gender'=>'m','desc'=>'Klar, bestimmt und seriös – für Bank, Versicherung und Zentrale.','rate'=>1.0,'pitch'=>0.96,
+    'openai'=>'echo','instructions'=>'Voice: confident, composed and serious, a competent professional. Pace: crisp and efficient, every number and address spoken very clearly. Emotion: polite, firm and reliable; calm authority without arrogance. Speak natural, native German from Germany; never cold, never robotic.',
+    'google'=>'de-DE-Chirp3-HD-Orus','azure'=>'de-DE-KillianNeural','elevenlabs'=>'TxGEqnHWrfWFTfGW9XjX','eleven'=>['stability'=>0.6,'similarity_boost'=>0.8,'style'=>0.15],
+    'browser'=>['names'=>['Killian','Conrad','Florian','Markus','Viktor'],'rate'=>1.0,'pitch'=>0.96]],
+  'm_tief'=>['label'=>'Paul · tief & gelassen','gender'=>'m','desc'=>'Sonore, tiefe Stimme – entspannt, bodenständig und kompetent.','rate'=>0.95,'pitch'=>0.92,
+    'openai'=>'onyx','instructions'=>'Voice: deep, resonant and easy-going, a down-to-earth craftsman who knows his trade. Pace: unhurried and steady. Emotion: relaxed, competent and friendly; reassuring when something is broken. Speak natural, native German from Germany; plain everyday language, never theatrical.',
+    'google'=>'de-DE-Chirp3-HD-Puck','azure'=>'de-DE-ChristophNeural','elevenlabs'=>'JBFqnCBsd6RMkjVDRZzb','eleven'=>['stability'=>0.55,'similarity_boost'=>0.8,'style'=>0.2],
+    'browser'=>['names'=>['Christoph','Conrad','Florian','Viktor','Markus'],'rate'=>0.95,'pitch'=>0.92]],
+];
+const CH_TTS_PRESET_DEFAULT = ['f'=>'f_warm','m'=>'m_freundlich'];
+
+/** Alle Voreinstellungen: id → {id,label,gender,desc,rate,pitch,openai,instructions,google,azure,elevenlabs,eleven,browser:{names,rate,pitch}}. ELEVENLABS_VOICE_<ID> überschreibt die ElevenLabs-Stimme. */
+function ch_tts_voices(): array {
+    static $o=null; if($o!==null) return $o; $o=[];
+    foreach(CH_TTS_VOICES as $id=>$v){
+        $el=ch_tts_const('ELEVENLABS_VOICE_'.strtoupper($id));
+        $o[$id]=['id'=>$id]+$v; $o[$id]['elevenlabs']=preg_match('/^[A-Za-z0-9]{10,40}$/',$el) ? $el : $v['elevenlabs'];
+    }
+    return $o;
+}
+function ch_tts_preset(?string $id): ?array { $v=ch_tts_voices(); return ($id!==null && isset($v[$id])) ? $v[$id] : null; }
+/** Öffentliche Liste (ohne Anbieter-Stimmnamen) für die Startseite. */
+function ch_tts_voices_public(): array {
+    $o=[]; foreach(ch_tts_voices() as $id=>$v) $o[]=['id'=>$id,'label'=>$v['label'],'gender'=>$v['gender'],'desc'=>$v['desc'],'rate'=>$v['rate'],'pitch'=>$v['pitch'],'browser'=>$v['browser']];
+    return $o;
+}
+/**
+ * Stimme für ch_tts_synth aus der Demo-/Branchen-Stimme {preset,gender,rate,pitch,role,instructions} und optional einer anderen Voreinstellung.
+ * Eigene Voreinstellung: eigene Sprechstil-Anweisung, Tempo und Tonhöhe der Persona. Andere Voreinstellung: deren Stil + Rolle der Persona.
+ */
+function ch_tts_voice_for(array $cfg, ?string $presetId=null): array {
+    $g=($cfg['gender'] ?? 'f')==='m' ? 'm' : 'f';
+    $own=(string)($cfg['preset'] ?? '');
+    if(!ch_tts_preset($own)) $own=CH_TTS_PRESET_DEFAULT[$g];
+    $pid=($presetId!==null && ch_tts_preset($presetId)) ? $presetId : $own;
+    $p=ch_tts_preset($pid); $mine=$pid===$own;
+    $role=trim((string)($cfg['role'] ?? ''));
+    $ins=$mine && trim((string)($cfg['instructions'] ?? ''))!=='' ? trim((string)$cfg['instructions']) : $p['instructions'].($role!=='' ? ' Role: you are '.$role.'.' : '');
+    $num=fn($v,$d)=>is_numeric($v) ? (float)$v : $d;
+    return ['preset'=>$pid,'gender'=>$p['gender'],'lang'=>'de-DE',
+        'rate'=>round(max(0.85,min(1.15,$mine ? $num($cfg['rate'] ?? null,$p['rate']) : $p['rate'])),2),
+        'pitch'=>round(max(0.8,min(1.2,$mine ? $num($cfg['pitch'] ?? null,$p['pitch']) : $p['pitch'])),2),
+        'openai'=>$p['openai'],'instructions'=>$ins,'google'=>$p['google'],'azure'=>$p['azure'],'elevenlabs'=>$p['elevenlabs'],'eleven'=>$p['eleven']];
 }
 
 /* ====================================================================== */
@@ -486,7 +639,7 @@ function ch_tts_provider(): ?string {
     foreach(CH_TTS_PROVIDERS as $p) if(ch_tts_creds($p)) return $p;
     return null;
 }
-/** Basis-URL; TTS_TEST_BASE nur für lokale Mocks (127.0.0.1 / localhost). */
+/** Basis-URL; TTS_TEST_BASE (nur Tests) lenkt auf einen lokalen Mock – wird nur für 127.0.0.1 / localhost / ::1 beachtet. */
 function ch_tts_base(string $default): string {
     if(defined('TTS_TEST_BASE') && is_string(TTS_TEST_BASE)){
         $u=parse_url(TTS_TEST_BASE); $h=strtolower(trim((string)($u['host'] ?? ''),'[]'));
@@ -494,29 +647,34 @@ function ch_tts_base(string $default): string {
     }
     return $default;
 }
-/** Stimme des Demos für einen Anbieter auflösen (Modell, Stimmname, Tempo). */
+/** Stimme für einen Anbieter auflösen (Modell, Stimmname, Tempo, Tonhöhe, Stil) – fehlende Angaben aus der Voreinstellung bzw. dem Geschlecht. */
 function ch_tts_resolve(string $provider, array $voice): array {
     $m=($voice['gender'] ?? 'f')==='m';
+    $pre=ch_tts_preset((string)($voice['preset'] ?? '')) ?? ch_tts_preset(CH_TTS_PRESET_DEFAULT[$m ? 'm' : 'f']);
     $rate=max(0.85,min(1.15,(float)($voice['rate'] ?? 1.0)));
+    $pitch=max(0.8,min(1.2,(float)($voice['pitch'] ?? 1.0)));
     switch($provider){
         case 'openai':
             $model=ch_tts_const('TTS_OPENAI_MODEL') ?: 'gpt-4o-mini-tts';
-            $ok=['alloy','ash','ballad','coral','echo','fable','nova','onyx','sage','shimmer','verse'];
-            $v=in_array($voice['openai'] ?? '',$ok,true) ? $voice['openai'] : ($m ? 'ash' : 'coral');
+            $ok=['alloy','ash','ballad','coral','echo','fable','nova','onyx','sage','shimmer','verse','marin','cedar'];
+            $v=in_array($voice['openai'] ?? '',$ok,true) ? $voice['openai'] : $pre['openai'];
             $legacy=str_starts_with($model,'tts-1');
-            if($legacy && in_array($v,['ballad','verse'],true)) $v=$m ? 'onyx' : 'nova';
-            return ['model'=>$model,'voice'=>$v,'instructions'=>$legacy ? '' : trim((string)($voice['instructions'] ?? ''))];
+            if($legacy && !in_array($v,['alloy','ash','coral','echo','fable','nova','onyx','sage','shimmer'],true)) $v=$m ? 'onyx' : 'nova';
+            $ins=trim((string)($voice['instructions'] ?? '')); if($ins==='') $ins=$pre['instructions'];
+            return ['model'=>$model,'voice'=>$v,'instructions'=>$legacy ? '' : mb_substr($ins,0,1500),'speed'=>$legacy ? round($rate,2) : null];
         case 'elevenlabs':
             $id=(string)($voice['elevenlabs'] ?? '');
-            if(!preg_match('/^[A-Za-z0-9]{10,40}$/',$id)) $id=$m ? (ch_tts_const('ELEVENLABS_VOICE_M') ?: 'pNInz6obpgDQGcFmaJgB') : (ch_tts_const('ELEVENLABS_VOICE_F') ?: 'EXAVITQu4vr4xnSDxMaL');
-            if(!preg_match('/^[A-Za-z0-9]{10,40}$/',$id)) $id=$m ? 'pNInz6obpgDQGcFmaJgB' : 'EXAVITQu4vr4xnSDxMaL';
-            return ['model'=>'eleven_multilingual_v2','voice'=>$id];
+            if(!preg_match('/^[A-Za-z0-9]{10,40}$/',$id)) $id=$pre['elevenlabs'];
+            $st=is_array($voice['eleven'] ?? null) ? $voice['eleven'] : $pre['eleven'];
+            $num=fn($k,$d)=>round(max(0.0,min(1.0,(float)($st[$k] ?? $d))),2);
+            return ['model'=>ch_tts_const('TTS_ELEVENLABS_MODEL') ?: 'eleven_multilingual_v2','voice'=>$id,
+                'settings'=>['stability'=>$num('stability',0.5),'similarity_boost'=>$num('similarity_boost',0.8),'style'=>$num('style',0.25),'use_speaker_boost'=>true,'speed'=>round(max(0.7,min(1.2,$rate)),2)]];
         case 'google':
-            $n=(string)($voice['google'] ?? ''); if(!preg_match('/^de-DE-[A-Za-z0-9-]{2,40}$/',$n)) $n=$m ? 'de-DE-Chirp3-HD-Charon' : 'de-DE-Chirp3-HD-Aoede';
+            $n=(string)($voice['google'] ?? ''); if(!preg_match('/^de-DE-[A-Za-z0-9-]{2,40}$/',$n)) $n=$pre['google'];
             return ['voice'=>$n,'rate'=>round($rate,2)];
         case 'azure':
-            $n=(string)($voice['azure'] ?? ''); if(!preg_match('/^[a-z]{2}-[A-Z]{2}-[A-Za-z]{2,60}Neural$/',$n)) $n=$m ? 'de-DE-FlorianMultilingualNeural' : 'de-DE-SeraphinaMultilingualNeural';
-            return ['voice'=>$n,'rate'=>round($rate,2)];
+            $n=(string)($voice['azure'] ?? ''); if(!preg_match('/^[a-z]{2}-[A-Z]{2}-[A-Za-z]{2,60}Neural$/',$n)) $n=$pre['azure'];
+            return ['voice'=>$n,'rate'=>round($rate,2),'pitch'=>round($pitch,2)];
     }
     return [];
 }
@@ -527,11 +685,12 @@ function ch_tts_request(string $provider, string $text, array $voice, array $cre
         case 'openai':
             $body=['model'=>$r['model'],'voice'=>$r['voice'],'input'=>$text];
             if($r['instructions']!=='') $body['instructions']=$r['instructions'];
+            if($r['speed']!==null) $body['speed']=$r['speed'];
             $body['response_format']='mp3';
             return ['url'=>ch_tts_base('https://api.openai.com').'/v1/audio/speech','mode'=>'binary','body'=>json_encode($body,$J),
                     'headers'=>['Authorization: Bearer '.$cred['key'],'Content-Type: application/json','Accept: audio/mpeg']];
         case 'elevenlabs':
-            $body=['text'=>$text,'model_id'=>$r['model'],'voice_settings'=>['stability'=>0.45,'similarity_boost'=>0.8,'style'=>0.25,'use_speaker_boost'=>true]];
+            $body=['text'=>$text,'model_id'=>$r['model'],'voice_settings'=>$r['settings']];
             return ['url'=>ch_tts_base('https://api.elevenlabs.io').'/v1/text-to-speech/'.rawurlencode($r['voice']).'?output_format=mp3_44100_128','mode'=>'binary','body'=>json_encode($body,$J),
                     'headers'=>['xi-api-key: '.$cred['key'],'Content-Type: application/json','Accept: audio/mpeg']];
         case 'google':
@@ -539,9 +698,9 @@ function ch_tts_request(string $provider, string $text, array $voice, array $cre
             return ['url'=>ch_tts_base('https://texttospeech.googleapis.com').'/v1/text:synthesize?key='.rawurlencode($cred['key']),'mode'=>'google_b64','body'=>json_encode($body,$J),
                     'headers'=>['Content-Type: application/json; charset=utf-8']];
         case 'azure':
-            $pct=(int)round(($r['rate']-1)*100); $rate=($pct>=0 ? '+' : '').$pct.'%';
+            $pct=fn(float $f): string => (($p=(int)round(($f-1)*100))>=0 ? '+' : '').$p.'%';
             $x=fn(string $v): string => htmlspecialchars($v,ENT_XML1|ENT_QUOTES,'UTF-8');
-            $ssml="<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='de-DE'><voice name='".$x($r['voice'])."'><prosody rate='".$x($rate)."'>".$x($text)."</prosody></voice></speak>";
+            $ssml="<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='de-DE'><voice name='".$x($r['voice'])."'><prosody rate='".$x($pct($r['rate']))."' pitch='".$x($pct($r['pitch']))."'>".$x($text)."</prosody></voice></speak>";
             return ['url'=>ch_tts_base('https://'.$cred['region'].'.tts.speech.microsoft.com').'/cognitiveservices/v1','mode'=>'binary','body'=>$ssml,
                     'headers'=>['Ocp-Apim-Subscription-Key: '.$cred['key'],'Content-Type: application/ssml+xml','X-Microsoft-OutputFormat: audio-24khz-48kbitrate-mono-mp3','User-Agent: ChatHelp-TTS']];
     }
@@ -552,12 +711,11 @@ function ch_tts_cache_dir(): ?string {
     if(!is_dir($d)) @mkdir($d,0700,true);
     return (is_dir($d) && is_writable($d)) ? $d : null;
 }
-/** Cache-Datei für Text + Stimme beim aktuellen Anbieter (null = kein Anbieter / kein Cache-Ordner). */
+/** Cache-Datei für Text + aufgelöste Stimme beim aktuellen Anbieter (null = kein Anbieter / kein Cache-Ordner). */
 function ch_tts_cache_path(string $text, array $voice, ?string $provider=null): ?string {
     $provider=$provider ?? ch_tts_provider(); if(!$provider) return null;
     $d=ch_tts_cache_dir(); if(!$d) return null;
-    $v=$voice; ksort($v); $v['_resolved']=ch_tts_resolve($provider,$voice);
-    return $d.'/'.hash('sha256',$provider.'|'.json_encode($v,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).'|'.$text).'.mp3';
+    return $d.'/'.hash('sha256','v2|'.$provider.'|'.json_encode(ch_tts_resolve($provider,$voice),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).'|'.trim($text)).'.mp3';
 }
 function ch_tts_is_mp3(string $b): bool {
     if(strlen($b)<64) return false;
@@ -571,16 +729,19 @@ function ch_tts_prune(?string $dir=null, int $days=14): int {
     foreach(glob($dir.'/*.tmp*') ?: [] as $f) if(@filemtime($f)<time()-3600) @unlink($f);
     return $n;
 }
-/** Text → MP3-Bytes (Cache zuerst). null bei jedem Fehler (dann spricht der Browser). */
-function ch_tts_synth(string $text, array $voice): ?string {
-    $text=trim($text); if($text==='' || mb_strlen($text)>600) return null;
+/** Text → MP3-Bytes (Cache zuerst). null bei jedem Fehler (dann spricht der Browser). $info → ['provider','cache'=>'hit'|'miss','preset']. */
+function ch_tts_synth(string $text, array $voice, ?array &$info=null): ?string {
+    $info=['provider'=>null,'cache'=>null,'preset'=>$voice['preset'] ?? null];
+    $text=trim($text); if($text==='' || mb_strlen($text)>CH_TTS_MAXLEN) return null;
     $prov=ch_tts_provider(); if(!$prov) return null;
     $cred=ch_tts_creds($prov); if(!$cred) return null;
+    $info['provider']=$prov;
     $file=ch_tts_cache_path($text,$voice,$prov);
     if($file && is_file($file) && filesize($file)>0){
         $b=@file_get_contents($file);
-        if(is_string($b) && ch_tts_is_mp3($b)){ if(@filemtime($file)<time()-86400) @touch($file); return $b; }
+        if(is_string($b) && ch_tts_is_mp3($b)){ if(@filemtime($file)<time()-86400) @touch($file); $info['cache']='hit'; return $b; }
     }
+    $info['cache']='miss';
     $req=ch_tts_request($prov,$text,$voice,$cred); if(!$req) return null;
     $ch=curl_init($req['url']);
     curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$req['body'],CURLOPT_HTTPHEADER=>$req['headers'],

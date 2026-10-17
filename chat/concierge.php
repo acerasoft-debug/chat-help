@@ -5,9 +5,12 @@
  * POST /chat/concierge.php {messages:[{role,content}], lang}  → {reply}
  * GET  /chat/concierge.php?lang=de                             → {greeting, chips[]}
  * Live-Demo eines Agenten (Startseite):
- *   GET  ?agent=<planId>  → {demo, agent, company, persona, greeting, chips, voice:{gender,rate,pitch}, speech:[{text,t}], fillers:[{text,t}], tts, lang}
- *   POST {agent, channel:'phone'|'chat', messages, lang} → {reply, tools, forward, end, …, speech:[{text,t}], tts}
- *   speech/fillers = sprechbare Sätze mit Token für /chat/tts.php (speech-lib.php); tts=true, wenn eine Server-Stimme eingerichtet ist.
+ *   GET  ?agent=<planId>[&sector=<key>] → {demo, sector, agent, company, persona, greeting, chips, voice:{gender,rate,pitch,preset}, voices:[{id,label,gender,desc,…}],
+ *                                          speech:[{text,t}], fillers:[{text,t}], script:[[role,text],…], tts, lang}   (sector nur bei agent-phone, sonst null)
+ *   GET  ?phone_sectors=1               → {sectors:[{key,label,icon,company,persona,gender,group,preset}]}   (Branchen des Telefon-Agenten, CH_PHONE_SECTORS)
+ *   POST {agent, sector?, channel:'phone'|'chat', messages, lang} → {reply, tools, forward, end, …, speech:[{text,t}], tts}
+ *   speech/fillers = sprechbare Sätze mit Token (demo|sector|exp|text) für /chat/tts.php (speech-lib.php); tts=true, wenn eine Server-Stimme eingerichtet ist.
+ *   Tests: CH_TEST_AI_HOOK (Funktionsname, nur in einer Test-Umgebung definiert und nur für Anfragen von 127.0.0.1/::1) ersetzt den KI-Aufruf.
  * Platform anahtarıyla (CLAUDE_KEY / DEEPSEEK_KEY, db.php) çalışır; ziyaretçiden token istemez.
  * Koruma: IP başına 20 mesaj/saat, toplam 400 mesaj/saat (tablo: concierge_log). Yalnız ChatHelp konuları.
  */
@@ -37,6 +40,66 @@ function concierge_persona_prompt(array $d, bool $phone): string {
        ."\n• Zum Schluss freundlich und persönlich verabschieden – ein Satz genügt.";
     return $o;
 }
+/** Demo-Werkzeuge (Konto 0): Taxi → ride, Hotel → hotel, … ; beim Telefon-Agenten je Branche (CH_PHONE_SECTORS tools). */
+const CONCIERGE_DEMO_MODS=['agent-termine'=>['appt'],'agent-bestellung'=>['order'],'agent-taxi'=>['ride'],'agent-hotel'=>['hotel','callback'],'immo-agent'=>['callback'],'agent-phone'=>['callback']];
+function concierge_toolkit(string $demo, array $d): ?array {
+    require_once __DIR__.'/agent-tools.php';
+    $want=$demo==='agent-phone' ? (array)($d['tools'] ?? ['callback']) : (CONCIERGE_DEMO_MODS[$demo] ?? []);
+    $have=ch_modules(); $only=array_values(array_filter($want,fn($k)=>is_string($k) && isset($have[$k])));
+    if(!$only) return null;
+    $tk=ch_toolkit(0,'demo','',$only);
+    if(!$tk['tools']) return null;
+    if($demo==='agent-phone' && in_array('appt',$only,true) && !empty($d['services'])) $tk=concierge_appt_wrap($tk,$d);
+    return $tk;
+}
+/**
+ * Termin-Kalender der Demo (Konto 0, Salon Luna) für eine andere Branche nutzen (Werkstatt, Tierarzt, Studio …):
+ * Werkzeuge sehen nur die Leistungen der Branche; jede Leistung belegt einen Demo-Slot gleicher Dauer; Ergebnisse tragen Firma und Leistung der Branche.
+ */
+function concierge_appt_wrap(array $tk, array $d): array {
+    $svc=[]; foreach(array_values($d['services']) as $i=>$x) $svc[$i+1]=['id'=>$i+1,'name'=>(string)$x['name'],'duration_min'=>(int)$x['duration_min'],'price'=>(string)($x['price'] ?? '')];
+    $list=array_values($svc);
+    $map=function(int $dur): ?int { $best=null; foreach(appt_services(0) as $x){ $df=abs((int)$x['duration_min']-$dur); if($best===null || $df<$best[0]) $best=[$df,(int)$x['id']]; } return $best[1] ?? null; };
+    $co=(string)($d['company'] ?? ''); $addr=(string)($d['address'] ?? '');
+    $relabel=function($r, ?array $s) use(&$relabel,$co,$addr,$list,$svc){
+        if(!is_array($r)) return $r;
+        foreach($r as $k=>$v){
+            if($k==='services' && is_array($v)) { $r[$k]=$list; continue; }
+            if($k==='company' && is_string($v)) { $r[$k]=$co; continue; }
+            if($k==='address' && is_string($v) && $addr!=='') { $r[$k]=$addr; continue; }
+            if($k==='service' && is_array($v) && $s) { $r[$k]=['id'=>$s['id'],'name'=>$s['name'],'duration_min'=>$s['duration_min']]; continue; }
+            if($k==='service' && is_string($v)){ if($s){ $r[$k]=$s['name']; continue; }
+                foreach($svc as $x) if(isset($r['note']) && is_string($r['note']) && str_starts_with($r['note'],$x['name'])){ $r[$k]=$x['name']; break; } continue; }
+            if(is_array($v)) $r[$k]=$relabel($v,$s);
+        }
+        return $r;
+    };
+    $exec0=$tk['exec'];
+    $tk['exec']=function(string $n, array $in) use($exec0,$svc,$list,$map,$relabel): array {
+        if($n==='list_services') return ['services'=>array_map(fn($x)=>['id'=>$x['id'],'name'=>$x['name'],'duration_min'=>$x['duration_min'],'price'=>$x['price']],$list)];
+        if($n==='get_available_slots' || $n==='book_appointment'){
+            $sid=isset($in['service_id']) ? (int)$in['service_id'] : 0;
+            if($sid>0 && !isset($svc[$sid])) return ['error'=>'unknown_service','service_id'=>$sid,'hint'=>'Diese Leistung gibt es nicht. Bitte eine der Leistungen (service_id aus services) verwenden.','services'=>$list];
+            $s=$sid>0 ? $svc[$sid] : null;
+            if($n==='book_appointment' && !$s) return ['error'=>'service_required','hint'=>'Bitte zuerst die Leistung klären und deren service_id angeben.','services'=>$list];
+            if($s){ $m=$map($s['duration_min']); if($m) $in['service_id']=$m; else unset($in['service_id']); } else unset($in['service_id']);
+            if($n==='book_appointment') $in['note']=trim($s['name'].'. '.(string)($in['note'] ?? ''),' .');
+            return $relabel($exec0($n,$in),$s);
+        }
+        return $relabel($exec0($n,$in),null);
+    };
+    $txt=implode('; ',array_map(fn($x)=>'#'.$x['id'].' '.$x['name'].' ('.$x['duration_min'].' Min'.($x['price']!=='' ? ', '.$x['price'] : '').')',$list));
+    $h=preg_replace('/Leistungen: .*?\. Vorlauf/su','Leistungen: '.str_replace(['\\','$'],['\\\\','\\$'],$txt).'. Vorlauf',$tk['hint'],1);
+    $tk['hint']=is_string($h) && $h!==$tk['hint'] ? $h : $tk['hint']."\nLeistungen dieses Betriebs (service_id): ".$txt.'.';
+    return $tk;
+}
+/** KI-Aufruf der Live-Demo (Test-Haken CH_TEST_AI_HOOK nur lokal). */
+function concierge_ai(string $sys, array $msgs, ?array $tk, bool $phone): ?string {
+    if(defined('CH_TEST_AI_HOOK') && is_string(CH_TEST_AI_HOOK) && function_exists(CH_TEST_AI_HOOK) && in_array($_SERVER['REMOTE_ADDR'] ?? '',['127.0.0.1','::1'],true))
+        return (CH_TEST_AI_HOOK)($sys,$msgs,$tk,$phone);
+    if($tk) return th_ai_tools($sys,$msgs,$tk['tools'],$tk['exec'],$phone?320:800,60);
+    return th_ai($sys,$msgs,$phone?300:700,45);
+}
 header('Access-Control-Allow-Origin: *'); header('Access-Control-Allow-Headers: Content-Type'); header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 if($_SERVER['REQUEST_METHOD']==='OPTIONS'){ http_response_code(204); exit; }
 
@@ -57,18 +120,26 @@ $G=[
         'chips'=>['Quiero redactar una reclamación','¿Qué agente encaja con mi tienda?','¿Cuánto cuestan los tokens?']],
 ];
 $g=$G[$lang] ?? $G['de'];
-/* Live-Demo eines Agenten (Startseite): ?agent=agent-phone → Beispiel-Firma + Wissensbasis, echter Agent */
+/* Live-Demo eines Agenten (Startseite): ?agent=agent-phone[&sector=bank] → Beispiel-Firma + Wissensbasis, echter Agent */
 $demo=preg_replace('/[^a-z0-9-]/','',(string)($in['agent'] ?? ($_GET['agent'] ?? '')));
 if($demo!=='' && !ch_plan($demo)) $demo='';
+$sector=$demo!=='' ? ch_demo_sector($demo,$in['sector'] ?? ($_GET['sector'] ?? '')) : '';   // nur agent-phone; unbekannt → zahnarzt
 /* Server-Stimme nur für echte Demo-Einträge (tts.php prüft CH_DEMO) */
 $ttsOn = $demo!=='' && isset(CH_DEMO[$demo]) && ch_tts_provider()!==null;
 if($_SERVER['REQUEST_METHOD']==='GET'){
+    if(isset($_GET['phone_sectors'])){
+        $o=[]; foreach(array_keys(CH_PHONE_SECTORS) as $k){ $c=ch_phone_sector_cfg($k);
+            $o[]=['key'=>$k,'label'=>$c['label'],'icon'=>$c['icon'],'company'=>$c['company'],'persona'=>$c['persona'],'gender'=>$c['voice']['gender'],'group'=>$c['group'],'preset'=>$c['voice']['preset']]; }
+        th_json(200,['sectors'=>$o]);
+    }
     if($demo!==''){
-        $d=ch_demo_cfg($demo); $pl=ch_plan($demo);
-        $fill=[]; foreach($d['fillers'] as $f){ $x=implode(' ',ch_speech_sentences($f,'de',!empty($d['du']))); if($x!=='') $fill[]=['text'=>$x,'t'=>ch_tts_sign($demo,$x)]; }
-        th_json(200,['demo'=>$demo,'agent'=>$pl['name'],'company'=>$d['company'],'persona'=>$d['persona'],'greeting'=>$d['greeting'],'chips'=>$d['chips'],
-            'voice'=>['gender'=>$d['voice']['gender'],'rate'=>$d['voice']['rate'],'pitch'=>$d['voice']['pitch']],
-            'speech'=>ch_speech_payload($demo,$d['greeting']),'fillers'=>$fill,'tts'=>$ttsOn,'lang'=>'de']);
+        $d=ch_demo_conf($demo,$sector); $pl=ch_plan($demo); $du=!empty($d['du']);
+        $fill=[]; foreach($d['fillers'] as $f){ $x=implode(' ',ch_speech_sentences($f,'de',$du)); if($x!=='') $fill[]=['text'=>$x,'t'=>ch_tts_sign($demo,$x,$sector)]; }
+        $out=['demo'=>$demo,'sector'=>$sector!=='' ? $sector : null,'agent'=>$pl['name'],'company'=>$d['company'],'persona'=>$d['persona'],'greeting'=>$d['greeting'],'chips'=>$d['chips'],
+            'voice'=>['gender'=>$d['voice']['gender'],'rate'=>$d['voice']['rate'],'pitch'=>$d['voice']['pitch'],'preset'=>$d['voice']['preset']],'voices'=>ch_tts_voices_public(),
+            'speech'=>ch_speech_payload($demo,$d['greeting'],$sector,$du),'fillers'=>$fill,'script'=>$d['script'],'tts'=>$ttsOn,'lang'=>'de'];
+        if($sector!=='') $out+=['label'=>$d['label'],'icon'=>$d['icon'],'group'=>$d['group']];
+        th_json(200,$out);
     }
     th_json(200,['greeting'=>$g['hi'],'chips'=>$g['chips'],'lang'=>$lang]);
 }
@@ -91,25 +162,25 @@ if(!$msgs || end($msgs)['role']!=='user') th_json(400,['error'=>'messages_requir
 
 /* ---- Agent-Live-Demo: echter Agent mit Beispiel-Wissensbasis (Plattform-Schlüssel, kein Token-Verbrauch des Besuchers) ---- */
 if($demo!==''){
-    $pl=ch_plan($demo); $d=ch_demo_cfg($demo); $phone=(($in['channel']??'')==='phone') || $demo==='agent-phone';
+    $pl=ch_plan($demo); $d=ch_demo_conf($demo,$sector); $phone=(($in['channel']??'')==='phone') || $demo==='agent-phone'; $du=!empty($d['du']);
+    if($sector!==''){   // Telefon-Agent einer Branche: Grundrolle + Fachablauf der Branche zusätzlich zu den Telefon-Regeln
+        if(!empty($d['sector_sys']) && isset(CH_SECTORS[$d['sector_sys']])) $pl['sector']=$d['sector_sys'];
+        if(!empty($d['rules_from']) && isset(CH_AGENT_RULES[$d['rules_from']])) $pl['rules'].="\n\nFACHABLAUF ".mb_strtoupper((string)$d['label']).": ".CH_AGENT_RULES[$d['rules_from']]."\nStehen dafür Werkzeuge bereit, buchst bzw. trägst du verbindlich über die Werkzeuge ein, statt nur zu notieren.";
+    }
     $sys=ch_agent_system($pl,$d,'de').concierge_persona_prompt($d,$phone).($phone?CH_PHONE_RULES:'')
-        ."\n\nDEMO-HINWEIS (nur intern): Dies ist eine öffentliche Live-Demo auf chat-help.com mit der Beispiel-Firma „".$d['company']."“. Bleibe vollständig in der Rolle. Wenn jemand fragt, wie er so einen Agenten bekommt oder etwas über ChatHelp wissen will: Ein Satz – Studio auf chat-help.com, eigene Wissensbasis einfügen, in 10 Minuten startklar – dann zurück in die Rolle.";
-    /* Termin- und Bestell-Demo arbeiten mit ECHTEN Werkzeugen auf Konto 0 (Salon Luna / Pizzeria Napoli): echte Slot- und Adressprüfung, echte Buchung/Bestellung – keine Benachrichtigungen */
-    $tk=null;
+        ."\n\nDEMO-HINWEIS (nur intern): Dies ist eine öffentliche Live-Demo auf chat-help.com mit der Beispiel-Firma „".$d['company']."“".($sector!=='' ? ' (Branche: '.$d['label'].')' : '').". Bleibe vollständig in der Rolle. Wenn jemand fragt, wie er so einen Agenten bekommt oder etwas über ChatHelp wissen will: Ein Satz – Studio auf chat-help.com, eigene Wissensbasis einfügen, in 10 Minuten startklar – dann zurück in die Rolle.";
+    /* Demos arbeiten mit ECHTEN Werkzeugen auf Konto 0 (Termine, Bestellungen, Taxi, Hotel, Rückruf): echte Slot- und Adressprüfung, echte Buchung – keine Benachrichtigungen */
     require_once __DIR__.'/agent-tools.php'; ch_heartbeat();
-    $DEMO_MODS=['agent-termine'=>['appt'],'agent-bestellung'=>['order'],'agent-taxi'=>['ride'],'agent-hotel'=>['hotel','callback'],'immo-agent'=>['callback'],'agent-phone'=>['callback']];   // Demo-Konto 0: passende echte Werkzeuge je Demo
-    if(isset($DEMO_MODS[$demo])){ $only=array_values(array_filter($DEMO_MODS[$demo],fn($k)=>isset(ch_modules()[$k]))); if($only) $tk=ch_toolkit(0,'demo','',$only); }
-    if($tk){
-        $sys.=$tk['hint']."\nDEMO-MODUS: Kundendaten dürfen Platzhalter sein (z. B. Name „Demo“, Telefon „0170 0000000“), Bestellungen auch außerhalb der Öffnungszeiten annehmen; es wird keine echte Nachricht verschickt – sage, dass im echten Betrieb Bestätigung per E-Mail/WhatsApp/SMS kommt.";
-        $answer=th_ai_tools($sys,$msgs,$tk['tools'],$tk['exec'],$phone?320:800,60);
-    } else $answer=th_ai($sys,$msgs,$phone?300:700,45);
+    $tk=concierge_toolkit($demo,$d);
+    if($tk) $sys.=$tk['hint']."\nDEMO-MODUS: Kundendaten dürfen Platzhalter sein (z. B. Name „Demo“, Telefon „0170 0000000“), Bestellungen auch außerhalb der Öffnungszeiten annehmen; es wird keine echte Nachricht verschickt – sage, dass im echten Betrieb Bestätigung per E-Mail/WhatsApp/SMS kommt.";
+    $answer=concierge_ai($sys,$msgs,$tk,$phone);
     if($answer===null){ $r='Die Demo ist gerade nicht erreichbar – bitte gleich noch einmal versuchen.';
-        th_json(200,['error'=>'ai_unavailable','reply'=>$r,'demo'=>$demo,'detail'=>th_ai_info()['errors'] ?? [],'speech'=>ch_speech_payload($demo,$r),'tts'=>$ttsOn]); }   // 200: Cloudflare würde 502 durch eigene Fehlerseite ersetzen
+        th_json(200,['error'=>'ai_unavailable','reply'=>$r,'demo'=>$demo,'sector'=>$sector!=='' ? $sector : null,'detail'=>th_ai_info()['errors'] ?? [],'speech'=>ch_speech_payload($demo,$r,$sector,$du),'tts'=>$ttsOn]); }   // 200: Cloudflare würde 502 durch eigene Fehlerseite ersetzen
     $forward=str_contains($answer,'[WEITERLEITEN]'); $end=str_contains($answer,'[ENDE]');
     $answer=trim(str_replace(['[WEITERLEITEN]','[ENDE]'],'',$answer));
     $p->prepare("INSERT INTO concierge_log(ip_hash) VALUES(?)")->execute([$h]);
-    th_json(200,['reply'=>$answer,'source'=>th_ai_info()['provider'] ?? 'ai','demo'=>$demo,'forward'=>$forward,'end'=>$end,'tools'=>array_map(fn($c)=>['name'=>$c['name'],'ok'=>$c['ok'] ?? true],th_ai_info()['tool_calls'] ?? []),
-        'speech'=>ch_speech_payload($demo,$answer),'tts'=>$ttsOn]);
+    th_json(200,['reply'=>$answer,'source'=>th_ai_info()['provider'] ?? 'ai','demo'=>$demo,'sector'=>$sector!=='' ? $sector : null,'forward'=>$forward,'end'=>$end,'tools'=>array_map(fn($c)=>['name'=>$c['name'],'ok'=>$c['ok'] ?? true],th_ai_info()['tool_calls'] ?? []),
+        'speech'=>ch_speech_payload($demo,$answer,$sector,$du),'tts'=>$ttsOn]);
 }
 
 /* ---- sistem promptu: ürün bilgisi ---- */

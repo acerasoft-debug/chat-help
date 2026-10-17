@@ -54,7 +54,8 @@ const ASSISTANT_VOICE_PRESETS = [
     'm_souveraen'=>['gender'=>'m','label'=>'Souverän','desc'=>'Klar, professionell und bestimmt','rate'=>1.0,'pitch'=>0.97,'openai'=>'verse','google'=>'de-DE-Chirp3-HD-Puck','azure'=>'de-DE-FlorianMultilingualNeural','browser'=>['Killian','Conrad','Florian','Markus','Yannick']],
 ];
 /** Ton der Sprechweise → passende Voreinstellung je Geschlecht. */
-const ASSISTANT_TONE_PRESET = ['f'=>['warm'=>'f_warm','ruhig'=>'f_warm','energisch'=>'f_frisch','sachlich'=>'f_klar'],'m'=>['warm'=>'m_freundlich','ruhig'=>'m_ruhig','energisch'=>'m_freundlich','sachlich'=>'m_souveraen']];
+const ASSISTANT_TONE_PRESET = ['f'=>['warm'=>['f_warm'],'ruhig'=>['f_sanft','f_warm'],'energisch'=>['f_frisch'],'sachlich'=>['f_klar']],
+                                'm'=>['warm'=>['m_freundlich'],'ruhig'=>['m_ruhig','m_tief'],'energisch'=>['m_freundlich'],'sachlich'=>['m_souveraen']]];
 /** Branche (Stichwort) → passende Agenten, erste Wahl zuerst. */
 const ASSISTANT_SECTOR_MAP = [
     ['/pizz|restaurant|imbiss|liefer|döner|doener|burger|sushi|gastro|trattoria|grill|kebap|kebab|asia/iu',['agent-bestellung','gastro-agent']],
@@ -192,7 +193,10 @@ function assistant_profile_defaults(int $acc): array {
     return ['account_id'=>$acc,'name'=>'Lea','gender'=>'f','portrait'=>assistant_default_portrait('f'),'portrait_data'=>null,
         'voice'=>['tone'=>'warm','rate'=>1.0,'pitch'=>1.0,'preset'=>assistant_preset_for('f','warm')],'personality'=>['address'=>'du','mood'=>'herzlich','humor'=>1,'detail'=>'kurz'],'lang'=>'de','saved'=>false];
 }
-/** Stimm-Voreinstellungen: id → {gender,label,desc,rate,pitch,openai,google,azure,browser[]}. speech-lib (ch_tts_voices) hat Vorrang. */
+/**
+ * Stimm-Voreinstellungen: id → {gender,label,title,desc,rate,pitch,openai,google,azure,instructions,elevenlabs,eleven,browser[]}.
+ * speech-lib (ch_tts_voices) hat Vorrang – deren browser kann {names,rate,pitch} oder eine Namensliste sein.
+ */
 function assistant_voice_presets(): array {
     static $out=null; if($out!==null) return $out; $out=ASSISTANT_VOICE_PRESETS;
     if(function_exists('ch_tts_voices')){
@@ -201,19 +205,27 @@ function assistant_voice_presets(): array {
             if(!is_array($v)) continue; $id=(string)($v['id'] ?? (is_string($k) ? $k : ''));
             if(!preg_match('/^[a-z]_[a-z0-9_]{2,30}$/',$id) || !in_array($v['gender'] ?? '',['f','m'],true)) continue;
             $base=$out[$id] ?? ASSISTANT_VOICE_PRESETS[$v['gender']==='m' ? 'm_freundlich' : 'f_warm'];
-            $br=$v['browser'] ?? $base['browser']; $br=is_array($br) ? $br : (is_string($br) && $br!=='' ? preg_split('/\s*[,|]\s*/',$br) : $base['browser']);
-            $out[$id]=['gender'=>$v['gender'],'label'=>assistant_line($v['label'] ?? $base['label'],30),'desc'=>assistant_line($v['desc'] ?? $base['desc'],120),
+            $br=$v['browser'] ?? null; if(is_array($br) && isset($br['names'])) $br=$br['names'];
+            if(is_string($br) && $br!=='') $br=preg_split('/\s*[,|]\s*/',$br);
+            if(!is_array($br) || !$br || !array_filter($br,fn($x)=>is_string($x) && !is_numeric($x))) $br=$base['browser'];
+            $out[$id]=['gender'=>$v['gender'],'label'=>assistant_line($v['label'] ?? $base['label'],40),'desc'=>assistant_line($v['desc'] ?? $base['desc'],140),
                 'rate'=>is_numeric($v['rate'] ?? null) ? (float)$v['rate'] : $base['rate'],'pitch'=>is_numeric($v['pitch'] ?? null) ? (float)$v['pitch'] : $base['pitch'],
                 'openai'=>(string)($v['openai'] ?? $base['openai']),'google'=>(string)($v['google'] ?? $base['google']),'azure'=>(string)($v['azure'] ?? $base['azure']),
-                'browser'=>array_values(array_filter(array_map(fn($x)=>assistant_line($x,40),(array)$br),fn($x)=>$x!==''))];
+                'instructions'=>assistant_str($v['instructions'] ?? '',800),'elevenlabs'=>(string)($v['elevenlabs'] ?? ''),'eleven'=>is_array($v['eleven'] ?? null) ? $v['eleven'] : null,
+                'browser'=>array_values(array_filter(array_map(fn($x)=>is_string($x) ? assistant_line($x,40) : '',$br),fn($x)=>$x!==''))];
         }
     }
+    foreach($out as $id=>&$v){ $t=$v['label']; if(str_contains($t,' · ')) $t=trim(explode(' · ',$t,2)[1]); $v['title']=mb_strtoupper(mb_substr($t,0,1)).mb_substr($t,1); } unset($v);
     return $out;
 }
-function assistant_preset_for(string $gender, string $tone): string { return ASSISTANT_TONE_PRESET[$gender==='m' ? 'm' : 'f'][$tone] ?? ($gender==='m' ? 'm_freundlich' : 'f_warm'); }
+function assistant_preset_for(string $gender, string $tone): string {
+    $g=$gender==='m' ? 'm' : 'f'; $pre=assistant_voice_presets();
+    foreach(ASSISTANT_TONE_PRESET[$g][$tone] ?? [] as $id) if(isset($pre[$id]) && $pre[$id]['gender']===$g) return $id;
+    return $g==='m' ? 'm_freundlich' : 'f_warm';
+}
 /** Liste fürs Panel (ohne Anbieter-Stimmnamen). */
 function assistant_voice_presets_public(): array {
-    $o=[]; foreach(assistant_voice_presets() as $id=>$v) $o[]=['id'=>$id,'gender'=>$v['gender'],'label'=>$v['label'],'desc'=>$v['desc'],'rate'=>$v['rate'],'pitch'=>$v['pitch'],'browser'=>$v['browser']];
+    $o=[]; foreach(assistant_voice_presets() as $id=>$v) $o[]=['id'=>$id,'gender'=>$v['gender'],'label'=>$v['title'],'desc'=>$v['desc'],'rate'=>$v['rate'],'pitch'=>$v['pitch'],'browser'=>$v['browser']];
     return $o;
 }
 function assistant_profile(int $acc): array {
@@ -244,7 +256,7 @@ function assistant_role_label(array $pr): string {
 function assistant_profile_public(array $pr): array {
     $pre=assistant_voice_presets()[$pr['voice']['preset']] ?? null;
     return ['name'=>$pr['name'],'gender'=>$pr['gender'],'portrait'=>$pr['portrait'],'portrait_url'=>assistant_portrait_url($pr),'has_photo'=>!empty($pr['portrait_data']),
-        'photo_url'=>!empty($pr['portrait_data']) && $pr['portrait']!=='custom' ? (string)$pr['portrait_data'] : null,'voice_label'=>$pre ? $pre['label'] : '',
+        'photo_url'=>!empty($pr['portrait_data']) && $pr['portrait']!=='custom' ? (string)$pr['portrait_data'] : null,'voice_label'=>$pre ? $pre['title'] : '',
         'voice'=>$pr['voice'],'personality'=>$pr['personality'],'lang'=>$pr['lang'],'role'=>assistant_role_label($pr),'saved'=>$pr['saved']];
 }
 /**
@@ -320,9 +332,13 @@ function assistant_voice(array $pr, array $over=[]): array {
     $toneTxt=['warm'=>'warm, kind and reassuring, with a gentle smile in the voice','ruhig'=>'calm, soft and unhurried, with natural pauses','energisch'=>'bright, upbeat and energetic, but never rushed','sachlich'=>'clear, composed and matter-of-fact, precise articulation'][$tone];
     $mood=['herzlich'=>'Sound heartfelt and personal.','professionell'=>'Sound polished and professional.','locker'=>'Sound relaxed and casual, like talking to a colleague.'][$pr['personality']['mood']] ?? '';
     $humor=(int)$pr['personality']['humor']>=2 ? ' A light, playful undertone is welcome.' : '';
-    return ['gender'=>$g,'preset'=>$pid,'openai'=>$vm['openai'],'google'=>$vm['google'],'azure'=>$vm['azure'],'lang'=>'de-DE',
-        'instructions'=>'Speak natural, native German as '.$who.' who is a personal business assistant. Voice: '.$toneTxt.'. '.$mood.$humor.' Never sound robotic; vary intonation like a real conversation.',
+    $base=trim((string)($vm['instructions'] ?? ''));
+    $ins=($base!=='' ? $base.' ' : 'Speak natural, native German. Never sound robotic; vary intonation like a real conversation. ')
+        .'Role: you are '.$pr['name'].', '.$who.' and the owner\'s personal business assistant, talking one-to-one with the owner. Delivery: '.$toneTxt.'. '.$mood.$humor;
+    $v=['gender'=>$g,'preset'=>$pid,'openai'=>$vm['openai'],'google'=>$vm['google'],'azure'=>$vm['azure'],'lang'=>'de-DE','instructions'=>mb_substr($ins,0,1500),
         'rate'=>round(max(0.7,min(1.3,$rate*(float)$vm['rate'])),2),'pitch'=>round(max(0.7,min(1.3,$pitch*(float)$vm['pitch'])),2)];
+    if(!empty($vm['elevenlabs'])) $v['elevenlabs']=$vm['elevenlabs']; if(!empty($vm['eleven'])) $v['eleven']=$vm['eleven'];
+    return $v;
 }
 /** Antworttext → vorlesbare Sätze (ohne Markdown, Links, Emojis). */
 function assistant_speech(string $text, string $lang='de', bool $du=true): array {
@@ -426,10 +442,15 @@ function assistant_sector_plans(string $text): array {
     foreach(ASSISTANT_SECTOR_MAP as [$re,$plans]) if(preg_match($re,$text)) return array_values(array_filter($plans,fn($p)=>isset(CH_PLANS[$p])));
     return [];
 }
-/** Agent, auf den sich Werkzeuge ohne „plan“ beziehen: aktiver Plan → zuletzt bearbeitete Konfiguration → Branche aus dem Gedächtnis → Telefon-Agent. */
+/**
+ * Agent, auf den sich Werkzeuge ohne „plan“ beziehen – stabil, damit Profil, FAQ und Ton beim selben Agenten landen:
+ * aktiver Plan → Konfiguration mit Betriebsprofil → zuletzt bearbeitete Konfiguration → Branche aus dem Gedächtnis → Telefon-Agent.
+ */
 function assistant_main_plan(int $acc): string {
     foreach(assistant_active_plans($acc) as $p){ $b=$p['base']; if((CH_PLANS[$b][4] ?? '')==='agent') return $b; }
-    foreach(assistant_configs($acc) as $c){ $pl=ch_plan((string)$c['plan']); if($pl && $pl['kind']==='agent') return $pl['id']; }
+    $cfgs=array_values(array_filter(assistant_configs($acc),fn($c)=>(ch_plan((string)$c['plan'])['kind'] ?? '')==='agent'));
+    foreach($cfgs as $c) if(assistant_kb_section_get((string)($c['kb'] ?? ''),'Betriebsprofil')!==null) return (string)$c['plan'];
+    if($cfgs) return (string)$cfgs[0]['plan'];
     $mem=implode(' ',array_map(fn($m)=>$m['topic'].' '.$m['fact'],assistant_memory($acc,60)));
     $sp=assistant_sector_plans($mem); if($sp && (CH_PLANS[$sp[0]][4] ?? '')==='agent') return $sp[0];
     return 'agent-phone';
@@ -648,22 +669,30 @@ function assistant_hours_norm($raw): ?array {
     if(!is_array($raw)) return null;
     $names=['so'=>0,'sonntag'=>0,'sun'=>0,'sunday'=>0,'mo'=>1,'montag'=>1,'mon'=>1,'monday'=>1,'di'=>2,'dienstag'=>2,'tue'=>2,'tuesday'=>2,'mi'=>3,'mittwoch'=>3,'wed'=>3,'wednesday'=>3,
         'do'=>4,'donnerstag'=>4,'thu'=>4,'thursday'=>4,'fr'=>5,'freitag'=>5,'fri'=>5,'friday'=>5,'sa'=>6,'samstag'=>6,'sat'=>6,'saturday'=>6];
-    $hm=function($t){ $t=trim(str_replace('.',':',(string)$t)); if(preg_match('/^(\d{1,2})(?::(\d{2}))?$/',$t,$m) && (int)$m[1]<=24 && (int)($m[2] ?? 0)<60) return sprintf('%02d:%02d',(int)$m[1],(int)($m[2] ?? 0)); return null; };
+    $hm=function($t){ if(!is_scalar($t)) return null; $t=trim(str_replace('.',':',preg_replace('/\s*uhr$/iu','',trim((string)$t)) ?? '')); if(preg_match('/^(\d{1,2})(?::(\d{2}))?$/',$t,$m) && ((int)$m[1]<24 || ((int)$m[1]===24 && (int)($m[2] ?? 0)===0)) && (int)($m[2] ?? 0)<60) return sprintf('%02d:%02d',(int)$m[1],(int)($m[2] ?? 0)); return null; };
     $out=['0'=>[],'1'=>[],'2'=>[],'3'=>[],'4'=>[],'5'=>[],'6'=>[]]; $any=false;
     foreach($raw as $k=>$list){
         $kk=mb_strtolower(trim((string)$k)); $w=ctype_digit($kk) ? (int)$kk : ($names[rtrim($kk,'.')] ?? null); if($w===null || $w<0 || $w>6) continue; $any=true;
-        if(is_string($list)) $list=preg_match('/geschlossen|closed|zu|^-$/iu',$list) ? [] : array_map(fn($x)=>preg_split('/\s*[–-]\s*/u',trim($x)),explode(',',$list));
-        foreach((array)$list as $iv){ if(is_string($iv)) $iv=preg_split('/\s*[–-]\s*/u',trim($iv)); if(!is_array($iv)) continue;
-            $a=$hm($iv['from'] ?? ($iv[0] ?? '')); $b=$hm($iv['to'] ?? ($iv[1] ?? '')); if($a===null || $b===null) continue; if($b==='24:00') $b='24:00'; $out[(string)$w][]=[$a,$b]; }
+        if(is_string($list)) $list=preg_match('/^\s*(geschlossen|closed|zu|ruhetag|frei|-|–)?\s*$/iu',$list) ? [] : array_map(fn($x)=>preg_split('/\s*[–-]\s*/u',trim($x)),explode(',',$list));
+        foreach((array)$list as $iv){ if(is_string($iv)) $iv=preg_split('/\s*[–-]\s*/u',trim($iv)); if(!is_array($iv)) return null;
+            $a=$hm($iv['from'] ?? ($iv[0] ?? '')); $b=$hm($iv['to'] ?? ($iv[1] ?? ''));
+            if($a===null || $b===null || $a==='24:00') return null;   // ungültige Uhrzeit → Fehler an die KI statt stillschweigend „geschlossen“
+            $out[(string)$w][]=[$a,$b]; }
     }
     return $any ? $out : null;
 }
 /** Vergleichsform für Öffnungszeiten (Schlüsselreihenfolge egal). */
 function assistant_hours_sig($h): string { $o=[]; for($w=0;$w<=6;$w++) $o[]=json_encode(array_values((array)(is_array($h) ? ($h[(string)$w] ?? ($h[$w] ?? [])) : []))); return implode('|',$o); }
+/** Öffnungszeiten kompakt für Menschen: „Di–Fr 9–19 Uhr · Sa 9–15 Uhr · Mo, So geschlossen“ (gleiche Folgetage zusammengefasst). */
 function assistant_hours_text(array $h): string {
-    $wd=['So','Mo','Di','Mi','Do','Fr','Sa']; $parts=[];
-    foreach([1,2,3,4,5,6,0] as $w){ $iv=$h[(string)$w] ?? []; $parts[]=$wd[$w].' '.($iv ? implode(', ',array_map(fn($x)=>$x[0].'–'.$x[1],$iv)) : 'zu'); }
-    return implode(' · ',$parts);
+    $wd=['So','Mo','Di','Mi','Do','Fr','Sa']; $t=fn(string $x)=>preg_replace('/^0(\d)/','$1',str_ends_with($x,':00') ? substr($x,0,-3) : $x);
+    $sig=[]; foreach([1,2,3,4,5,6,0] as $w){ $iv=(array)($h[(string)$w] ?? ($h[$w] ?? [])); $sig[$w]=$iv ? implode(', ',array_map(fn($x)=>$t((string)$x[0]).'–'.$t((string)$x[1]),$iv)).' Uhr' : ''; }
+    $runs=[]; foreach([1,2,3,4,5,6,0] as $w){ $n=count($runs); if($n && $sig[$runs[$n-1][0]]===$sig[$w]) $runs[$n-1][]=$w; else $runs[]=[$w]; }
+    $lbl=fn(array $r)=>count($r)===1 ? $wd[$r[0]] : $wd[$r[0]].'–'.$wd[end($r)];
+    $open=[]; $closed=[];
+    foreach($runs as $r){ if($sig[$r[0]]==='') $closed[]=$lbl($r); else $open[]=$lbl($r).' '.$sig[$r[0]]; }
+    if($closed) $open[]=implode(', ',$closed).' geschlossen';
+    return implode(' · ',$open);
 }
 /** Ergebnis eines Werkzeugs als Aktions-Chip fürs Panel. */
 function assistant_action(string $name, array $r): array {
