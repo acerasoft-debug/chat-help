@@ -71,7 +71,7 @@ function push_bootstrap(): void {
     foreach(['quiet_urgent'=>"TINYINT(1) NOT NULL DEFAULT 1",'tz'=>"VARCHAR(40) NOT NULL DEFAULT 'Europe/Berlin'"] as $c=>$def) if(!in_array($c,$cols,true)) $p->exec("ALTER TABLE push_prefs ADD COLUMN $c $def");
     if(random_int(1,50)===1){
         $p->exec("DELETE FROM push_inbox WHERE created_at < (NOW() - INTERVAL 90 DAY)");
-        $p->exec("DELETE FROM push_mails WHERE sent_at < (NOW() - INTERVAL 1 DAY)");
+        $p->exec("DELETE FROM push_mails WHERE sent_at < (NOW() - INTERVAL 2 DAY)");
     }
 }
 
@@ -143,9 +143,11 @@ function push_raw2der(string $raw): string {
 function push_vapid(): ?array {
     static $v=null; if($v!==null) return $v ?: null;
     if(defined('VAPID_PUBLIC') && VAPID_PUBLIC && defined('VAPID_PRIVATE_PEM') && VAPID_PRIVATE_PEM){
-        $raw=push_b64u_dec((string)VAPID_PUBLIC);
-        if($raw!==null && push_raw_pub_valid($raw) && openssl_pkey_get_private((string)VAPID_PRIVATE_PEM)) return $v=['public'=>push_b64u($raw),'pem'=>(string)VAPID_PRIVATE_PEM,'source'=>'config'];
-        error_log('CH push: VAPID_PUBLIC/VAPID_PRIVATE_PEM in db.php ungültig – nutze gespeicherten Schlüssel');
+        $raw=push_b64u_dec((string)VAPID_PUBLIC); $pem=trim((string)VAPID_PRIVATE_PEM);
+        if(!str_contains($pem,'-----BEGIN') && $raw!==null && ($d=push_b64u_dec($pem))!==null && strlen($d)===32) $pem=push_priv_pem($d,$raw);   // roher Schlüssel d (base64url) wie aus „web-push generate-vapid-keys“
+        $k=$raw!==null && push_raw_pub_valid($raw) ? openssl_pkey_get_private($pem) : false;
+        if($k && hash_equals($raw,push_raw_pub($k))) return $v=['public'=>push_b64u($raw),'pem'=>$pem,'source'=>'config'];
+        error_log('CH push: VAPID_PUBLIC/VAPID_PRIVATE_PEM in db.php ungültig oder passen nicht zusammen – nutze gespeicherten Schlüssel');
     }
     try{ push_bootstrap(); }catch(Throwable $e){ error_log('CH push bootstrap: '.$e->getMessage()); $v=[]; return null; }
     $read=function(){ $j=json_decode((string)push_kv_get('vapid'),true); if(!is_array($j) || empty($j['public']) || empty($j['pem'])) return null;
@@ -309,7 +311,7 @@ function push_prefs_save(int $acc, array $d): array {
         if(array_key_exists('to',$d['quiet'])) $q['to']=$hm($d['quiet']['to']);
         if(isset($d['quiet']['tz']) && in_array((string)$d['quiet']['tz'],timezone_identifiers_list(),true)) $q['tz']=(string)$d['quiet']['tz'];
         if(array_key_exists('urgent',$d['quiet'])) $q['urgent']=(bool)$d['quiet']['urgent'];
-        if($q['from']==='' || $q['to']==='' || $q['from']===$q['to']){ $q['from']=$q['from']===$q['to'] ? '' : $q['from']; if($q['from']==='' || $q['to']===''){ $q['from']=''; $q['to']=''; } }
+        if($q['from']==='' || $q['to']==='' || $q['from']===$q['to']){ $q['from']=''; $q['to']=''; }   // unvollständig oder gleich = keine Ruhezeit
     }
     th_db()->prepare("INSERT INTO push_prefs(account_id,prefs,email_fallback,quiet_from,quiet_to,quiet_urgent,tz) VALUES(?,?,?,?,?,?,?)
         ON DUPLICATE KEY UPDATE prefs=VALUES(prefs),email_fallback=VALUES(email_fallback),quiet_from=VALUES(quiet_from),quiet_to=VALUES(quiet_to),quiet_urgent=VALUES(quiet_urgent),tz=VALUES(tz),updated_at=NOW()")
@@ -333,10 +335,11 @@ function push_inbox_row(array $r): array {
     return ['id'=>(int)$r['id'],'event'=>$r['event'],'label'=>$m['label'],'group'=>$m['group'],'title'=>$r['title'],'body'=>$r['body'],'url'=>$r['url'],'tag'=>$r['tag'],
         'created'=>th_dbiso($r['created_at']),'read'=>$r['read_at']!==null];
 }
-function push_inbox(int $acc, int $since=0, int $limit=30): array {
-    push_bootstrap(); $limit=max(1,min(100,$limit));
-    $s=th_db()->prepare("SELECT * FROM push_inbox WHERE account_id=? AND scope='owner'".($since>0 ? " AND id>?" : "")." ORDER BY id DESC LIMIT ".$limit);
-    $s->execute($since>0 ? [$acc,$since] : [$acc]); return array_map('push_inbox_row',$s->fetchAll(PDO::FETCH_ASSOC));
+/** Neueste zuerst. $since = nur neuere als diese id (Abfrage alle 30 s), $before = ältere als diese id („Mehr laden“). */
+function push_inbox(int $acc, int $since=0, int $limit=30, int $before=0): array {
+    push_bootstrap(); $limit=max(1,min(100,$limit)); $q="SELECT * FROM push_inbox WHERE account_id=? AND scope='owner'"; $a=[$acc];
+    if($since>0){ $q.=" AND id>?"; $a[]=$since; } if($before>0){ $q.=" AND id<?"; $a[]=$before; }
+    $s=th_db()->prepare($q." ORDER BY id DESC LIMIT ".$limit); $s->execute($a); return array_map('push_inbox_row',$s->fetchAll(PDO::FETCH_ASSOC));
 }
 /** $ids = Liste von ids oder 'all'. Gibt die Zahl der markierten Einträge zurück. */
 function push_mark_read(int $acc, $ids): int {
@@ -411,13 +414,22 @@ function push_fcm_message(string $token, array $pl, int $ttl=86400): array {
     $aps=['badge'=>(int)($pl['badge'] ?? 0),'thread-id'=>(string)$pl['event']]; if(empty($pl['silent'])) $aps['sound']='default';
     $apnsH=['apns-priority'=>'10']; if($pl['tag']!=='') $apnsH['apns-collapse-id']=substr($pl['tag'],0,64);
     return ['message'=>['token'=>$token,'notification'=>['title'=>$pl['title'],'body'=>$pl['body']],
-        'data'=>['url'=>(string)$pl['url'],'event'=>(string)$pl['event'],'tag'=>(string)$pl['tag'],'id'=>(string)($pl['id'] ?? 0),'title'=>(string)$pl['title'],'body'=>(string)$pl['body']],
+        'data'=>['url'=>(string)$pl['url'],'event'=>(string)$pl['event'],'tag'=>(string)$pl['tag'],'id'=>(string)($pl['id'] ?? 0),'title'=>(string)$pl['title'],'body'=>(string)$pl['body'],'badge'=>(string)(int)($pl['badge'] ?? 0)],
         'android'=>['priority'=>'HIGH','ttl'=>$ttl.'s','notification'=>$notif],
         'apns'=>['headers'=>$apnsH,'payload'=>['aps'=>$aps]]]];
 }
 function push_fcm_send_url(): ?string { $sa=push_fcm_sa(); if(!$sa) return null; return (push_fcm_base()!=='' ? push_fcm_base() : 'https://fcm.googleapis.com').'/v1/projects/'.rawurlencode($sa['project_id']).'/messages:send'; }
 
 /* ---------- Versand an Geräte ---------- */
+/** JSON-Nutzlast für den Service Worker (sw.js). Web Push erlaubt 4096 Byte je Nachricht → Text notfalls kürzen (Klartext ≤ 3.800 Byte). */
+function push_payload_json(array $pl, string $urg): string {
+    $mk=fn(string $body)=>json_encode(['title'=>$pl['title'],'body'=>$body,'url'=>$pl['url'],'tag'=>$pl['tag'],'event'=>$pl['event'],'id'=>(int)($pl['id'] ?? 0),
+        'icon'=>'/chat/icons/icon-192.png','urgency'=>$urg,'silent'=>!empty($pl['silent']),'ts'=>(int)round(microtime(true)*1000)]
+        +(isset($pl['badge']) ? ['badge'=>(int)$pl['badge']] : []),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+    $body=(string)$pl['body']; $json=$mk($body);
+    while(strlen($json)>3800 && $body!==''){ $body=mb_substr($body,0,max(0,(int)(mb_strlen($body)*0.8)-1)).'…'; if(mb_strlen($body)<=1) $body=''; $json=$mk($body); }
+    return $json;
+}
 /** Web-Push-Anfrage bauen (verschlüsselt je Gerät). null = Gerät unbrauchbar. */
 function push_webpush_request(array $dev, string $json, int $ttl, string $urgency, string $topic): ?array {
     $ep=(string)$dev['endpoint']; if(!push_endpoint_sendable($ep)) return null;
@@ -435,9 +447,7 @@ function push_webpush_request(array $dev, string $json, int $ttl, string $urgenc
 function push_send_devices(array $devices, array $pl, int $ttl=86400): array {
     if(!$devices) return []; $res=[]; $reqs=[]; $byKey=[];
     $urg=in_array($pl['urgency'] ?? '',['very-low','low','normal','high'],true) ? $pl['urgency'] : 'normal'; $topic=push_topic((string)($pl['tag'] ?? ''));
-    $json=json_encode(['title'=>$pl['title'],'body'=>$pl['body'],'url'=>$pl['url'],'tag'=>$pl['tag'],'event'=>$pl['event'],'id'=>(int)($pl['id'] ?? 0),
-        'icon'=>'/chat/icons/icon-192.png','urgency'=>$urg,'silent'=>!empty($pl['silent']),'ts'=>(int)round(microtime(true)*1000)]
-        +(isset($pl['badge']) ? ['badge'=>(int)$pl['badge']] : []),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+    $json=push_payload_json($pl,$urg);
     $fcmToken=null; $fcmUrl=null; $fcmTried=false;
     foreach($devices as $d){
         $k='d'.(int)$d['id']; $byKey[$k]=$d;
@@ -491,10 +501,12 @@ function push_device_failed(int $id, string $err, array &$r): void {
 
 /* ---------- E-Mail-Ersatz ---------- */
 /** true = senden erlaubt (höchstens 1 E-Mail je Konto+Ereignis+Tag in 10 Minuten). */
-function push_mail_slot(int $acc, string $event, string $key): bool {
-    $h=md5($acc.'|'.$event.'|'.$key); $p=th_db();
+function push_mail_slot(int $acc, string $event, string $key): bool { return push_slot($acc.'|'.$event.'|'.$key,600); }
+/** Atomare Sperre „höchstens einmal je $seconds“ (push_mails): true = jetzt erlaubt (und vermerkt). */
+function push_slot(string $key, int $seconds): bool {
+    push_bootstrap(); $h=md5($key); $p=th_db();
     $s=$p->prepare("INSERT IGNORE INTO push_mails(h,sent_at) VALUES(?,NOW())"); $s->execute([$h]); if($s->rowCount()===1) return true;
-    $s=$p->prepare("UPDATE push_mails SET sent_at=NOW() WHERE h=? AND sent_at < (NOW() - INTERVAL 600 SECOND)"); $s->execute([$h]); return $s->rowCount()===1;
+    $s=$p->prepare("UPDATE push_mails SET sent_at=NOW() WHERE h=? AND sent_at < (NOW() - INTERVAL ? SECOND)"); $s->execute([$h,max(1,$seconds)]); return $s->rowCount()===1;
 }
 function push_send_mail(string $to, string $subject, string $html): bool {
     if(defined('PUSH_TEST_MAIL_LOG') && PUSH_TEST_MAIL_LOG){ return @file_put_contents((string)PUSH_TEST_MAIL_LOG,json_encode(['to'=>$to,'subject'=>$subject,'t'=>time()],JSON_UNESCAPED_UNICODE)."\n",FILE_APPEND)!==false; }
@@ -559,8 +571,19 @@ function ch_push(int $acc, string $event, string $title, string $body, string $u
         return $job();
     }catch(Throwable $e){ error_log('CH ch_push: '.$e->getMessage()); return false; }
 }
-/** Fahrer-Handy (Taxi: module 'ride' → taxi_drivers, Lieferdienst: module 'order' → drivers). Standard-Ziel: die Fahrer-Seite mit Token. */
+/**
+ * Guthaben-Hinweis für th_debit()/th_charge(): unter $threshold Tokens höchstens einmal je 24 Stunden „Guthaben niedrig“ senden.
+ * true = Hinweis ausgelöst.
+ */
+function push_tokens_low(int $acc, int $balance, int $threshold=200): bool {
+    if($acc<=0 || $balance>=$threshold) return false;
+    try{ if(!push_slot('tokens_low|'.$acc,86400)) return false; }catch(Throwable $e){ return false; }
+    return ch_push($acc,'tokens_low','Guthaben niedrig: noch '.number_format(max(0,$balance),0,',','.').' Tokens',
+        'Lade rechtzeitig nach, damit deine Agenten am Telefon, im Chat und per WhatsApp erreichbar bleiben.','/chat/studio.php#tokens',['tag'=>'tokens-low']);
+}
+/** Fahrer-Handy (Taxi: module 'ride' bzw. 'taxi' → taxi_drivers, Lieferdienst: module 'order' → drivers). Standard-Ziel: die Fahrer-Seite mit Token. */
 function push_driver(string $module, int $driverId, string $title, string $body, string $url='', array $opt=[]): bool {
+    if($module==='taxi') $module='ride';
     $tbl=['ride'=>'taxi_drivers','order'=>'drivers'][$module] ?? null; if($tbl===null || $driverId<=0) return false;
     try{ $s=th_db()->prepare("SELECT account_id, token FROM $tbl WHERE id=? AND active=1"); $s->execute([$driverId]); $d=$s->fetch(PDO::FETCH_ASSOC); }catch(Throwable $e){ return false; }
     if(!$d || (int)$d['account_id']<=0) return false;
@@ -577,6 +600,7 @@ function push_board(int $acc, string $module, string $title, string $body, strin
 function push_resolve_ref(string $scope, string $t, string $module=''): ?array {
     if(!preg_match('/^[a-f0-9]{24}$/',$t)) return null;
     if($scope==='driver'){
+        if($module==='taxi') $module='ride';
         if(in_array($module,['','ride'],true) && function_exists('ride_driver_by_token')){ $d=ride_driver_by_token($t); if($d && (int)$d['account_id']>0) return ['acc'=>(int)$d['account_id'],'ref'=>'ride:'.(int)$d['id'],'module'=>'ride','name'=>(string)$d['name']]; }
         if(in_array($module,['','order'],true) && function_exists('ord_driver_by_token')){ $d=ord_driver_by_token($t); if($d && (int)$d['account_id']>0) return ['acc'=>(int)$d['account_id'],'ref'=>'order:'.(int)$d['id'],'module'=>'order','name'=>(string)$d['name']]; }
         return null;
@@ -639,7 +663,8 @@ function push_api(string $route, string $method, int $aid, array $body, array $a
                 'message'=>!$res ? 'Noch kein Gerät angemeldet – aktiviere zuerst Benachrichtigungen auf diesem Gerät.' : ($ok===count($res) ? 'Test an alle Geräte gesendet.' : $ok.' von '.count($res).' Geräten erreicht.')]];
         case 'push/inbox':
             if(!$need('GET')) return [405,['error'=>'method_not_allowed']];
-            return [200,['items'=>push_inbox($aid,max(0,(int)($_GET['since'] ?? 0)),(int)($_GET['limit'] ?? 30)),'unread'=>push_unread($aid)]];
+            $lim=max(1,min(100,(int)($_GET['limit'] ?? 30))); $items=push_inbox($aid,max(0,(int)($_GET['since'] ?? 0)),$lim+1,max(0,(int)($_GET['before'] ?? 0)));
+            return [200,['items'=>array_slice($items,0,$lim),'more'=>count($items)>$lim,'unread'=>push_unread($aid)]];
         case 'push/read':
             if(!$need('POST')) return [405,['error'=>'method_not_allowed']];
             $ids=$body['ids'] ?? (!empty($body['all']) ? 'all' : []); $n=push_mark_read($aid,$ids==='all' ? 'all' : (array)$ids);

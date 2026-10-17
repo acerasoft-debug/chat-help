@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Keine Verbindung · ChatHelp</title><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff">
+<link rel="icon" href="/chat/icons/icon-32.png" sizes="32x32">
+<style>
+:root{--bg:#f6f7fb;--ink:#0f1222;--ink2:#3b4055;--mute:#6b7083;--line:#e4e6ee;--gold:#b8862b;--goldl:#f6ecd3;--ok:#1a9e5a;--okl:#e4f5ea}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:15px/1.55 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:28px 16px calc(28px + env(safe-area-inset-bottom))}
+.card{width:100%;max-width:440px;background:#fff;border:1px solid var(--line);border-radius:26px;padding:34px 28px;box-shadow:0 2px 6px rgba(15,18,34,.06),0 24px 60px rgba(15,18,34,.12);text-align:center}
+.em{width:64px;height:64px;margin:0 auto;border-radius:20px;background:linear-gradient(135deg,#f3dfa6,#c9972f);display:grid;place-items:center;position:relative}
+.em::after{content:"";position:absolute;right:-6px;top:-6px;width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid var(--line);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d9336b' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M7 7l10 10M17 7L7 17'/%3E%3C/svg%3E");background-size:12px;background-repeat:no-repeat;background-position:center}
+h1{font:600 27px/1.2 Fraunces,Georgia,"Times New Roman",serif;letter-spacing:-.01em;margin:20px 0 8px}
+p{color:var(--ink2);margin:0 auto;max-width:34ch}
+.tips{text-align:left;margin:22px 0 0;padding:14px 16px;border-radius:16px;background:#f1f2f7;border:1px solid var(--line);font-size:13.5px;color:var(--ink2)}
+.tips b{color:var(--ink)}.tips ul{margin:6px 0 0;padding-left:18px}.tips li{margin:3px 0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:22px;padding:13px 18px;border-radius:14px;border:1px solid var(--ink);background:var(--ink);color:#fff;font:600 15px Inter,system-ui,sans-serif;cursor:pointer}
+.btn:active{transform:translateY(1px)}
+.st{margin-top:14px;font-size:12.5px;color:var(--mute);min-height:1.4em}
+.st.ok{color:var(--ok)}
+.brand{margin-top:22px;font:600 14px Fraunces,Georgia,serif;color:var(--ink)}.brand span{color:var(--gold)}
+</style></head>
+<body>
+<div class="wrap"><div class="card" role="main">
+  <div class="em" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></div>
+  <h1>Keine Verbindung</h1>
+  <p>Diese Seite braucht Internet. Deine Agenten arbeiten trotzdem weiter – Bestellungen, Fahrten und Anrufe gehen nicht verloren.</p>
+  <div class="tips"><b>Kurz prüfen:</b><ul><li>WLAN oder mobile Daten eingeschaltet?</li><li>Flugmodus aus?</li><li>Sobald das Netz zurück ist, lädt die Seite von selbst neu.</li></ul></div>
+  <button class="btn" id="retry" type="button">Erneut versuchen</button>
+  <div class="st" id="st" aria-live="polite"></div>
+  <div class="brand">ChatHelp <span>Business</span></div>
+</div></div>
+<script>
+(function(){
+  var st=document.getElementById('st'), busy=false;
+  function go(){ if(busy) return; busy=true; st.className='st'; st.textContent='Verbindung wird geprüft …';
+    fetch('/chat/push-sub.php?vapid=1&_='+Date.now(),{cache:'no-store'}).then(function(){ st.className='st ok'; st.textContent='Wieder online – Seite wird geladen …'; location.reload(); })
+      .catch(function(){ st.textContent='Noch offline. Wir versuchen es automatisch weiter.'; busy=false; }); }
+  document.getElementById('retry').addEventListener('click',go);
+  window.addEventListener('online',function(){ setTimeout(go,400); });
+  setInterval(function(){ if(navigator.onLine!==false) go(); },15000);
+})();
+</script>
+</body></html>

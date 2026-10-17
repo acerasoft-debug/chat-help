@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+  <!-- Status-Leisten-Symbol (Android „badge“): einfarbig weiß auf transparent – das System färbt es selbst ein. -->
+  <g transform="translate(48 48) scale(3.55) translate(-12 -12)">
+    <path d="M18.5 7.5A8 8 0 1 0 19 15" fill="none" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round"/>
+    <circle cx="12" cy="12" r="2.7" fill="#ffffff"/>
+  </g>
+</svg>

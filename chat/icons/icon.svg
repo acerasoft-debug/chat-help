@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- ChatHelp Business – Web-App-Symbol (purpose "any"): dunkle Kachel mit Goldrand wie brand/icon-app.svg,
+       Glyphe = Studio-Emblem aus chat/studio.php (identisch zur nativen App). -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#232a52"/><stop offset="0.55" stop-color="#141831"/><stop offset="1" stop-color="#0b0d1a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.28" cy="0.18" r="0.85">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.13"/><stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#d4a84a" stop-opacity="0.20"/><stop offset="1" stop-color="#d4a84a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" gradientUnits="userSpaceOnUse" x1="4" y1="3.5" x2="20" y2="20.5">
+      <stop offset="0" stop-color="#F6E3AE"/><stop offset="0.5" stop-color="#D4A84A"/><stop offset="1" stop-color="#A9781C"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F3D88A"/><stop offset="0.5" stop-color="#D4A84A"/><stop offset="1" stop-color="#B0801F"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#bg)"/>
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#glow)"/>
+  <circle cx="256" cy="256" r="180" fill="url(#halo)"/>
+  <rect x="17" y="17" width="478" height="478" rx="104" fill="none" stroke="url(#rim)" stroke-width="5" opacity="0.55"/>
+  <g transform="translate(256 256) scale(11.2) translate(-12 -12)">
+    <path d="M18.5 7.5A8 8 0 1 0 19 15" fill="none" stroke="url(#gold)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="12" cy="12" r="2.4" fill="url(#gold)"/>
+  </g>
+</svg>

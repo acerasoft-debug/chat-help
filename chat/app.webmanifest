@@ -1,0 +1,48 @@
+{
+  "id": "/chat/app.php",
+  "name": "ChatHelp Business",
+  "short_name": "ChatHelp",
+  "description": "Deine KI-Agenten, Aufträge und Benachrichtigungen – Bestellungen, Taxifahrten, Termine und Rückrufe sofort auf dem Handy.",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "/chat/app.php?src=pwa",
+  "scope": "/chat/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "theme_color": "#ffffff",
+  "background_color": "#f6f7fb",
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false,
+  "launch_handler": { "client_mode": ["navigate-existing", "auto"] },
+  "icons": [
+    { "src": "/chat/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/chat/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/chat/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/chat/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/chat/icons/badge-96.png", "sizes": "96x96", "type": "image/png", "purpose": "monochrome" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Studio",
+      "short_name": "Studio",
+      "description": "Übersicht, Agenten, Telefon und Aufträge",
+      "url": "/chat/studio.php?src=pwa-shortcut#home",
+      "icons": [{ "src": "/chat/icons/sc-studio-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Benachrichtigungen",
+      "short_name": "Meldungen",
+      "description": "Postfach und Einstellungen für Push-Benachrichtigungen",
+      "url": "/chat/studio.php?src=pwa-shortcut#benachrichtigungen",
+      "icons": [{ "src": "/chat/icons/sc-bell-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Assistent",
+      "short_name": "Assistent",
+      "description": "Mit deinem persönlichen Studio-Assistenten sprechen",
+      "url": "/chat/studio.php?src=pwa-shortcut#assistant",
+      "icons": [{ "src": "/chat/icons/sc-assistant-96.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ]
+}
