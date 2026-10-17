@@ -54,12 +54,13 @@ jobs:
             if (!$acc) { echo "hesap yok: ".$mask($email)."\n"; exit(1); }
             $show = function (array $a) { foreach (['type','company','status','suspend_reason','suspend_note','kyb_status','kyb_status_before_suspend','restricted_until','no_campaigns','unsuspended_at','unsuspended_by'] as $k) if (array_key_exists($k, $a)) echo "   $k = ".(is_scalar($a[$k]) ? var_export($a[$k], true) : json_encode($a[$k]))."\n"; };
             echo ($dry ? "KURU KOSU" : "GERCEK")." · ".$mask($email)." · id ".$acc['id']."\nONCE:\n"; $show($acc);
-            /* 17 Eki 2026: bilinen alanlarda kısıtlama görünmeyebilir — hesabın BÜTÜN alanları (hassaslar hariç), giriş kilidi
-               (login_throttle.json, 15 dk) ve mesaj engeli de gösterilir. */
-            echo "   tum alanlar: ";
+            /* 17 Eki 2026: bilinen alanlarda kısıtlama görünmeyebilir — DURUM alanları (adı status/suspend/restrict/kyb/block/
+               lock/hold/ban/doc/verified içeren) ve giriş kilidi (login_throttle.json, 15 dk) da gösterilir. Kişisel veri (ad,
+               telefon, adres, vergi no, IP, şehir) BASILMAZ: depo herkese açık, iş akışı kütüğü de. */
+            echo "   durum alanlari: ";
             $safe = [];
-            foreach ($acc as $k => $v) { if (preg_match('/hash|pass|token|secret|api|iban|bic|bank|swift|account_no|card|session|otp|code/i', (string)$k)) { $safe[$k] = '[gizli]'; continue; }
-              $safe[$k] = is_scalar($v) || $v === null ? (is_string($v) ? mb_substr(preg_replace('/\S+@\S+/', '[adres]', $v), 0, 60) : $v) : '['.gettype($v).(is_array($v) ? ':'.count($v) : '').']'; }
+            foreach ($acc as $k => $v) { if (!preg_match('/status|suspend|restrict|kyb|block|lock|hold|ban|doc_|verified|no_campaigns|membership/i', (string)$k)) continue;
+              $safe[$k] = is_bool($v) || is_int($v) || $v === null ? $v : (is_array($v) ? '[liste:'.count($v).']' : mb_substr(preg_replace('/\S+@\S+/', '[adres]', (string)$v), 0, 40)); }
             echo json_encode($safe, JSON_UNESCAPED_UNICODE)."\n";
             $thr = function_exists('auth_throttle_load') ? auth_throttle_load() : []; $thrHits = [];
             foreach ($thr as $tk => $tv) if (str_contains(strtolower((string)$tk), $email)) $thrHits[] = (int)($tv['n'] ?? 0).' deneme, '.date('H:i', (int)($tv['first'] ?? 0));
