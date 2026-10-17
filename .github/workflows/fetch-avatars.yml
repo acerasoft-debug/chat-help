@@ -1,0 +1,41 @@
+name: Avatar-Kandidaten laden (KI-generierte Gesichter)
+# Läuft nur, wenn site/media/avatars/_fetch.txt auf diesem Branch geändert wird.
+# Lädt synthetische Porträts (keine realen Personen), verkleinert sie auf 512 px WebP und committet sie als Kandidaten.
+on:
+  push:
+    branches: [ "claude/chat-help-system-video-x0nofb" ]
+    paths: [ "site/media/avatars/_fetch.txt" ]
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/chat-help-system-video-x0nofb
+      - name: Kandidaten laden und verkleinern
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq webp imagemagick > /dev/null
+          mkdir -p site/media/avatars/_cand /tmp/raw
+          N=$(grep -oE '^count=[0-9]+' site/media/avatars/_fetch.txt | cut -d= -f2); N=${N:-36}
+          for i in $(seq 1 $N); do
+            curl -sSL -m 30 -A "Mozilla/5.0 (X11; Linux x86_64)" -o /tmp/raw/c$i.jpg "https://thispersondoesnotexist.com/?r=$i$RANDOM" || true
+            sleep 1.5
+          done
+          for f in /tmp/raw/*.jpg; do
+            b=$(basename "$f" .jpg)
+            if file "$f" | grep -qi 'jpeg\|image'; then
+              convert "$f" -resize 512x512 -strip /tmp/raw/$b-512.png && cwebp -quiet -q 84 /tmp/raw/$b-512.png -o site/media/avatars/_cand/$b.webp
+            fi
+          done
+          ls -la site/media/avatars/_cand | head -60
+          du -sh site/media/avatars/_cand
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site/media/avatars/_cand
+          git commit -m "Avatar-Kandidaten (synthetische KI-Gesichter, 512 px WebP)" || echo "nichts zu committen"
+          git pull --rebase origin claude/chat-help-system-video-x0nofb || true
+          git push origin HEAD:claude/chat-help-system-video-x0nofb

@@ -1,0 +1,2 @@
+count=36
+# Änderung dieser Datei startet .github/workflows/fetch-avatars.yml
