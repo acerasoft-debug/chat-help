@@ -31,43 +31,7 @@ jobs:
             sleep 1.3
           done
           python3 -m pip install -q "rembg[cpu]" pillow > /dev/null 2>&1 || python3 -m pip install -q rembg onnxruntime pillow > /dev/null 2>&1 || true
-          cat > /tmp/studio.py <<'PY'
-          import sys, glob, os
-          from PIL import Image, ImageFilter, ImageDraw
-          try:
-              from rembg import remove, new_session
-              sess = new_session("u2net_human_seg")
-          except Exception as e:
-              print("rembg nicht verfügbar:", e); remove = None
-          W = 640
-          def backdrop():
-              bg = Image.new("RGB", (W, W), (244, 239, 230))
-              d = ImageDraw.Draw(bg)
-              for r in range(W, 0, -4):   # weicher Studio-Verlauf, warm-hell mit Goldstich in der Mitte
-                  t = r / W
-                  c = (int(226 + 22*(1-t)), int(219 + 22*(1-t)), int(207 + 20*(1-t)))
-                  d.ellipse([W/2-r, W*0.42-r, W/2+r, W*0.42+r], fill=c)
-              return bg.filter(ImageFilter.GaussianBlur(18))
-          for f in sorted(glob.glob("/tmp/raw/a*.jpg")):
-              try:
-                  im = Image.open(f).convert("RGB")
-              except Exception:
-                  continue
-              s = min(im.size); im = im.crop(((im.width-s)//2, (im.height-s)//2, (im.width+s)//2, (im.height+s)//2)).resize((W, W), Image.LANCZOS)
-              out = im
-              if remove:
-                  try:
-                      cut = remove(im, session=sess)
-                      bg = backdrop().convert("RGBA"); bg.alpha_composite(cut); out = bg.convert("RGB")
-                  except Exception as e:
-                      print("rembg Fehler", f, e)
-              base = os.path.splitext(os.path.basename(f))[0]
-              out.save(f"site/media/avatars/_cand/{base}.webp", "WEBP", quality=86, method=6)
-              im.save(f"site/media/avatars/_cand/{base}-orig.webp", "WEBP", quality=80, method=6)
-              print("ok", base)
-          PY
-          sed -i 's/^          //' /tmp/studio.py
-          python3 /tmp/studio.py || echo "Aufbereitung fehlgeschlagen"
+          python3 scripts/avatar_studio.py '/tmp/raw/a*.jpg' site/media/avatars/_cand || echo "Aufbereitung fehlgeschlagen"
           ls -la site/media/avatars/_cand | head -80; du -sh site/media/avatars/_cand
       - name: Commit
         run: |
