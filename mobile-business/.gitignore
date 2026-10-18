@@ -1,0 +1,15 @@
+# Erzeugt von scripts/setup-platform.js bzw. scripts/assets.js – nie einchecken
+node_modules/
+android/
+ios/
+www/version.json
+assets/*.png
+# Geheimnisse (kommen in CI aus GitHub-Secrets)
+*.keystore
+*.jks
+key.properties
+google-services.json
+GoogleService-Info.plist
+*.p12
+*.mobileprovision
+*.p8

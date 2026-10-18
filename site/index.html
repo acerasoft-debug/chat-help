@@ -59,6 +59,9 @@ section{padding:100px 0;scroll-margin-top:84px}@media(max-width:720px){section{p
 .lsx select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px;border:0;-webkit-appearance:none;appearance:none}
 .lsx:focus-within{outline:2px solid var(--gold);outline-offset:2px}
 .menu .mstudio{display:none}
+/* längere Übersetzungen: passt das Menü nicht in eine Zeile, klappt es wie auf Tablets ins Burger-Menü (navFit) */
+.nav.tight .menu{display:none}.nav.tight .menu.open{display:flex;position:absolute;top:72px;left:0;right:0;flex-direction:column;gap:0;background:#fff;border-bottom:1px solid var(--line);padding:8px 20px 16px}.nav.tight .menu.open a{padding:13px 0;border-bottom:1px solid var(--line)}.nav.tight .burger{display:flex}.nav.tight .navr .hide-m{display:none}
+@media(max-width:720px){.btn{white-space:normal;max-width:100%;text-align:center}}
 @media(max-width:600px){.navr .nstudio{display:none}.menu.open .mstudio{display:block;font-weight:700;color:var(--ink)}.nav .wrap{gap:10px}.navr{gap:8px}}
 @media(max-width:374px){.logo{font-size:19px;gap:8px}.logo .em{width:34px;height:34px}.lsx{padding:0 7px}}
 .curnote{margin-top:14px;color:var(--mute);font-size:12.5px;text-align:center}.curnote[hidden]{display:none}.mbox .curnote{text-align:left;margin-top:8px}
@@ -445,7 +448,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <span class="tag gold" data-i18n="h.tagP">Für dich privat · einfach erklärt · DSGVO</span>
         <h1 data-i18n-html="h.h1P">Amt, Bank, Hotel –<br>dein Agent <span class="g">erledigt’s.</span></h1>
         <p class="sub" data-i18n-html="h.subP">Dein persönlicher KI-Assistent <b style="color:var(--ink)">sagt dir, welches Amt zuständig ist und welche Unterlagen du brauchst, erklärt Kontoauszug, Gebühren und Stornobedingungen</b>, schreibt Kündigungen, Briefe und Hotelanfragen – und ruft auf Wunsch für dich beim Arzt, Friseur oder Hotel an. Im Chat am Handy oder Rechner, in einfacher Sprache. Ab <span data-eur="7">7 €</span>/Monat, monatlich kündbar.</p>
-        <div class="cta"><a class="btn gold" href="#privat" data-i18n-html="h.ctaP1">Privat-Assistenten ansehen – ab <span data-eur="7">7 €</span></a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('p-amt',true),300)" data-i18n="h.ctaP2">▶ Beispiel: Behördengang</a></div>
+        <div class="cta"><a class="btn gold" href="#privat"><span data-i18n-html="h.ctaP1">Privat-Assistenten ansehen – ab <span data-eur="7">7 €</span></span></a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('p-amt',true),300)" data-i18n="h.ctaP2">▶ Beispiel: Behördengang</a></div>
         <div class="trust"><span data-i18n-tail="h.p1"><i>✓</i> Du bestätigst jeden Schritt</span><span data-i18n-tail="h.p2"><i>✓</i> Erklärt – handelt nicht heimlich</span><span data-i18n-tail="h.p3"><i>✓</i> Mit Mensch sprechen jederzeit</span><span data-i18n-tail="h.t4"><i>✓</i> Monatlich kündbar</span></div>
       </div>
     </div>
@@ -524,7 +527,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <div class="it"><b>Weiterleitung an Mensch</b><span>Auf Wunsch, bei Notfällen oder Unklarheit: direkte Durchstellung an deine Nummer.</span></div>
       </div>
       <div class="flow"><span>Anruf</span><i>→</i><span>Agent begrüßt</span><i>→</i><span>Anliegen &amp; Antwort</span><i>→</i><span>Termin · Rückruf · Weiterleitung</span><i>→</i><span>Transkript im Studio</span></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-phone" data-i18n-html="tel.rent">Telefon-Agent mieten · <span data-eur="149">149 €</span>/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('phone');goLive(true);},300)" data-i18n="tel.try">🎙️ Jetzt im Browser sprechen</a></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-phone"><span data-i18n-html="tel.rent">Telefon-Agent mieten · <span data-eur="149">149 €</span>/Monat</span></a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('phone');goLive(true);},300)" data-i18n="tel.try">🎙️ Jetzt im Browser sprechen</a></div>
       <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 40.000 Tokens/Monat (≈ 5.000 Gesprächsantworten) · Einmalkauf <span data-eur="1490">1.490 €</span> inkl. 200.000 Tokens + 90 Tage Betrieb · Telefonie über unseren Partner, Nummern für DE/AT/CH/TR/EU.</p>
     </div>
   </div>
@@ -543,7 +546,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <div class="it"><b>Alle Kanäle, ein Kalender</b><span>Chat, Telefon-Agent, WhatsApp und Buchungsseite schreiben in denselben Kalender – live im Studio.</span></div>
       </div>
       <div class="inds"><span>Zahnarzt &amp; Arztpraxis</span><span>Physiotherapie</span><span>Friseur</span><span>Kosmetik &amp; Nagelstudio</span><span>Massage &amp; Spa</span><span>Tattoo</span><span>Kfz-Werkstatt</span><span>Beratung &amp; Coaching</span><span>Fitness &amp; Personal Training</span><span>Fotostudio</span></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-termine" data-i18n-html="term.rent">Termin-Agent mieten · <span data-eur="99">99 €</span>/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('termine');goLive(true);},300)" data-i18n="term.try">💬 Im Chat einen Termin buchen</a></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-termine"><span data-i18n-html="term.rent">Termin-Agent mieten · <span data-eur="99">99 €</span>/Monat</span></a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('termine');goLive(true);},300)" data-i18n="term.try">💬 Im Chat einen Termin buchen</a></div>
       <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 25.000 Tokens/Monat · Einmalkauf <span data-eur="990">990 €</span> inkl. 150.000 Tokens + 90 Tage Betrieb · mit Telefon-Agent kombinierbar: Anrufer buchen direkt im Gespräch.</p>
     </div>
     <div class="reveal"><div class="browser bookframe" style="max-width:none"><div class="bar"><i></i><i></i><i></i><span>chat-help.com/chat/book.php?k=demo · Salon Luna</span></div><iframe src="/chat/book.php?k=demo" loading="lazy" title="Buchungsseite Demo – Salon Luna"></iframe></div><p style="color:var(--mute);font-size:12.5px;margin-top:10px;text-align:center">Echte Demo-Buchungsseite (Salon Luna). Probier es aus – Demo-Termine werden nach 2 Tagen gelöscht.</p></div>
@@ -592,7 +595,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <div class="it"><b>Küche, Fahrer, Kunde</b><span>Board fürs Tablet mit Ton, Fahrer-Link mit Navigation und „Zugestellt“, Statusnachricht an den Kunden per WhatsApp.</span></div>
       </div>
       <div class="flow"><span>„2 Salami groß, bitte liefern“</span><i>→</i><span>Größe · Extras · Adresse</span><i>→</i><span>Zone geprüft · 2,50 € · 35 Min</span><i>→</i><span>Bestätigung · Code</span><i>→</i><span>Küche · Fahrer · Kunde</span></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-bestellung" data-i18n-html="best.rent">Bestell-Agent mieten · <span data-eur="129">129 €</span>/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('bestellung');goLive(true);},300)" data-i18n="best.try">🍕 Demo-Bestellung aufgeben</a></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-bestellung"><span data-i18n-html="best.rent">Bestell-Agent mieten · <span data-eur="129">129 €</span>/Monat</span></a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('bestellung');goLive(true);},300)" data-i18n="best.try">🍕 Demo-Bestellung aufgeben</a></div>
       <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 35.000 Tokens/Monat (≈ 5.000 Bestell-Nachrichten) · Einmalkauf <span data-eur="1290">1.290 €</span> inkl. 180.000 Tokens + 90 Tage Betrieb · 0 % Provision pro Bestellung.</p>
     </div>
   </div>
@@ -623,7 +626,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <div class="it"><b>Fahrer-App</b><span>Auftrag aufs Handy, Navigation per Tipp, „Bin da“ – der Kunde bekommt sofort eine SMS mit Wagen und Kennzeichen.</span></div>
       </div>
       <div class="flow"><span>Anruf</span><i>→</i><span>Abholort &amp; Zeit</span><i>→</i><span>Richtpreis</span><i>→</i><span>Code</span><i>→</i><span>Fahrer zugeteilt</span><i>→</i><span>„Ihr Taxi ist da“</span></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-taxi" data-i18n-html="taxi.rent">Taxi-Agent mieten · <span data-eur="129">129 €</span>/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('taxi');goLive(true);},300)" data-i18n="taxi.try">🚕 Demo-Taxi bestellen</a></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-taxi"><span data-i18n-html="taxi.rent">Taxi-Agent mieten · <span data-eur="129">129 €</span>/Monat</span></a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('taxi');goLive(true);},300)" data-i18n="taxi.try">🚕 Demo-Taxi bestellen</a></div>
       <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 35.000 Tokens/Monat · Einmalkauf <span data-eur="1290">1.290 €</span> inkl. 180.000 Tokens + 90 Tage Betrieb · Preise sind Richtpreise, es gilt der Taxameter (außer Festpreise).</p>
     </div>
   </div>
@@ -642,7 +645,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <div class="it"><b>Mehrsprachig</b><span>Der Gast schreibt Englisch, Türkisch oder Arabisch – der Agent antwortet passend, dein Team liest alles auf Deutsch.</span></div>
       </div>
       <div class="inds"><span>Stadthotel</span><span>Boutique-Hotel</span><span>Pension &amp; Gasthof</span><span>Ferienwohnungen</span><span>Serviced Apartments</span><span>Hostel</span><span>Landhotel &amp; Wellness</span></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-hotel" data-i18n-html="hotel.rent">Hotel-Agent mieten · <span data-eur="149">149 €</span>/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('hotel');goLive(true);},300)" data-i18n="hotel.try">🛎 Demo-Rezeption testen</a></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-hotel"><span data-i18n-html="hotel.rent">Hotel-Agent mieten · <span data-eur="149">149 €</span>/Monat</span></a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('hotel');goLive(true);},300)" data-i18n="hotel.try">🛎 Demo-Rezeption testen</a></div>
       <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 40.000 Tokens/Monat · Einmalkauf <span data-eur="1490">1.490 €</span> inkl. 200.000 Tokens + 90 Tage Betrieb</p>
     </div>
     <div class="ordstage reveal">
@@ -1366,7 +1369,10 @@ function locFrom(j){if(!j||typeof j!=='object')return false;const l=L_LANGS.some
 function locSave(j){try{sessionStorage.setItem(LOC_SS,JSON.stringify({t:Date.now(),ck:lCookie('ch_lang')+'|'+lCookie('ch_cur'),j}));}catch(e){}}
 function locCached(){try{const o=JSON.parse(sessionStorage.getItem(LOC_SS)||'null');if(o&&o.j&&Date.now()-o.t<6*3600e3&&o.ck===lCookie('ch_lang')+'|'+lCookie('ch_cur'))return o.j;}catch(e){}return null;}
 /* Alles neu beschriften: statische Texte, Preise, Fußnoten, Umschalter; nach dem Start auch Finder, Karten, Demo-Reiter, Preis-Reiter und offenes Detail-Fenster */
-function locApply(){document.documentElement.lang=LOC.lang==='no'?'nb':LOC.lang;i18nStatic();i18nPrices();curNotes();lswSync();if(!locReady)return;
+function navFit(){const n=document.querySelector('.nav'),w=n&&n.querySelector('.wrap'),m=document.getElementById('menu'),r=n&&n.querySelector('.navr');if(!w||!m||!r)return;n.classList.remove('tight');if(getComputedStyle(m).display==='none')return;
+  if(w.scrollWidth>w.clientWidth+1||m.getBoundingClientRect().right>r.getBoundingClientRect().left-8)n.classList.add('tight');}
+let navFitT=0;window.addEventListener('resize',()=>{clearTimeout(navFitT);navFitT=setTimeout(navFit,120);});try{document.fonts&&document.fonts.ready.then(navFit);}catch(e){}
+function locApply(){document.documentElement.lang=LOC.lang==='no'?'nb':LOC.lang;i18nStatic();i18nPrices();curNotes();lswSync();navFit();if(!locReady)return;
   try{document.querySelectorAll('.ptab').forEach(b=>b.textContent=T('j.pt.'+b.dataset.k));finderChips();finderRender();privatRender();showRender();dtabsRender();const pt=$('.ptab.on');if(pt)renderPrice(pt.dataset.k);
     if(lastPro&&$('#modal').classList.contains('open'))openPro(lastPro);}catch(e){console.warn('locale',e);}}
 async function locFetch(q){try{const ac=window.AbortController?new AbortController():null,to=setTimeout(()=>ac&&ac.abort(),4000);

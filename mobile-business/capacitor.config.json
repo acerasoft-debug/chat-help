@@ -3,7 +3,7 @@
   "appName": "ChatHelp Business",
   "webDir": "www",
   "backgroundColor": "#f6f7fb",
-  "appendUserAgent": "ChatHelpBusinessApp/1.0",
+  "appendUserAgent": "ChatHelpBusinessApp/1.1",
   "loggingBehavior": "debug",
   "server": {
     "url": "https://chat-help.com/chat/app.php?src=native",
@@ -20,17 +20,24 @@
   "android": {
     "allowMixedContent": false,
     "captureInput": true,
-    "backgroundColor": "#f6f7fb"
+    "backgroundColor": "#f6f7fb",
+    "webContentsDebuggingEnabled": false
   },
   "ios": {
     "backgroundColor": "#f6f7fb",
     "allowsLinkPreview": false,
     "preferredContentMode": "mobile",
+    "contentInset": "never",
     "handleApplicationNotifications": true
   },
   "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover",
+      "style": "DEFAULT"
+    },
     "SplashScreen": {
-      "launchShowDuration": 600,
+      "launchShowDuration": 1500,
       "launchAutoHide": true,
       "launchFadeOutDuration": 250,
       "backgroundColor": "#f6f7fb",
@@ -40,8 +47,7 @@
       "splashImmersive": false
     },
     "StatusBar": {
-      "style": "LIGHT",
-      "backgroundColor": "#ffffff",
+      "style": "DEFAULT",
       "overlaysWebView": false
     },
     "PushNotifications": {
@@ -49,7 +55,7 @@
     },
     "LocalNotifications": {
       "smallIcon": "ic_stat_chathelp",
-      "iconColor": "#b8862b"
+      "iconColor": "#B8862B"
     }
   }
 }

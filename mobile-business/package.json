@@ -1,41 +1,39 @@
 {
   "name": "chathelp-business-app",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "ChatHelp Business – native Android/iOS app (Capacitor 6) for the ChatHelp Studio: agents, AI assistant, phone, widget and push notifications",
+  "description": "ChatHelp Business – native Android-/iOS-App (Capacitor 8). Hülle um https://chat-help.com/chat/app.php mit nativen Push-Benachrichtigungen (FCM/APNs), Haptik, Splash und Statusleiste.",
   "license": "UNLICENSED",
-  "engines": {
-    "node": ">=18"
-  },
+  "engines": { "node": ">=20" },
   "scripts": {
+    "www": "node scripts/build-www.js",
+    "assets": "node scripts/assets.js",
     "setup:android": "node scripts/setup-platform.js android",
     "setup:ios": "node scripts/setup-platform.js ios",
-    "sync:android": "cap sync android && node scripts/patch-android.js",
-    "sync:ios": "cap sync ios && node scripts/patch-ios.js",
     "patch:android": "node scripts/patch-android.js",
     "patch:ios": "node scripts/patch-ios.js",
-    "assets": "node scripts/assets.js",
-    "assets:render": "bash scripts/render-assets.sh",
+    "sync:android": "npm run www && cap sync android && node scripts/patch-android.js",
+    "sync:ios": "npm run www && cap sync ios && node scripts/patch-ios.js",
     "open:android": "cap open android",
     "open:ios": "cap open ios",
     "build:apk": "cd android && ./gradlew assembleDebug",
-    "build:release": "cd android && ./gradlew assembleRelease bundleRelease",
-    "check": "node --check scripts/setup-platform.js && node --check scripts/patch-android.js && node --check scripts/patch-ios.js && node --check scripts/assets.js"
+    "build:release": "cd android && ./gradlew bundleRelease assembleRelease",
+    "check": "node --check scripts/build-www.js && node --check scripts/setup-platform.js && node --check scripts/patch-android.js && node --check scripts/patch-ios.js && node --check scripts/assets.js && node scripts/build-www.js --check"
   },
   "dependencies": {
-    "@capacitor/android": "^6.2.2",
-    "@capacitor/app": "^6.0.3",
-    "@capacitor/browser": "^6.0.6",
-    "@capacitor/core": "^6.2.2",
-    "@capacitor/haptics": "^6.0.3",
-    "@capacitor/ios": "^6.2.2",
-    "@capacitor/local-notifications": "^6.1.3",
-    "@capacitor/push-notifications": "^6.0.5",
-    "@capacitor/splash-screen": "^6.0.4",
-    "@capacitor/status-bar": "^6.0.3"
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/browser": "8.0.4",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/ios": "8.5.2",
+    "@capacitor/local-notifications": "8.3.1",
+    "@capacitor/push-notifications": "8.1.2",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.3"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^6.2.2"
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.2"
   }
 }
