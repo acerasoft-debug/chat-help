@@ -1,5 +1,5 @@
 {
-    "at": "2026-10-17T23:01:49+00:00",
+    "at": "2026-10-18T03:44:01+00:00",
     "root": "/home/hhdwis4qiijc/maxsales_de",
     "php": "8.3.33",
     "config": {
@@ -24,24 +24,24 @@
     },
     "files": {
         "odeme/oxapay-callback.php": {
-            "size": 2834,
-            "mtime": "2026-10-17T17:28:55+00:00"
+            "size": 1957,
+            "mtime": "2026-10-18T03:41:50+00:00"
         },
         "odeme/tesekkurler.php": {
-            "size": 711,
-            "mtime": "2026-10-17T17:28:55+00:00"
+            "size": 979,
+            "mtime": "2026-10-18T03:41:50+00:00"
         },
         "inc/oxapay.php": {
-            "size": 5567,
-            "mtime": "2026-10-17T17:28:55+00:00"
+            "size": 12950,
+            "mtime": "2026-10-18T03:41:50+00:00"
         },
         "checkout.php": {
-            "size": 17825,
-            "mtime": "2026-10-17T17:28:55+00:00"
+            "size": 18595,
+            "mtime": "2026-10-18T03:41:50+00:00"
         },
         ".htaccess": {
             "size": 3658,
-            "mtime": "2026-10-17T17:28:55+00:00"
+            "mtime": "2026-10-18T03:41:50+00:00"
         },
         "odeme/.htaccess": null
     },
@@ -54,10 +54,11 @@
             "{\"at\":\"2026-10-17T16:48:21+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":0}}",
             "{\"at\":\"2026-10-17T17:21:36+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":2}}",
             "{\"at\":\"2026-10-17T17:34:59+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":2}}",
-            "{\"at\":\"2026-10-17T22:56:20+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":2}}"
+            "{\"at\":\"2026-10-17T22:56:20+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":2}}",
+            "{\"at\":\"2026-10-17T23:01:49+00:00\",\"what\":\"oxapay_bad_signature\",\"ctx\":{\"len\":2}}"
         ],
-        "total_lines": 7,
-        "hits": 4
+        "total_lines": 8,
+        "hits": 5
     },
     "orders_total": 27,
     "crypto_orders": {
@@ -66,67 +67,67 @@
             {
                 "id": "o-fe0d45a695bb75212347",
                 "number": "VS-2610-B8955",
-                "status": "pending",
+                "status": "failed",
                 "total_cents": 22000,
                 "created_at": "2026-10-17T17:14:32+00:00",
-                "failed_reason": "",
-                "oxapay_status": "new",
+                "failed_reason": "oxapay_expired",
+                "oxapay_status": "expired",
                 "has_track_id": true,
                 "country": "DE",
                 "browser": "Chrome(Chromium) macOS",
-                "failed_at": null
+                "failed_at": "2026-10-18T03:41:03+00:00"
             },
             {
                 "id": "o-0c02c75ee72d67f8032a",
                 "number": "VS-2610-3D02C",
-                "status": "pending",
+                "status": "failed",
                 "total_cents": 22000,
                 "created_at": "2026-10-17T17:14:37+00:00",
-                "failed_reason": "",
-                "oxapay_status": "new",
+                "failed_reason": "oxapay_expired",
+                "oxapay_status": "expired",
                 "has_track_id": true,
                 "country": "DE",
                 "browser": "Chrome(Chromium) macOS",
-                "failed_at": null
+                "failed_at": "2026-10-18T03:41:03+00:00"
             },
             {
                 "id": "o-da2f6c06a7f877fd7e45",
                 "number": "VS-2610-635E7",
-                "status": "pending",
+                "status": "failed",
                 "total_cents": 22000,
                 "created_at": "2026-10-17T17:14:48+00:00",
-                "failed_reason": "",
-                "oxapay_status": "new",
+                "failed_reason": "oxapay_expired",
+                "oxapay_status": "expired",
                 "has_track_id": true,
                 "country": "DE",
                 "browser": "Chrome(Chromium) macOS",
-                "failed_at": null
+                "failed_at": "2026-10-18T03:41:03+00:00"
             },
             {
                 "id": "o-07791b3dddde88fd7227",
                 "number": "VS-2610-70A79",
-                "status": "pending",
+                "status": "failed",
                 "total_cents": 22000,
                 "created_at": "2026-10-17T17:14:50+00:00",
-                "failed_reason": "",
-                "oxapay_status": "new",
+                "failed_reason": "oxapay_expired",
+                "oxapay_status": "expired",
                 "has_track_id": true,
                 "country": "DE",
                 "browser": "Chrome(Chromium) macOS",
-                "failed_at": null
+                "failed_at": "2026-10-18T03:41:03+00:00"
             },
             {
                 "id": "o-48a7500c0b0660e28419",
                 "number": "VS-2610-CF4FC",
-                "status": "pending",
+                "status": "failed",
                 "total_cents": 22000,
                 "created_at": "2026-10-17T17:47:27+00:00",
-                "failed_reason": "",
-                "oxapay_status": "new",
+                "failed_reason": "oxapay_expired",
+                "oxapay_status": "expired",
                 "has_track_id": true,
                 "country": "DE",
                 "browser": "Chrome(Chromium) macOS",
-                "failed_at": null
+                "failed_at": "2026-10-18T03:41:03+00:00"
             }
         ]
     },
@@ -134,170 +135,9 @@
     "invoice_test": {
         "ok": true,
         "payment_host": "pay.oxapay.com",
-        "track_id": "153747559"
+        "track_id": "191504884"
     },
-    "oxapay_view": {
-        "VS-2610-B8955": {
-            "http": 200,
-            "err": "",
-            "message": "Operation completed successfully!",
-            "status": "expired",
-            "amount": 220,
-            "currency": "EUR",
-            "date": 1792257272,
-            "expired_at": 1792260872,
-            "keys": [
-                "track_id",
-                "type",
-                "amount",
-                "currency",
-                "status",
-                "mixed_payment",
-                "fee_paid_by_payer",
-                "under_paid_coverage",
-                "lifetime",
-                "callback_url",
-                "return_url",
-                "email",
-                "order_id",
-                "description",
-                "thanks_message",
-                "expired_at",
-                "sandbox",
-                "date",
-                "txs"
-            ],
-            "raw": null
-        },
-        "VS-2610-3D02C": {
-            "http": 200,
-            "err": "",
-            "message": "Operation completed successfully!",
-            "status": "expired",
-            "amount": 220,
-            "currency": "EUR",
-            "date": 1792257277,
-            "expired_at": 1792260877,
-            "keys": [
-                "track_id",
-                "type",
-                "amount",
-                "currency",
-                "status",
-                "mixed_payment",
-                "fee_paid_by_payer",
-                "under_paid_coverage",
-                "lifetime",
-                "callback_url",
-                "return_url",
-                "email",
-                "order_id",
-                "description",
-                "thanks_message",
-                "expired_at",
-                "sandbox",
-                "date",
-                "txs"
-            ],
-            "raw": null
-        },
-        "VS-2610-635E7": {
-            "http": 200,
-            "err": "",
-            "message": "Operation completed successfully!",
-            "status": "expired",
-            "amount": 220,
-            "currency": "EUR",
-            "date": 1792257288,
-            "expired_at": 1792260888,
-            "keys": [
-                "track_id",
-                "type",
-                "amount",
-                "currency",
-                "status",
-                "mixed_payment",
-                "fee_paid_by_payer",
-                "under_paid_coverage",
-                "lifetime",
-                "callback_url",
-                "return_url",
-                "email",
-                "order_id",
-                "description",
-                "thanks_message",
-                "expired_at",
-                "sandbox",
-                "date",
-                "txs"
-            ],
-            "raw": null
-        },
-        "VS-2610-70A79": {
-            "http": 200,
-            "err": "",
-            "message": "Operation completed successfully!",
-            "status": "expired",
-            "amount": 220,
-            "currency": "EUR",
-            "date": 1792257290,
-            "expired_at": 1792260890,
-            "keys": [
-                "track_id",
-                "type",
-                "amount",
-                "currency",
-                "status",
-                "mixed_payment",
-                "fee_paid_by_payer",
-                "under_paid_coverage",
-                "lifetime",
-                "callback_url",
-                "return_url",
-                "email",
-                "order_id",
-                "description",
-                "thanks_message",
-                "expired_at",
-                "sandbox",
-                "date",
-                "txs"
-            ],
-            "raw": null
-        },
-        "VS-2610-CF4FC": {
-            "http": 200,
-            "err": "",
-            "message": "Operation completed successfully!",
-            "status": "expired",
-            "amount": 220,
-            "currency": "EUR",
-            "date": 1792259247,
-            "expired_at": 1792262847,
-            "keys": [
-                "track_id",
-                "type",
-                "amount",
-                "currency",
-                "status",
-                "mixed_payment",
-                "fee_paid_by_payer",
-                "under_paid_coverage",
-                "lifetime",
-                "callback_url",
-                "return_url",
-                "email",
-                "order_id",
-                "description",
-                "thanks_message",
-                "expired_at",
-                "sandbox",
-                "date",
-                "txs"
-            ],
-            "raw": null
-        }
-    },
+    "oxapay_view": [],
     "access_log": {
         "files": [
             "maxsales-test.vestrasales.com-Oct-2026.gz (492 B)",
