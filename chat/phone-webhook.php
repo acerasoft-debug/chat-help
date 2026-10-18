@@ -38,7 +38,7 @@ const PH_VOICES=[ // [weiblich, männlich] – null = Google Chirp3-HD
 function ph_say_locale(string $loc): string { return $loc==='az-AZ' ? 'tr-TR' : (isset(PH_VOICES[$loc]) ? $loc : 'de-DE'); }
 /** Weitere natürliche Google-Chirp3-HD-Stimmen je Geschlecht (gleiche Namen in allen Sprachen; nur Namen, die in der Twilio-Stimmentabelle stehen –
  *  ops/selftest.php listet sie je Sprache). Jeder Agent bekommt daraus fest „seine“ Stimme, damit verschiedene Betriebe verschieden klingen. */
-const PH_CHIRP_POOL=['f'=>['Aoede'],'m'=>['Charon']];   // wird erweitert, sobald der Selbsttest weitere Namen in der Twilio-Tabelle bestätigt (Kore, Leda, Zephyr, Despina, Sulafat / Fenrir, Orus, Puck, Iapetus, Algieba)
+const PH_CHIRP_POOL=['f'=>['Aoede','Kore','Leda','Zephyr'],'m'=>['Charon','Fenrir','Orus','Puck']];   // laut Twilio-Stimmentabelle (Selbsttest 18.10.2026) für de, fr, tr, es, it, en, nl, ru vorhanden
 function voice_for(string $lang): string {
     $lang=ph_say_locale($lang);
     if(defined('TWILIO_VOICE') && TWILIO_VOICE && $lang===($GLOBALS['ph_def_locale'] ?? 'de-DE')) return TWILIO_VOICE;
