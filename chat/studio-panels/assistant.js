@@ -1,7 +1,8 @@
 /* ChatHelp Studio — Panel „✦ Assistent“: persönliche Assistentin bzw. persönlicher Assistent des Inhabers (assistant-lib.php).
    Links das Porträt (atmet, goldener Ring + Stimmbalken beim Sprechen, Status „hört zu…/denkt…/spricht…“), in der Mitte das Gespräch
    mit Aktions-Chips (was geändert wurde + Link zum Bereich), rechts Checkliste mit Fortschrittsring und „Was ich über dich weiß“.
-   Stimme: Server-Stimme über /v1/assistant/speak (speech-lib), sonst Browserstimmen (speechSynthesis) – je Voreinstellung eine andere Stimme
+   Stimme: Server-Stimme über /v1/assistant/speak (speech-lib), sonst echte Stimme im Browser (Piper, /chat/voice/voice.js – je Voreinstellung
+   ein eigenes Stimmmodell), solange die lädt bzw. ohne Modell für die Sprache Browserstimmen (speechSynthesis) – je Voreinstellung eine andere Stimme
    (feste Zuordnung je Geschlecht, siehe buildVoiceMap), ehrlich angezeigt als „Browserstimme: <Name>“ – Satz für Satz.
    Spracheingabe: SpeechRecognition (Antippen oder gedrückt halten), im Sprachmodus hört der Assistent nach dem Sprechen wieder zu.
    Barge-in: Tippen, Mikrofon oder Senden beenden die laufende Ausgabe sofort.
@@ -381,6 +382,68 @@
     }
     step();
   }
+  /* ======================================================================= Echte Stimme im Browser (Piper, /chat/voice/voice.js)
+     Jede Voreinstellung hat ein eigenes Stimmmodell bzw. einen eigenen Sprecher. Das Modell lädt einmalig (21–77 MB, danach im Browser
+     gespeichert); bis es da ist, spricht die Systemstimme. Ohne Datensparmodus/Mobilfunk lädt es bei der ersten Hörprobe von selbst. */
+  var PIP = { st: {}, pct: {}, js: null };
+  function pipLib() {
+    if (window.CHVoice || PIP.js) return;
+    PIP.js = document.createElement('script'); PIP.js.src = '/chat/voice/voice.js?v=1'; PIP.js.async = true;
+    PIP.js.onload = function () { pipCheck(); voiceInfo(); };
+    document.head.appendChild(PIP.js);
+  }
+  function pipOf(gender, preset, lng) {
+    if (!window.CHVoice || !CHVoice.ok()) return null;
+    return CHVoice.pick(normLang(lng || convLang()), gender || (PROF && PROF.gender), preset || (PROF && PROF.voice && PROF.voice.preset));
+  }
+  function pipOver(over, lng) { return pipOf(over && over.gender, over && over.preset, lng); }
+  function pipReady(v) { return !!v && PIP.st[v.key] === 'ready'; }
+  /** Ist die Stimme schon im Browser gespeichert? Dann gleich als bereit markieren. */
+  function pipCheck() {
+    var v = pipOf(null, null, PROF && PROF.lang); if (!v || PIP.st[v.key]) return;
+    CHVoice.stored(v).then(function (ok) { if (ok && !PIP.st[v.key]) { PIP.st[v.key] = 'ready'; voiceInfo(); } });
+  }
+  function pipLoad(v, asked) {
+    if (!v || PIP.st[v.key] === 'loading' || PIP.st[v.key] === 'ready') return;
+    if (!asked && (PIP.st[v.key] === 'fail' || !CHVoice.auto())) return;
+    PIP.st[v.key] = 'loading'; PIP.pct[v.key] = 0; voiceInfo();
+    CHVoice.load(v, function (l, t) {
+      var p = t ? Math.min(99, Math.floor(l * 100 / t)) : 0;
+      if (p >= (PIP.pct[v.key] || 0) + 4) { PIP.pct[v.key] = p; voiceInfo(); }
+    }).then(function () {
+      PIP.st[v.key] = 'ready'; voiceInfo();
+      note('Die echte Stimme von ' + h(personaOf(presetOf((PROF && PROF.voice && PROF.voice.preset) || '', PROF && PROF.gender))) + ' ist bereit – ab jetzt ohne Systemstimme.', 'ok');
+    }, function () { PIP.st[v.key] = 'fail'; voiceInfo(); });
+  }
+  /** Wie speakServer, nur dass der Ton im Browser entsteht; nächster Satz wird schon berechnet, während der aktuelle läuft. */
+  function speakPiper(list, gen, done, v, over, tag) {
+    var rate = Number((over && over.rate) || (PROF && PROF.voice && PROF.voice.rate) || 1) || 1;
+    var vv = {}; for (var k in v) { if (Object.prototype.hasOwnProperty.call(v, k)) vv[k] = v[k]; }
+    vv.length = (v.length || 1) / Math.max(0.75, Math.min(1.3, rate));
+    var i = 0, next = CHVoice.say(list[0], vv); next.catch(function () {});
+    function fail(from) {
+      if (gen !== SPK.gen) return;
+      PIP.st[v.key] = 'fail'; voiceInfo();
+      speakBrowser(list.slice(from), gen, done, over, tag);
+    }
+    function step() {
+      if (gen !== SPK.gen) return;
+      if (i >= list.length) { done(); return; }
+      var cur = next, idx = i; i++;
+      next = i < list.length ? CHVoice.say(list[i], vv) : null;
+      if (next) next.catch(function () {});
+      cur.then(function (blob) {
+        if (gen !== SPK.gen) return;
+        var a = audioEl(); if (SPK.url) { try { URL.revokeObjectURL(SPK.url); } catch (e) { /* egal */ } }
+        SPK.url = URL.createObjectURL(blob); a.src = SPK.url;
+        var failed = false, once = function () { if (failed) return; failed = true; a.onended = null; a.onerror = null; fail(idx); };
+        a.onended = function () { if (failed) return; failed = true; step(); };
+        a.onerror = once;
+        var p = a.play(); if (p && p.catch) p.catch(once);
+      }, function () { fail(idx); });
+    }
+    step();
+  }
   function serverLangOk(lng) { lng = normLang(lng); return !SPK.noLang[lng] && (!TTS_LANGS.length || TTS_LANGS.indexOf(lng) >= 0); }
   function serverCan(lng) { return TTS && SPK.serverOk && serverLangOk(lng); }
   /**
@@ -396,7 +459,11 @@
     setState('speaking');
     var done = function () { if (gen !== SPK.gen) return; setState('idle'); if (onend) onend(); };
     if ((src.mid || src.preview) && serverCan(lng)) speakServer(list, gen, done, { mid: src.mid, preview: src.preview, lang: lng }, over);
-    else speakBrowser(list, gen, done, over, tagOf(lng));
+    else {
+      var pv = pipOver(over, lng);
+      if (pipReady(pv)) speakPiper(list, gen, done, pv, over, tagOf(lng));
+      else { if (pv) pipLoad(pv, false); speakBrowser(list, gen, done, over, tagOf(lng)); }
+    }
   }
   function speakMsg(m, onend) { if (m) speakList(m.speech && m.speech.length ? m.speech : sentences(m.content), onend, null, { mid: m.speech && m.speech.length ? m.id : 0, lang: m.lang }); }
   /** Ehrliche Statuszeile: KI-Stimme nur, wenn der Server sie wirklich liefert – sonst sagen, dass es die Systemstimme ist und warum. */
@@ -413,6 +480,7 @@
   function browserUsed(lng) { return voiceStatus(lng).k === 'info'; }
   /** Tooltip-Zusatz „ · Browserstimme: Katja“ für Chips und Hörprobe-Knöpfe (leer, wenn die Server-Stimme spricht). */
   function voiceTip(gender, preset, lng) {
+    if (!serverCan(lng) && pipReady(pipOf(gender, preset, lng))) return ' · echte Stimme';
     if (!browserUsed(lng)) return '';
     var pk = pickVoiceEx(gender, preset, tagOf(lng));
     return pk.v ? ' · Browserstimme: ' + voiceLabel(pk.v) + (pk.shared ? ' (geteilt)' : '') : '';
@@ -437,14 +505,29 @@
     var names = VOICES.filter(function (v) { return v.gender === gender; }).map(personaOf);
     return 'Mit aktivierter KI-Stimme klingt jede Assistenz wie eine echte Person' + (names.length > 1 ? ' – ' + joinNames(names) + ' haben dann eigene Stimmen.' : '.');
   }
+  /** Zeile zur echten Stimme: bereit, lädt (Prozent) oder Knopf zum Laden. Leer, wenn es für Sprache/Geschlecht keine gibt. */
+  function pipLine(v) {
+    if (!v) return '';
+    var s = PIP.st[v.key];
+    if (s === 'loading') return '<span class="as-vpip">Echte Stimme wird geladen … ' + (PIP.pct[v.key] || 0) + ' % (einmalig ' + v.mb + ' MB) – bis dahin die Systemstimme</span>';
+    if (s === 'fail') return '<span class="as-vpip">Die echte Stimme konnte nicht geladen werden. <button type="button" class="as-pipload" data-pip="1">Erneut versuchen</button></span>';
+    return '<span class="as-vpip"><button type="button" class="as-pipload" data-pip="1">Echte Stimme laden</button> einmalig ' + v.mb + ' MB, läuft danach direkt in diesem Browser</span>';
+  }
   function paintStatus(el, gender, preset, lng, nameEl, hintEl) {
+    var pv = serverCan(lng) ? null : pipOf(gender, preset, lng);
+    if (pipReady(pv)) {
+      if (el) { el.textContent = 'Echte Stimme aktiv – läuft direkt in diesem Browser'; el.setAttribute('data-k', 'ok'); el.title = 'Stimmmodell: ' + pv.name; }
+      if (nameEl) nameEl.innerHTML = '';
+      if (hintEl) { hintEl.textContent = ''; hintEl.classList.add('hidden'); }
+      return;
+    }
     var st = voiceStatus(lng), used = st.k === 'info', pk = used ? pickVoiceEx(gender, preset, tagOf(lng)) : null;
     if (el) {
       el.textContent = st.t; el.setAttribute('data-k', st.k);
       if (pk && pk.v) el.title = 'Browserstimme: ' + voiceLabel(pk.v); else el.removeAttribute('title');
     }
-    if (nameEl) nameEl.innerHTML = used ? voiceLineHtml(gender, preset, lng) : '';
-    if (hintEl) { hintEl.textContent = used ? kiHint(gender) : ''; hintEl.classList.toggle('hidden', !used); }
+    if (nameEl) nameEl.innerHTML = used ? voiceLineHtml(gender, preset, lng) + pipLine(pv) : '';
+    if (hintEl) { hintEl.textContent = used && !pv ? kiHint(gender) : ''; hintEl.classList.toggle('hidden', !used || !!pv); }
   }
   /** Tooltips der Stimm-Chips und Hörprobe-Knöpfe nachziehen (Stimmenliste kommt asynchron). */
   function voiceTips() {
@@ -534,7 +617,7 @@
     g('asTip').classList.toggle('hidden', !!PROF.saved);
     var sec = document.querySelector('#' + PANEL + ' .as-chat'); if (sec) sec.setAttribute('aria-label', 'Gespräch mit ' + PROF.name + ' (' + (f ? 'Assistentin' : 'Assistent') + ')');
     document.querySelectorAll('#' + PANEL + ' .as-av').forEach(function (a) { a.src = url; });
-    voiceBtn(); voiceInfo();
+    voiceBtn(); if (window.CHVoice) pipCheck(); voiceInfo();
   }
   /** Stimm-Chips auf der Karte: alle Voreinstellungen des Geschlechts, aktive markiert – Antippen wechselt sofort (gespeichert) und spielt eine Hörprobe. */
   function renderToneChips() {
@@ -951,7 +1034,13 @@
   /* ======================================================================= Ereignisse */
   function bind() {
     if (bound) return; bound = true;
+    pipLib();
     var form = g('asForm'), input = g('asInput');
+    g(PANEL).addEventListener('click', function (e) {   // „Echte Stimme laden“ – für den offenen Entwurf oder das gespeicherte Profil
+      if (!e.target.closest('[data-pip]')) return;
+      unlockAudio();
+      pipLoad(D ? pipOf(D.gender, D.voice.preset, D.lang) : pipOf(null, null, PROF && PROF.lang), true);
+    });
     form.addEventListener('submit', function (e) { e.preventDefault(); send(input.value); });
     input.addEventListener('keydown', function (e) {
       if (speaking()) stopSpeaking();   // Barge-in: Tippen unterbricht

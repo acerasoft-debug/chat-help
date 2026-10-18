@@ -1,11 +1,11 @@
-name: Stimmen prüfen (Piper – Lizenz, Tonhöhe, Hörproben)
+name: Stimmen prüfen (Piper – Lizenz, Tonhöhe, Browser-Test)
 
-# Vorübergehend: prüft die Kandidaten für die Assistenten-Stimmen auf einem Runner (Hugging Face erreichbar).
-# Läuft nur bei Änderungen an tools/voice-check/ oder an dieser Datei; berührt den Server nicht.
+# Vorübergehend: prüft Stimmen und die Browser-Sprachausgabe (chat/voice) auf einem Runner (Hugging Face erreichbar).
+# Läuft nur bei Änderungen an tools/voice-check/, chat/voice/ oder dieser Datei; berührt den Server nicht.
 on:
   push:
     branches: [claude/chat-help-system-video-x0nofb]
-    paths: [tools/voice-check/**, .github/workflows/voice-check.yml]
+    paths: [tools/voice-check/**, chat/voice/**, .github/workflows/voice-check.yml]
   workflow_dispatch:
 
 permissions:
@@ -14,14 +14,32 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - run: pip install -q piper-tts==1.8.0 praat-parselmouth==0.4.7
-      - run: python tools/voice-check/search.py
+      - name: Türkische Stimmen
+        run: python tools/voice-check/tr.py out
+      - name: Browser-Stimmen vorbereiten
+        run: tools/voice-check/browser-setup.sh
+      - name: Browser-Test (Chromium)
+        run: |
+          (cd /tmp/site && python -m http.server 8099 >/tmp/http.log 2>&1 &)
+          mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null && npm i -q playwright@1.49.1 >/dev/null && npx playwright install --with-deps chromium >/dev/null
+          cp $GITHUB_WORKSPACE/tools/voice-check/browser.mjs /tmp/pw/ && node /tmp/pw/browser.mjs $GITHUB_WORKSPACE/out
+          python - <<'P'
+          import glob, statistics, parselmouth
+          for f in sorted(glob.glob('out/browser_*.wav')):
+              s = parselmouth.Sound(f); v = [x for x in s.to_pitch(0.01, 60, 420).selected_array['frequency'] if x > 0]
+              print('%-40s f0=%3d Hz  %.1f/%.1f s' % (f, statistics.median(v) if v else 0, s.duration, len(v) * .01))
+          P
+          tail -5 /tmp/http.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
