@@ -123,7 +123,7 @@ if($o){
     $r=http('GET',"$BASE/chat/driver.php?t=$drvT",null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],$o['code']),'Fahrerseite zeigt die Fahrt (frische URL)',preg_replace('/t=[a-f0-9]+/','t=…',$r['url']));
     $r=http('GET',"$BASE/chat/order.php?c={$o['code']}",null,['Accept-Language: de-DE,de;q=0.9'],'json',true); ok($r['code']===200 && str_contains($r['body'],'Unterwegs') && str_contains($r['body'],'Test-Fahrer'),'Kunden-Statusseite: „Unterwegs · mit Test-Fahrer“');
     $r=http('POST',"$BASE/chat/driver.php?t=$drvT&_=".rnd(),['done'=>$o['id']],[],'form'); ok(in_array($r['code'],[302,303],true) && (ord_by_code($o['code'])['status'] ?? '')==='delivered','Fahrer meldet „Zugestellt“');
-    $r=http('GET',"$BASE/chat/order.php?c={$o['code']}",null,['Accept-Language: de-DE,de;q=0.9'],'json',true); ok(str_contains($r['body'],'guten Appetit'),'Statusseite: zugestellt');
+    $r=http('GET',"$BASE/chat/order.php?c={$o['code']}",null,['Accept-Language: de-DE,de;q=0.9'],'json',true); ok(str_contains($r['body'],'guten Appetit'),'Statusseite: zugestellt',"HTTP {$r['code']} · ".(preg_match('#<h1[^>]*>(.*?)</h1>#s',$r['body'],$hm)?short(strip_tags($hm[1]),80):'kein h1')." · Status in DB: ".(ord_by_code($o['code'])['status'] ?? '?')." · cf=".$r['cache']);
 }
 $r=$api('POST','order/create',['type'=>'pickup','items'=>[['name'=>'Margherita','qty'=>1]],'name'=>'Abholer','phone'=>'+49 170 1111111','payment'=>'bar']); $o2=$r['json']['order'] ?? null;
 ok($o2 && (int)$o2['fee_cents']===0 && (int)$o2['discount_cents']===85 && (int)$o2['total_cents']===765,'Abholbestellung: keine Liefergebühr, 10 % Abholrabatt verbucht (8,50 → 7,65 €)',$o2 ? $o2['code'].' · '.$o2['total'] : short($r['body']));
