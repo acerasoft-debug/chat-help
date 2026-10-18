@@ -121,13 +121,13 @@ if($o){
     $r=$api('POST','order/status',['id'=>$o['id'],'status'=>'ready']); ok(($r['json']['order']['status'] ?? '')==='ready','Studio: „Fertig“');
     $r=$api('POST','order/status',['id'=>$o['id'],'status'=>'out_for_delivery','driver_id'=>$drv['id'] ?? null]); ok(($r['json']['order']['driver']['name'] ?? '')==='Test-Fahrer','„Unterwegs“ mit zugewiesenem Fahrer');
     $r=http('GET',"$BASE/chat/driver.php?t=$drvT",null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],$o['code']),'Fahrerseite zeigt die Fahrt (frische URL)',preg_replace('/t=[a-f0-9]+/','t=…',$r['url']));
-    $r=http('GET',"$BASE/chat/order.php?c={$o['code']}",null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'Unterwegs') && str_contains($r['body'],'Test-Fahrer'),'Kunden-Statusseite: „Unterwegs · mit Test-Fahrer“');
+    $r=http('GET',"$BASE/chat/order.php?c={$o['code']}",null,['Accept-Language: de-DE,de;q=0.9'],'json',true); ok($r['code']===200 && str_contains($r['body'],'Unterwegs') && str_contains($r['body'],'Test-Fahrer'),'Kunden-Statusseite: „Unterwegs · mit Test-Fahrer“');
     $r=http('POST',"$BASE/chat/driver.php?t=$drvT&_=".rnd(),['done'=>$o['id']],[],'form'); ok(in_array($r['code'],[302,303],true) && (ord_by_code($o['code'])['status'] ?? '')==='delivered','Fahrer meldet „Zugestellt“');
-    $r=http('GET',"$BASE/chat/order.php?c={$o['code']}",null,[],'json',true); ok(str_contains($r['body'],'guten Appetit'),'Statusseite: zugestellt');
+    $r=http('GET',"$BASE/chat/order.php?c={$o['code']}",null,['Accept-Language: de-DE,de;q=0.9'],'json',true); ok(str_contains($r['body'],'guten Appetit'),'Statusseite: zugestellt');
 }
 $r=$api('POST','order/create',['type'=>'pickup','items'=>[['name'=>'Margherita','qty'=>1]],'name'=>'Abholer','phone'=>'+49 170 1111111','payment'=>'bar']); $o2=$r['json']['order'] ?? null;
 ok($o2 && (int)$o2['fee_cents']===0 && (int)$o2['discount_cents']===85 && (int)$o2['total_cents']===765,'Abholbestellung: keine Liefergebühr, 10 % Abholrabatt verbucht (8,50 → 7,65 €)',$o2 ? $o2['code'].' · '.$o2['total'] : short($r['body']));
-if($o2){ $r=http('POST',"$BASE/chat/order.php?c={$o2['code']}",['do'=>'cancel'],[],'form',true); ok((ord_by_code($o2['code'])['status'] ?? '')==='cancelled' && str_contains($r['body'],'storniert'),'Kunde storniert über die Statusseite'); }
+if($o2){ $r=http('POST',"$BASE/chat/order.php?c={$o2['code']}",['do'=>'cancel'],['Accept-Language: de-DE,de;q=0.9'],'form',true); ok((ord_by_code($o2['code'])['status'] ?? '')==='cancelled' && str_contains($r['body'],'storniert'),'Kunde storniert über die Statusseite'); }
 
 /* Kartensuche: „Pizza Salami“ muss die Salami finden; Unsinn liefert die ganze Karte statt „gibt es nicht“ */
 require_once __DIR__.'/order-lib.php';
@@ -345,7 +345,7 @@ try {
         $r=http('GET',"$BASE/chat/concierge.php?agent=$pl&_=".rnd(4)); ok($r['code']===200 && ($co==='' || str_contains((string)json_encode($r['json'],JSON_UNESCAPED_UNICODE),$co)) && !str_contains((string)$r['body'],'Muster GmbH'),"Live-Demo $pl","HTTP {$r['code']}");
     }
     $r=$api('GET','contacts/list'); ok($r['code']===200,'Kunden-Verlauf: Liste erreichbar',"HTTP {$r['code']}");
-    $r=http('GET',"$BASE/chat/book.php?k=demo&lang=tr&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && preg_match('/<html[^>]+lang="tr"/i',$r['body']),'Buchungsseite auf Türkisch (lang=tr)',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/chat/book.php?k=demo&lang=tr&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && preg_match('/<html[^>]+lang="tr(-TR)?"/i',$r['body']),'Buchungsseite auf Türkisch (lang=tr)',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/chat/concierge.php?agent=agent-hair-tr&lang=en&_=".rnd(4)); ok($r['code']===200,'Türkiye-Demo auf Englisch',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/chat/studio.php?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'data-v="whatsapp"') && str_contains($r['body'],'id="cLangs"') && str_contains($r['body'],'data-v="kunden"'),'Studio: WhatsApp-Tab, Kunden-Tab, 13-Sprachen-Auswahl',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/?_=".rnd(4)); ok($r['code']===200 && str_contains($r['body'],'id="beauty"') && str_contains($r['body'],'id="tuerkei"') && !preg_match('/id="recht"/',$r['body']),'Startseite: Beauty, Türkiye, ohne Recht-Abschnitt',"HTTP {$r['code']}");
