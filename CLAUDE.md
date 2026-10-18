@@ -12935,3 +12935,20 @@ bulucu süzgecinden (marka kanıtı) hiç geçmemiş OSM kayıtları.
 - **Operatör kararı (17 Eki 2026, 19:2x Avrupa):** indirim partisi temizlenmiş havuzla YENİDEN AÇIK, ama ikinci el / vintage /
   konsinye ve gelinlik dükkânları çıkarıldı (`vestra_mailbox_deals_excluded`); başlangıç ertesi gün 08:30
   (`mailbox-deals-switch.yml enable=true start=tomorrow`: o günün denemeleri ve 23:45 turu tükenmiş sayılır).
+
+## İndirim partisi ikinci denetim (18 Eki 2026 sabah, kendi takibim)
+
+18 Eki 08:30 Avrupa partisi 191 mektup gönderdi ve havuzu bitirdi (diag-chain-audit). Alıcıların ~25'i hâlâ hedef dışıydı:
+büyük zincir / e-ticaret grubu / dağıtıcı (Foschini @bash.com, Terminal X, epantofi, Sportina, Vermont, Quick Schuh,
+Stanley Korshak @mitchells.com, Discount Fashion Warehouse), şube sayfası sitesi olan çok şubeli işletmeler (Gravity Pope
+/pages/vancouver, A-Mode /nl/amode-brugge-nl, Ralet /nl/shop/1214/-gent, La Botte /la-botte-chantilly, Casa Moda /linz,
+Endless Supply /pages/locations, Brando /pages/brando-sirkus…), ikinci el (Relove, Designer Exchange, Once More Luxury),
+marka mağazası (Oleana), kuyumcu ve at malzemecisi.
+- **Acil:** `mailbox-deals-switch.yml enable=false` (08:40 UTC) — havuz zaten 0'dı; parti + 23:45 turu kapalı. Operatör
+  kararı olmadan açılmaz.
+- **Süzgeç:** `vestra_lead_is_chain_url` şube biçimlerini de tanır (`store-…`, `/shop/<no>`, `/<3+ hane>`, Shopify
+  `/pages/<x>` (about/contact/… hariç), alan adının kendi adı + şehir `/<ad>-<şehir>`, `/locations`); indirim takibinde
+  ayrıca `vestra_lead_is_branch_page` (dil kodu / iletişim / hakkımızda dışında HER alt sayfa = şube); ikinci el adlarına
+  relove / pre-owned / preloved / exchange / once more / rewear / kringloop; kuyumcu ve binicilik hem indirimde hem yeni
+  müşteri yolunda moda dışı; yukarıdaki zincirlerin alan adları `vestra_chain_domains()`'te.
+- Testler: finder_test "18 Eki 2026 indirim denetimi" (+37 iddia, 524 geçti).

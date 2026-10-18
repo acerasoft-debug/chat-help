@@ -1349,8 +1349,31 @@ function vestra_campaign_optout(string $email): bool {
  * bağımsız butik değil, zincirin ya da markanın şubesidir. Tekil "/boutique/" (bir butiğin kendi "mağazamız" sayfası) SAYILMAZ. */
 function vestra_lead_is_chain_url(string $website): bool {
   $w=strtolower(trim($website)); if($w==='') return false;
+  $u=preg_match('#^https?://#',$w)?$w:'https://'.$w;
+  $path=(string)parse_url($u, PHP_URL_PATH);
+  if(preg_match('#/(stores?|store-?locator|storelocator|store-?finder|find-a-store|winkels?|filialen?|filiali|standorte|punti-?vendita|negozi|tiendas|lojas|magasins|boutiques|butikker|butiker|myymalat|sklepy|prodejny|locations?|locaties|vestigingen|our-stores|shops)(/|$|\?|\.html)#',$path)) return true;
+  /* 18 Eki 2026 indirim denetimi: şube sayfası biçimleri — "online-kaufen/store-st-michael", "vermont-store-prasna",
+     "shop/1214/-gent" (şube numarası), "pages/vancouver" (Shopify sayfası), "amode-brugge-nl" / "la-botte-chantilly" /
+     "pages/brando-sirkus" (alan adının kendi adı + şehir). */
+  if(preg_match('#(/|-)stores?-|/shop/\d{2,}|/\d{3,}(/|$|-)#',$path)) return true;
+  if(preg_match('#/pages/([^/?]+)#',$path,$pm) && !preg_match('#^(about|about-us|aboutus|our-story|story|contact|contact-us|contactus|faq|shipping|returns|privacy|terms|impressum|size-guide|home|info|brands|lookbook|store|our-store|the-store|boutique|visit|visit-us|over-ons|chi-siamo|qui-sommes-nous|ueber-uns|uber-uns)$#',$pm[1])) return true;
+  $base=(string)preg_replace('/^www\d*\./','',(string)parse_url($u, PHP_URL_HOST)); $base=explode('.',$base)[0];
+  return strlen($base)>=3 && (bool)preg_match('#/'.preg_quote($base,'#').'[-.][a-z]#',$path);
+}
+/* ŞUBE SAYFASI (indirim takibi için, 18 Eki 2026): kaydın sitesi ana sayfa değil, dil kodu / iletişim / hakkımızda dışında
+ * bir alt sayfaysa (casamoda.at/linz, coccinelle.nl/kinderkleding-roermond) kayıt çok şubeli bir işletmenin bir şubesidir —
+ * OSM'deki bağımsız butik kaydı ana sayfaya gider. Yeni müşteri yolunda kullanılmaz (bulucu kaydı zaten ana sayfadır). */
+function vestra_lead_is_branch_page(string $website): bool {
+  $w=strtolower(trim($website)); if($w==='') return false;
+  if(vestra_lead_is_chain_url($w)) return true;
   $path=(string)parse_url(preg_match('#^https?://#',$w)?$w:'https://'.$w, PHP_URL_PATH);
-  return (bool)preg_match('#/(stores?|store-?locator|storelocator|store-?finder|find-a-store|winkels?|filialen?|filiali|standorte|punti-?vendita|negozi|tiendas|lojas|magasins|boutiques|butikker|butiker|myymalat|sklepy|prodejny)(/|$|\?|\.html)#',$path);
+  foreach(array_filter(explode('/',$path),'strlen') as $seg){
+    $seg=(string)preg_replace('/\.(html?|php|aspx?)$/','',$seg);
+    if(preg_match('/^[a-z]{2}([-_][a-z]{2})?$/',$seg)) continue;   // dil kodu: /de, /nl_be, /en-us
+    if(preg_match('/^(index|default|home|homepage|accueil|start|startseite|inicio|welcome|contact|contacts|contact-us|contactus|kontakt|contatti|contacto|contato|about|about-us|aboutus|over-ons|chi-siamo|ueber-uns|uber-uns|qui-sommes-nous|impressum|shop|store|boutique|negozio|winkel|tienda|loja|laden|collections?|pages|page|wp|site|web)$/',$seg)) continue;
+    return true;
+  }
+  return false;
 }
 /* Adı günlük bir kelime olan zincirler (Brooklyn, Comma, TBS, Formen…): ad listesine girerse "Brooklyn Vintage" gibi gerçek
  * butikleri de elerdi — yalnız zincirin KENDİ alan adı (e-posta ya da site) TAM eşleşir. 17 Eki 2026 denetimi. */
@@ -1364,7 +1387,11 @@ function vestra_chain_domains(): array {
     'wamdenim.com','wamdenim.be','buissonniere.com','lolacasademunt.com','kicks.se','hatstore.se','kidsbrandstore.se','capelstore.fr',
     'altermundi.com','scalperscompany.com','pedrodelhierro.com','claudiastrater.com','mackintosh.com','joseph-fashion.com','joseph.co.uk',
     'lapinkids.com','fielmann.cz','fielmann.de','fielmann.com','rcstrasbourg.eu','soccerfanshop.nl','oktshirt.co.uk','kaotikobcn.com','kaotikobcn.eu',
-    'glamcult.com','glamcultstudio.com']);
+    'glamcult.com','glamcultstudio.com',
+    /* 18 Eki 2026 indirim denetimi: büyük zincir / e-ticaret grubu / dağıtıcı / marka mağazası / çok şubeli işletme */
+    'bash.com','terminalx.com','epantofi.ro','eobuwie.pl','eobuwie.com','eschuhe.de','modivo.ro','modivo.pl','sportina.si','sportina.group',
+    'sportina.com','vermont.eu','vermont.cz','schuhe.at','mitchells.com','mitchellstores.com','dfwh.com','gravitypope.com','a-ma-maniere.com',
+    'amode.be','ralet.be','casamoda.at','la-botte.com','oleana.no','endlesssupply.com','brando.no','eleganza.nl','coccinelle.nl','superstellar.nl']);
 }
 function vestra_lead_is_blocked(array $lead): bool {
   $co=(string)($lead['company'] ?? ''); $em=(string)($lead['email'] ?? ''); $ws=(string)($lead['website'] ?? '');

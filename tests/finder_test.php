@@ -1018,6 +1018,26 @@ $t('market / süpermarket moda dışı (Supermercado discount, Fish Market)', ve
 foreach (['Premium Secondhand', 'Tola Vintage', 'Labels Resale Boutique', 'GardeRobe', 'Mari Fin Bridal', 'De Stafford Bridal', 'Dépôt-vente Chic'] as $xn)
   $t('indirim takibi ikinci el / vintage / gelinlik dükkânına gitmez: '.$xn, vestra_mailbox_deals_excluded(['company' => $xn, 'email' => $xn === 'GardeRobe' ? 'a@garderobe-secondhand.at' : 'a@x.example']));
 $t('normal butik indirim takibinden çıkarılmaz', !vestra_mailbox_deals_excluded(['company' => 'Moosbrugger', 'email' => 'a@mode-moosbrugger.at', 'website' => 'mode-moosbrugger.at']));
+echo "\n  -- 18 Eki 2026 indirim denetimi: şube sayfası, büyük zincir alan adları, ikinci el / kuyumcu / binicilik --\n";
+foreach ([['Foschini', 'a@bash.com', 'bash.com'], ['Terminal X Space', 'a@terminalx.com', 'terminalx.com'], ['epantofi', 'a@epantofi.ro', 'epantofi.ro'],
+          ['Sportina', 'a@sportina.si', 'https://sportina.group/sportina.fashion'], ['Vermont', 'a@vermont.eu', 'vermont.cz/vermont-store-prasna'],
+          ['Quick', 'a@quick-schuh-st-michael.at', 'schuhe.at/online-kaufen/store-st-michael'], ['Stanley Korshak', 'a@mitchells.com', 'mitchellstores.com'],
+          ['Gravity Pope', 'a@gravitypope.com', 'gravitypope.com/pages/vancouver'], ['A-Mode', 'a@amode.be', 'amode.be/nl/amode-brugge-nl'],
+          ['Ralet', 'a@ralet.be', 'ralet.be/nl/shop/1214/-gent'], ['La Botte Chantilly', 'a@la-botte.com', 'la-botte.com/la-botte-chantilly'],
+          ['Endless Supply', 'a@endlesssupply.com', 'endlesssupply.com/pages/locations'], ['Brando', 'a@brando.no', 'brando.no/pages/brando-sirkus']] as [$co, $em, $ws])
+  $t('18 Eki: zincir / şube engellenir: '.$co, vestra_lead_is_blocked(['company' => $co, 'email' => $em, 'website' => $ws]));
+foreach (['gravityx.example/pages/vancouver', 'amodex.example/nl/amodex-brugge-nl', 'raletx.example/nl/shop/1214/-gent', 'quickx.example/online-kaufen/store-st-michael', 'endlessx.example/pages/locations'] as $ws)
+  $t('18 Eki: bilinmeyen alan adında da şube sayfası biçimi zincir sayılır: '.$ws, vestra_lead_is_chain_url($ws));
+foreach (['patmouille.fr/boutique/#nos-horaires', 'mode-moosbrugger.at/kontakt/', 'handdrucke.at/de', 'shop.example/pages/about-us', 'boutique.example/en/home', 'x.example/index.html'] as $ws)
+  $t('18 Eki: ana sayfa / iletişim / dil sayfası şube sayılmaz: '.$ws, !vestra_lead_is_chain_url($ws) && !vestra_lead_is_branch_page($ws));
+$t('18 Eki: indirim takibinde şube alt sayfası (…/linz, …/kinderkleding-roermond) çıkarılır', vestra_mailbox_deals_excluded(['company' => 'Casa X', 'email' => 'a@casax.example', 'website' => 'casax.example/linz'])
+   && vestra_mailbox_deals_excluded(['company' => 'Coc X', 'email' => 'a@cocx.example', 'website' => 'cocx.example/kinderkleding-roermond']));
+foreach ([['Relove Stockmann', 'relove.fi'], ['Designer Exchange', 'designerexchange.ie'], ['Once More Luxury Boutique', 'oncemoreluxury.com'], ['Juwelier Anadolu', 'juwelier-anadolu.nl'], ['Apple Saddlery', 'applesaddlery.com']] as [$co, $ws])
+  $t('18 Eki: indirim takibi ikinci el / kuyumcu / binicilik dükkânına gitmez: '.$co, vestra_mailbox_deals_excluded(['company' => $co, 'email' => 'a@'.$ws, 'website' => $ws]));
+$t('18 Eki: kuyumcu ve binicilik yeni müşteri yolunda da moda dışı; moda butiği değil', vestra_lead_off_target(['company' => 'Juwelier Anadolu', 'email' => 'a@gmail.com', 'website' => 'juwelier-anadolu.nl'])
+   && vestra_lead_off_target(['company' => 'Apple Saddlery', 'email' => 'a@applesaddlery.com']) && !vestra_lead_off_target(['company' => 'Tenue de Nîmes', 'email' => 'a@tenuedenimes.com', 'website' => 'tenuedenimes.com']));
+foreach ([['Tenue de Nîmes', 'tenuedenimes.com'], ['Alan Bilzerian', 'alanbilzerian.com'], ['The Broken Arm', 'the-broken-arm.com'], ['Fuchs Fashion', 'fuchsfashion.ch']] as [$co, $ws])
+  $t('18 Eki: bağımsız butik indirim takibinde kalır: '.$co, !vestra_mailbox_deals_excluded(['company' => $co, 'email' => 'a@'.$ws, 'website' => $ws]) && !vestra_lead_is_blocked(['company' => $co, 'email' => 'a@'.$ws, 'website' => $ws]));
 $t('eski OSM kaydında tek marka yetmez, iki marka gerekir', !isset($ftK['O1B']) && isset($ftK['O2B']));
 vestra_write_json('leads.json', [$gstar, ['premium_brands' => []] + $sx('NB', 'info@nobrands.example', 30), $sx('YB', 'info@withbrands.example', 30)]);
 $t('indirim takibi: G-Star yok, sitesinde premium marka görülmemiş dükkân yok, marka kanıtlı dükkân var', !isset($ftG['GS']) && !isset($ftG['NB']) && isset($ftG['YB']) && !vestra_mailbox_followup_still_ok('NB') && !vestra_mailbox_followup_still_ok('GS'));

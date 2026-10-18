@@ -466,7 +466,10 @@ function vestra_campaign_name_skipped(array $l): bool {
 function vestra_mailbox_deals_excluded(array $l): bool {
   $em = strtolower((string)($l['email'] ?? '')); $ed = ($p = strrpos($em, '@')) !== false ? substr($em, $p + 1) : '';
   $hay = mb_strtolower((string)($l['company'] ?? '').' '.(string)($l['website'] ?? '').' '.$ed);
-  return (bool)preg_match('/second ?hand|secondhand|2nd ?hand|seconde ?main|tweede ?hands|segunda ?mano|second ?mano|gebraucht|usato|resale|re-?sale|vintage|consign|d[ée]p[ôo]t[- ]vente|brocante|thrift|bridal|bride|braut|mari[ée]e|mariage|sposa|novia|bruid|wedding|hochzeit|br[uú]dkjole|brudklänning/u', $hay);
+  /* 18 Eki 2026 denetimi (191 indirim mektubunda Relove, Designer Exchange, Once More Luxury, bir kuyumcu ve bir at
+     malzemecisi vardı; 13'ünün sitesi bir şube sayfasıydı): ikinci elin başka adları, kuyumcu / binicilik, şube sayfası. */
+  if (function_exists('vestra_lead_is_branch_page') && vestra_lead_is_branch_page((string)($l['website'] ?? ''))) return true;
+  return (bool)preg_match('/second ?hand|secondhand|2nd ?hand|seconde ?main|tweede ?hands|segunda ?mano|second ?mano|gebraucht|usato|resale|re-?sale|vintage|consign|d[ée]p[ôo]t[- ]vente|brocante|thrift|re-?love|pre-?owned|pre-?loved|designer ?exchange|\bexchange\b|once ?more|rewear|kringloop|bridal|bride|braut|mari[ée]e|mariage|sposa|novia|bruid|wedding|hochzeit|br[uú]dkjole|brudklänning|juwel|jewel|gioiell|joaill|joyer|saddler|equestrian|reitsport/u', $hay);
 }
 
 /** Takip (indirim) için marka kanıtı yeterli mi? Bulucunun kendi kayıtları ('web-search') 1, eski kaynaklar 2 marka. */
