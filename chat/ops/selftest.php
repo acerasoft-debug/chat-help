@@ -33,7 +33,7 @@ function hdrs(string $h, string $re='/^(cache-control|set-cookie|cf-cache-status
 function http(string $method, string $url, $body=null, array $hdr=[], string $kind='json', bool $follow=false): array {
     $ch=curl_init($url); $h=$hdr;
     $opt=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>150,CURLOPT_HEADER=>true,CURLOPT_USERAGENT=>'ChatHelp-selftest',CURLOPT_FOLLOWLOCATION=>$follow,CURLOPT_MAXREDIRS=>4];
-    if($method!=='GET') $opt[CURLOPT_CUSTOMREQUEST]=$method;
+    if($method==='HEAD') $opt[CURLOPT_NOBODY]=true; elseif($method!=='GET') $opt[CURLOPT_CUSTOMREQUEST]=$method;
     if($body!==null){ if($kind==='form'){ $opt[CURLOPT_POSTFIELDS]=http_build_query($body); $h[]='Content-Type: application/x-www-form-urlencoded'; } else { $opt[CURLOPT_POSTFIELDS]=is_string($body)?$body:json_encode($body,JSON_UNESCAPED_UNICODE); $h[]='Content-Type: application/json'; } }
     $opt[CURLOPT_HTTPHEADER]=$h; curl_setopt_array($ch,$opt);
     $t=microtime(true); $raw=(string)curl_exec($ch); $dt=microtime(true)-$t;
@@ -349,6 +349,22 @@ try {
     $r=http('GET',"$BASE/chat/concierge.php?agent=agent-hair-tr&lang=en&_=".rnd(4)); ok($r['code']===200,'Türkiye-Demo auf Englisch',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/chat/studio.php?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'data-v="whatsapp"') && str_contains($r['body'],'id="cLangs"') && str_contains($r['body'],'data-v="kunden"'),'Studio: WhatsApp-Tab, Kunden-Tab, 13-Sprachen-Auswahl',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/?_=".rnd(4)); ok($r['code']===200 && str_contains($r['body'],'id="beauty"') && str_contains($r['body'],'id="tuerkei"') && !preg_match('/id="recht"/',$r['body']),'Startseite: Beauty, Türkiye, ohne Recht-Abschnitt',"HTTP {$r['code']}");
+    sec('Phase 3: echte Browser-Stimmen, App, Länder/Währung, Rechtstexte');
+    foreach(['chat/voice/voice.js'=>'CHVoice','chat/voice/piper-worker.js'=>'createPiperPhonemize','chat/vendor/voice/lib/ort.wasm.min.js'=>'ONNX Runtime','chat/vendor/voice/lib/piper_phonemize.js'=>'createPiperPhonemize'] as $f=>$needle){
+        $r=http('GET',"$BASE/$f?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],$needle),"Stimmen: $f",'HTTP '.$r['code'].' · '.strlen($r['body']).' Bytes');
+    }
+    foreach(['de_DE-kerstin-low','de_DE-mls-medium','fr_FR-upmc-medium','es_ES-sharvard-medium','tr_TR-fettah-medium','tr_TR-fahrettin-medium'] as $k){
+        $r=http('GET',"$BASE/chat/vendor/voice/models/$k.json?_=".rnd(4)); $h=http('HEAD',"$BASE/chat/vendor/voice/models/$k.bin",null,[],'raw',true);
+        ok($r['code']===200 && isset($r['json']['phoneme_id_map']) && $h['code']===200,"Stimme $k (Modell + Konfiguration)",'json '.$r['code'].' · bin '.$h['code']);
+    }
+    $r=http('GET',"$BASE/chat/vendor/voice/LICENSES.txt?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'espeak-ng') && str_contains($r['body'],'== Stimmen =='),'Stimmen-Lizenzen veröffentlicht',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'/chat/voice/voice.js') && str_contains($r['body'],'href="/datenschutz.html"'),'Startseite: echte Stimmen eingebunden + Datenschutz-Link',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/chat/locale-api.php?cc=TR&_=".rnd(4),null,['CF-IPCountry: TR']); ok($r['code']===200 && ($r['json']['currency'] ?? '')==='TRY' && ($r['json']['lang'] ?? '')==='tr','Länder-Erkennung: Türkei → Türkisch + TRY',short($r['json'] ?? $r['body'],120));
+    $r=http('GET',"$BASE/chat/locale-api.php?cc=RU&_=".rnd(4)); ok($r['code']===200 && ($r['json']['currency'] ?? '')==='EUR','Länder-Erkennung: Russland → keine Rubel (EUR)',short($r['json']['currency'] ?? '',20));
+    $r=http('GET',"$BASE/chat/tokens-api.php/v1/pricing?cur=USD&lang=en&_=".rnd(4)); ok($r['code']===200 && isset($r['json']['display_currency']),'Preis-API mit Landeswährung (USD)',"HTTP {$r['code']}");
+    foreach(['chat/app.php'=>'ChatHelp','chat/app-download.php'=>'ChatHelp','datenschutz.html'=>'Stimmen im Browser','agb.html'=>'AGB','impressum.html'=>'Acerasoft'] as $f=>$needle){
+        $r=http('GET',"$BASE/$f?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],$needle),"Seite /$f","HTTP {$r['code']}");
+    }
 } catch(Throwable $e){ ok(false,'Neue Bausteine: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
 
 /* ---------- Twilio-Doku (vom Server geladen) ---------- */
