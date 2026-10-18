@@ -84,7 +84,7 @@ jobs:
               $rows = isset($d['id']) ? [$d] : $d; $hit = null;
               foreach ($rows as $a) if (is_array($a) && ((string)($a['id'] ?? '') === $uid || strtolower(trim((string)($a['email'] ?? ''))) === $email)) { $hit = $a; break; }
               $line = $hit ? $st($hit) : '(bu hesap yok)';
-              if ($line !== $prev) echo "   ".date('Y-m-d H:i', filemtime($f))." ".basename($f)." → ".$line."\n";
+              if ($line !== $prev || filemtime($f) >= strtotime('2026-10-08') || str_contains(basename($f), 'npp')) echo "   ".date('Y-m-d H:i', filemtime($f))." ".basename($f)." → ".$line."\n";
               $prev = $line;
             }
             echo "   (".count($files)." yedek dosyasi tarandi; yalniz degisen satirlar)\n";
