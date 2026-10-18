@@ -36,14 +36,24 @@ const PH_VOICES=[ // [weiblich, männlich] – null = Google Chirp3-HD
   'sv-SE'=>['Polly.Elin-Neural',null], 'nb-NO'=>['Polly.Ida-Neural',null], 'fi-FI'=>['Polly.Suvi-Neural',null], 'ja-JP'=>['Polly.Kazuha-Neural','Polly.Takumi-Neural']];
 /** Stimme fürs Vorlesen (az-AZ → tr-TR, siehe oben). */
 function ph_say_locale(string $loc): string { return $loc==='az-AZ' ? 'tr-TR' : (isset(PH_VOICES[$loc]) ? $loc : 'de-DE'); }
+/** Weitere natürliche Google-Chirp3-HD-Stimmen je Geschlecht (gleiche Namen in allen Sprachen; nur Namen, die in der Twilio-Stimmentabelle stehen –
+ *  ops/selftest.php listet sie je Sprache). Jeder Agent bekommt daraus fest „seine“ Stimme, damit verschiedene Betriebe verschieden klingen. */
+const PH_CHIRP_POOL=['f'=>['Aoede'],'m'=>['Charon']];   // wird erweitert, sobald der Selbsttest weitere Namen in der Twilio-Tabelle bestätigt (Kore, Leda, Zephyr, Despina, Sulafat / Fenrir, Orus, Puck, Iapetus, Algieba)
 function voice_for(string $lang): string {
     $lang=ph_say_locale($lang);
     if(defined('TWILIO_VOICE') && TWILIO_VOICE && $lang===($GLOBALS['ph_def_locale'] ?? 'de-DE')) return TWILIO_VOICE;
-    $g=$GLOBALS['ph_gender'] ?? 'f'; $chirp=fn(string $l,bool $m)=>'Google.'.$l.'-Chirp3-HD-'.($m?'Charon':'Aoede');
+    $g=$GLOBALS['ph_gender'] ?? 'f'; $chirp=fn(string $l,bool $m,string $n='')=>'Google.'.$l.'-Chirp3-HD-'.($n!=='' ? $n : ($m?'Charon':'Aoede'));
     if($g==='g' || $g==='gm') return $chirp($lang,$g==='gm');
-    $v=PH_VOICES[$lang][$g==='m'?1:0] ?? null; if($v===null) return $chirp($lang,$g==='m');
-    if(defined('TWILIO_VOICE_TIER') && TWILIO_VOICE_TIER==='neural') $v=str_replace('-Generative','-Neural',$v);
-    return $v;
+    $m=$g==='m'; $v=PH_VOICES[$lang][$m?1:0] ?? null;
+    if($v!==null && defined('TWILIO_VOICE_TIER') && TWILIO_VOICE_TIER==='neural') $v=str_replace('-Generative','-Neural',$v);
+    /* Stimme je Agent: Polly (falls vorhanden) + Chirp3-HD-Vorrat, fest über Konto + Plan gewählt; db.php CH_PHONE_VOICE_POOL=false schaltet das ab */
+    $seed=(string)($GLOBALS['ph_vseed'] ?? '');
+    if($seed!=='' && !(defined('CH_PHONE_VOICE_POOL') && CH_PHONE_VOICE_POOL===false)){
+        $opts=$v!==null ? [$v] : [];
+        foreach(PH_CHIRP_POOL[$m?'m':'f'] as $n) $opts[]=$chirp($lang,$m,$n);
+        return $opts[crc32($seed) % count($opts)];
+    }
+    return $v ?? $chirp($lang,$m);
 }
 /** Aserbaidschanisch mit türkischer Stimme: ə→e, x→h, q→g (nächstliegende türkische Laute). */
 function ph_az_for_tr(string $t): string { return strtr($t,['ə'=>'e','Ə'=>'E','x'=>'h','X'=>'H','q'=>'g','Q'=>'G']); }
@@ -145,6 +155,7 @@ $lang='de-DE'; $GLOBALS['ph_gender']='f';
 if(preg_match('/^([a-z]{2}-[A-Z]{2})(?:-(m|f|g|gm))?$/',(string)$cfg['phone_voice'],$mv)){ $lang=$mv[1]; $GLOBALS['ph_gender']=$mv[2] ?? 'f'; }
 /* Sprachen: Standard = Sprache der eingestellten Stimme (phone_voice), erlaubt = agent_configs.langs (leer = alle 13, i18n.php) */
 $GLOBALS['ph_def_locale']=$lang; ch_i18n_bootstrap(); $defL=ph_l2($lang);
+$GLOBALS['ph_vseed']=$aid.'|'.(string)$cfg['plan'];   // eigene Telefonstimme je Agent (voice_for)
 $allowed=ch_cfg_langs(['lang'=>ch_lang_norm($defL) ?: ch_cfg_default($cfg),'langs'=>(string)($cfg['langs'] ?? '')]); if(!in_array($defL,$allowed,true)) array_unshift($allowed,$defL);
 $planId=ch_plan_active_any($aid,(string)$cfg['plan']) ? (string)$cfg['plan'] : null;
 $pl=$planId ? ch_plan($planId) : null;
