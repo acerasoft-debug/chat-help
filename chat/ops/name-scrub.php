@@ -33,6 +33,7 @@ define('NS_TITLE', "/(?:\\bHerrn?|\\bHr\\.)$SEP$FULLNAME/iu");   // „vertreten
 define('NS_FULL',  "/$FULLNAME/iu");
 define('NS_ANY',   "/\\b$f\\b|\\b$m\\b|$l$CCs|\\b{$l}c\\b/iu");
 define('NS_NEW', 'Management');
+$NS_RX_V = "/\\b$f\\b/iu"; $NS_RX_Z = "/\\b$m\\b/iu"; $NS_RX_N = "/$l$CCs|\\b{$l}c\\b/iu";
 
 function ns_rep(string $s, int &$n): string {
     $s = preg_replace(NS_TITLE, 'das '.NS_NEW, $s, -1, $a) ?? $s;
@@ -43,6 +44,11 @@ function ns_count(string $s): array {               // [voller Name, übrige Tei
     $full = preg_match_all(NS_FULL, $s);
     $rest = preg_match_all(NS_ANY, (string)preg_replace(NS_FULL, ' ', $s));
     return [(int)$full, (int)$rest];
+}
+function ns_kinds(string $s): string {             // Teil-Treffer nach Art (ohne Inhalt): V=Vorname, Z=zweiter Vorname, N=Nachname
+    $r = (string)preg_replace(NS_FULL, ' ', $s); $o = [];
+    foreach (['V' => $GLOBALS['NS_RX_V'], 'Z' => $GLOBALS['NS_RX_Z'], 'N' => $GLOBALS['NS_RX_N']] as $k => $rx) { $c = preg_match_all($rx, $r); if ($c) $o[] = "$k:$c"; }
+    return $o ? ' ('.implode(' ', $o).')' : '';
 }
 function ns_mask(string $s): string { return (string)preg_replace(NS_ANY, '▇', $s); }
 function ns_deep($v, int &$n) {
@@ -82,7 +88,7 @@ foreach ($it as $x) {
     [$full, $part] = ns_count($t); $sumF += $full; $sumP += $part;
     $isDoc = (bool)preg_match('#(^|/)data/[^/]+\.json$#', $rel);
     if ($isDoc) { $docs++; $docDirs[dirname($rel)] = $rel; continue; }
-    echo "  · ".ns_mask($rel)." — voller Name: $full, Teil-Treffer: $part\n";
+    echo "  · ".ns_mask($rel)." — voller Name: $full, Teil-Treffer: $part".($part ? ns_kinds($t) : '')."\n";
     if (preg_match('/\.(bak|prev|GOOD|old|orig)\b|\.php\.[A-Za-z]/', $bn) && !preg_match('/\.php$/', $bn)) $bakSamples[] = $rel;
     if (!$apply || !$full) continue;
     $n = 0; $new = ns_rep($t, $n);
@@ -143,7 +149,9 @@ foreach ($dbs as $dbn => [$label, $pdo]) {
         if (count($rows) >= 2000) echo "  · $t: mindestens 2000 Zeilen – nach dem Anwenden erneut ausführen\n";
         foreach ($cs as $col) {
             $hit = []; $full = 0; $part = 0;
-            foreach ($rows as $row) { $v = (string)($row[$col] ?? ''); if ($v === '' || !preg_match(NS_ANY, $v)) continue; $hit[] = $row; [$a, $b] = ns_count($v); $full += $a; $part += $b; }
+            $kinds = '';
+            foreach ($rows as $row) { $v = (string)($row[$col] ?? ''); if ($v === '' || !preg_match(NS_ANY, $v)) continue; $hit[] = $row; [$a, $b] = ns_count($v); $full += $a; $part += $b; $kinds .= ' '.$v; }
+            $kinds = $part ? ns_kinds($kinds) : '';
             if (!$hit) continue;
             $tot += count($hit);
             $prot = (bool)preg_match($protCol, $col);
@@ -152,7 +160,7 @@ foreach ($dbs as $dbn => [$label, $pdo]) {
             $identityCol = ($isWpUsers && $col === 'display_name') || ($short === 'uwp_usermeta' && in_array($col, $identity, true)) || ($short === 'usermeta' && $col === 'meta_value');
             if ($identityCol && !$prot && !empty($pks[$t])) $policy = ($short === 'usermeta') ? 'Autorenname (Vor-/Nachname, Spitzname) – wird ersetzt, übrige Metadaten nur gemeldet' : 'Autorenname – wird ersetzt';
             elseif ($isMeta && !$identityCol && !$prot) $policy = 'Nutzer-Metadaten – nur gemeldet';
-            echo "  · $t.$col — Zeilen: ".count($hit).", voller Name: $full, Teil-Treffer: $part  [$policy]\n";
+            echo "  · $t.$col — Zeilen: ".count($hit).", voller Name: $full, Teil-Treffer: $part$kinds  [$policy]\n";
             if (!$apply || strpos($policy, 'wird ersetzt') === false) continue;
             foreach ($hit as $row) {
                 $old = (string)$row[$col]; $n = 0;
