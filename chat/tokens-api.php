@@ -3,6 +3,9 @@
  * ChatHelp API v1 — TEK giriş noktası, tüm sektörler, gerçek Agent çalışma zamanı
  * ==================================================================================
  *   GET  /chat/tokens-api.php/v1/sectors                                   → sektörler, task'lar, token fiyatları (herkese açık)
+ *   GET  /chat/tokens-api.php/v1/categories                                → Hauptkategorien mit Plänen, Preisen, Kanälen, Demo-Schlüssel (öffentlich, 5 Min. Cache)
+ *   GET  /chat/tokens-api.php/v1/pricing                                   → Einmalkauf → Betrieb / eigener KI-Schlüssel, Stufen, KI-Listenpreise (öffentlich)
+ *   GET  /v1/billing · GET /v1/usage?month=YYYY-MM · POST /v1/connections/ai-test {provider}   → Lizenzen/Betrieb, Kostenübersicht, Schlüssel-Test (Studio)
  *   GET  /chat/tokens-api.php/v1/me                                        → hesap, bakiye, aktif paketler/agentler, son kullanım
  *   GET  /chat/tokens-api.php/v1/balance                                   → bakiye + son kullanım
  *   POST /chat/tokens-api.php/v1/generate   {task, sector, input, lang}    → metin üretimi (post/script/widerspruch/...)
@@ -37,7 +40,8 @@ function ai_chat(string $system, array $messages, int $maxTokens=1500): string {
     $msgs=array_slice($msgs,-20);
     $out = th_ai($system, $msgs, $maxTokens, 90);   // model zinciri + DeepSeek yedeği (tokens-lib)
     if($out!==null) return $out;
-    th_json(503,['error'=>'ai_unavailable','message'=>'KI-Backend nicht erreichbar (CLAUDE_KEY / CLAUDE_MODEL in db.php prüfen)','detail'=>th_ai_info()['errors'] ?? []]);
+    $inf=th_ai_info(); if(!empty($inf['byok_failed'])) th_json(503,['error'=>'byok_failed','message'=>'Dein eigener KI-Schlüssel wurde abgelehnt und es ist kein ChatHelp-Guthaben für den Ersatzbetrieb da. Bitte Schlüssel unter Telefon → Verbindungen erneuern oder Tokens nachladen.','detail'=>$inf['errors'] ?? []]);
+    th_json(503,['error'=>'ai_unavailable','message'=>'KI-Backend nicht erreichbar (CLAUDE_KEY / CLAUDE_MODEL in db.php prüfen)','detail'=>$inf['errors'] ?? []]);
 }
 function ai_complete(string $system, string $user, int $maxTokens=1500): string { return ai_chat($system,[['role'=>'user','content'=>$user]],$maxTokens); }
 function sys_for(string $sector, string $lang): string {
@@ -46,20 +50,44 @@ function sys_for(string $sector, string $lang): string {
 }
 /** Ücretli işlem sarmalayıcı: bakiye → iş → düş → logla. */
 function charged(array $acc, int $cost, string $task, string $sector, callable $work, array $extra=[]): void {
-    $t0=microtime(true);
+    $t0=microtime(true); if((int)(th_ai_context()['acc'] ?? 0)!==(int)$acc['id'] || (th_ai_context()['channel'] ?? '')==='') th_ai_context((int)$acc['id'],'api');
     if(th_balance((int)$acc['id']) < $cost) th_json(402,['error'=>'insufficient_tokens','need'=>$cost,'balance'=>th_balance((int)$acc['id']),'buy'=>'https://chat-help.com/#tokens']);
     $result=$work();
     $cost=th_charge((int)$acc['id'],$cost,'api:'.$task);   // nach erbrachter Leistung: höchstens Restguthaben
     th_log_usage((int)$acc['id'],$task,$sector,$cost,(int)((microtime(true)-$t0)*1000));
     th_json(200,array_merge(['result'=>$result,'tokens_used'=>$cost,'balance'=>th_balance((int)$acc['id'])],$extra));
 }
-function plans_public(): array { $o=[]; foreach(CH_PLANS as $id=>$v){ $o[]=['id'=>$id,'name'=>$v[0],'eur_month'=>$v[1]/100,'tokens_month'=>$v[2],'sector'=>$v[3],'kind'=>$v[4],'desc'=>$v[5]]; } return $o; }
+function plans_public(): array { $o=[]; foreach(CH_PLANS as $id=>$v){ $pl=ch_plan($id); $o[]=['id'=>$id,'name'=>$v[0],'eur_month'=>$v[1]/100,'tokens_month'=>$v[2],'sector'=>$v[3],'kind'=>$v[4],'desc'=>$v[5],
+    'channels'=>$pl['channels'],'category'=>$pl['category'],'demo'=>isset(CH_DEMO[$pl['base']]) ? $pl['base'] : null]+($v[4]==='buy' ? ['followups'=>array_map(fn($f)=>['id'=>$f['id'],'kind'=>$f['kind'],'eur_month'=>$f['cents']/100,'tokens_month'=>$f['tokens']],ch_followups($id)),'included_days'=>CH_BUY_INCLUDED_DAYS] : []); } return $o; }
+/** Öffentliche, für alle gleiche Antwort: kurz cachebar (Browser 5 Min., Edge 10 Min.), ETag → 304. */
+function public_json(array $data): void {
+    $body=json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); $etag='"'.substr(md5($body),0,20).'"';
+    header('Cache-Control: public, max-age=300, s-maxage=600, stale-while-revalidate=600'); header('ETag: '.$etag); header('Vary: Accept-Encoding');
+    if(trim((string)($_SERVER['HTTP_IF_NONE_MATCH'] ?? ''))===$etag){ http_response_code(304); exit; }
+    http_response_code(200); header('Content-Type: application/json; charset=UTF-8'); echo $body; exit;
+}
+/** Preisübersicht Einmalkauf → Betrieb / eigener Schlüssel (GET /v1/pricing). */
+function pricing_public(): array {
+    $buys=[]; foreach(CH_PLANS as $id=>$v){ if($v[4]!=='buy') continue; $pl=ch_plan($id); $fu=ch_followups($id);
+        $buys[]=['id'=>$id,'name'=>$v[0],'price'=>$v[1]/100,'start_tokens'=>$v[2],'base'=>$pl['base'],'monthly_alternative'=>isset(CH_PLANS[$pl['base']]) ? ['id'=>$pl['base'],'price'=>CH_PLANS[$pl['base']][1]/100,'tokens'=>CH_PLANS[$pl['base']][2]] : null,
+          'tier'=>$pl['tier'],'channels'=>$pl['channels'],'category'=>$pl['category'],'included_days'=>CH_BUY_INCLUDED_DAYS,
+          'betrieb'=>isset($fu['betrieb']) ? ['id'=>$fu['betrieb']['id'],'price'=>$fu['betrieb']['cents']/100,'tokens'=>$fu['betrieb']['tokens']] : null,
+          'byok'=>isset($fu['byok']) ? ['id'=>$fu['byok']['id'],'price'=>$fu['byok']['cents']/100] : null]; }
+    return ['currency'=>'EUR','vat'=>'zzgl. USt.','included_days'=>CH_BUY_INCLUDED_DAYS,'tiers'=>CH_RUN_TIERS,'one_time'=>$buys,
+      'byok'=>['providers'=>array_map(fn($c)=>['label'=>$c['label'],'model'=>$c['model']],BL_BYOK_PROVIDERS),'tokens_charged'=>0,
+        'note'=>'Mit eigenem Claude- oder DeepSeek-Schlüssel zahlst du die KI direkt beim Anbieter; ChatHelp berechnet nur die Plattformgebühr.'],
+      'ai_list_prices_usd_per_mtok'=>BL_AI_PRICES,'deepseek_offpeak_utc'=>BL_DEEPSEEK_OFFPEAK_UTC,'channels'=>CH_CHANNELS,
+      'rule'=>'Einmalkauf = Einrichtung + Lizenz + Startguthaben (Tokens verfallen nicht) + '.CH_BUY_INCLUDED_DAYS.' Tage Betrieb. Danach Betrieb (inkl. Tokens) oder eigener KI-Schlüssel – monatlich kündbar.'];
+}
 
 /* ---- Router ---- */
 $r = rtrim(route(),'/'); $m=$_SERVER['REQUEST_METHOD'];
 if($r==='sectors' && $m==='GET'){
-    th_json(200,['sectors'=>array_map(fn($k,$v)=>['id'=>$k,'name'=>$v['name']],array_keys(SECTORS),SECTORS),'plans'=>plans_public(),'pricing_tokens'=>PRICING,'tasks'=>['generate','translate','subtitles','agent']]);
+    public_json(['sectors'=>array_map(fn($k,$v)=>['id'=>$k,'name'=>$v['name']],array_keys(SECTORS),SECTORS),'plans'=>plans_public(),'pricing_tokens'=>PRICING,'tasks'=>['generate','translate','subtitles','agent'],
+      'channels'=>CH_CHANNELS,'categories'=>array_map(fn($k,$c)=>['id'=>$k,'label'=>$c['label'],'icon'=>$c['icon'],'order'=>$c['order']],array_keys(CH_CATEGORIES),CH_CATEGORIES)]);
 }
+if($r==='categories' && $m==='GET') public_json(['categories'=>ch_categories_public(),'channels'=>CH_CHANNELS,'included_days'=>CH_BUY_INCLUDED_DAYS]);
+if($r==='pricing' && $m==='GET') public_json(pricing_public());
 /* ---- Studio-Login (öffentlich): E-Mail → 6-stelliger Code → API-Key. Neue Konten erhalten einmalig CH_TRIAL_TOKENS. ---- */
 if(($r==='auth/request' || $r==='auth/verify') && $m==='POST'){
     $b=body(); $email=strtolower(trim((string)($b['email']??''))); $lang=substr(preg_replace('/[^a-z]/','',strtolower($b['lang']??'de')),0,2) ?: 'de';
@@ -86,10 +114,14 @@ if(($res=ch_module_api($r,$m,$aid,$b,$acc))!==null) th_json((int)$res[0],(array)
 switch(true){
   case $r==='me' && $m==='GET':
     $u=th_db()->prepare("SELECT task,sector,tokens,created_at FROM api_usage WHERE account_id=? ORDER BY id DESC LIMIT 15"); $u->execute([$aid]);
-    $plans=[]; foreach(th_plans($aid) as $p){ $pl=ch_plan($p['plan']); if($pl) $plans[]=['id'=>$pl['id'],'name'=>$pl['name'],'kind'=>$pl['kind'],'sector'=>$pl['sector'],'status'=>$p['status'],'period_end'=>$p['period_end'],'tokens_month'=>$pl['tokens'],'active'=>in_array($p['status'],['active','trialing','past_due'],true)]; }
+    $plans=[]; foreach(th_plans($aid) as $p){ $pl=ch_plan($p['plan']); if($pl) $plans[]=['id'=>$pl['id'],'name'=>$pl['name'],'kind'=>$pl['kind'],'sector'=>$pl['sector'],'base'=>$pl['base'],'status'=>$p['status'],
+      'period_end'=>$p['period_end'] ? th_dbiso((string)$p['period_end']) : null,'tokens_month'=>$pl['tokens'],'channels'=>$pl['channels'],
+      'license'=>$pl['kind']==='buy' ? ($p['status']==='license' ? 'expired' : ($p['period_end']===null ? 'lifetime' : 'included')) : null,
+      'active'=>in_array($p['status'],['active','trialing','past_due'],true) && th_plan_active($aid,$pl['id'])]; }
     $cf=th_db()->prepare("SELECT plan,company,widget_on,phone_on,phone_number,updated_at FROM agent_configs WHERE account_id=?"); $cf->execute([$aid]);
     $tr=th_db()->prepare("SELECT COUNT(*) FROM token_ledger WHERE account_id=? AND reason='trial'"); $tr->execute([$aid]);
-    th_json(200,['email'=>$acc['email'],'balance'=>th_balance($aid),'plans'=>$plans,'configs'=>$cf->fetchAll(PDO::FETCH_ASSOC),'trial'=>(int)$tr->fetchColumn()>0,
+    $byok=bl_byok_public($aid);
+    th_json(200,['email'=>$acc['email'],'balance'=>th_balance_ledger($aid),'byok'=>['active'=>$byok['active'],'alert'=>$byok['alert'] ?? null],'channels'=>ch_account_channels($aid),'plans'=>$plans,'configs'=>$cf->fetchAll(PDO::FETCH_ASSOC),'trial'=>(int)$tr->fetchColumn()>0,
       'pricing'=>['agent_turn'=>PRICING['agent_turn'],'widget_turn'=>PRICING['widget_turn'],'phone_turn'=>PRICING['phone_turn']],
       'recent'=>array_map(fn($x)=>['created_at'=>th_dbiso($x['created_at'])]+$x,$u->fetchAll(PDO::FETCH_ASSOC)),'sectors'=>array_map(fn($k,$v)=>['id'=>$k,'name'=>$v['name']],array_keys(SECTORS),SECTORS)]);
 
@@ -99,11 +131,13 @@ switch(true){
 
   /* ---- Verbindungen: eigene Twilio-/Meta-Zugangsdaten des Betriebs (Antwort enthält nie den Klartext) ---- */
   case $r==='connections' && $m==='GET':
-    th_json(200,['connections'=>th_secret_hints($aid),'platform_twilio'=>defined('TWILIO_ACCOUNT_SID') && TWILIO_ACCOUNT_SID ? true : false,'encrypted'=>defined('CH_SECRET_KEY') && CH_SECRET_KEY ? true : false]);
+    th_json(200,['connections'=>th_secret_hints($aid),'ai'=>bl_byok_public($aid),'platform_twilio'=>defined('TWILIO_ACCOUNT_SID') && TWILIO_ACCOUNT_SID ? true : false,'encrypted'=>defined('CH_SECRET_KEY') && CH_SECRET_KEY ? true : false]);
   case $r==='connections' && $m==='POST':
     $rules=['twilio_sid'=>'/^AC[a-f0-9]{32}$/','twilio_token'=>'/^[a-f0-9]{32}$/','meta_app_secret'=>'/^[a-f0-9]{32}$/'];
     $chg=[];
-    foreach(TH_SECRET_KEYS as $k){ if(!array_key_exists($k,$b)) continue; $v=trim((string)$b[$k]); if(str_starts_with($v,'••••')) continue;
+    /* eigene KI-Schlüssel (Claude / DeepSeek): Format + 1-Token-Test vor dem Speichern (billing-lib) */
+    $ai=null; if(array_key_exists('claude_key',$b) || array_key_exists('deepseek_key',$b) || isset($b['ai_pref'])){ $ai=bl_byok_save($aid,$b); if(isset($ai['error'])) th_json(422,$ai); }
+    foreach(TH_SECRET_KEYS as $k){ if(in_array($k,['claude_key','deepseek_key'],true) || !array_key_exists($k,$b)) continue; $v=trim((string)$b[$k]); if(str_starts_with($v,'••••')) continue;
         if($v!=='' && $k==='twilio_from'){ $v=th_e164($v); if($v==='') th_json(422,['error'=>'bad_value','field'=>$k,'message'=>'Absender-Nummer bitte im Format +49…']); }
         elseif($v!=='' && isset($rules[$k]) && !preg_match($rules[$k],$v)) th_json(422,['error'=>'bad_value','field'=>$k,'message'=>['twilio_sid'=>'Account SID beginnt mit AC und hat 34 Zeichen.','twilio_token'=>'Auth Token: 32 Zeichen (0–9, a–f).','meta_app_secret'=>'App-Secret: 32 Zeichen (0–9, a–f).'][$k]]);
         $chg[$k]=$v; }
@@ -115,7 +149,17 @@ switch(true){
         if($code===401 || $code===404) th_json(422,['error'=>'twilio_auth_failed','message'=>'Twilio hat SID/Token abgelehnt – bitte in der Twilio-Console (Account Info) prüfen.']);
     }
     foreach($chg as $k=>$v) th_secret_set($aid,$k,$v);
-    th_json(200,['ok'=>true,'connections'=>th_secret_hints($aid),'twilio_verified'=>$verified]);
+    th_json(200,['ok'=>true,'connections'=>th_secret_hints($aid),'twilio_verified'=>$verified,'ai'=>bl_byok_public($aid),'ai_tests'=>$ai['tests'] ?? []]);
+  case $r==='connections/ai-test' && $m==='POST':
+    $prov=(string)($b['provider'] ?? ''); if(!isset(BL_BYOK_PROVIDERS[$prov])) th_json(400,['error'=>'provider_required','providers'=>array_keys(BL_BYOK_PROVIDERS)]);
+    if(!th_rate('byoktest:'.$aid,20,3600)) th_json(429,['error'=>'rate_limited','message'=>'Bitte etwas warten, bevor du erneut testest.']);
+    $t=bl_byok_test($aid,$prov); th_json($t['status']==='missing' ? 404 : 200,$t+['ai'=>bl_byok_public($aid)]);
+
+  /* ---- Abrechnung: Lizenzen (Einmalkauf), Betrieb / eigener Schlüssel, Kostenübersicht ---- */
+  case $r==='billing' && $m==='GET':
+    th_json(200,['licenses'=>bl_billing_overview($aid,(string)$acc['email']),'balance'=>th_balance_ledger($aid),'byok'=>bl_byok_public($aid),'tiers'=>CH_RUN_TIERS,'included_days'=>CH_BUY_INCLUDED_DAYS]);
+  case $r==='usage' && $m==='GET':
+    th_json(200,bl_cost_overview($aid,(string)($_GET['month'] ?? '')));
 
   /* ---- Terminbuchung (Kalender des Kontos) ---- */
   case $r==='appt/settings' && $m==='GET':
@@ -192,11 +236,14 @@ switch(true){
     $cost=($phone?PRICING['phone_turn']:PRICING['agent_turn']) + (int)ceil($chars/2000);   // 6 (8 Telefon) Token/Antwort + 1 je 2.000 Zeichen Kontext
     if(!$active && th_balance($aid) < $cost) th_json(402,['error'=>'insufficient_tokens','need'=>$cost,'balance'=>th_balance($aid),'message'=>'Kein Guthaben: Agent mieten oder Tokens kaufen.','rent'=>'https://chat-help.com/chat/tokens-checkout.php?plan='.$planId,'buy'=>'https://chat-help.com/#tokens']);
     $sys=ch_agent_system($pl,$cfg,$lang).($phone?CH_PHONE_RULES:'');
+    th_ai_context($aid,$phone?'phone-test':'studio');
+    /* Anruf-Assistent (privat-lib): place_call prüft serverseitig, dass die letzte Nachricht der Person eine ausdrückliche Zustimmung ist */
+    $lastU=null; foreach(array_reverse($msgs) as $mm){ if(($mm['role'] ?? '')==='user'){ $lastU=trim((string)($mm['content'] ?? '')); break; } } $GLOBALS['ch_last_user_message']=$lastU;
     /* Terminbuchung (appt_on) und/oder Bestellannahme (order_on) aktiv → Agent bekommt echte Werkzeuge; je Werkzeugaufruf +2 Tokens */
     $tk = ch_toolkit($aid,$phone?'phone-test':'studio','',null,$lang);
     if($tk['tools']){
         $sys .= $tk['hint'];
-        $work = function() use($sys,$msgs,$phone,$tk){ $out=th_ai_tools($sys,$msgs,$tk['tools'],$tk['exec'],$phone?400:1800,90); if($out===null) th_json(503,['error'=>'ai_unavailable','detail'=>th_ai_info()['errors'] ?? []]); return $out; };
+        $work = function() use($sys,$msgs,$phone,$tk){ $out=th_ai_tools($sys,$msgs,$tk['tools'],$tk['exec'],$phone?400:1800,90); if($out===null){ $inf=th_ai_info(); th_json(503,['error'=>!empty($inf['byok_failed']) ? 'byok_failed' : 'ai_unavailable','message'=>!empty($inf['byok_failed']) ? 'Dein eigener KI-Schlüssel wurde abgelehnt und es ist kein ChatHelp-Guthaben für den Ersatzbetrieb da.' : 'KI gerade nicht erreichbar.','detail'=>$inf['errors'] ?? []]); } return $out; };
         $t0=microtime(true); if(th_balance($aid) < $cost) th_json(402,['error'=>'insufficient_tokens','need'=>$cost,'balance'=>th_balance($aid),'buy'=>'https://chat-help.com/#preise']);
         $result=$work(); $calls=th_ai_info()['tool_calls'] ?? []; $cost += 2*count($calls);
         $cost=th_charge($aid,$cost,($phone?'phone-test:':'agent:').$planId); th_log_usage($aid,'agent:'.$planId,$pl['sector'],$cost,(int)((microtime(true)-$t0)*1000));
@@ -231,5 +278,5 @@ switch(true){
       'phone_webhook'=>'https://chat-help.com/chat/phone-webhook.php?key='.$c['widget_key']]);
 
   default:
-    th_json(404,['error'=>'not_found','routes'=>['GET /v1/sectors','POST /v1/auth/request','POST /v1/auth/verify','GET /v1/me','GET /v1/balance','POST /v1/generate','POST /v1/translate','POST /v1/subtitles','POST /v1/agent','GET|POST /v1/agent/config','GET /v1/phone/calls','GET|POST /v1/appt/settings','GET /v1/appt/slots','GET /v1/appt/bookings','POST /v1/appt/book|cancel|status','GET|POST /v1/order/settings','POST /v1/order/menu','POST /v1/order/drivers','GET /v1/order/check','GET /v1/order/orders','POST /v1/order/create|status']]);
+    th_json(404,['error'=>'not_found','routes'=>['GET /v1/sectors','GET /v1/categories','GET /v1/pricing','GET /v1/billing','GET /v1/usage','POST /v1/connections/ai-test','POST /v1/auth/request','POST /v1/auth/verify','GET /v1/me','GET /v1/balance','POST /v1/generate','POST /v1/translate','POST /v1/subtitles','POST /v1/agent','GET|POST /v1/agent/config','GET /v1/phone/calls','GET|POST /v1/appt/settings','GET /v1/appt/slots','GET /v1/appt/bookings','POST /v1/appt/book|cancel|status','GET|POST /v1/order/settings','POST /v1/order/menu','POST /v1/order/drivers','GET /v1/order/check','GET /v1/order/orders','POST /v1/order/create|status']]);
 }

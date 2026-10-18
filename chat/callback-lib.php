@@ -321,6 +321,7 @@ function cb_agents(int $acc): array {
 /** Konfiguration, über die der KI-Rückruf läuft: gewählter Agent (Einstellung plan) → Agent der Anfrage → automatisch (Telefon an, mit Nummer). */
 function cb_caller_cfg(int $acc, array $s, string $rowPlan=''): ?array {
     if($acc<=0) return null; $p=th_db(); $one=$p->prepare("SELECT * FROM agent_configs WHERE account_id=? AND plan=?");
+    if($rowPlan==='privat-anruf'){ $one->execute([$acc,$rowPlan]); $c=$one->fetch(PDO::FETCH_ASSOC); return $c ?: null; }   // Anruf-Assistent ruft immer über die eigene Konfiguration an
     if($s['plan']!==''){ $one->execute([$acc,$s['plan']]); $c=$one->fetch(PDO::FETCH_ASSOC); return $c ?: null; }
     if($rowPlan!==''){ $one->execute([$acc,$rowPlan]); $c=$one->fetch(PDO::FETCH_ASSOC); if($c && (int)$c['phone_on']===1 && !empty($c['widget_key'])) return $c; }
     $st=$p->prepare("SELECT * FROM agent_configs WHERE account_id=? AND phone_on=1 AND widget_key IS NOT NULL ORDER BY (phone_number<>'') DESC, (plan='immo-agent') DESC, (plan='agent-phone') DESC, id LIMIT 1"); $st->execute([$acc]);
@@ -747,7 +748,7 @@ function cb_scheduler_lazy(): void {
         cb_resolve_stale_calls();
         $utc=new DateTimeZone('UTC'); $utcNow=new DateTimeImmutable('now',$utc);
         /* Gemeinsame Bedingung: fällig (Wunschzeit erreicht, höchstens 3 Tage überfällig; ohne Wunschzeit höchstens 3 Tage alt) */
-        $due="c.account_id>0 AND c.mode='ai' AND c.consent=1 AND s.ai_callback=1 AND s.cb_on=1 AND c.attempts < s.max_attempts
+        $due="c.account_id>0 AND c.plan<>'privat-anruf' AND c.mode='ai' AND c.consent=1 AND s.ai_callback=1 AND s.cb_on=1 AND c.attempts < s.max_attempts
               AND (c.status IN ('open','scheduled') OR (c.status='failed' AND (c.last_attempt_at IS NULL OR c.last_attempt_at < (NOW() - INTERVAL s.retry_min MINUTE))))
               AND ((c.preferred_at IS NOT NULL AND c.preferred_at <= ? AND c.preferred_at >= ?) OR (c.preferred_at IS NULL AND c.created_at > (NOW() - INTERVAL 3 DAY)))";
         $accs=[];
@@ -811,6 +812,7 @@ function cb_call_context(int $cbId, string $widgetKey): ?array {
     $st=th_db()->prepare("SELECT * FROM agent_configs WHERE widget_key=?"); $st->execute([$widgetKey]); $cfg=$st->fetch(PDO::FETCH_ASSOC); if(!$cfg) return null;
     $acc=(int)$cfg['account_id']; if($acc<=0) return null;
     $r=cb_get($acc,$cbId); if(!$r) return null;
+    if(function_exists('pv_call_context') && ($pv=pv_call_context($r))) return $pv;   // Anruf-Assistent (privat-lib): Anruf im Auftrag einer Privatperson
     $s=cb_settings($acc); $now=cb_now($s); $company=cb_company($acc,$s,$cfg); $name=(string)$r['name']; $topic=cb_speak_topic((string)$r['topic']);
     $first=$s['intro']!=='' ? trim(strtr($s['intro'],['{firma}'=>$company,'{Firma}'=>$company,'{name}'=>$name,'{Name}'=>$name])) : cb_daypart($now).', hier ist der digitale Assistent'.($company!=='' ? ' von '.$company : '').'.';
     if(!preg_match('/[.!?]$/u',$first)) $first.='.';
@@ -869,7 +871,7 @@ function cb_on_call_status(int $cbId, string $callStatus, string $answeredBy, in
         if($late){ cb_log_append($acc,$cbId,$ev+['note'=>'Verspätete Rückmeldung nach Zeitüberschreitung – bleibt „nicht erreicht“.']); return; }   // Planer versucht es nach retry_min erneut
         $reason=$machine ? (($call['outcome'] ?? '')==='voicemail' ? 'Anrufbeantworter – Nachricht hinterlassen' : 'Anrufbeantworter') : match($callStatus){
             'busy'=>'Besetzt','no-answer'=>'Nicht abgenommen','failed'=>'Anruf fehlgeschlagen','canceled'=>'Anruf abgebrochen','completed'=>'Gespräch ohne Antwort beendet', default=>'Nicht erreicht ('.mb_substr($callStatus,0,20).')'};
-        if($att<$s['max_attempts']){
+        if($att<$s['max_attempts'] && (string)$r['plan']!=='privat-anruf'){   // Anruf-Assistent: jeder Anruf einzeln bestätigt → kein automatischer Wiederholversuch
             $next=cb_next_window($s,$now->modify('+'.$s['retry_min'].' minutes')) ?? $now->modify('+'.$s['retry_min'].' minutes');
             $res='Versuch '.$att.': '.$reason.' – nächster Versuch '.cb_when_label($next,$now);
             $u=$p->prepare("UPDATE callbacks SET status='scheduled', preferred_at=?, result=?, updated_at=NOW() WHERE id=? AND account_id=? AND status='calling' AND call_sid=?"); $u->execute([$next->format('Y-m-d H:i:00'),$res,$cbId,$acc,$sid]);

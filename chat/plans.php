@@ -263,6 +263,7 @@ const CH_AGENT_RULES = [
 
 /** Agent/Paket için SYSTEM prompt: sektör + rol + müşteri ayarları (firma, ton, dil, bilgi tabanı). */
 function ch_agent_system(array $pl, array $cfg, string $lang='de'): string {
+  if(function_exists('th_ai_context')) th_ai_context((int)($cfg['account_id'] ?? 0));   // eigener KI-Schlüssel + Verbrauch dieses Kontos (Demo/ohne Konto: Plattform)
   $sys  = CH_SECTORS[$pl['sector']]['sys'] ?? 'Du bist ein präziser, hilfreicher Business-Assistent.';
   $sys .= "\n\n".($pl['rules'] ?: 'Rolle: '.$pl['name'].'. '.$pl['desc']);
   if(!empty($cfg['company'])) $sys .= "\n\nUnternehmen: ".$cfg['company'].".";
