@@ -523,6 +523,15 @@ function ord_notify_customer(array $o, array $s, string $status): void {
           'delivered'=>"Guten Appetit! 🍕 Danke für die Bestellung bei {$s['name']}.",
           'cancelled'=>"Bestellung {$p['code']} wurde storniert. Bei Fragen: {$s['phone']}"][$status] ?? null;
     if(!$msg) return;
+    /* Zweiseitig (contacts-lib): Kanal des Kunden – WhatsApp im 24-h-Fenster, sonst SMS (wichtige Stände), Versuch im Kundenverlauf */
+    if(!function_exists('contacts_notify') && is_file(__DIR__.'/contacts-lib.php')) require_once __DIR__.'/contacts-lib.php';
+    if(function_exists('contacts_notify') && (int)$o['account_id']>0 && (($o['channel']==='whatsapp' && $o['wa_from']) || ($o['channel']==='phone' && $o['phone']))){
+        $key=in_array($status,['confirmed','out_for_delivery','cancelled'],true) || ($status==='ready' && $o['type']==='pickup');
+        if($o['channel']==='phone' && !in_array($status,['confirmed','out_for_delivery','cancelled'],true)) return;   // wie bisher: Telefon nur Bestätigung/Unterwegs/Storno
+        contacts_notify((int)$o['account_id'],$o['channel']==='whatsapp' ? (string)$o['wa_from'] : (string)$o['phone'],$msg,'order_'.$status,
+            ['sms'=>$key,'sms_text'=>($s['name']?$s['name'].': ':'').$msg,'wa_last_try'=>$o['channel']==='whatsapp','ref'=>(string)$o['code']]);
+        return;
+    }
     if($o['channel']==='whatsapp' && $o['wa_from']){ ord_wa_send($s,$o['wa_from'],$msg); return; }
     /* Telefon-Bestellungen: SMS an die Anrufernummer (nur Bestätigung/Unterwegs/Storno, wenn Twilio-SMS eingerichtet ist) */
     if($o['channel']==='phone' && $o['phone'] && in_array($status,['confirmed','out_for_delivery','cancelled'],true)) ord_sms_send($o['phone'],($s['name']?$s['name'].': ':'').$msg,(int)$o['account_id']);

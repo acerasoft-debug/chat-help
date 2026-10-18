@@ -112,3 +112,7 @@ chat/tts.php                 chat/tts.php
 # Phase 2: Lizenzen/Betrieb/eigener Schlüssel + Anruf-Assistent (privat)
 chat/billing-lib.php         chat/billing-lib.php
 chat/privat-lib.php          chat/privat-lib.php
+# Kunden: ein Verlauf pro Kunde über Telefon, WhatsApp, Bestellungen, Termine, Fahrten, Hotel, Rückrufe
+chat/contacts-lib.php        chat/contacts-lib.php
+chat/studio-panels/kunden.html chat/studio-panels/kunden.html
+chat/studio-panels/kunden.js chat/studio-panels/kunden.js

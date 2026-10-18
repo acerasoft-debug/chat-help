@@ -14,7 +14,7 @@ require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 require_once __DIR__.'/appt-lib.php';
 require_once __DIR__.'/order-lib.php';
-const CH_MODULE_LIBS = ['ride'=>['ride-lib.php','ride'],'hotel'=>['hotel-lib.php','hotel'],'callback'=>['callback-lib.php','cb'],'train'=>['train-lib.php','train'],'assistant'=>['assistant-lib.php','assistant'],'push'=>['push-lib.php','push'],'privat'=>['privat-lib.php','pv']];
+const CH_MODULE_LIBS = ['ride'=>['ride-lib.php','ride'],'hotel'=>['hotel-lib.php','hotel'],'callback'=>['callback-lib.php','cb'],'train'=>['train-lib.php','train'],'assistant'=>['assistant-lib.php','assistant'],'push'=>['push-lib.php','push'],'privat'=>['privat-lib.php','pv'],'contacts'=>['contacts-lib.php','contacts']];   // contacts: Kundenverlauf + Benachrichtigungen (nur Studio-REST, keine Werkzeuge)
 /** Module, die nur in bestimmten Kanälen Werkzeuge bekommen (Anruf-Assistent: Aufträge nur im Studio bzw. in der Demo, nie während eines Telefonats). */
 const CH_MODULE_CHANNELS = ['privat'=>['studio','demo']];
 foreach(CH_MODULE_LIBS as [$f,$p]) if(is_file(__DIR__.'/'.$f)) require_once __DIR__.'/'.$f;
@@ -49,6 +49,8 @@ function ch_toolkit(int $acc, string $channel, string $from='', ?array $only=nul
         try{ $hint.=($mod['hint'])($acc,$channel,$lang); }catch(Throwable $e){}
         $active[]=$key;
     }
+    /* Kundenverlauf: bekannter Kunde (Telefon/WhatsApp, verifizierte Nummer) → Kurzfassung „letzter Kontakt, offene Vorgänge“ (≤ 600 Zeichen, nur dieser Betrieb) */
+    if($acc>0 && $only===null && function_exists('contacts_context')){ try{ $hint.=contacts_context($acc,$channel,$from); }catch(Throwable $e){ error_log('CH contacts_context: '.$e->getMessage()); } }
     $exec=function(string $n,array $i) use($acc,$channel,$from,$owner,$mods): array {
         $k=$owner[$n] ?? null; if($k===null) return ['error'=>'unknown_tool','hint'=>'Dieses Werkzeug gibt es nicht.'];
         if($acc!==0) foreach(array_keys($i) as $ik){ if($ik==='force' || $ik==='account_id' || str_starts_with((string)$ik,'_')) unset($i[$ik]); }   // interne Schalter nie aus Modell-Eingaben übernehmen

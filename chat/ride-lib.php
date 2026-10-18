@@ -680,6 +680,7 @@ function ride_set_status(int $acc, int $id, string $status, ?int $driverId=null,
         if($oldDrv && $oldDrv!==$newDrv && ($od=ride_driver($acc,$oldDrv))) ride_notify_driver($r,$s,$od,'withdrawn');
         if($status==='cancelled' && $oldDrv && ($od=ride_driver($acc,$oldDrv))) ride_notify_driver($r,$s,$od,'cancelled');
         if($status==='arrived') ride_notify_customer($r,$s,'arrived');
+        if($status==='cancelled' && $by!=='Kunde') ride_notify_customer($r,$s,'cancelled');   // Zentrale storniert → Kunde erfährt es auf seinem Kanal
     }
     return ['ok'=>true,'prev_status'=>$cur,'ride'=>ride_public($r,$s)]+($warn ? ['warnings'=>$warn] : []);
 }
@@ -841,8 +842,17 @@ function ride_notify_customer(array $r, array $s, string $kind): void {
     $msg=match($kind){
         'assigned'=>"🚕 Ihr Taxi ist bestellt (Code {$p['code']}): ".($d ? "Fahrer {$d['name']}".($car!=='' ? ", $car" : '') : 'Ein Fahrer ist eingeteilt').' · '.($p['asap'] ? 'Ankunft '.$p['eta_text'] : 'Abholung '.$p['when_long']).". Live-Status: {$p['track']}",
         'arrived'=>"🚕 Ihr Taxi ist da".($car!=='' ? ": $car" : '').($d ? " · Fahrer {$d['name']}" : '').". Gute Fahrt! – $co",
+        'cancelled'=>"Ihre Fahrt {$p['code']} wurde von der Zentrale storniert.".($s['phone']!=='' ? " Bei Fragen: {$s['phone']}" : '')." – $co",
         default=>'' };
-    if($msg===''){ return; } $ok=false; $via='none'; $tried=[]; $smsText=($kind==='arrived' ? '' : $co.': ').$msg;
+    if($msg===''){ return; }
+    if($kind==='cancelled'){   // neu (zweiseitig): über contacts-lib – WhatsApp im 24-h-Fenster, sonst SMS; Versuch im Kundenverlauf
+        if(!in_array($r['channel'],['whatsapp','phone'],true)) return;
+        if(!function_exists('contacts_notify') && is_file(__DIR__.'/contacts-lib.php')) require_once __DIR__.'/contacts-lib.php';
+        if(!function_exists('contacts_notify')) return;
+        $to=$r['channel']==='whatsapp' && (string)$r['wa_from']!=='' ? (string)$r['wa_from'] : ride_e164((string)$r['phone'],$s); if($to==='') return;
+        $n=contacts_notify($acc,$to,$msg,'ride_cancelled',['ref'=>(string)$r['code']]); ride_notify_log(['kind'=>'customer_cancelled','via'=>$n['channel'] ?? 'none','ok'=>$n['ok'],'tried'=>$n['tried']]); return;
+    }
+    $ok=false; $via='none'; $tried=[]; $smsText=($kind==='arrived' ? '' : $co.': ').$msg;
     if($r['channel']==='whatsapp' && $r['wa_from']!==''){
         /* Freie WhatsApp-Texte kommen nur im 24-h-Fenster an (sonst nimmt Meta/Twilio an und verwirft später – typisch bei Vorbestellungen
            Tage im Voraus) → außerhalb des Fensters bzw. wenn WhatsApp scheitert: SMS an die Kontaktnummer (sonst an die WhatsApp-Nummer). */

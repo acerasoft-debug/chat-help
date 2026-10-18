@@ -239,6 +239,9 @@ function appt_status_update(int $acc, int $id, string $status): array {
         $act=['booked','done']; if(in_array($status,$act,true) && !in_array($b['status'],$act,true) && new DateTimeImmutable($b['end_at'],$tz) > appt_now($s) && appt_conflicts($acc,new DateTimeImmutable($b['start_at'],$tz),new DateTimeImmutable($b['end_at'],$tz),(int)$s['buffer_min'],(int)$b['id'],true)>0){
             $p->rollBack(); return $e('slot_conflict','Der Zeitraum ist inzwischen anderweitig belegt (inkl. Puffer/Sperrzeit) – der Termin kann nicht wieder aktiviert werden.'); }
         $p->prepare("UPDATE appt_bookings SET status=? WHERE id=? AND account_id=?")->execute([$status,$id,$acc]); $p->commit();
+        /* Zweiseitig: Betrieb sagt im Studio ab → Kunde erfährt es auf seinem Kanal (WhatsApp im 24-h-Fenster, SMS, sonst E-Mail) */
+        if($status==='cancelled' && $b['status']==='booked' && $acc>0 && new DateTimeImmutable($b['start_at'],$tz) > appt_now($s)){ $pub=appt_public($b,$s);
+            appt_contact_notify($b,($s['company'] ?: 'Ihr Termin').': Ihr Termin '.$pub['service'].' am '.$pub['human'].' wurde leider abgesagt. Gern vereinbaren wir einen neuen Termin – melden Sie sich einfach bei uns.','appt_cancelled',true); }
         return ['ok'=>true];
     }catch(Throwable $x){ try{ if($p->inTransaction()) $p->rollBack(); }catch(Throwable $x2){} error_log('CH appt_status acc='.$acc.': '.$x->getMessage()); return $e('db','Status konnte gerade nicht gespeichert werden – bitte erneut versuchen.'); }
     finally{ if($lk) th_unlock('appt_book:'.$acc); }
@@ -263,6 +266,8 @@ function appt_notify(array $b, array $s, string $kind): bool {
     if($kind==='confirm'){
         if($b['email']) $ok=th_mail($b['email'],'Terminbestätigung · '.$company.' · '.$pub['human'],$box('Ihr Termin ist bestätigt ✓','<p>Hallo '.htmlspecialchars($b['customer_name']).',</p><p>vielen Dank für Ihre Buchung.'.($s['confirm_text']?' '.htmlspecialchars($s['confirm_text']):'').'</p>')) && $ok;
         $to=$s['notify_email'] ?: appt_owner_email((int)$b['account_id']); if($to) $ok=th_mail($to,'Neuer Termin: '.$pub['service'].' · '.$pub['human'],$box('Neue Buchung','<p><b>'.htmlspecialchars($b['customer_name']).'</b> · '.htmlspecialchars($b['phone']).' · '.htmlspecialchars($b['email']).'<br>Quelle: '.htmlspecialchars($b['source']).($b['note']?'<br>Notiz: '.htmlspecialchars($b['note']):'').'</p>')) && $ok;
+        /* Zweiseitig: am Telefon gebucht (oder vom Betrieb im Studio eingetragen) → Bestätigung mit Code + Verwaltungslink per WhatsApp (24-h-Fenster) bzw. SMS. WhatsApp/Chat bestätigt der Agent selbst; E-Mail ist oben schon raus. */
+        if(in_array($b['source'],['phone','studio'],true) && (string)$b['phone']!=='' && (int)$b['account_id']>0) appt_contact_notify($b,$company.': Ihr Termin ist bestätigt – '.$pub['service'].', '.$pub['human'].' (Code '.$pub['code'].'). Verwalten oder absagen: '.$pub['manage_url'],'appt_confirmed',false);
     } elseif($kind==='cancel'){
         if($b['email']) $ok=th_mail($b['email'],'Termin abgesagt · '.$company,$box('Ihr Termin wurde abgesagt','<p>Hallo '.htmlspecialchars($b['customer_name']).', Ihr Termin wurde storniert. Gern vereinbaren Sie einen neuen Termin.</p>')) && $ok;
         $to=$s['notify_email'] ?: appt_owner_email((int)$b['account_id']); if($to) $ok=th_mail($to,'Termin abgesagt: '.$pub['service'].' · '.$pub['human'],$box('Absage','<p>'.htmlspecialchars($b['customer_name']).' · '.htmlspecialchars($b['phone']).'</p>')) && $ok;
@@ -271,6 +276,13 @@ function appt_notify(array $b, array $s, string $kind): bool {
         if($b['email']) $ok=th_mail($b['email'],'Erinnerung: '.$when.' '.$pub['time'].' Uhr · '.$company,$box('Erinnerung an Ihren Termin','<p>Hallo '.htmlspecialchars($b['customer_name']).', wir freuen uns auf Sie '.$when.'.</p>'));
     }
     return $ok;
+}
+/** Kunde über contacts_notify (Kanalwahl, Kundenverlauf) informieren. WhatsApp/SMS nur bei verifizierter Nummer (Telefon/WhatsApp) oder Eintrag des Betriebs; $withEmail = E-Mail als letzter Weg. */
+function appt_contact_notify(array $b, string $text, string $event, bool $withEmail): void {
+    if(!function_exists('contacts_notify') && is_file(__DIR__.'/contacts-lib.php')) require_once __DIR__.'/contacts-lib.php';
+    if(!function_exists('contacts_notify') || (int)$b['account_id']<=0) return;
+    try{ contacts_notify((int)$b['account_id'],(string)$b['phone'],$text,$event,['verified'=>in_array($b['source'],['phone','whatsapp','studio'],true),'email'=>$withEmail ? (string)$b['email'] : '','ref'=>(string)$b['code'],
+        'subject'=>'Ihr Termin · '.($event==='appt_cancelled' ? 'Absage' : 'Bestätigung')]); }catch(Throwable $e){ error_log('CH appt_contact_notify: '.$e->getMessage()); }
 }
 /** Öffentliche Buchungsseite des Kontos (Schlüssel = widget_key einer Agent-Konfiguration, sonst wird einer angelegt). */
 function appt_booking_url(int $acc): string {
