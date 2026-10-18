@@ -24,8 +24,8 @@ jobs:
         with:
           node-version: '22'
       - run: pip install -q piper-tts==1.8.0 praat-parselmouth==0.4.7
-      - name: Türkische Stimmen
-        run: python tools/voice-check/tr.py out
+      - name: Alle Stimmen der Zielsprachen
+        run: python tools/voice-check/list.py
       - name: Browser-Stimmen vorbereiten
         run: tools/voice-check/browser-setup.sh
       - name: Browser-Test (Chromium)
