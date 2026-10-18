@@ -8,6 +8,9 @@
  * Akış:
  *   checkout.session.completed  type=tokens → defter +N (idempotent: session id) → API anahtarı yoksa üret → e-posta
  *                               type=plan   → abonelik kaydı (token_plans) + ilk ay tokenları (+N) → anahtar → e-posta (agent kurulumu)
+ *                                 kind=buy     → Lizenz + Startguthaben + CH_BUY_INCLUDED_DAYS Tage Betrieb (bl_license_activate)
+ *                                 kind=betrieb|byok → Folge-Abo zur Lizenz (status trialing während des Inklusiv-Betriebs, Tokens erst mit bezahlter Rechnung);
+ *                                                     das jeweils andere Folge-Abo derselben Lizenz wird zum Periodenende gekündigt
  *   invoice.paid (subscription_cycle) → her yenilemede aylık tokenlar (+N, idempotent: invoice id)
  *   customer.subscription.deleted/updated → token_plans durumu
  * Mevcut stripe-webhook.php'ye DOKUNMAZ.
@@ -26,7 +29,7 @@ function stripe_sig_ok(string $payload, string $sigHeader, string $secret): bool
     foreach($v1 as $s){ if(hash_equals($exp,$s)) return true; } return false;
 }
 function stripe_get(string $path, string $sk): array {
-    $ch=curl_init('https://api.stripe.com/v1/'.$path);
+    $ch=curl_init(bl_stripe_base().'/'.$path);   // billing-lib (CH_STRIPE_API für Tests)
     curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_USERPWD=>$sk.':',CURLOPT_TIMEOUT=>20]);
     $r=json_decode(curl_exec($ch),true); curl_close($ch); return is_array($r)?$r:[];
 }
@@ -62,15 +65,23 @@ if($type==='checkout.session.completed'){
     if($mtype==='plan'){
         $pl=ch_plan($o['metadata']['plan']??''); if(!$pl) done(['ok'=>true,'skip'=>'unknown plan']);
         if(!in_array($o['payment_status']??'',['paid','no_payment_required'],true)) done(['ok'=>true,'skip'=>'not paid']);
-        $subId=$o['subscription']??''; $periodEnd=null;
-        if($subId && $sk){ $sub=stripe_get('subscriptions/'.$subId,$sk); if(!empty($sub['current_period_end'])) $periodEnd=date('Y-m-d H:i:s',(int)$sub['current_period_end']); }
-        th_plan_upsert($aid,$pl['id'],$subId,'active',$periodEnd);
-        $credited=th_credit($aid,$pl['tokens'],'stripe:plan',$o['id']);
+        $subId=$o['subscription']??''; $periodEnd=null; $subStatus='active'; $run=in_array($pl['kind'],['betrieb','byok'],true);
+        if($subId && $sk){ $sub=stripe_get('subscriptions/'.$subId,$sk); if(!empty($sub['current_period_end'])) $periodEnd=date('Y-m-d H:i:s',(int)$sub['current_period_end']);
+            if(in_array($sub['status'] ?? '',['active','trialing','past_due'],true)) $subStatus=(string)$sub['status']; }
+        $until=null;
+        if($pl['kind']==='buy') $until=bl_license_activate($aid,$pl['id']);   // Lizenz + Inklusiv-Betrieb (Bestandskauf ohne Enddatum bleibt unbefristet)
+        else th_plan_upsert($aid,$pl['id'],$subId,$subStatus,$periodEnd);
+        /* Betrieb und eigener Schlüssel schließen sich aus: das andere Folge-Abo derselben Lizenz endet zum Periodenende */
+        if($run && $sk){ $other=($pl['kind']==='betrieb' ? 'byok-' : 'betrieb-').substr((string)$pl['license'],4);
+            $st=th_db()->prepare("SELECT stripe_sub FROM token_plans WHERE account_id=? AND plan=? AND status IN ('active','trialing','past_due') AND stripe_sub IS NOT NULL"); $st->execute([$aid,$other]);
+            foreach($st->fetchAll(PDO::FETCH_COLUMN) as $os){ $cr=bl_stripe_call('POST','subscriptions/'.$os,$sk,['cancel_at_period_end'=>'true']); if(($cr['_http'] ?? 0)>=300) error_log('CH tokens-webhook: Folge-Abo '.$os.' nicht gekündigt'); } }
+        /* Tokens: sofort, außer bei Folge-Abos in der kostenlosen Anlaufzeit (die kommen mit der ersten bezahlten Rechnung) */
+        $credited=($pl['tokens']>0 && !($run && $subStatus==='trialing')) ? th_credit($aid,$pl['tokens'],'stripe:plan',$o['id']) : false;
         $newKey=(!th_has_key($aid)) ? th_issue_key($aid,'auto') : null;
-        $bal=th_balance($aid);
-        th_mail($email,'ChatHelp: '.$pl['name'].' ist aktiv ✅', mail_plan($pl,$bal,$newKey,true));
+        $bal=th_balance_ledger($aid);
+        th_mail($email,'ChatHelp: '.$pl['name'].' ist aktiv ✅', mail_plan($pl,$bal,$newKey,true,$until,$subStatus));
         if($pl['kind']==='agent') th_mail(defined('SMTP_FROM')?SMTP_FROM:'support@chat-help.com','[ChatHelp] Neuer Agent gebucht: '.$pl['name'],'<p>Kunde: '.htmlspecialchars($email).'<br>Agent: '.$pl['id'].'<br>Subscription: '.$subId.'</p><p>Onboarding innerhalb 24h: Wissensbasis/Konten anbinden.</p>');
-        done(['ok'=>true,'plan'=>$pl['id'],'credited'=>$credited,'balance'=>$bal,'key_issued'=>(bool)$newKey]);
+        done(['ok'=>true,'plan'=>$pl['id'],'kind'=>$pl['kind'],'status'=>$pl['kind']==='buy' ? 'active' : $subStatus,'included_until'=>$until,'credited'=>$credited,'balance'=>$bal,'key_issued'=>(bool)$newKey]);
     }
     done(['ok'=>true,'skip'=>'other checkout']);
 }
@@ -87,8 +98,8 @@ if($type==='invoice.paid'){
     $acc=th_account($email); $aid=(int)$acc['id'];
     $periodEnd=!empty($sub['current_period_end'])?date('Y-m-d H:i:s',(int)$sub['current_period_end']):null;
     th_plan_upsert($aid,$pl['id'],$subId,'active',$periodEnd);
-    $credited=th_credit($aid,$pl['tokens'],'stripe:renewal',$o['id']);
-    if($credited) th_mail($email,'ChatHelp: '.number_format($pl['tokens'],0,',','.').' Tokens für '.$pl['name'].' gutgeschrieben', mail_plan($pl,th_balance($aid),null,false));
+    $credited=$pl['tokens']>0 ? th_credit($aid,$pl['tokens'],'stripe:renewal',$o['id']) : false;   // eigener Schlüssel: keine Tokens, nur Plattformgebühr
+    if($credited) th_mail($email,'ChatHelp: '.number_format($pl['tokens'],0,',','.').' Tokens für '.$pl['name'].' gutgeschrieben', mail_plan($pl,th_balance_ledger($aid),null,false));
     done(['ok'=>true,'renewal'=>$pl['id'],'credited'=>$credited]);
 }
 
@@ -110,16 +121,24 @@ function mail_tokens(int $tokens, int $bal, ?string $newKey): string {
       .'<p><a href="https://chat-help.com/chat/studio.php" style="background:#b0801f;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Zum Arbeitsbereich →</a></p>'
       .'<p style="color:#666;font-size:13px">Doku: <a href="https://chat-help.com/#api">chat-help.com/#api</a> · Fragen: support@chat-help.com</p></div>';
 }
-function mail_plan(array $pl, int $bal, ?string $newKey, bool $first): string {
-    $agent = $pl['kind']==='agent';
+function mail_plan(array $pl, int $bal, ?string $newKey, bool $first, ?string $until=null, string $subStatus='active'): string {
+    $agent = in_array($pl['kind'],['agent','buy','betrieb','byok'],true); $kind=$pl['kind'];
+    $tok=number_format($pl['tokens'],0,',','.'); $h=fn($x)=>htmlspecialchars((string)$x,ENT_QUOTES,'UTF-8');
+    $fu=$kind==='buy' ? ch_followups($pl['id']) : [];
+    $line=match($kind){
+        'buy'=>'<p>'.$tok.' Tokens Startguthaben wurden gutgeschrieben (sie verfallen nicht). Guthaben: <b>'.number_format($bal,0,',','.').' Tokens</b>.</p>'
+              .($until ? '<p>Der Betrieb ist bis <b>'.$h(date('d.m.Y',strtotime($until))).'</b> inklusive. Danach wählst du im Studio: <b>Betrieb</b> für '.$h(number_format(($fu['betrieb']['cents'] ?? 0)/100,0,',','.')).' €/Monat (inkl. '.$h(number_format($fu['betrieb']['tokens'] ?? 0,0,',','.')).' Tokens) oder deinen <b>eigenen KI-Schlüssel</b> (Claude oder DeepSeek) für '.$h(number_format(($fu['byok']['cents'] ?? 0)/100,0,',','.')).' €/Monat – monatlich kündbar. Du kannst schon jetzt buchen, berechnet wird erst ab dem Ende des Inklusiv-Zeitraums.</p>' : '<p>Dein Bestandskauf bleibt unbefristet nutzbar.</p>'),
+        'byok'=>'<p>Deine Agenten nutzen deinen eigenen KI-Schlüssel – dafür bucht ChatHelp keine Tokens ab. Schlüssel hinterlegen: Studio → Telefon → Verbindungen.'.($subStatus==='trialing' ? ' Die Plattformgebühr wird erst ab dem Ende deines Inklusiv-Betriebs berechnet.' : '').'</p>',
+        'betrieb'=>'<p>'.($subStatus==='trialing' ? 'Der Betrieb schließt nahtlos an deinen Inklusiv-Zeitraum an; ab dann kommen jeden Monat '.$tok.' Tokens dazu.' : $tok.' Tokens wurden gutgeschrieben, jeden Monat kommen '.$tok.' neue dazu.').' Guthaben: <b>'.number_format($bal,0,',','.').' Tokens</b>.</p>',
+        default=>'<p>'.$tok.' Tokens wurden gutgeschrieben. Guthaben: <b>'.number_format($bal,0,',','.').' Tokens</b>. Jeden Monat kommen '.$tok.' neue dazu.</p>'};
     return '<div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:auto;color:#111">'
-      .'<h2 style="color:#b0801f">'.($first?'Willkommen! ':'').htmlspecialchars($pl['name']).' ist aktiv ✅</h2>'
-      .'<p>'.number_format($pl['tokens'],0,',','.').' Tokens wurden gutgeschrieben. Guthaben: <b>'.number_format($bal,0,',','.').' Tokens</b>. Jeden Monat kommen '.number_format($pl['tokens'],0,',','.').' neue dazu.</p>'
-      .($agent ? '<p><b>So startest du deinen Agenten:</b><br>1) Arbeitsbereich öffnen und mit deinem API-Key anmelden.<br>2) Wissensbasis einfügen (FAQ, Produkte, Öffnungszeiten, Tonalität).<br>3) Testen – und per Website-Widget oder E-Mail/Chat einbinden. Wir melden uns innerhalb von 24 Stunden für die Einrichtung.</p>'
-               : '<p>Öffne den Arbeitsbereich, wähle dein Paket und starte mit den fertigen Vorlagen.</p>')
+      .'<h2 style="color:#b0801f">'.($first?'Willkommen! ':'').$h($pl['name']).' ist aktiv ✅</h2>'
+      .$line
+      .($agent && in_array($kind,['agent','buy'],true) ? '<p><b>So startest du deinen Agenten:</b><br>1) Arbeitsbereich öffnen und mit deinem API-Key anmelden.<br>2) Wissensbasis einfügen (FAQ, Produkte, Öffnungszeiten, Tonalität).<br>3) Testen – und per Website-Widget, Telefon oder WhatsApp einbinden. Wir melden uns innerhalb von 24 Stunden für die Einrichtung.</p>'
+               : ($agent ? '' : '<p>Öffne den Arbeitsbereich, wähle dein Paket und starte mit den fertigen Vorlagen.</p>'))
       .key_block($newKey)
-      .'<p><a href="https://chat-help.com/chat/studio.php?plan='.$pl['id'].'" style="background:#b0801f;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Arbeitsbereich öffnen →</a></p>'
-      .'<p style="color:#666;font-size:13px">Monatlich kündbar · Rechnung von Stripe · Fragen: support@chat-help.com</p></div>';
+      .'<p><a href="https://chat-help.com/chat/studio.php?plan='.$h($pl['base'] ?? $pl['id']).'" style="background:#b0801f;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Arbeitsbereich öffnen →</a></p>'
+      .'<p style="color:#666;font-size:13px">'.($kind==='buy' ? 'Einmalkauf · Rechnung von Stripe' : 'Monatlich kündbar · Rechnung von Stripe').' · Fragen: support@chat-help.com</p></div>';
 }
 function key_block(?string $newKey): string {
     return $newKey

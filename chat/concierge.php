@@ -42,7 +42,7 @@ function concierge_persona_prompt(array $d, bool $phone): string {
     return $o;
 }
 /** Demo-Werkzeuge (Konto 0): Taxi → ride, Hotel → hotel, … ; beim Telefon-Agenten je Branche (CH_PHONE_SECTORS tools). */
-const CONCIERGE_DEMO_MODS=['agent-termine'=>['appt'],'agent-bestellung'=>['order'],'agent-taxi'=>['ride'],'agent-hotel'=>['hotel','callback'],'immo-agent'=>['callback'],'agent-phone'=>['callback']];
+const CONCIERGE_DEMO_MODS=['agent-termine'=>['appt'],'agent-bestellung'=>['order'],'agent-taxi'=>['ride'],'agent-hotel'=>['hotel','callback'],'immo-agent'=>['callback'],'agent-phone'=>['callback'],'agent-beauty'=>['callback'],'agent-aesthetic'=>['callback'],'agent-hair-tr'=>['callback'],'agent-dental-tr'=>['callback'],'agent-bank'=>['callback'],'agent-behoerde'=>['callback'],'agent-hausverwaltung'=>['callback'],'agent-versicherung'=>['callback'],'agent-autohaus'=>['callback'],'praxis-agent'=>['callback']];
 /** Werkzeug-Register laden – in einer Funktion, damit die Schleifenvariablen von agent-tools.php ($f, $p) keine Variablen dieses Skripts (PDO $p) überschreiben. */
 function concierge_load_tools(): void { require_once __DIR__.'/agent-tools.php'; }
 function concierge_toolkit(string $demo, array $d): ?array {

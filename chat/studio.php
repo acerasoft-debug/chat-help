@@ -90,6 +90,7 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
   <?php foreach($CH_PANELS as $k=>$x): ?><div id="panel-<?= $k ?>" class="hidden"></div><?php endforeach; ?>
   <!-- Übersicht -->
   <div id="pHome">
+    <div id="byokBanner" class="banner hidden" role="alert" aria-live="polite"></div>
     <div id="trialBanner" class="banner hidden">🎁 Willkommen! <b>&nbsp;300 Tokens&nbsp;</b> sind auf deinem Konto. Wähle einen Agenten, füge deine Wissensbasis ein und teste ihn – jede Antwort kostet ca. 6 Tokens.</div>
     <div class="grid g4">
       <div class="card"><span class="tag">Guthaben</span><div class="num" style="margin-top:10px" id="hBal">–</div><div class="mute small">Tokens · verfallen nicht</div><a class="btn s gold" href="/#preise" target="_blank" style="margin-top:12px">Tokens kaufen</a></div>
@@ -176,7 +177,13 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
         <div class="sec" id="cnSec"><h3>Verbindungen (eigene Konten)</h3><p class="mute small" style="margin:4px 0 8px">Für Telefon, SMS, WhatsApp und KI-Rückrufe über <b>deine</b> Nummern. Gespeicherte Schlüssel werden nie wieder angezeigt – nur die letzten Zeichen.</p>
           <div class="grid g2" style="gap:10px"><div><label>Twilio Account SID</label><input type="text" id="cnSid" placeholder="AC…" autocomplete="off" spellcheck="false"></div><div><label>Twilio Auth Token</label><input type="password" id="cnTok" placeholder="32 Zeichen" autocomplete="new-password"></div></div>
           <div class="grid g2" style="gap:10px"><div><label>Absender-Nummer (SMS &amp; Rückrufe)</label><input type="tel" id="cnFrom" placeholder="+49 221 …"></div><div><label>Meta App-Secret (WhatsApp-Signatur)</label><input type="password" id="cnMeta" placeholder="32 Zeichen" autocomplete="new-password"></div></div>
-          <div class="row" style="justify-content:space-between;margin-top:10px"><span class="mute small" id="cnState">–</span><button class="btn s" id="cnSave">Verbindungen speichern</button></div><div id="cnMsg"></div></div>
+          <div class="row" style="justify-content:space-between;margin-top:10px"><span class="mute small" id="cnState">–</span><button class="btn s" id="cnSave">Verbindungen speichern</button></div><div id="cnMsg"></div>
+          <div class="sec" id="aiSec"><h3>Eigener KI-Schlüssel (Claude oder DeepSeek)</h3><p class="mute small" style="margin:4px 0 8px">Mit eigenem Schlüssel zahlst du die KI direkt beim Anbieter – ChatHelp bucht dafür <b>keine Tokens</b> ab, es gilt nur die Plattformgebühr deines Pakets. Gespeichert wird verschlüsselt, angezeigt nur die letzten 4 Zeichen. Wird ein Schlüssel abgelehnt, bekommst du eine Benachrichtigung; der Betrieb läuft dann nur mit ChatHelp-Guthaben weiter.</p>
+            <div id="aiAlert" aria-live="polite"></div>
+            <div class="grid g2" style="gap:10px"><div><label for="aiClaude">Claude-Schlüssel · Claude Sonnet 5.5 <span id="aiClaudeTag"></span></label><input type="password" id="aiClaude" placeholder="sk-ant-…" autocomplete="new-password" spellcheck="false"><div class="row" style="gap:6px;margin-top:6px"><button class="btn s" type="button" id="aiClaudeTest">Testen</button><button class="btn s" type="button" id="aiClaudeDel">Entfernen</button></div></div>
+              <div><label for="aiDeep">DeepSeek-Schlüssel · DeepSeek Flash <span id="aiDeepTag"></span></label><input type="password" id="aiDeep" placeholder="sk-…" autocomplete="new-password" spellcheck="false"><div class="row" style="gap:6px;margin-top:6px"><button class="btn s" type="button" id="aiDeepTest">Testen</button><button class="btn s" type="button" id="aiDeepDel">Entfernen</button></div></div></div>
+            <div class="grid g2" style="gap:10px"><div><label for="aiPref">Welcher Schlüssel zuerst?</label><select id="aiPref"><option value="auto">Automatisch (Claude zuerst, sonst DeepSeek)</option><option value="claude">Claude Sonnet 5.5</option><option value="deepseek">DeepSeek Flash (günstig)</option></select></div><div class="mute small" id="aiNote" style="align-self:end"></div></div>
+            <div class="row" style="justify-content:space-between;margin-top:10px"><a class="small" href="#tokens" onclick="go('tokens');return false">Kosten &amp; Verbrauch ansehen →</a><button class="btn s" type="button" id="aiSave">KI-Schlüssel speichern</button></div><div id="aiMsg" aria-live="polite"></div></div></div>
         <div class="sec"><h3>Im Browser testen</h3><p class="mute small" style="margin:4px 0 8px">Sprich mit dem Agenten wie am Telefon – Antwort wird vorgelesen (Chrome/Edge/Safari). Kostet 8 Tokens je Antwort.</p><button class="btn" id="phTest">🎙️ Telefon-Test starten</button></div>
       </div>
       <div class="card"><h3 style="font-size:17px">Anrufe &amp; Transkripte</h3><p class="mute small" style="margin:4px 0 0">Letzte 60 Anrufe dieses Agenten. Klick öffnet das Transkript.</p><div id="phCalls" style="margin-top:8px"><div class="mute small">Noch keine Anrufe.</div></div></div>
@@ -269,11 +276,20 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
       <div class="card"><span class="tag teal">Endpunkte</span><div class="snip" style="margin-top:10px">POST /chat/tokens-api.php/v1/agent
 {"plan":"agent-kanzlei","messages":[{"role":"user","content":"…"}]}
 
-GET  /v1/me · GET /v1/sectors · POST /v1/generate
+GET  /v1/me · GET /v1/sectors · GET /v1/categories · GET /v1/pricing
+GET  /v1/billing · GET /v1/usage?month=YYYY-MM · POST /v1/generate
 POST /v1/translate · POST /v1/subtitles
 GET|POST /v1/agent/config?plan=… · GET /v1/phone/calls
 GET|POST /v1/appt/settings · GET /v1/appt/bookings
 GET|POST /v1/order/settings · GET /v1/order/orders</div></div>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card"><div class="row" style="justify-content:space-between"><h3 style="font-size:19px">Lizenzen &amp; Betrieb</h3><span class="tag" id="bilTag">–</span></div>
+        <p class="mute small" style="margin:6px 0 0">Einmalkauf = Einrichtung + Lizenz + Startguthaben + <span id="bilDays">90</span> Tage Betrieb. Danach wählst du je Agent: <b>Betrieb</b> (günstiges Monatsabo inkl. Tokens) oder deinen <b>eigenen KI-Schlüssel</b> (kleine Plattformgebühr, keine Tokens). Monatlich kündbar; im Inklusiv-Zeitraum gebucht, beginnt die Abrechnung erst danach.</p>
+        <div id="bilList" class="small" style="margin-top:10px">–</div></div>
+      <div class="card"><div class="row" style="justify-content:space-between"><h3 style="font-size:19px">Kosten &amp; Verbrauch</h3><input type="month" id="useMonth" aria-label="Monat" style="width:auto;padding:7px 10px;border-radius:10px;border:1px solid var(--line2)"></div>
+        <div style="overflow:auto;margin-top:10px"><table id="useTbl"><thead><tr><th>Kanal</th><th>KI-Aufrufe</th><th>Modell-Tokens</th><th>≈ KI-Kosten</th><th>ChatHelp-Tokens</th></tr></thead><tbody><tr><td colspan="5" class="mute">–</td></tr></tbody></table></div>
+        <p class="mute small" id="useNote" style="margin:8px 0 0"></p></div>
     </div>
     <div class="card" style="margin-top:16px"><h3 style="font-size:19px">Verbrauch</h3><div style="overflow:auto;margin-top:10px"><table id="tRecent"><thead><tr><th>Zeit</th><th>Aufgabe</th><th>Bereich</th><th>Tokens</th></tr></thead><tbody></tbody></table></div></div>
   </div>
@@ -374,21 +390,24 @@ const planOf=id=>PLANS.find(p=>p.id===id);
 const isAgent=p=>p.kind==='agent';
 
 /* ===== Übersicht ===== */
+const CHN={web:'💬 Web-Chat',phone:'☎ Telefon',whatsapp:'🟢 WhatsApp',phone_out:'📞 Anrufe für dich'};
+const chChips=c=>(c||[]).map(x=>`<span class="tag" style="margin:2px 2px 0 0;padding:3px 7px;font-size:10px">${CHN[x]||esc(x)}</span>`).join('');
 function renderHome(){$('#bal').textContent=de(ME.balance);$('#hBal').textContent=de(ME.balance);
-  const act=(ME.plans||[]).filter(p=>p.active);$('#hPlans').textContent=act.length;
+  const bb=$('#byokBanner');if(ME.byok&&ME.byok.alert){bb.innerHTML='⚠️ '+esc(ME.byok.alert)+' <a href="#phone" onclick="go(\'phone\');return false">Schlüssel prüfen →</a>';bb.classList.remove('hidden');}else bb.classList.add('hidden');
+  const act=(ME.plans||[]).filter(p=>p.active||(p.kind==='buy'&&p.license==='expired'));$('#hPlans').textContent=(ME.plans||[]).filter(p=>p.active).length;
   $('#hConv').textContent=de((ME.recent||[]).length)+'+';
   const ph=(ME.configs||[]).find(c=>+c.phone_on);$('#hPhone').textContent=ph?(ph.phone_number||'aktiv · Nummer folgt'):'nicht eingerichtet';
-  $('#hList').innerHTML=act.length?act.map(p=>`<div class="row" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)"><span><b>${esc(p.name)}</b><br><span class="mute small">${p.kind==='buy'?'gekauft · dauerhaft':'gemietet · bis '+(p.period_end?new Date(p.period_end).toLocaleDateString('de-DE'):'–')} · ${de(p.tokens_month)} Tokens/Monat</span></span><button class="btn s" onclick="go('agents');openAgent('${p.id}')">Öffnen</button></div>`).join(''):'<div class="mute">Noch kein Agent gemietet oder gekauft. Teste jeden Agenten im Studio mit deinem Guthaben – oder <a href="/#berufe" target="_blank">wähle einen im Katalog</a>.</div>';
+  $('#hList').innerHTML=act.length?act.map(p=>`<div class="row" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)"><span><b>${esc(p.name)}</b><br><span class="mute small">${p.kind==='buy'?(p.license==='lifetime'?'gekauft · unbefristet':'gekauft · Betrieb inklusive bis '+(p.period_end?new Date(p.period_end).toLocaleDateString('de-DE'):'–')):p.kind==='byok'?'eigener KI-Schlüssel · Plattformgebühr':p.kind==='betrieb'?'Betrieb · '+de(p.tokens_month)+' Tokens/Monat':'gemietet · bis '+(p.period_end?new Date(p.period_end).toLocaleDateString('de-DE'):'–')+' · '+de(p.tokens_month)+' Tokens/Monat'} ${chChips(p.channels)}</span></span><button class="btn s" onclick="go('agents');openAgent('${p.id}')">Öffnen</button></div>`).join(''):'<div class="mute">Noch kein Agent gemietet oder gekauft. Teste jeden Agenten im Studio mit deinem Guthaben – oder <a href="/#berufe" target="_blank">wähle einen im Katalog</a>.</div>';
   const tb=$('#hRecent tbody');tb.innerHTML=(ME.recent||[]).slice(0,10).map(r=>`<tr><td>${new Date(r.created_at).toLocaleString('de-DE')}</td><td>${esc(r.task)}</td><td>${esc(r.sector||'')}</td><td>${de(r.tokens)}</td></tr>`).join('')||'<tr><td colspan="4" class="mute">Noch keine Aktivität.</td></tr>';}
 
 /* ===== Agenten ===== */
 let filter='all';
-function renderAgents(){const f=$('#agFilter');const F=[['all','Alle'],['mine','Meine'],['beruf','Berufsgruppen'],['agent','Agenten'],['abo','Content-Pakete']];f.innerHTML=F.map(([k,l])=>`<span class="chip${filter===k?' on':''}" style="${filter===k?'background:var(--ink);color:#fff;border-color:var(--ink)':''}" onclick="filter='${k}';renderAgents()">${l}</span>`).join('');
+function renderAgents(){const f=$('#agFilter');const F=[['all','Alle'],['mine','Meine'],['beruf','Berufsgruppen'],['agent','Agenten'],['privat','Für dich privat'],['abo','Content-Pakete']];f.innerHTML=F.map(([k,l])=>`<span class="chip${filter===k?' on':''}" style="${filter===k?'background:var(--ink);color:#fff;border-color:var(--ink)':''}" onclick="filter='${k}';renderAgents()">${l}</span>`).join('');
   const BERUF=['inkasso','kanzlei','steuer','versicherung','hausverwaltung','automotive','praxis','service'];
   let list=PLANS.filter(p=>p.kind!=='buy');
-  if(filter==='mine')list=list.filter(p=>active(p.id));if(filter==='beruf')list=list.filter(p=>BERUF.includes(p.sector)&&p.kind==='agent');if(filter==='agent')list=list.filter(p=>p.kind==='agent');if(filter==='abo')list=list.filter(p=>p.kind==='abo');
+  if(filter==='mine')list=list.filter(p=>active(p.id));if(filter==='beruf')list=list.filter(p=>BERUF.includes(p.sector)&&p.kind==='agent');if(filter==='agent')list=list.filter(p=>p.kind==='agent');if(filter==='abo')list=list.filter(p=>p.kind==='abo'&&p.sector!=='privat');if(filter==='privat')list=list.filter(p=>p.sector==='privat');
   list.sort((a,b)=>(active(b.id)-active(a.id))||(BERUF.includes(b.sector)-BERUF.includes(a.sector)));
-  $('#agGrid').innerHTML=list.map(p=>`<div class="card ag" onclick="openAgent('${p.id}')"><div class="row" style="justify-content:space-between"><div class="ic">${ICON[p.sector]||'✦'}</div>${active(p.id)?'<span class="tag ok">Aktiv</span>':'<span class="tag">Testen mit Tokens</span>'}</div><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><div class="pr">${p.eur_month.toLocaleString('de-DE')} €/Monat · ${de(p.tokens_month)} Tokens${BERUF.includes(p.sector)?' · Telefon möglich':''}</div></div>`).join('');}
+  $('#agGrid').innerHTML=list.map(p=>`<div class="card ag" onclick="openAgent('${p.id}')"><div class="row" style="justify-content:space-between"><div class="ic">${ICON[p.sector]||'✦'}</div>${active(p.id)?'<span class="tag ok">Aktiv</span>':'<span class="tag">Testen mit Tokens</span>'}</div><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><div class="pr">${p.eur_month.toLocaleString('de-DE')} €/Monat · ${de(p.tokens_month)} Tokens</div><div style="margin-top:6px">${chChips(p.channels)}</div></div>`).join('');}
 function showList(){$('#agWork').classList.add('hidden');$('#agList').classList.remove('hidden');CUR=null;}
 async function openAgent(id){const p=planOf(id);if(!p)return;CUR=p;HIST=[];$('#agList').classList.add('hidden');$('#agWork').classList.remove('hidden');go('agents');
   $('#wName').textContent=p.name;$('#wDesc').textContent=p.desc;$('#wStatus').textContent=active(id)?'Aktiv · freigeschaltet':'Studio-Test · '+ME.pricing.agent_turn+' Tokens je Antwort';$('#wStatus').className='tag '+(active(id)?'ok':'');
@@ -441,9 +460,22 @@ async function loadCalls(id){try{const j=await api('/phone/calls?plan='+id);cons
 let CN=null;
 async function loadConn(){try{const j=await api('/connections');CN=j.connections||{};$('#cnSid').value=CN.twilio_sid||'';$('#cnFrom').value=CN.twilio_from||'';$('#cnTok').value='';$('#cnMeta').value='';
   $('#cnTok').placeholder=CN.twilio_token?('hinterlegt '+CN.twilio_token):'32 Zeichen';$('#cnMeta').placeholder=CN.meta_app_secret?('hinterlegt '+CN.meta_app_secret):'32 Zeichen';
+  renderAi(j.ai);
   $('#cnState').innerHTML=(CN.twilio_sid&&CN.twilio_token?'<span class="tag ok">Twilio verbunden</span> ':'<span class="tag">Twilio: nicht verbunden</span> ')+(CN.meta_app_secret?'<span class="tag ok">Meta-Signatur aktiv</span>':'<span class="tag">Meta-Signatur aus</span>');}catch(e){}}
 $('#cnSave').onclick=async()=>{const b={twilio_sid:$('#cnSid').value.trim(),twilio_from:$('#cnFrom').value.trim()};if($('#cnTok').value.trim())b.twilio_token=$('#cnTok').value.trim();if($('#cnMeta').value.trim())b.meta_app_secret=$('#cnMeta').value.trim();
   $('#cnSave').disabled=true;try{const j=await api('/connections',{method:'POST',body:JSON.stringify(b)});msg($('#cnMsg'),j.twilio_verified===true?'Gespeichert ✓ – Twilio-Zugang geprüft.':'Gespeichert ✓','ok');loadConn();}catch(e){msg($('#cnMsg'),e.message,'err');}$('#cnSave').disabled=false;};
+/* Eigener KI-Schlüssel (BYOK): nur Hinweis „••••1234“ + Status; Test = 1-Token-Aufruf beim Anbieter */
+const AIST={ok:['ok','funktioniert'],invalid:['rose','abgelehnt'],'':['','nicht geprüft']};
+function renderAi(a){if(!a)return;const P=a.providers||{};[['claude','#aiClaude','#aiClaudeTag'],['deepseek','#aiDeep','#aiDeepTag']].forEach(([k,inp,tag])=>{const x=P[k]||{};$(inp).value='';$(inp).placeholder=x.hint?('hinterlegt '+x.hint):(k==='claude'?'sk-ant-…':'sk-…');
+    const st=x.hint?(AIST[x.status]||AIST['']):null;$(tag).innerHTML=st?`<span class="tag ${st[0]}">${st[1]}</span>`:'<span class="tag">nicht hinterlegt</span>';});
+  $('#aiPref').value=a.pref||'auto';$('#aiNote').textContent=a.note||'';
+  $('#aiAlert').innerHTML=a.alert?`<div class="msg err">⚠️ ${esc(a.alert)}</div>`:'';}
+async function aiPost(b,okText){$('#aiSave').disabled=true;try{const j=await api('/connections',{method:'POST',body:JSON.stringify(b)});renderAi(j.ai);const t=Object.values(j.ai_tests||{});msg($('#aiMsg'),t.length?t.map(x=>esc(x.message)).join('<br>'):okText,t.some(x=>!x.ok)?'info':'ok');refreshMe();}catch(e){msg($('#aiMsg'),esc(e.message),'err');}$('#aiSave').disabled=false;}
+$('#aiSave').onclick=()=>{const b={ai_pref:$('#aiPref').value};if($('#aiClaude').value.trim())b.claude_key=$('#aiClaude').value.trim();if($('#aiDeep').value.trim())b.deepseek_key=$('#aiDeep').value.trim();aiPost(b,'Gespeichert ✓');};
+$('#aiClaudeDel').onclick=()=>{if(confirm('Claude-Schlüssel entfernen?'))aiPost({claude_key:''},'Claude-Schlüssel entfernt.');};
+$('#aiDeepDel').onclick=()=>{if(confirm('DeepSeek-Schlüssel entfernen?'))aiPost({deepseek_key:''},'DeepSeek-Schlüssel entfernt.');};
+async function aiTest(provider,btn){btn.disabled=true;msg($('#aiMsg'),'Teste …','info');try{const j=await api('/connections/ai-test',{method:'POST',body:JSON.stringify({provider})});renderAi(j.ai);msg($('#aiMsg'),esc(j.message),j.ok?'ok':'err');refreshMe();}catch(e){msg($('#aiMsg'),esc(e.message),'err');}btn.disabled=false;}
+$('#aiClaudeTest').onclick=e=>aiTest('claude',e.currentTarget);$('#aiDeepTest').onclick=e=>aiTest('deepseek',e.currentTarget);
 $('#phTest').onclick=()=>{const id=$('#phPlan').value;openAgent(id).then(()=>{if(!phoneMode)$('#wVoice').click();if(SR)setTimeout(listen,800);});};
 
 /* ===== Termine ===== */
@@ -545,7 +577,24 @@ $('#odChkGo').onclick=async()=>{const a=$('#odChk').value.trim();if(!a)return;$(
 $('#odChk').addEventListener('keydown',e=>{if(e.key==='Enter')$('#odChkGo').click();});
 
 /* ===== Tokens ===== */
-function renderTokens(){$('#tBal').textContent=de(ME.balance);$('#tKey').textContent=KEY.slice(0,16)+'…'+KEY.slice(-6)+'   (vollständig: '+KEY+')';const tb=$('#tRecent tbody');tb.innerHTML=(ME.recent||[]).map(r=>`<tr><td>${new Date(r.created_at).toLocaleString('de-DE')}</td><td>${esc(r.task)}</td><td>${esc(r.sector||'')}</td><td>${de(r.tokens)}</td></tr>`).join('')||'<tr><td colspan="4" class="mute">Noch kein Verbrauch.</td></tr>';}
+/* Lizenzen & Betrieb (GET /v1/billing) und Kostenübersicht (GET /v1/usage) */
+const eurF=(n,d=2)=>Number(n||0).toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d})+' €';
+async function loadBilling(){try{const j=await api('/billing');$('#bilDays').textContent=j.included_days;const L=j.licenses||[];
+  $('#bilTag').textContent=j.byok&&j.byok.active?'eigener Schlüssel aktiv':(L.length?L.length+' Lizenz'+(L.length>1?'en':''):'keine Lizenz');$('#bilTag').className='tag'+(j.byok&&j.byok.active?' ok':'');
+  $('#bilList').innerHTML=L.length?L.map(l=>{const st=l.state==='lifetime'?'<span class="tag ok">unbefristet (Bestandskauf)</span>':l.state==='included'?`<span class="tag ok">Betrieb inklusive bis ${new Date(l.included_until).toLocaleDateString('de-DE')}</span>`:'<span class="tag rose">Betrieb nötig</span>';
+    const run=l.run?`<div class="mute small" style="margin-top:4px">Läuft: <b>${l.run.kind==='byok'?'eigener KI-Schlüssel':'Betrieb'}</b>${l.run.status==='trialing'?' (Abrechnung ab Ende des Inklusiv-Zeitraums)':''}</div>`:'';
+    const opts=l.state==='lifetime'?'':(l.options||[]).filter(o=>!l.run||o.id!==l.run.plan).map(o=>`<a class="btn s${o.kind==='betrieb'?' gold':''}" style="min-height:44px" href="${o.checkout}&_=${Date.now().toString(36)}" target="_blank">${o.kind==='betrieb'?'Betrieb · '+eurF(o.eur_month,0)+'/Monat · '+de(o.tokens_month)+' Tokens':'Eigener KI-Schlüssel · '+eurF(o.eur_month,0)+'/Monat'}</a>`).join(' ');
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>${esc(l.name)}</b> ${st}${run}<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">${opts}</div></div>`;}).join('')
+    :'<span class="mute">Noch kein Einmalkauf. Monatspläne enthalten den Betrieb bereits; mit eigenem KI-Schlüssel (Telefon → Verbindungen) bucht ChatHelp keine Tokens ab.</span>';}catch(e){$('#bilList').textContent=e.message;}}
+async function loadUsage(){const m=$('#useMonth').value||new Date().toISOString().slice(0,7);if(!$('#useMonth').value)$('#useMonth').value=m;
+  try{const j=await api('/usage?month='+m);const tb=$('#useTbl tbody');const C=j.channels||[];
+  tb.innerHTML=C.length?C.map(c=>{const mt=c.byok.in+c.byok.out+c.byok.cache_read+c.platform_ai.in+c.platform_ai.out+c.platform_ai.cache_read;
+    return `<tr><td>${esc(c.label)}</td><td>${de(c.calls)}</td><td>${de(mt)}</td><td>${c.byok.eur?eurF(c.byok.eur)+' <span class="mute small">eigener Schlüssel</span><br>':''}${c.platform_ai.eur?'<span class="mute small">Plattform '+eurF(c.platform_ai.eur)+'</span>':(!c.byok.eur?'–':'')}</td><td>${de(c.platform_tokens)}${c.platform_tokens?' <span class="mute small">≈ '+eurF(c.platform_tokens_eur)+'</span>':''}</td></tr>`;}).join('')
+    +`<tr><th>Summe</th><th>${de(j.totals.calls)}</th><th>${de(j.totals.model_tokens)}</th><th>${eurF(j.totals.byok_eur)} <span class="mute small">eigener Schlüssel</span></th><th>${de(j.totals.platform_tokens)} <span class="mute small">≈ ${eurF(j.totals.platform_tokens_eur)}</span></th></tr>`
+    :'<tr><td colspan="5" class="mute">In diesem Monat noch kein Verbrauch.</td></tr>';
+  $('#useNote').textContent=(j.note||'')+' Wechselkurs 1 $ = '+String(j.fx_usd_eur).replace('.',',')+' €.';}catch(e){$('#useNote').textContent=e.message;}}
+$('#useMonth').onchange=loadUsage;
+function renderTokens(){loadBilling();loadUsage();$('#tBal').textContent=de(ME.balance);$('#tKey').textContent=KEY.slice(0,16)+'…'+KEY.slice(-6)+'   (vollständig: '+KEY+')';const tb=$('#tRecent tbody');tb.innerHTML=(ME.recent||[]).map(r=>`<tr><td>${new Date(r.created_at).toLocaleString('de-DE')}</td><td>${esc(r.task)}</td><td>${esc(r.sector||'')}</td><td>${de(r.tokens)}</td></tr>`).join('')||'<tr><td colspan="4" class="mute">Noch kein Verbrauch.</td></tr>';}
 boot();
 </script>
 </body></html>

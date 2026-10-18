@@ -115,8 +115,8 @@ function bl_billing_overview(int $acc, string $email=''): array {
         $out[]=['license'=>$pl['id'],'name'=>$pl['name'],'base'=>$pl['base'],'state'=>$state,'included_until'=>$r['period_end'] ? th_dbiso((string)$r['period_end']) : null,
           'run'=>$run ? ['plan'=>$run['plan'],'kind'=>str_starts_with((string)$run['plan'],'byok-') ? 'byok' : 'betrieb','status'=>$run['status'],'period_end'=>$run['period_end'] ? th_dbiso((string)$run['period_end']) : null] : null,
           'active'=>$state==='lifetime' || $state==='included' || $run!==null,
-          'options'=>array_map(fn($f)=>['id'=>$f['id'],'kind'=>$f['kind'],'name'=>$f['name'],'eur_month'=>$f['cents']/100,'tokens_month'=>$f['tokens'],
-              'checkout'=>'/chat/tokens-checkout.php?plan='.rawurlencode($f['id']).$q],$fu)];
+          'options'=>array_values(array_map(fn($f)=>['id'=>$f['id'],'kind'=>$f['kind'],'name'=>$f['name'],'eur_month'=>$f['cents']/100,'tokens_month'=>$f['tokens'],
+              'checkout'=>'/chat/tokens-checkout.php?plan='.rawurlencode($f['id']).$q],$fu))];
     }
     return $out;
 }

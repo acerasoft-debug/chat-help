@@ -109,3 +109,6 @@ chat/studio-panels/training.js chat/studio-panels/training.js
 # Live-Modus: Sprachaufbereitung + Server-Stimmen
 chat/speech-lib.php          chat/speech-lib.php
 chat/tts.php                 chat/tts.php
+# Phase 2: Lizenzen/Betrieb/eigener Schlüssel + Anruf-Assistent (privat)
+chat/billing-lib.php         chat/billing-lib.php
+chat/privat-lib.php          chat/privat-lib.php

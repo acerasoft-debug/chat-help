@@ -3,3 +3,4 @@
 marketing/*.zip
 chat/.appt_reminder
 chat/.ai_model.json
+chat/cache/

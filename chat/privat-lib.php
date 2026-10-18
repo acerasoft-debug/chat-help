@@ -41,6 +41,7 @@ function pv_blocked_number(string $e164): bool {
 function pv_code(): string { $a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; $c='AN-'; for($i=0;$i<4;$i++) $c.=$a[random_int(0,strlen($a)-1)]; return $c; }
 function pv_get(int $acc, string $code): ?array { pv_bootstrap(); $s=th_db()->prepare("SELECT * FROM privat_calls WHERE account_id=? AND code=?"); $s->execute([$acc,strtoupper(trim($code))]); return $s->fetch(PDO::FETCH_ASSOC) ?: null; }
 function pv_in_hours(?DateTimeImmutable $now=null): bool {
+    if($now===null && defined('PV_TEST_NOW') && in_array(PHP_SAPI,['cli','cli-server'],true)) $now=new DateTimeImmutable((string)PV_TEST_NOW);   // nur lokale Tests
     $now=($now ?? new DateTimeImmutable('now'))->setTimezone(new DateTimeZone('Europe/Berlin'));
     return in_array((int)$now->format('N'),PV_HOURS['days'],true) && $now->format('H:i')>=PV_HOURS['from'] && $now->format('H:i')<PV_HOURS['to'];
 }

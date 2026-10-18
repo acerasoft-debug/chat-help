@@ -131,7 +131,7 @@ switch(true){
 
   /* ---- Verbindungen: eigene Twilio-/Meta-Zugangsdaten des Betriebs (Antwort enthält nie den Klartext) ---- */
   case $r==='connections' && $m==='GET':
-    th_json(200,['connections'=>th_secret_hints($aid),'ai'=>bl_byok_public($aid),'platform_twilio'=>defined('TWILIO_ACCOUNT_SID') && TWILIO_ACCOUNT_SID ? true : false,'encrypted'=>defined('CH_SECRET_KEY') && CH_SECRET_KEY ? true : false]);
+    th_json(200,['connections'=>th_secret_hints($aid),'ai'=>bl_byok_public($aid),'platform_twilio'=>defined('TWILIO_ACCOUNT_SID') && TWILIO_ACCOUNT_SID ? true : false,'encrypted'=>th_secret_master()!=='']);
   case $r==='connections' && $m==='POST':
     $rules=['twilio_sid'=>'/^AC[a-f0-9]{32}$/','twilio_token'=>'/^[a-f0-9]{32}$/','meta_app_secret'=>'/^[a-f0-9]{32}$/'];
     $chg=[];

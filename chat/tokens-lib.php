@@ -247,17 +247,35 @@ function th_charge(int $acc, int $amount, string $reason, ?string $ref=null): in
 }
 
 /* ---------- Zugangsdaten je Konto (Twilio, Meta) ---------- */
-/** Optional verschlüsselt (AES-256-GCM), wenn in db.php CH_SECRET_KEY definiert ist. */
+/**
+ * Hauptschlüssel für Zugangsdaten: CH_SECRET_KEY aus db.php, sonst ein einmalig auf dem Server erzeugter Schlüssel in
+ * chat/cache/.ch-master-key.php (PHP-Datei → im Browser leer; nicht im Deploy-Manifest → wird nie überschrieben;
+ * chat/cache ist vom Server-Snapshot ausgeschlossen → landet nie im Repository). '' = keine Verschlüsselung möglich.
+ */
+function th_secret_master(): string {
+    static $k=null; if($k!==null) return $k;
+    if(defined('CH_SECRET_KEY') && CH_SECRET_KEY) return $k=(string)CH_SECRET_KEY;
+    $dir=__DIR__.'/cache'; $f=$dir.'/.ch-master-key.php';
+    $read=function() use($f){ if(!is_file($f)) return ''; $v=@include $f; return (is_string($v) && preg_match('/^[a-f0-9]{64}$/',$v)) ? $v : ''; };
+    if(($v=$read())!=='') return $k=$v;
+    if(!is_dir($dir)) @mkdir($dir,0750,true);
+    $h=@fopen($f,'x');   // 'x': nie einen vorhandenen Schlüssel überschreiben (gleichzeitige Anfragen)
+    if($h){ fwrite($h,"<?php return '".bin2hex(random_bytes(32))."';\n"); fclose($h); @chmod($f,0640); if(function_exists('opcache_invalidate')) @opcache_invalidate($f,true); }
+    else usleep(50000);
+    return $k=$read();
+}
+/** Verschlüsselt (AES-256-GCM) mit th_secret_master(); nur ohne jeden Schlüssel im Klartext ('p:'). */
 function th_secret_box(string $v): string {
-    if(!(defined('CH_SECRET_KEY') && CH_SECRET_KEY) || !function_exists('openssl_encrypt')) return 'p:'.$v;
-    $k=hash('sha256','chs|'.CH_SECRET_KEY,true); $iv=random_bytes(12); $tag='';
+    $mk=th_secret_master();
+    if($mk==='' || !function_exists('openssl_encrypt')) return 'p:'.$v;
+    $k=hash('sha256','chs|'.$mk,true); $iv=random_bytes(12); $tag='';
     $c=openssl_encrypt($v,'aes-256-gcm',$k,OPENSSL_RAW_DATA,$iv,$tag); return 'e:'.base64_encode($iv.$tag.$c);
 }
 function th_secret_open(string $s): string {
     if(str_starts_with($s,'p:')) return substr($s,2);
-    if(!str_starts_with($s,'e:') || !(defined('CH_SECRET_KEY') && CH_SECRET_KEY)) return '';
+    $mk=th_secret_master(); if(!str_starts_with($s,'e:') || $mk==='') return '';
     $b=base64_decode(substr($s,2),true); if($b===false || strlen($b)<29) return '';
-    $k=hash('sha256','chs|'.CH_SECRET_KEY,true);
+    $k=hash('sha256','chs|'.$mk,true);
     $v=openssl_decrypt(substr($b,28),'aes-256-gcm',$k,OPENSSL_RAW_DATA,substr($b,0,12),substr($b,12,16)); return $v===false?'':$v;
 }
 function th_secrets_table(): void {
@@ -377,10 +395,10 @@ function th_ai_channel(): string {
 }
 /**
  * HTTP-POST (JSON) an einen KI-Anbieter → [HTTP-Code, Antwort-Array|null, curl-Fehler].
- * Tests (nur Kommandozeile): $GLOBALS['__th_ai_http_mock'] = function(string $url, array $headers, array $payload): [code, array, err].
+ * Tests (nur Kommandozeile bzw. php -S): $GLOBALS['__th_ai_http_mock'] = function(string $url, array $headers, array $payload): [code, array, err].
  */
 function th_ai_http(string $url, array $headers, array $payload, int $timeout): array {
-    if(PHP_SAPI==='cli' && isset($GLOBALS['__th_ai_http_mock']) && is_callable($GLOBALS['__th_ai_http_mock'])){
+    if(in_array(PHP_SAPI,['cli','cli-server'],true) && isset($GLOBALS['__th_ai_http_mock']) && is_callable($GLOBALS['__th_ai_http_mock'])){   // nur lokale Tests (nie unter FPM/LiteSpeed)
         $r=($GLOBALS['__th_ai_http_mock'])($url,$headers,$payload); return [(int)($r[0] ?? 0), is_array($r[1] ?? null) ? $r[1] : null, (string)($r[2] ?? '')];
     }
     $ch=curl_init($url);
