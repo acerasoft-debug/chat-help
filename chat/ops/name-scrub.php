@@ -20,8 +20,15 @@ header('Content-Type: text/plain; charset=UTF-8');
 $apply = !empty($_GET['apply']);
 $root = (!empty($_GET['root']) && is_dir((string)$_GET['root'])) ? rtrim((string)$_GET['root'], '/') : dirname(__DIR__);
 $ts = date('Ymd-His');
-$bakDir = dirname($root).'/ch-backups/name-scrub-'.$ts;
+$home = (string)(getenv('HOME') ?: ''); if ($home === '' || !is_dir($home) || !is_writable($home)) $home = dirname($root);
+if (!is_writable($home) && function_exists('posix_getpwuid')) { $pw = @posix_getpwuid(@posix_geteuid()); if (!empty($pw['dir']) && is_writable($pw['dir'])) $home = $pw['dir']; }
+$bakDir = rtrim($home, '/').'/ch-backups/name-scrub-'.$ts;
 echo "ChatHelp — name-scrub v2 (".gmdate('c').")   MODUS: ".($apply ? 'ANWENDEN' : 'VORSCHAU')."\n\n";
+if ($apply) {   // ohne funktionierende Sicherung wird NICHTS geändert
+    if (!@mkdir($bakDir, 0700, true) && !is_dir($bakDir)) exit("✗ Sicherungsordner nicht anlegbar – Abbruch, nichts geändert.\n");
+    if (@file_put_contents($bakDir.'/.probe', 'ok') === false) exit("✗ Sicherungsordner nicht beschreibbar – Abbruch, nichts geändert.\n");
+    @unlink($bakDir.'/.probe'); echo "Sicherung: ~/ch-backups/".basename($bakDir)." (außerhalb des Webroots: ".(strpos(realpath($bakDir) ?: $bakDir, realpath($root) ?: $root) === 0 ? 'NEIN' : 'ja').")\n\n";
+}
 
 [$F, $M, $L] = array_map('base64_decode', ['U2VyZGFy', 'Q2VtYWxlZGRpbg==', 'QmlsZ2k=']);
 $SEP = '(?:\s|&nbsp;|&#160;|\\\\+u00a0|%20|\+)+';
@@ -57,9 +64,9 @@ function ns_deep($v, int &$n) {
     if (is_object($v) && !($v instanceof __PHP_Incomplete_Class)) { foreach (get_object_vars($v) as $k => $x) $v->$k = ns_deep($x, $n); return $v; }
     return $v;
 }
-function ns_bak(string $bakDir, string $rel, string $data, bool $append = false): void {
+function ns_bak(string $bakDir, string $rel, string $data, bool $append = false): bool {
     $file = $bakDir.'/'.$rel; if (!is_dir(dirname($file))) @mkdir(dirname($file), 0700, true);
-    file_put_contents($file, $data, $append ? FILE_APPEND : 0);
+    return @file_put_contents($file, $data, $append ? FILE_APPEND : 0) !== false;
 }
 function ns_http_status(string $url): string {
     if (!function_exists('curl_init')) return '?';
@@ -93,7 +100,7 @@ foreach ($it as $x) {
     if (!$apply || !$full) continue;
     $n = 0; $new = ns_rep($t, $n);
     if (!$n || $new === $t) continue;
-    ns_bak($bakDir, 'files/'.$rel, $t);
+    if (!ns_bak($bakDir, 'files/'.$rel, $t)) { echo "      ✗ Sicherung fehlgeschlagen – Datei unverändert\n"; continue; }
     if (@file_put_contents($path, $new) === false) { echo "      ✗ nicht beschreibbar\n"; continue; }
     if (preg_match('/\.php$/i', $bn)) {
         $lint = (string)@shell_exec('php -l '.escapeshellarg($path).' 2>&1');
@@ -179,7 +186,7 @@ foreach ($dbs as $dbn => [$label, $pdo]) {
                 }
                 if (!$n || $newV === $old) continue;
                 $pk = []; foreach ($pks[$t] as $k) $pk[$k] = $row[$k];
-                ns_bak($bakDir, 'db-'.preg_replace('/\W/', '_', $dbn).'.jsonl', json_encode(['table' => $t, 'col' => $col, 'pk' => $pk, 'old' => $old], JSON_UNESCAPED_UNICODE)."\n", true);
+                if (!ns_bak($bakDir, 'db-'.preg_replace('/\W/', '_', $dbn).'.jsonl', json_encode(['table' => $t, 'col' => $col, 'pk' => $pk, 'old' => $old], JSON_UNESCAPED_UNICODE)."\n", true)) { echo "      ✗ Sicherung fehlgeschlagen – Zeile unverändert\n"; continue; }
                 $w = implode(' AND ', array_map(fn($k) => "`$k`=?", array_keys($pk)));
                 $u = $pdo->prepare("UPDATE `$t` SET `$col`=? WHERE $w AND `$col`=?");
                 $u->execute(array_merge([$newV], array_values($pk), [$old]));
@@ -189,5 +196,4 @@ foreach ($dbs as $dbn => [$label, $pdo]) {
     }
     echo "  Zeilen mit Treffern: $tot · geändert: $chg Zeilen ($rep Ersetzungen)\n\n";
 }
-if ($apply && is_dir($bakDir)) echo "Sicherung: ~/ch-backups/".basename($bakDir)." (außerhalb des Webroots, nicht öffentlich)\n";
 echo "FERTIG\n";
