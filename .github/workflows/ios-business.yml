@@ -1,0 +1,180 @@
+name: iOS – ChatHelp Business App
+
+# Nur manuell (Actions → „iOS – ChatHelp Business App“ → Run workflow).
+# Baut nur, wenn die Apple-Secrets vorhanden sind – sonst Hinweis und Ende (kein macOS-Lauf).
+# Pflicht:  IOS_CERT_P12_BASE64, IOS_CERT_PASSWORD, IOS_PROVISION_PROFILE_BASE64, IOS_TEAM_ID
+# Optional: IOS_GOOGLE_SERVICE_INFO_PLIST (Firebase → native Push), APPSTORE_API_KEY_ID + APPSTORE_API_ISSUER_ID + APPSTORE_API_KEY_P8_BASE64 (TestFlight-Upload)
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: "App-URL, die die native Hülle lädt"
+        required: false
+        default: "https://chat-help.com/chat/app.php?src=native"
+      version_name:
+        description: "Versionsname (z. B. 1.1.0) – leer = aus package.json"
+        required: false
+        default: ""
+      testflight:
+        description: "Nach dem Build zu TestFlight hochladen (braucht App-Store-Connect-API-Schlüssel)"
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-business-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Secrets prüfen
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.s.outputs.ready }}
+    steps:
+      - id: s
+        env:
+          A: ${{ secrets.IOS_CERT_P12_BASE64 != '' }}
+          B: ${{ secrets.IOS_CERT_PASSWORD != '' }}
+          C: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 != '' }}
+          D: ${{ secrets.IOS_TEAM_ID != '' }}
+        run: |
+          if [ "$A$B$C$D" = "truetruetruetrue" ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; echo "Apple-Secrets vorhanden – iOS-Build startet.";
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=iOS-Build übersprungen::Es fehlen Apple-Secrets (IOS_CERT_P12_BASE64, IOS_CERT_PASSWORD, IOS_PROVISION_PROFILE_BASE64, IOS_TEAM_ID). Anleitung: mobile-business/README.md"
+            { echo "### iOS-Build übersprungen"; echo "Es fehlen: $( [ "$A" = true ] || printf 'IOS_CERT_P12_BASE64 ')$( [ "$B" = true ] || printf 'IOS_CERT_PASSWORD ')$( [ "$C" = true ] || printf 'IOS_PROVISION_PROFILE_BASE64 ')$( [ "$D" = true ] || printf 'IOS_TEAM_ID')"; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  build:
+    name: IPA bauen
+    needs: check
+    if: needs.check.outputs.ready == 'true'
+    runs-on: macos-15
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: mobile-business
+    env:
+      CI: "true"
+      CH_APP_URL: ${{ inputs.app_url }}
+      CH_VERSION_CODE: ${{ github.run_number }}
+      IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+      HAS_FIREBASE: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST != '' }}
+      HAS_ASC: ${{ secrets.APPSTORE_API_KEY_ID != '' && secrets.APPSTORE_API_ISSUER_ID != '' && secrets.APPSTORE_API_KEY_P8_BASE64 != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: mobile-business/package-lock.json
+
+      - name: Versionsname
+        run: |
+          V="${{ inputs.version_name }}"
+          if [ -z "$V" ]; then V=$(node -p "require('./package.json').version"); fi
+          echo "CH_VERSION_NAME=$V" >> "$GITHUB_ENV"
+          xcodebuild -version
+
+      - name: Zertifikat + Provisioning-Profil installieren
+        env:
+          P12_B64: ${{ secrets.IOS_CERT_P12_BASE64 }}
+          P12_PASS: ${{ secrets.IOS_CERT_PASSWORD }}
+          PROFILE_B64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+        run: |
+          KC="$RUNNER_TEMP/chb.keychain-db"; KC_PASS=$(uuidgen)
+          printf '%s' "$P12_B64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          printf '%s' "$PROFILE_B64" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          security create-keychain -p "$KC_PASS" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KC_PASS" "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -P "$P12_PASS" -A -t cert -f pkcs12 -k "$KC"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KC_PASS" "$KC" >/dev/null
+          security list-keychain -d user -s "$KC" $(security list-keychains -d user | sed 's/"//g')
+          security cms -D -i "$RUNNER_TEMP/profile.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$RUNNER_TEMP/profile.plist")
+          NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$RUNNER_TEMP/profile.plist")
+          APS=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$RUNNER_TEMP/profile.plist" 2>/dev/null || echo "")
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$RUNNER_TEMP/profile.mobileprovision" ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
+          echo "IOS_PROFILE_NAME=$NAME" >> "$GITHUB_ENV"
+          echo "CH_APS_ENV=${APS:-production}" >> "$GITHUB_ENV"
+          echo "Profil: $NAME ($UUID), aps-environment=${APS:-fehlt}"
+          if [ -z "$APS" ]; then echo "::warning title=Push fehlt im Profil::Das Provisioning-Profil enthält keine Push-Berechtigung (aps-environment). App-ID in developer.apple.com um „Push Notifications“ ergänzen und Profil neu erzeugen."; fi
+
+      - name: Firebase-Konfiguration (GoogleService-Info.plist)
+        if: env.HAS_FIREBASE == 'true'
+        env:
+          GSI: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          if printf '%s' "$GSI" | head -c 5 | grep -q '<'; then printf '%s' "$GSI" > "$RUNNER_TEMP/GoogleService-Info.plist";
+          else printf '%s' "$GSI" | base64 --decode > "$RUNNER_TEMP/GoogleService-Info.plist"; fi
+          echo "CH_GOOGLE_SERVICE_INFO=$RUNNER_TEMP/GoogleService-Info.plist" >> "$GITHUB_ENV"
+
+      - name: Hinweis ohne Firebase
+        if: env.HAS_FIREBASE != 'true'
+        run: echo "::notice title=Ohne Firebase::IOS_GOOGLE_SERVICE_INFO_PLIST fehlt – die App läuft, native Push-Benachrichtigungen funktionieren aber erst mit Firebase."
+
+      - name: Abhängigkeiten
+        run: npm ci && npm run check
+
+      - name: iOS-Projekt erzeugen + anpassen (FirebaseMessaging, Push, Signatur, Symbole)
+        run: npm run setup:ios
+
+      - name: CocoaPods
+        working-directory: mobile-business/ios/App
+        run: pod install --repo-update
+
+      - name: Archiv bauen
+        working-directory: mobile-business/ios/App
+        run: |
+          set -o pipefail
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            archive | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E '^(\*\*|error|warning: .*(sign|profile))' || true
+          test -d "$RUNNER_TEMP/App.xcarchive" || { tail -80 "$RUNNER_TEMP/xcodebuild.log"; exit 1; }
+
+      - name: IPA exportieren
+        run: |
+          sed -e "s|__TEAM_ID__|$IOS_TEAM_ID|" -e "s|__PROFILE_NAME__|$IOS_PROFILE_NAME|" ci/ExportOptions.plist.tpl > "$RUNNER_TEMP/ExportOptions.plist"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export"
+          mkdir -p ../dist
+          cp "$RUNNER_TEMP"/export/*.ipa "../dist/ChatHelp-Business-${CH_VERSION_NAME}-${CH_VERSION_CODE}.ipa"
+          ls -la ../dist
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: chathelp-business-ios-${{ github.run_number }}
+          path: dist/*.ipa
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: TestFlight-Upload
+        if: inputs.testflight && env.HAS_ASC == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          ASC_ISSUER: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          ASC_P8_B64: ${{ secrets.APPSTORE_API_KEY_P8_BASE64 }}
+        run: |
+          mkdir -p ~/private_keys
+          printf '%s' "$ASC_P8_B64" | base64 --decode > ~/private_keys/AuthKey_"$ASC_KEY_ID".p8
+          xcrun altool --upload-app -f ../dist/*.ipa -t ios --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER"
+          echo "### TestFlight: Build ${CH_VERSION_NAME} (${CH_VERSION_CODE}) hochgeladen" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Hinweis ohne TestFlight-Schlüssel
+        if: inputs.testflight && env.HAS_ASC != 'true'
+        run: echo "::notice title=Kein TestFlight-Upload::APPSTORE_API_KEY_ID / _ISSUER_ID / _KEY_P8_BASE64 fehlen – IPA liegt als Artefakt bereit (Transporter-App)."
+
+      - name: Aufräumen
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/chb.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/cert.p12" "$RUNNER_TEMP/profile.mobileprovision" ~/private_keys/AuthKey_*.p8 "$RUNNER_TEMP/GoogleService-Info.plist"

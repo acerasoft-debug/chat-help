@@ -1,0 +1,157 @@
+name: Android – ChatHelp Business App
+
+# Nur manuell (Actions → „Android – ChatHelp Business App“ → Run workflow).
+# Baut immer eine Debug-APK; mit den Keystore-Secrets zusätzlich ein signiertes Release-AAB (Play Store) + Release-APK.
+# Secrets (optional): ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD,
+#                     ANDROID_GOOGLE_SERVICES_JSON (Firebase, für native Push-Benachrichtigungen; Base64 oder Klartext)
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: "App-URL, die die native Hülle lädt"
+        required: false
+        default: "https://chat-help.com/chat/app.php?src=native"
+      version_name:
+        description: "Versionsname (z. B. 1.1.0) – leer = aus package.json"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-business-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: APK / AAB bauen
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mobile-business
+    env:
+      CI: "true"
+      CH_APP_URL: ${{ inputs.app_url }}
+      CH_VERSION_CODE: ${{ github.run_number }}
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' }}
+      HAS_FIREBASE: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: mobile-business/package-lock.json
+
+      - name: Java 21 (Capacitor 8 / AGP 8.13)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Versionsname
+        run: |
+          V="${{ inputs.version_name }}"
+          if [ -z "$V" ]; then V=$(node -p "require('./package.json').version"); fi
+          echo "CH_VERSION_NAME=$V" >> "$GITHUB_ENV"
+          echo "Version $V (Build ${{ github.run_number }}) – lädt ${CH_APP_URL}"
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Prüfen (Skripte, App-URL)
+        run: npm run check
+
+      - name: Android-Projekt erzeugen + anpassen (Kanal, Push, Symbole, Splash, Signatur)
+        run: npm run setup:android
+
+      - name: Firebase-Konfiguration (google-services.json)
+        if: env.HAS_FIREBASE == 'true'
+        env:
+          GS_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
+        run: |
+          if printf '%s' "$GS_JSON" | head -c 1 | grep -q '{'; then printf '%s' "$GS_JSON" > android/app/google-services.json;
+          else printf '%s' "$GS_JSON" | base64 -d > android/app/google-services.json; fi
+          node -e "const j=require('./android/app/google-services.json'); const ok=(j.client||[]).some(c=>c.client_info&&c.client_info.android_client_info&&c.client_info.android_client_info.package_name==='com.chathelp.business'); if(!ok){console.error('google-services.json enthält com.chathelp.business nicht');process.exit(1)} console.log('Firebase-Projekt', j.project_info.project_id)"
+
+      - name: Hinweis ohne Firebase
+        if: env.HAS_FIREBASE != 'true'
+        run: echo "::notice title=Ohne Firebase::ANDROID_GOOGLE_SERVICES_JSON fehlt – die App läuft, native Push-Benachrichtigungen funktionieren aber erst mit Firebase (siehe mobile-business/README.md)."
+
+      - name: Debug-Keystore (gleiche Signatur über alle Testbuilds)
+        run: |
+          mkdir -p ~/.android
+          if [ -f ../mobile/ci/debug-shared.keystore ]; then cp ../mobile/ci/debug-shared.keystore ~/.android/debug.keystore; fi
+
+      - name: Debug-APK bauen
+        working-directory: mobile-business/android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Release-Signatur einrichten
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          printf '%s' "$KS_B64" | base64 -d > android/app/release.keystore
+          {
+            echo "storeFile=release.keystore"
+            echo "storePassword=$KS_PASS"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=${KEY_PASS:-$KS_PASS}"
+          } > android/key.properties
+
+      - name: Release-AAB + APK bauen (signiert)
+        if: env.HAS_KEYSTORE == 'true'
+        working-directory: mobile-business/android
+        run: ./gradlew bundleRelease assembleRelease --no-daemon --stacktrace
+
+      - name: Hinweis ohne Keystore
+        if: env.HAS_KEYSTORE != 'true'
+        run: echo "::notice title=Nur Debug-Build::Keine Keystore-Secrets (ANDROID_KEYSTORE_BASE64 / _PASSWORD / ANDROID_KEY_ALIAS) – Release-AAB für Google Play wurde übersprungen."
+
+      - name: Artefakte einsammeln
+        run: |
+          mkdir -p ../dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk "../dist/ChatHelp-Business-${CH_VERSION_NAME}-${CH_VERSION_CODE}-debug.apk"
+          if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then cp android/app/build/outputs/bundle/release/app-release.aab "../dist/ChatHelp-Business-${CH_VERSION_NAME}-${CH_VERSION_CODE}.aab"; fi
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then cp android/app/build/outputs/apk/release/app-release.apk "../dist/ChatHelp-Business-${CH_VERSION_NAME}-${CH_VERSION_CODE}.apk"; fi
+          ls -la ../dist
+          rm -f android/app/release.keystore android/key.properties android/app/google-services.json
+          {
+            echo "### ChatHelp Business – Android ${CH_VERSION_NAME} (${CH_VERSION_CODE})"
+            echo "- lädt: ${CH_APP_URL}"
+            echo "- Firebase (native Push): ${HAS_FIREBASE}"
+            echo "- signiertes Release: ${HAS_KEYSTORE}"
+            echo ""; echo '```'; ls -la ../dist; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Debug-APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: chathelp-business-android-debug-${{ github.run_number }}
+          path: dist/*-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Release (AAB + APK)
+        if: env.HAS_KEYSTORE == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: chathelp-business-android-release-${{ github.run_number }}
+          path: |
+            dist/*.aab
+            dist/ChatHelp-Business-*[0-9].apk
+          if-no-files-found: error
+          retention-days: 90
