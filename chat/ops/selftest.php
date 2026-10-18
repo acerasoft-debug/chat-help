@@ -116,7 +116,7 @@ if($o){
     $r=$api('GET','order/orders'); ok(in_array($o['code'],array_column($r['json']['orders'] ?? [],'code'),true),'Studio: Live-Bestellliste enthält die Bestellung');
     $r=http('GET',"$BASE/chat/order-api.php?a=board&t=$boardT&_=".rnd()); ok(in_array($o['code'],array_column($r['json']['orders'] ?? [],'code'),true),'Küchen-Board (Token) zeigt die Bestellung');
     $r=http('POST',"$BASE/chat/order-api.php?a=status&t=$boardT",['id'=>$o['id'],'status'=>'confirmed']); ok(($r['json']['order']['status'] ?? '')==='confirmed','Board: „Bestätigen“');
-    $r=http('GET',"$BASE/chat/board.php?t=$boardT&_=".rnd()); ok($r['code']===200 && str_contains($r['body'],'Selftest Pizzeria'),'board.php (Tablet-Ansicht) lädt');
+    $r=http('GET',"$BASE/chat/board.php?t=$boardT&_=".rnd(),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'Selftest Pizzeria'),'board.php (Tablet-Ansicht) lädt',"HTTP {$r['code']} (versionierte URL)");
     $r=$api('POST','order/status',['id'=>$o['id'],'status'=>'preparing']); ok(($r['json']['order']['status'] ?? '')==='preparing','Studio: „In Zubereitung“');
     $r=$api('POST','order/status',['id'=>$o['id'],'status'=>'ready']); ok(($r['json']['order']['status'] ?? '')==='ready','Studio: „Fertig“');
     $r=$api('POST','order/status',['id'=>$o['id'],'status'=>'out_for_delivery','driver_id'=>$drv['id'] ?? null]); ok(($r['json']['order']['driver']['name'] ?? '')==='Test-Fahrer','„Unterwegs“ mit zugewiesenem Fahrer');
@@ -336,7 +336,7 @@ try {
     $r=http('GET',"$BASE/chat/tts.php?_=".rnd(4)); ok(in_array($r['code'],[400,403,405,501],true),'tts.php antwortet sauber ohne Parameter',"HTTP {$r['code']}");
     $r=$api('GET','assistant/profile'); ok($r['code']===200 && isset($r['json']['profile']),'Studio-Assistent: Profil abrufbar',"HTTP {$r['code']} · Sprachen ".count($r['json']['langs'] ?? []));
     $r=$api('GET','train/overview?plan=agent-support'); ok(in_array($r['code'],[200,402,404],true),'Agent-Training: Übersicht erreichbar',"HTTP {$r['code']}");
-    $r=http('GET',"$BASE/chat/studio.php?_=".rnd(4)); ok($r['code']===200 && str_contains($r['body'],'id="lPaste"') && str_contains($r['body'],'/impressum.html'),'Studio: Einfügen-Knopf für den Login-Code + Impressum-Link',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/chat/studio.php?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'id="lPaste"') && str_contains($r['body'],'/impressum.html'),'Studio: Einfügen-Knopf für den Login-Code + Impressum-Link',"HTTP {$r['code']}");
 } catch(Throwable $e){ ok(false,'Neue Bausteine: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
 
 /* ---------- Twilio-Doku (vom Server geladen) ---------- */
