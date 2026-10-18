@@ -115,25 +115,60 @@ section{padding:100px 0;scroll-margin-top:84px}@media(max-width:720px){section{p
 .stepl .it i{width:30px;height:30px;border-radius:10px;background:var(--goldl);color:var(--gold);display:grid;place-items:center;font:800 13px var(--sans);font-style:normal;flex:0 0 auto}
 .stepl .it b{display:block;font:700 14.5px var(--sans)}.stepl .it span{color:var(--ink2);font-size:13.5px}
 .dctl{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
-.live{display:none;background:var(--sur);border:1px solid var(--line);border-radius:var(--r2);padding:14px;box-shadow:var(--sh1)}
-.live.on{display:block}.live form{display:flex;gap:8px}.live input{flex:1;min-width:0;border:1px solid var(--line2);border-radius:14px;padding:12px 14px;font:15px var(--sans);outline:0}.live input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,43,.12)}
+.live{display:block;background:var(--sur);border:1px solid var(--line);border-radius:var(--r2);padding:14px;box-shadow:var(--sh1)}
+.live form{display:none;gap:8px}.live.on form{display:flex}.live input{flex:1;min-width:0;border:1px solid var(--line2);border-radius:14px;padding:12px 14px;font:15px var(--sans);outline:0}.live input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,43,.12)}
 .live .send{border:0;border-radius:14px;background:var(--ink);color:#fff;padding:0 16px;font:600 14px var(--sans)}.live .mic{border:1px solid var(--line2);border-radius:14px;background:#fff;padding:0 14px;font-size:18px}.live .mic.rec{background:var(--rosel);border-color:#f7c6d5;animation:pulse 1.4s infinite}
-.live small{display:block;color:var(--mute2);font-size:11.5px;margin-top:8px}
+.live small{display:block;color:var(--mute2);font-size:11.5px;margin-top:8px}.live #liveNote{display:none}.live.on #liveNote{display:block}
 .theater>.explain{min-width:0}
-/* Live-Leiste: Status, Stimme, Vorschläge */
-.live .lhd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-2px 0 10px}
-.live .lst{display:inline-flex;align-items:center;gap:8px;min-width:0;font:600 12.5px var(--sans);color:var(--ink2)}.live .lst span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Live-Leiste: Status, Stimme, Vorschläge – die Stimm-Steuerung ist immer sichtbar, Status/Eingabe nur im Live-Modus (.on) bzw. beim vorgelesenen Demo-Anruf (.aut) */
+.live .lhd{display:flex;align-items:center;justify-content:space-between;gap:8px 10px;flex-wrap:wrap;margin:-2px 0 10px}.live:not(.on) .lhd{margin-bottom:0}
+.live .lst{display:none;align-items:center;gap:8px;min-width:0;font:600 12.5px var(--sans);color:var(--ink2)}.live.on .lst,.live.aut .lst{display:inline-flex}.live .lst span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .live .eq{display:inline-flex;align-items:flex-end;justify-content:center;gap:2px;width:14px;height:14px;flex:0 0 auto}.live .eq{opacity:.45;transition:opacity .2s}.live.von .eq,.live.lis .eq{opacity:1}.live .eq b{width:3px;height:4px;border-radius:2px;background:var(--gold2);transition:height .2s,background .2s}.live .eq b:nth-child(2){height:8px}.live .eq b:nth-child(3){height:6px}
 .live.spk .eq b{animation:eq .8s ease-in-out infinite}.live.spk .eq b:nth-child(2),.live.lis .eq b:nth-child(2){animation-delay:.16s}.live.spk .eq b:nth-child(3),.live.lis .eq b:nth-child(3){animation-delay:.32s}
 .live.lis .eq b{background:var(--rose);animation:eq 1.1s ease-in-out infinite}.live.thk .eq b{animation:eqd 1.2s ease-in-out infinite}.live.thk .eq b:nth-child(2){animation-delay:.2s}.live.thk .eq b:nth-child(3){animation-delay:.4s}
 @keyframes eq{0%,100%{height:4px}50%{height:14px}}@keyframes eqd{0%,100%{opacity:.3}50%{opacity:1}}
 .live .vtg{flex:0 0 auto;border:1px solid var(--line2);background:#fff;border-radius:999px;padding:6px 12px;font:600 12.5px var(--sans);color:var(--ink2);white-space:nowrap;transition:background .18s,border-color .18s,color .18s}
 .live .vtg:hover{border-color:var(--gold2)}.live .vtg[aria-pressed="true"]{background:var(--goldl);border-color:#eadbb0;color:#8a6318}
-.lchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.lchips[hidden]{display:none}
+.lchips{display:none;gap:6px;flex-wrap:wrap;margin-top:10px}.live.on .lchips:not([hidden]){display:flex}
 .lchip{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:7px 12px;font:500 12.5px/1.3 var(--sans);color:var(--ink2);text-align:left;transition:border-color .18s,background .18s,color .18s}
 .lchip:hover,.lchip:focus-visible{border-color:var(--gold2);background:#fffaf0;color:var(--ink);outline:0}.lchips.cmp .lchip{padding:5px 10px;font-size:11.5px;color:var(--mute)}
 @media(max-width:720px){.lchips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:10px -14px 0;padding:0 14px 2px}.lchips::-webkit-scrollbar{display:none}.lchip{flex:0 0 auto;white-space:nowrap;max-width:78vw;overflow:hidden;text-overflow:ellipsis}}
 .phone .wave i{transition:height .25s,opacity .25s,background .25s}.phone .wave.idle i{animation:none;height:6px;opacity:.45}.phone .wave.lis i{animation:wv 1.3s ease-in-out infinite;background:#e3c27a;opacity:.9}
+/* Stimme: Umschalter + Auswahl (Frau/Mann, Voreinstellungen, Hörprobe) */
+.live .vbar{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;min-width:0;max-width:100%}
+.live .vpb{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:#fff;border-radius:999px;padding:6px 10px 6px 9px;font:600 12.5px var(--sans);color:var(--ink2);max-width:100%;transition:border-color .18s,background .18s}
+.live .vpb:hover{border-color:var(--gold2)}.live .vpb[aria-expanded="true"]{background:var(--sur2)}.live .vpb:focus-visible,.live .vtg:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.live .vpb #vpLbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:min(48vw,230px)}.live .vpb .vpc{color:var(--mute2);font-size:11px}
+.live .tth{display:block;margin:8px 0 0;padding:8px 11px;border-radius:12px;background:var(--sur2);border:1px dashed var(--line2);color:var(--ink2);font-size:12px;line-height:1.45}.live .tth[hidden]{display:none}
+.vpop{margin:10px 0 2px;padding:12px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#fff,#fbfbfd)}.vpop[hidden]{display:none}
+.vpop .vph{display:flex;align-items:center;justify-content:space-between;gap:8px}.vpop .vph b{font:700 14px var(--sans)}.vpop .vph small{display:block;margin:2px 0 0;font-size:12px;color:var(--mute)}
+.vpop .vpx{width:30px;height:30px;border-radius:50%;border:1px solid var(--line2);background:#fff;font-size:13px;color:var(--ink2);flex:0 0 auto}
+.vseg{display:inline-flex;margin-top:10px;border:1px solid var(--line2);border-radius:999px;padding:3px;background:#fff}
+.vseg button{border:0;background:transparent;border-radius:999px;padding:6px 16px;font:600 13px var(--sans);color:var(--ink2);transition:background .18s,color .18s}.vseg button[aria-checked="true"]{background:var(--ink);color:#fff}.vseg button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.vlist{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}@media(max-width:560px){.vlist{grid-template-columns:1fr}}
+.vo{text-align:left;border:1px solid var(--line2);background:#fff;border-radius:14px;padding:10px 12px;display:grid;gap:3px;min-width:0;transition:border-color .18s,background .18s,box-shadow .18s}
+.vo:hover{border-color:var(--gold2)}.vo:focus-visible{outline:2px solid var(--gold);outline-offset:2px}.vo[aria-checked="true"]{border-color:var(--gold);background:#fffaf0;box-shadow:0 0 0 3px rgba(184,134,43,.12)}
+.vo .von{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;font:600 13.5px var(--sans);color:var(--ink)}.vo .von span{color:var(--ink2);font-weight:500}.vo .von em{font:600 10px var(--sans);font-style:normal;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);background:var(--goldl);border-radius:999px;padding:3px 7px}
+.live .vo small{display:block;color:var(--mute);font-size:12px;line-height:1.4;margin:0}
+.vpop .vpf{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}.vpop .vreset{border:0;background:transparent;color:var(--gold);font:600 12.5px var(--sans);padding:6px 4px}.vpop .vreset[hidden]{display:none}
+/* Branchen-Wahl des Telefon-Agenten: gruppierte Chips, Suche, mobil als Band zum Wischen */
+.secpick{display:none;margin-top:14px;padding:14px 16px 12px;background:var(--sur);border:1px solid var(--line);border-radius:var(--r2);box-shadow:var(--sh1)}.secpick.on{display:block}
+.secpick .sph{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap}
+.secpick .spt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 260px}.secpick .spt b{font:700 15px var(--sans);color:var(--ink)}.secpick .spt span{color:var(--mute);font-size:12.5px}
+.secpick .sps{position:relative;flex:0 1 280px;min-width:180px;display:block}
+.secpick .sps input{width:100%;border:1px solid var(--line2);border-radius:999px;padding:9px 34px 9px 36px;font:14px var(--sans);outline:0;background:#fff;color:var(--ink)}.secpick .sps input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,43,.12)}
+.secpick .sps svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--mute2);pointer-events:none}
+.secpick .sps .spx{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;border:0;background:var(--sur3);color:var(--ink2);font-size:11px;display:none;place-items:center}.secpick .sps.has .spx{display:grid}
+.secgs{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:12px}
+.secg{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.secg[hidden]{display:none}.secg .sgl{font:600 10.5px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);padding:0 2px;white-space:nowrap}
+.sec{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:#fff;border-radius:999px;padding:5px 12px 5px 5px;font:600 13px var(--sans);color:var(--ink2);white-space:nowrap;transition:border-color .18s,background .18s,color .18s}
+.sec i{width:26px;height:26px;border-radius:50%;background:var(--sur2);display:grid;place-items:center;font-style:normal;font-size:14px;flex:0 0 auto}
+.sec:hover{border-color:var(--gold2);background:#fffaf0;color:var(--ink)}.sec:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.sec[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}.sec[aria-pressed="true"] i{background:rgba(255,255,255,.16)}.sec[hidden]{display:none}
+.secpick .spn{display:none;color:var(--mute);font-size:13px;margin-top:10px}.secpick.empty .spn{display:block}
+@media(max-width:720px){.secpick{padding:12px 0 10px}.secpick .sph{padding:0 14px}.secpick .sps{flex:1 1 100%;min-width:0}
+  .secgs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 14px 4px;gap:0 16px;scroll-snap-type:x proximity}.secgs::-webkit-scrollbar{display:none}
+  .secg{flex-wrap:nowrap;scroll-snap-align:start}.sec{flex:0 0 auto}.secpick .spn{padding:0 14px}}
 /* professions */
 .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}@media(max-width:1000px){.pgrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.pgrid{grid-template-columns:1fr}}
 .pro{display:flex;flex-direction:column;padding:26px;cursor:pointer}
@@ -278,7 +313,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 .ai .send{border:0;border-radius:12px;background:var(--ink);color:#fff;padding:0 14px;font:600 13.5px var(--sans)}
 .reveal{opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .7s ease}.reveal.in{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.dot,.phone .wave i,.tl li.cur>i{animation:none}.tl li,.tl li>i,.trn li::after,.qs .rg,.qbar i,.kit,.drv,.dsp{transition:none!important}.trn li::after{opacity:1;transform:none}.qs .rg{stroke-dashoffset:11.3}.qbar i{width:94%}
-  .live .eq b,.live .mic.rec,.phone .wave.lis i,.phone .wave.talk i{animation:none!important}.live.spk .eq b,.live.lis .eq b{height:12px}.phone .wave.talk i,.phone .wave.lis i{height:16px;opacity:1}.phone .wave i,.lchip,.live .vtg{transition:none}}
+  .live .eq b,.live .mic.rec,.phone .wave.lis i,.phone .wave.talk i{animation:none!important}.live.spk .eq b,.live.lis .eq b{height:12px}.phone .wave.talk i,.phone .wave.lis i{height:16px;opacity:1}.phone .wave i,.lchip,.live .vtg,.live .vpb,.sec,.vo,.vseg button{transition:none}.secgs{scroll-behavior:auto}}
 </style>
 </head>
 <body>
@@ -295,7 +330,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
     <span class="tag gold">KI-Agenten für Unternehmen · Made in Europe · DSGVO</span>
     <h1>Dein Team arbeitet 8 Stunden.<br>Dein <span class="g">Agent 24.</span></h1>
     <p class="sub">Fertige KI-Agenten, die <b style="color:var(--ink)">Anrufe annehmen, Termine buchen, Bestellungen und Fahrten aufnehmen, Kunden beantworten und Akten vorbereiten</b> – für Praxen, Salons, Restaurants, Taxi-Zentralen, Hotels, Immobilienmakler, Inkasso, Kanzleien, Steuerberater, Versicherungsmakler, Hausverwaltungen, Autohäuser und Shops. Nur mit deinen Fakten. In 10 Minuten startklar.</p>
-    <div class="cta"><a class="btn gold" href="/chat/studio.php">Studio starten – 300 Tokens gratis</a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('phone'),300)">▶ Telefon-Agent live hören</a></div>
+    <div class="cta"><a class="btn gold" href="/chat/studio.php">Studio starten – 300 Tokens gratis</a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('phone',true),300)">▶ Telefon-Agent live hören</a></div>
     <div class="trust"><span><i>✓</i> Antwortet nur aus deiner Wissensbasis</span><span><i>✓</i> Übergabe an Menschen</span><span><i>✓</i> Transkripte &amp; Audit-Log</span><span><i>✓</i> Monatlich kündbar</span></div>
   </div>
   <div class="vid reveal in" id="heroVid">
@@ -312,13 +347,14 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
   <h2 style="margin-top:12px">Sieh zu – <span class="g">oder sprich selbst</span> mit dem Agenten.</h2>
   <p class="sub">Jede Demo ist ein echter ChatHelp-Agent mit einer Beispiel-Wissensbasis. Erst läuft ein typisches Gespräch ab, dann schreibst oder sprichst du selbst – und jeder Agent antwortet auf Wunsch mit Stimme.</p>
   <div class="dtabs" id="dtabs"></div>
+  <div class="secpick" id="secpick" aria-label="Branche des Telefon-Agenten"><div class="sph"><div class="spt"><b>Branche wählen</b><span id="secSub">18 Beispiel-Betriebe – jede Branche mit eigener Persona, Wissensbasis und Stimme.</span></div><label class="sps" id="secSrch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg><input id="secSearch" type="text" inputmode="search" enterkeyhint="search" placeholder="Branche suchen…" aria-label="Branche suchen" autocomplete="off" aria-controls="secGs"><button type="button" class="spx" id="secClear" aria-label="Suche löschen">✕</button></label></div><div class="secgs" id="secGs" role="group" aria-label="Branchen"></div><p class="spn" id="secNone">Keine Branche gefunden – probier „Praxis“, „Taxi“ oder „Kanzlei“.</p></div>
   <div class="theater">
     <div class="stage" id="stage"></div>
     <div class="explain">
       <div class="hd"><span class="tag indigo" id="exTag">Telefon-Agent</span><h3 id="exTitle" style="margin-top:12px">Nimmt jeden Anruf an – auch um 23 Uhr.</h3><p id="exText"></p></div>
       <div class="stepl" id="exSteps"></div>
       <div class="dctl"><button class="btn" id="btnReplay">↻ Demo abspielen</button><button class="btn p" id="btnLive">Selbst testen – live</button><a class="btn ghost" id="btnRent" href="/chat/tokens-checkout.php?plan=agent-phone">Agent mieten →</a></div>
-      <div class="live" id="live"><div class="lhd"><span class="lst"><i class="eq" aria-hidden="true"><b></b><b></b><b></b></i><span id="liveWho">Live</span></span><button type="button" class="vtg" id="liveVoice" aria-pressed="false" title="Antworten vorlesen">🔇 Stimme aus</button></div><form id="liveForm"><input id="liveIn" placeholder="Schreib dem Agenten …" maxlength="800" autocomplete="off" aria-label="Nachricht an den Agenten"><button type="button" class="mic" id="liveMic" title="Sprechen" aria-label="Sprechen" style="display:none">🎙️</button><button class="send" type="submit">Senden</button></form><div class="lchips" id="liveChips" role="group" aria-label="Vorschläge" hidden></div><small id="liveNote">Echter Agent, Beispiel-Firma. Deine eigene Wissensbasis fügst du im Studio ein.</small></div>
+      <div class="live" id="live"><div class="lhd"><span class="lst"><i class="eq" aria-hidden="true"><b></b><b></b><b></b></i><span id="liveWho" aria-live="polite">Live</span></span><div class="vbar"><button type="button" class="vtg" id="liveVoice" aria-pressed="false" title="Antworten vorlesen">🔇 Stimme aus</button><button type="button" class="vpb" id="vpBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="vpop" title="Stimme wählen"><span aria-hidden="true">🎙</span><span id="vpLbl">Stimme</span><span class="vpc" aria-hidden="true">▾</span></button></div></div><small class="tth" id="ttsHint" hidden>Natürliche KI-Stimme wird gerade vorbereitet – du hörst die Systemstimme deines Browsers</small><div class="vpop" id="vpop" role="dialog" aria-label="Stimme wählen" hidden><div class="vph"><div><b>Stimme wählen</b><small>Gilt für diese Demo – im Studio stellst du Stimme und Sprache für deinen Agenten ein.</small></div><button type="button" class="vpx" id="vpClose" aria-label="Schließen">✕</button></div><div class="vseg" role="radiogroup" aria-label="Geschlecht" id="vpGender"><button type="button" role="radio" aria-checked="true" data-g="f">Frau</button><button type="button" role="radio" aria-checked="false" data-g="m" tabindex="-1">Mann</button></div><div class="vlist" role="radiogroup" aria-label="Stimmen" id="vpList"></div><div class="vpf"><button type="button" class="btn s" id="vpPlay">▶ Hörprobe</button><button type="button" class="vreset" id="vpReset" hidden>↺ Stimme der Persona</button></div></div><form id="liveForm"><input id="liveIn" placeholder="Schreib dem Agenten …" maxlength="800" autocomplete="off" aria-label="Nachricht an den Agenten"><button type="button" class="mic" id="liveMic" title="Sprechen" aria-label="Sprechen" style="display:none">🎙️</button><button class="send" type="submit">Senden</button></form><div class="lchips" id="liveChips" role="group" aria-label="Vorschläge" hidden></div><small id="liveNote">Echter Agent, Beispiel-Firma. Deine eigene Wissensbasis fügst du im Studio ein.</small></div>
     </div>
   </div>
 </div></section>
@@ -747,7 +783,7 @@ $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closePro();});
 
 /* ===== Live-Demo Theater ===== */
 const DEMOS=[
- {key:'phone',plan:'agent-phone',tab:'☎ Telefon-Agent',tag:'Telefon-Agent',title:'Nimmt jeden Anruf an – auch um 23 Uhr.',text:'Beispiel: Zahnarztpraxis Dr. Weber. Der Agent begrüßt, beantwortet aus der Wissensbasis, nimmt den Termin auf und bestätigt – in natürlicher Sprache.',device:'phone',company:'Zahnarztpraxis Dr. Weber',
+ {key:'phone',plan:'agent-phone',tab:'☎ Telefon-Agent',tag:'Telefon-Agent',title:'Nimmt jeden Anruf an – auch um 23 Uhr.',text:'Beispiel: Zahnarztpraxis Dr. Weber. Der Agent begrüßt, beantwortet aus der Wissensbasis, nimmt den Termin auf und bestätigt – in natürlicher Sprache.',device:'phone',company:'Zahnarztpraxis Dr. Weber',sectors:true,
   steps:[['Begrüßung in deinem Namen','Stimme, Name und Firma stellst du im Studio ein.'],['Antwort nur aus der Wissensbasis','Preise, Zeiten, Abläufe – nichts wird erfunden.'],['Termin aufnehmen & bestätigen','Name, Nummer, Wunschzeit – wiederholt und ins Studio geschrieben.'],['Übergabe, wenn nötig','Schmerzen/Notfall oder Wunsch → Mensch bzw. Notdienst.']],
   script:[[0,'sys','Eingehender Anruf · +49 221 …'],[0,'a','Zahnarztpraxis Dr. Weber, hier spricht Lea, der digitale Assistent. Wie kann ich Ihnen helfen?'],[1,'u','Ich hätte gern einen Termin zur Zahnreinigung, am liebsten nachmittags.'],[1,'a','Gern. Eine Zahnreinigung dauert etwa sechzig Minuten und kostet neunundachtzig Euro. Passt Ihnen Donnerstag um fünfzehn Uhr?'],[2,'u','Ja, Donnerstag passt.'],[2,'a','Wunderbar. Darf ich Ihren Namen und Ihre Telefonnummer für die Bestätigung?'],[2,'u','Max Mustermann, null eins sieben null, eins zwei drei vier fünf sechs sieben.'],[3,'a','Danke, Herr Mustermann. Donnerstag, fünfzehn Uhr, Zahnreinigung – das Team bestätigt per SMS. Bitte bringen Sie Ihre Versichertenkarte mit. Auf Wiederhören!'],[3,'sys','Gespräch beendet · 0:48 · Termin angelegt ✓ · Transkript im Studio']]},
  {key:'termine',plan:'agent-termine',tab:'📅 Termin-Agent',tag:'Terminbuchung · Salon & Praxis',title:'Bucht echte Termine – ohne Doppelbuchung.',text:'Beispiel: Salon Luna (Friseur & Kosmetik). Der Agent prüft freie Zeiten im echten Demo-Kalender, bucht verbindlich und nennt den Buchungscode – im Live-Modus kannst du selbst buchen.',device:'browser',url:'salon-luna.de/termine',role:'Termin-Agent · online',company:'Salon Luna',
@@ -787,14 +823,20 @@ const DEMOS=[
   dossier:{title:'Fristen November · Meyer Elektrotechnik',rows:[['10.11.','Umsatzsteuer-Voranmeldung Oktober'],['10.11.','Lohnsteuer-Anmeldung Oktober'],['15.11.','Gewerbesteuer-Vorauszahlung Q4'],['26.11.','Sozialversicherung (drittletzter Bankarbeitstag)'],['24.10.','Wiedervorlage: Mahnung Re. 2026-0142']],hot:[4],stamp:'Erinnerungen 14/7/1 Tage aktiv'}}
 ];
 let cur=null,playId=0,liveHist=[],liveOn=false;
-(function(){const w=$('#dtabs');DEMOS.forEach(d=>{const b=document.createElement('button');b.type='button';b.className='dtab';b.dataset.k=d.key;b.textContent=d.tab;b.onclick=()=>demoSelect(d.key);w.appendChild(b);});})();
-function demoSelect(key){const d=DEMOS.find(x=>x.key===key)||DEMOS.find(x=>x.key==='support')||DEMOS[0];liveLeave();cur=d;liveHist=[];
+(function(){const w=$('#dtabs');DEMOS.forEach(d=>{const b=document.createElement('button');b.type='button';b.className='dtab';b.dataset.k=d.key;b.textContent=d.tab;b.onclick=()=>{vUnlock();demoSelect(d.key,true);};w.appendChild(b);});})();
+/* gesture=true: der Wechsel kam durch Klick/Taste – dann darf der Demo-Anruf (Telefon-Gerät) vorgelesen werden, wenn die Stimme an ist */
+function demoSelect(key,gesture){const d=DEMOS.find(x=>x.key===key)||DEMOS.find(x=>x.key==='support')||DEMOS[0];liveLeave();cur=d;liveHist=[];
   document.querySelectorAll('.dtab').forEach(b=>b.classList.toggle('on',b.dataset.k===d.key));
+  const sp=$('#secpick');if(sp)sp.classList.toggle('on',!!d.sectors);
   $('#exTag').textContent=d.tag;$('#exTitle').textContent=d.title;$('#exText').textContent=d.text;$('#btnRent').href=CHECKOUT+'?plan='+d.plan;
   $('#exSteps').innerHTML=d.steps.map((s,i)=>`<div class="it" data-i="${i}"><i>0${i+1}</i><div><b>${s[0]}</b><span>${s[1]}</span></div></div>`).join('');
-  buildDevice(d);playDemo();}
+  if(d.sectors){secInit();phoneSec=secInfo(secCur);secMark();}
+  V.demo=d.plan;V.sector=d.sectors?secCur:'';V.gender=d.sectors?phoneSec.gender:(LIVE_G[d.key]||'f');V.preset=d.sectors?(phoneSec.preset||''):(LIVE_PRESET[d.key]||'');V.rate=1;V.pitch=1;V.greet=[];
+  liveWho=d.sectors?[phoneSec.persona,phoneSec.persona]:(LIVE_WHO[d.key]||LIVE_WHO_DEF).slice();
+  buildDevice(d);if(d.sectors)secHeader();setVoice(vPrefGet(vCls(d)),false);liveState('');playDemo({voice:!!gesture});}
+const demoCo=d=>d&&d.sectors?phoneSec.company:(d&&d.company||'');
 function buildDevice(d){const st=$('#stage');
-  if(d.device==='phone'){st.innerHTML=`<div class="phone"><div class="scr"><div class="notch"></div><div class="callhd"><b>${d.company}</b><small>${d.role||'Telefon-Agent'} · <span id="dTimer">00:00</span></small></div><div class="wave" id="dWave">${'<i></i>'.repeat(26)}</div><div class="tr" id="dTr"></div><div class="ctl"><i>🔇</i><i class="red">📞</i><i>⌨️</i></div></div></div>`;
+  if(d.device==='phone'){const role=d.sectors?phoneSec.persona+' · Telefon-Agent':(d.role||'Telefon-Agent');st.innerHTML=`<div class="phone"><div class="scr"><div class="notch"></div><div class="callhd"><b id="dCo">${esc(demoCo(d))}</b><small><span id="dRole">${esc(role)}</span> · <span id="dTimer">00:00</span></small></div><div class="wave" id="dWave">${'<i></i>'.repeat(26)}</div><div class="tr" id="dTr"></div><div class="ctl"><i>🔇</i><i class="red">📞</i><i>⌨️</i></div></div></div>`;
     document.querySelectorAll('#dWave i').forEach((el,i)=>{el.style.animationDelay=(i*0.07)+'s';el.style.animationDuration=(0.7+((i*37)%5)/10)+'s';});}
   else if(d.device==='browser'){st.innerHTML=`<div class="browser"><div class="bar"><i></i><i></i><i></i><span>${d.url||'nordlicht-outdoor.de/jacken/alpin-pro'}</span></div><div class="site">${d.site||'<div class="fake h"></div><div class="fake"></div><div class="fake w"></div><div class="fake"></div><div class="fake w"></div>'}<div class="widget"><div class="wh"><div class="av"></div><div><b>${d.company}</b><small>${d.role||'Support-Agent · online'}</small></div></div><div class="tr" id="dTr"></div><div class="in">Nachricht schreiben …</div></div></div></div>`;}
   else if(d.device==='wa'){st.innerHTML=`<div class="phone wa"><div class="scr"><div class="wahd"><div class="av">${d.avatar||'🍕'}</div><div><b>${d.company}</b><small>${d.role||'Bestell-Agent · online · antwortet sofort'}</small></div></div><div class="tr" id="dTr"></div><div class="wain"><span>Nachricht</span><i>➤</i></div></div></div>`;}
@@ -806,24 +848,37 @@ function dmsg(role,text,typing){const tr=$('#dTr');if(!tr)return null;const m=do
 /* WhatsApp-Optik: Uhrzeit + Haken unter jeder Nachricht */
 function stamp(m,role){if(!cur||cur.device!=='wa'||role==='sys'||!m)return;const s=document.createElement('span');s.className='tm';s.textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+(role==='u'?' ✓✓':'');m.appendChild(s);}
 function stepOn(i){document.querySelectorAll('#exSteps .it').forEach(el=>el.classList.toggle('on',+el.dataset.i<=i));}
-async function playDemo(){const d=cur,my=++playId;const tr=$('#dTr');if(tr)tr.innerHTML='';stepOn(-1);const out=$('#dOut');if(out)out.style.opacity=0;
-  let sec=0;const timer=$('#dTimer');const tick=setInterval(()=>{if(my!==playId||liveOn){clearInterval(tick);return;}sec++;if(timer)timer.textContent='00:'+String(sec).padStart(2,'0');},1000);
-  for(const [step,role,text] of d.script){if(my!==playId||liveOn)return;stepOn(step);
-    if(role==='a'){const t=dmsg('a','',true);await sleep(600);if(my!==playId||liveOn)return;let s='';for(const ch of text){s+=ch;t.textContent=s;if(ch===' '&&Math.random()<.3)await sleep(14);if(my!==playId||liveOn)return;}t.classList.remove('typing');stamp(t,'a');await sleep(900);}
-    else if(role==='u'){await sleep(500);if(my!==playId||liveOn)return;dmsg('u',text);await sleep(700);}
-    else {await sleep(400);if(my!==playId||liveOn)return;dmsg('sys',text);await sleep(600);}
+/* Demo-Gespräch abspielen; beim Telefon-Agenten das Skript der gewählten Branche (GET ?agent=agent-phone&sector=…). opt.voice: Agent-Sätze vorlesen, wenn die Stimme an ist (nur nach einer Geste) */
+async function playDemo(opt){const d=cur,my=++playId;const tr=$('#dTr');if(tr)tr.innerHTML='';stepOn(-1);const out=$('#dOut');if(out)out.style.opacity=0;
+  let script=d.script,greet=null;
+  if(d.sectors){const k=secCur,j=await secData(k);if(my!==playId||liveOn||cur!==d)return;
+    if(j){secApply(j,k);liveWho=[phoneSec.persona,phoneSec.persona];secHeader();liveApply(j);greet={text:vText(j.greeting).trim(),items:V.greet};const sc=secScript(j.script);if(sc.length)script=sc;}
+    else{V.gender=phoneSec.gender;V.preset=phoneSec.preset||'';V.rate=1;V.pitch=1;V.sector=k;V.demo='agent-phone';V.greet=[];vpLabel();if(k!==SEC_DEF)script=secFallbackScript(phoneSec);}}
+  const voiced=!!(opt&&opt.voice)&&V.on&&d.device==='phone'&&!liveOn,turn=V.turn;V.auto=voiced;const lv=$('#live');if(lv)lv.classList.toggle('aut',voiced);
+  const wv=$('#dWave');if(wv){wv.classList.toggle('idle',voiced);wv.classList.remove('talk','lis');}liveState('');
+  let sec=0;const timer=$('#dTimer');const tick=setInterval(()=>{if(my!==playId||liveOn){clearInterval(tick);return;}sec++;if(timer)timer.textContent=fmtT(sec);},1000);
+  const gone=()=>my!==playId||liveOn;
+  for(const [step,role,text] of script){if(gone())return;stepOn(step);
+    if(role==='a'){const t=dmsg('a','',true);const sp=voiced&&turn===V.turn?vSay(greet&&greet.text===text?greet.items:vItems(null,text),turn):null;
+      if(V_RM)t.textContent=text;else{await sleep(600);if(gone())return;let s='';for(const ch of text){s+=ch;t.textContent=s;if(ch===' '&&Math.random()<.3)await sleep(14);if(gone())return;}}
+      t.classList.remove('typing');stamp(t,'a');
+      if(sp){await sp;if(gone())return;await sleep(350);}else await sleep(900);}
+    else if(role==='u'){await sleep(500);if(gone())return;dmsg('u',text);await sleep(voiced?1100:700);}
+    else {await sleep(400);if(gone())return;dmsg('sys',text);await sleep(600);}
     if(text.includes('✓')&&out)out.style.opacity=1;}
-  clearInterval(tick);if(out)out.style.opacity=1;stepOn(3);}
-$('#btnReplay').onclick=()=>{liveLeave();playDemo();};
+  clearInterval(tick);if(out)out.style.opacity=1;stepOn(3);if(voiced&&my===playId){V.auto=false;if(lv)lv.classList.remove('aut');liveState('');}}
+$('#btnReplay').onclick=()=>{vUnlock();liveLeave();playDemo({voice:true});};
 $('#btnLive').onclick=()=>{vUnlock();goLive();};
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 /* ===== Live-Modus: Persona, Stimme (Server-TTS → Browser-Stimme), Füllsätze, Barge-in, Vorschläge ===== */
 const TTS_API='/chat/tts.php',LIVE_FALLBACK='Hallo! Was kann ich für Sie tun?',VKEY='chLiveVoice';
 /* Ansprechpartner je Demo, bis der Server die Persona nennt: [Nominativ, Dativ] */
-const LIVE_WHO={phone:['Lea','Lea'],termine:['Mia','Mia'],bestellung:['das Napoli-Team','dem Napoli-Team'],taxi:['die Zentrale','der Zentrale'],hotel:['die Rezeption','der Rezeption'],immo:['der Assistent','dem Assistenten'],kanzlei:['die Kanzlei','der Kanzlei'],steuer:['die Kanzlei','der Kanzlei']},LIVE_WHO_DEF=['der Assistent','dem Assistenten'];
-const LIVE_G={taxi:'m'};
+const LIVE_WHO={phone:['Lea','Lea'],termine:['Mia','Mia'],bestellung:['Luca','Luca'],taxi:['Kai','Kai'],hotel:['Sophie','Sophie'],immo:['Clara','Clara'],kanzlei:['die Kanzlei','der Kanzlei'],steuer:['die Kanzlei','der Kanzlei']},LIVE_WHO_DEF=['der Assistent','dem Assistenten'];
+/* Geschlecht und Stimm-Voreinstellung der Persona je Demo, bis der Server sie nennt (voice.gender / voice.preset) */
+const LIVE_G={taxi:'m',bestellung:'m'},LIVE_PRESET={phone:'f_warm',termine:'f_frisch',bestellung:'m_freundlich',taxi:'m_souveraen',hotel:'f_klar',immo:'f_klar'};
 const LIVE_BASE={phone:'Echter Telefon-Agent (Beispiel-Praxis).',termine:'Echter Termin-Agent mit echtem Demo-Kalender (Salon Luna). Buche ruhig – Demo-Termine werden nach 2 Tagen gelöscht.',bestellung:'Echter Bestell-Agent (Pizzeria Napoli, Köln). Gib eine Demo-Bestellung auf – nichts wird geliefert, keine Nachricht verschickt.',taxi:'Echter Taxi-Agent (Taxi Rheinland, Köln). Bestell eine Demo-Fahrt – es kommt kein Taxi, keine SMS wird verschickt.',hotel:'Echte Hotel-Rezeption (Hotel Alster Residenz, Hamburg). Frag nach einem Zimmer oder äußere einen Wunsch – Demo, es wird nichts gebucht.',immo:'Echter Immobilien-Agent (Lindqvist Immobilien, Köln). Frag zur Wohnung LQ-2041 oder bitte um Rückruf – Demo, es ruft niemand an.'};
-const V={on:false,turn:0,demo:'',gender:'f',rate:1,pitch:1,tts:false,ttsDead:false,ttsPause:0,fillers:[],lastF:-1,fcache:new Map(),audio:null,ac:window.AbortController?new AbortController():null,end:null,utter:null,busy:false,unlocked:false,voices:[],vTried:false};
+/* sector: Branche des Telefon-Agenten (geht an tts.php mit), preset: Stimm-Voreinstellung der Persona, greet: Begrüßungssätze mit Token (Hörprobe), auto: Demo-Anruf wird gerade vorgelesen, ttsKnown/spoken: für den Hinweis zur Browser-Stimme */
+const V={on:false,turn:0,demo:'',sector:'',gender:'f',preset:'',rate:1,pitch:1,tts:false,ttsKnown:false,ttsDead:false,ttsPause:0,fillers:[],greet:[],lastF:-1,fcache:new Map(),audio:null,ac:window.AbortController?new AbortController():null,end:null,utter:null,busy:false,auto:false,spoken:false,unlocked:false,voices:[],vTried:false};
 /* 50 ms Stille (WAV) – entsperrt Audio auf iOS innerhalb der ersten Geste */
 const V_SILENT=(()=>{try{const n=400,u=(v,b)=>{let s='';for(let i=0;i<b;i++)s+=String.fromCharCode((v>>>(8*i))&255);return s;};return 'data:audio/wav;base64,'+btoa('RIFF'+u(36+n,4)+'WAVEfmt '+u(16,4)+u(1,2)+u(1,2)+u(8000,4)+u(8000,4)+u(1,2)+u(8,2)+'data'+u(n,4)+'\x80'.repeat(n));}catch(e){return '';}})();
 let liveWho=LIVE_WHO_DEF.slice(),liveChips=[],liveUser=0,liveSt='',liveSeq=0,liveTick=0,liveSec=0;
@@ -833,20 +888,105 @@ const vClamp=(v,a,b,d)=>{v=Number(v);return isFinite(v)&&v>0?Math.min(b,Math.max
 const vText=x=>x==null?'':typeof x==='string'?x:typeof x==='number'?String(x):typeof x==='object'?String(x.de||x.text||Object.values(x).find(v=>typeof v==='string')||''):'';
 const fmtT=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
 const vCls=d=>d&&d.device==='phone'?'phone':'chat';
+const V_RM=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+/* ===== Telefon-Agent: Branchen (GET ?phone_sectors=1 – eingebaute Liste, falls der Server nicht antwortet) ===== */
+const SEC_API=DEMO_API+'?phone_sectors=1',SEC_DEF='zahnarzt',SEC_TTL=50*60*1000;
+const SECTORS_FALLBACK=[['zahnarzt','🦷','Zahnarztpraxis','Zahnarztpraxis Dr. Weber','Lea','f','Gesundheit','f_warm'],['arztpraxis','🩺','Hausarztpraxis','Hausarztpraxis Dr. Sommer & Kollegen · Berlin','Paula','f','Gesundheit','f_klar'],['tierarzt','🐾','Tierarztpraxis','Tierarztpraxis am Volkspark · Berlin','Emma','f','Gesundheit','f_sanft'],['apotheke','💊','Apotheke','Linden-Apotheke am Rotkreuzplatz · München','Julia','f','Gesundheit','f_klar'],
+ ['taxi','🚕','Taxi-Zentrale','Taxi Rheinland · Köln','Kai','m','Mobilität','m_souveraen'],['bank','🏦','Bankfiliale','Rheinische Volksbank · Filiale Köln-Ehrenfeld','Daniel','m','Finanzen','m_souveraen'],['versicherung','🛡️','Versicherungsmakler','Hansen Versicherungsmakler','Maren','f','Finanzen','f_sanft'],
+ ['hotel','🏨','Hotel-Rezeption','Hotel Alster Residenz · Hamburg','Sophie','f','Gastgewerbe','f_klar'],['restaurant','🍕','Pizzeria & Lieferdienst','Pizzeria Napoli · Köln','Luca','m','Gastgewerbe','m_freundlich'],
+ ['autowerkstatt','🚗','Kfz-Werkstatt','Kfz-Meisterbetrieb Hofmann · München','Timo','m','Handwerk & Auto','m_tief'],['handwerk','🔧','Heizung & Sanitär','Haustechnik Krüger · Heizung & Sanitär · Hamburg','Sven','m','Handwerk & Auto','m_ruhig'],
+ ['hausverwaltung','🏢','Hausverwaltung','Rheinland Hausverwaltung','Tobias','m','Immobilien','m_ruhig'],['immobilien','🏠','Immobilienmakler','Lindqvist Immobilien · Köln','Clara','f','Immobilien','f_klar'],
+ ['kanzlei','⚖️','Anwaltskanzlei','Kanzlei Berger & Partner Rechtsanwälte','Johanna','f','Recht & Steuern','f_klar'],['steuerberater','📊','Steuerberatung','Steuerkanzlei Lindner & Kollegen','Nina','f','Recht & Steuern','f_warm'],
+ ['friseur','✂️','Friseursalon','Salon Luna · Friseur & Kosmetik','Mia','f','Service','f_frisch'],['fitness','🏋️','Fitnessstudio','Kraftwerk Fitness · Frankfurt','Leon','m','Service','m_freundlich'],['stadtwerke','⚡','Stadtwerke','Stadtwerke Havelbogen · Berlin-Spandau','Ben','m','Service','m_tief']
+].map(x=>({key:x[0],icon:x[1],label:x[2],company:x[3],persona:x[4],gender:x[5],group:x[6],preset:x[7]}));
+let secList=SECTORS_FALLBACK.slice(),secCur=SEC_DEF,secLoaded=false,secBusy=false,secQ='';const secCache=new Map();
+const vpId=x=>typeof x==='string'&&/^[fm]_[a-z0-9_]{2,30}$/.test(x)?x:'';
+function secNorm(a){if(!Array.isArray(a))return null;const o=[];a.forEach(s=>{if(!s||typeof s!=='object')return;const k=String(s.key||'').toLowerCase();if(!/^[a-z0-9_-]{2,40}$/.test(k)||o.some(x=>x.key===k))return;
+  o.push({key:k,icon:vText(s.icon).trim()||'☎',label:vText(s.label).trim()||k,company:vText(s.company).trim()||k,persona:livePersona(s.persona)||vText(s.persona).trim()||'der Assistent',gender:s.gender==='m'?'m':'f',group:vText(s.group).trim()||'Weitere',preset:vpId(s.preset)});});
+  return o.length>=4?o:null;}
+function secInfo(k){return secList.find(s=>s.key===k)||secList.find(s=>s.key===SEC_DEF)||secList[0];}
+let phoneSec=secInfo(SEC_DEF);
+async function secInit(){if(secLoaded||secBusy)return;secBusy=true;
+  try{const r=await fetch(SEC_API,{cache:'no-store'});const j=await r.json();const l=secNorm(j&&j.sectors);if(l){secList=l;secLoaded=true;if(!secList.some(s=>s.key===secCur))secCur=SEC_DEF;phoneSec=secInfo(secCur);secRender();if(cur&&cur.sectors&&!liveOn)secHeader();}}catch(e){}
+  secBusy=false;}
+const secFold=s=>String(s).toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'');
+function secRender(){const w=$('#secGs');if(!w)return;w.textContent='';const groups=[];secList.forEach(s=>{let g=groups.find(x=>x.name===s.group);if(!g){g={name:s.group,items:[]};groups.push(g);}g.items.push(s);});
+  groups.forEach(g=>{const d=document.createElement('div');d.className='secg';d.setAttribute('role','group');d.setAttribute('aria-label',g.name);const l=document.createElement('span');l.className='sgl';l.textContent=g.name;d.appendChild(l);
+    g.items.forEach(s=>{const b=document.createElement('button');b.type='button';b.className='sec';b.dataset.k=s.key;b.setAttribute('aria-pressed',s.key===secCur?'true':'false');b.title=s.company+' · '+s.persona;b.innerHTML=`<i aria-hidden="true">${esc(s.icon)}</i><span>${esc(s.label)}</span>`;b.onclick=()=>{vUnlock();secSelect(s.key,true);};d.appendChild(b);});w.appendChild(d);});
+  const n=$('#secSub');if(n)n.textContent=secList.length+' Beispiel-Betriebe – jede Branche mit eigener Persona, Wissensbasis und Stimme.';secFilter(secQ);}
+function secFilter(q){secQ=String(q||'').trim();const nq=secFold(secQ);let n=0;document.querySelectorAll('#secGs .secg').forEach(g=>{let v=0;g.querySelectorAll('.sec').forEach(b=>{const s=secInfo(b.dataset.k);const hit=!nq||secFold([s.label,s.company,s.persona,s.group,s.key].join(' ')).includes(nq);b.hidden=!hit;if(hit)v++;});g.hidden=!v;n+=v;});
+  const p=$('#secpick');if(p)p.classList.toggle('empty',!n);const l=$('#secSrch');if(l)l.classList.toggle('has',!!secQ);}
+/* Auswahl markieren; im mobilen Band die gewählte Branche in die Mitte rollen (nur horizontal – die Seite bleibt stehen) */
+function secMark(){document.querySelectorAll('#secGs .sec').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===secCur?'true':'false'));
+  const b=document.querySelector('#secGs .sec[aria-pressed="true"]'),w=$('#secGs');if(!b||!w||w.scrollWidth<=w.clientWidth+4)return;
+  const wr=w.getBoundingClientRect(),br=b.getBoundingClientRect(),x=Math.max(0,w.scrollLeft+(br.left-wr.left)-(wr.width-br.width)/2);try{w.scrollTo({left:x,behavior:V_RM?'auto':'smooth'});}catch(e){w.scrollLeft=x;}}
+/* Branchen-Daten (Begrüßung, Vorschläge, Skript, Stimme, Sätze mit Token) – je Sitzung gecacht; die Token laufen nach 2 h ab */
+function secData(k){const c=secCache.get(k);if(c&&c.j&&Date.now()-c.ts<SEC_TTL)return Promise.resolve(c.j);if(c&&c.p)return c.p;
+  const p=(async()=>{try{const r=await fetch(DEMO_API+'?agent=agent-phone&sector='+encodeURIComponent(k),{cache:'no-store'});const j=await r.json();if(!j||typeof j!=='object'||!vText(j.greeting).trim())throw 0;secCache.set(k,{j,ts:Date.now()});return j;}catch(e){secCache.delete(k);return null;}})();
+  secCache.set(k,{p,ts:0});return p;}
+function secApply(j,k){const s=secInfo(k);if(j&&typeof j==='object'){const c=vText(j.company).trim(),p=livePersona(j.persona),vo=j.voice&&typeof j.voice==='object'?j.voice:{};if(c)s.company=c;if(p)s.persona=p;if(vo.gender==='m'||vo.gender==='f')s.gender=vo.gender;if(vpId(vo.preset))s.preset=vo.preset;const lb=vText(j.label).trim();if(lb)s.label=lb;}phoneSec=s;}
+function secHeader(){if(!cur||!cur.sectors)return;const s=phoneSec,co=$('#dCo'),ro=$('#dRole');if(co)co.textContent=s.company;if(ro)ro.textContent=s.persona+' · Telefon-Agent';
+  $('#exTag').textContent='Telefon-Agent · '+s.label;$('#exText').textContent='Beispiel: '+s.company+'. '+s.persona+' nimmt ab, antwortet nur aus der Wissensbasis dieses Betriebs, nimmt Anliegen auf und bestätigt – in natürlicher Sprache. Wähle oben eine andere Branche, um denselben Agenten in einem anderen Betrieb zu hören.';}
+function secScript(sc){if(!Array.isArray(sc))return [];const rows=sc.map(r=>Array.isArray(r)&&r.length>=2?[String(r[r.length-2]),vText(r[r.length-1]).trim()]:null).filter(r=>r&&/^(a|u|sys)$/.test(r[0])&&r[1]).slice(0,24);const n=rows.length;return rows.map((r,i)=>[Math.min(3,Math.floor(i*4/n)),r[0],r[1]]);}
+const secGreeting=s=>s.company+', guten Tag, hier ist '+s.persona+', '+(s.gender==='m'?'der digitale Assistent':'die digitale Assistentin')+'. Wie kann ich Ihnen helfen?';
+function secFallbackScript(s){return secScript([['sys','Eingehender Anruf · +49 …'],['a',secGreeting(s)],['u','Guten Tag, ich habe eine Frage zu Ihren Öffnungszeiten – und könnte mich jemand zurückrufen?'],['a','Sehr gern. Wie heißen Sie, und unter welcher Nummer erreichen wir Sie am besten?'],['u','Sandra Hoffmann, 0170 5551234.'],['sys','⚙ request callback ✓ · Sandra Hoffmann · heute'],['a','Danke, Frau Hoffmann – das Team ruft Sie heute noch zurück. Auf Wiederhören!'],['sys','Gespräch beendet · Rückruf eingetragen ✓ · Transkript im Studio']]);}
+/* Branche wählen: Telefon-Gerät umstellen, Branchen-Daten laden, Skript abspielen (mit Stimme, wenn an); der Live-Modus spricht danach mit dieser Persona (sector im POST) */
+function secSelect(k,gesture){if(!secList.some(s=>s.key===k))k=SEC_DEF;secCur=k;phoneSec=secInfo(k);secMark();
+  if(!cur||!cur.sectors){demoSelect('phone',gesture);return;}
+  liveLeave();liveHist=[];liveWho=[phoneSec.persona,phoneSec.persona];V.sector=k;V.gender=phoneSec.gender;V.preset=phoneSec.preset||'';V.rate=1;V.pitch=1;V.greet=[];secHeader();vpLabel();liveState('');playDemo({voice:!!gesture});}
+/* ===== Stimme wählen: Frau/Mann, Voreinstellungen (voices[] vom Server, sonst eingebaut), Hörprobe – die Wahl bleibt im Browser gespeichert ===== */
+const VPKEY='chLiveVoicePick';
+const VOICES_FALLBACK=[
+ {id:'f_warm',label:'Lea · warm & herzlich',gender:'f',desc:'Herzlich, ruhig und zugewandt – wie die vertraute Stimme am Empfang.',rate:.98,pitch:1,browser:{names:['Seraphina','Katja','Google Deutsch','Anna','Petra','Helena','Marlene'],rate:.98,pitch:1}},
+ {id:'f_klar',label:'Sophie · klar & professionell',gender:'f',desc:'Deutlich, souverän und freundlich-sachlich – ideal für Kanzlei, Hotel und Büro.',rate:1,pitch:1,browser:{names:['Katja','Seraphina','Google Deutsch','Petra','Anna','Helena'],rate:1,pitch:1}},
+ {id:'f_frisch',label:'Mia · frisch & lebendig',gender:'f',desc:'Gut gelaunt, schwungvoll und nahbar – passt zu Salon, Café und Studio.',rate:1.05,pitch:1.04,browser:{names:['Amala','Seraphina','Google Deutsch','Anna','Petra','Helena'],rate:1.05,pitch:1.04}},
+ {id:'f_sanft',label:'Hanna · sanft & geduldig',gender:'f',desc:'Leise, geduldig und beruhigend – für Schaden, Sorgen und Gesundheit.',rate:.94,pitch:.98,browser:{names:['Louisa','Seraphina','Katja','Anna','Helena','Petra','Google Deutsch'],rate:.94,pitch:.98}},
+ {id:'m_ruhig',label:'Jonas · ruhig & vertrauensvoll',gender:'m',desc:'Gelassen, warm und vertrauenswürdig – bleibt auch im Notfall ruhig.',rate:.96,pitch:.97,browser:{names:['Florian','Conrad','Killian','Markus','Viktor','Yannick'],rate:.96,pitch:.97}},
+ {id:'m_freundlich',label:'Max · freundlich & locker',gender:'m',desc:'Nahbar, gut gelaunt und unkompliziert – wie der Lieblingsladen um die Ecke.',rate:1.03,pitch:1,browser:{names:['Conrad','Killian','Florian','Yannick','Markus'],rate:1.03,pitch:1}},
+ {id:'m_souveraen',label:'Thomas · souverän & seriös',gender:'m',desc:'Klar, bestimmt und seriös – für Bank, Versicherung und Zentrale.',rate:1,pitch:.96,browser:{names:['Killian','Conrad','Florian','Markus','Viktor'],rate:1,pitch:.96}},
+ {id:'m_tief',label:'Paul · tief & gelassen',gender:'m',desc:'Sonore, tiefe Stimme – entspannt, bodenständig und kompetent.',rate:.95,pitch:.92,browser:{names:['Christoph','Conrad','Florian','Viktor','Markus'],rate:.95,pitch:.92}}];
+let voices=VOICES_FALLBACK.slice();
+let VP=(()=>{let o=null;try{o=JSON.parse(localStorage.getItem(VPKEY)||'{}');}catch(e){}o=o&&typeof o==='object'?o:{};return {g:o.g==='m'||o.g==='f'?o.g:'',f:vpId(o.f),m:vpId(o.m)};})();
+function vpSave(){try{localStorage.setItem(VPKEY,JSON.stringify(VP));}catch(e){}}
+function vVoicesNorm(a){if(!Array.isArray(a))return null;const o=[];a.forEach(v=>{if(!v||typeof v!=='object')return;const id=vpId(v.id);if(!id||o.some(x=>x.id===id))return;const b=v.browser&&typeof v.browser==='object'?v.browser:{},r=vClamp(v.rate,.7,1.3,1),p=vClamp(v.pitch,.7,1.3,1);
+  o.push({id,label:vText(v.label).trim()||id,gender:v.gender==='m'||v.gender==='f'?v.gender:id[0],desc:vText(v.desc).trim(),rate:r,pitch:p,browser:{names:(Array.isArray(b.names)?b.names:[]).map(x=>vText(x).trim()).filter(Boolean).slice(0,12),rate:vClamp(b.rate,.7,1.3,r),pitch:vClamp(b.pitch,.7,1.3,p)}});});
+  return o.filter(v=>v.gender==='f').length>=3&&o.filter(v=>v.gender==='m').length>=3?o:null;}
+const vpName=p=>p?(p.label.split(/\s·\s/)[0]||p.label).trim():'',vpTone=p=>p?p.label.split(/\s·\s/).slice(1).join(' · ').trim():'';
+/* Wirksame Stimme: eigene Wahl (VP) → sonst Stimme der Persona (voice.preset) → sonst erste Stimme des Geschlechts */
+function vGender(){return VP.g==='m'||VP.g==='f'?VP.g:(V.gender==='m'?'m':'f');}
+function vPreset(){const g=vGender(),list=voices.filter(v=>v.gender===g);if(!list.length)return null;return (VP[g]&&list.find(v=>v.id===VP[g]))||(V.preset&&list.find(v=>v.id===V.preset))||list[0];}
+function vPresetId(){const p=vPreset();return p?p.id:'';}
+function vpLabel(){const p=vPreset(),e=$('#vpLbl');if(e)e.textContent=p?vpName(p)+' · '+vpTone(p):'Stimme';}
+function vpOpen(){const pop=$('#vpop'),b=$('#vpBtn');if(!pop)return;pop.hidden=false;if(b)b.setAttribute('aria-expanded','true');vpRender();const f=pop.querySelector('#vpList [aria-checked="true"]')||pop.querySelector('#vpGender [aria-checked="true"]');if(f)try{f.focus();}catch(e){}}
+function vpClose(focus){const pop=$('#vpop'),b=$('#vpBtn');if(!pop||pop.hidden)return;pop.hidden=true;if(b)b.setAttribute('aria-expanded','false');if(focus&&b)try{b.focus();}catch(e){}}
+function vpRender(){const pop=$('#vpop');if(!pop||pop.hidden)return;const g=vGender(),p=vPreset();pop.querySelectorAll('#vpGender [role="radio"]').forEach(x=>{const on=x.dataset.g===g;x.setAttribute('aria-checked',on?'true':'false');x.tabIndex=on?0:-1;});
+  const l=$('#vpList');l.textContent='';voices.filter(v=>v.gender===g).forEach(v=>{const b=document.createElement('button');b.type='button';b.className='vo';b.setAttribute('role','radio');const on=!!p&&v.id===p.id;b.setAttribute('aria-checked',on?'true':'false');b.tabIndex=on?0:-1;b.dataset.id=v.id;
+    b.innerHTML=`<span class="von"><b>${esc(vpName(v))}</b><span>${esc(vpTone(v))}</span>${v.id===V.preset?'<em>Standard</em>':''}</span>${v.desc?`<small>${esc(v.desc)}</small>`:''}`;b.onclick=()=>vpPick(v.id);l.appendChild(b);});
+  const r=$('#vpReset');if(r)r.hidden=!(VP.g||VP.f||VP.m);}
+function vpPick(id){const p=voices.find(v=>v.id===id);if(!p)return;VP.g=p.gender;VP[p.gender]=id;vpSave();vpRender();vpLabel();}
+function vpSetGender(g){VP.g=g==='m'?'m':'f';vpSave();vpRender();vpLabel();}
+function vpReset(){VP={g:'',f:'',m:''};vpSave();vpRender();vpLabel();}
+/* Hörprobe: die Begrüßung der Persona (signierte Sätze → Server-Stimme mit der gewählten Voreinstellung) oder ein kurzer Beispielsatz mit der Browser-Stimme */
+function vpSample(){vUnlock();vStop();if(!V.on){V.on=true;if(cur)vPrefSet(vCls(cur),true);liveVoiceUI();}
+  const turn=V.turn;let items=V.greet.slice(0,2);if(!items.length)items=[{text:'Guten Tag, schön, dass Sie anrufen. Wie kann ich Ihnen helfen?',t:''}];vSay(items,turn);}
+/* Ehrlicher Hinweis, solange die Browser-Stimme spricht (keine Server-Stimme eingerichtet oder nicht erreichbar) */
+function ttsHintUI(){const h=$('#ttsHint');if(h)h.hidden=!(V.on&&V.ttsKnown&&(!V.tts||V.ttsDead)&&(liveOn||V.spoken));}
 function vPrefs(){let o=null;try{o=JSON.parse(localStorage.getItem(VKEY)||'{}');}catch(e){}return o&&typeof o==='object'?o:{};}
 function vPrefGet(cls){const o=vPrefs();return typeof o[cls]==='boolean'?o[cls]:cls==='phone';}
 function vPrefSet(cls,on){const o=vPrefs();o[cls]=!!on;try{localStorage.setItem(VKEY,JSON.stringify(o));}catch(e){}}
-function setVoice(on,persist){const was=V.on;V.on=!!on;if(persist&&cur)vPrefSet(vCls(cur),V.on);if(was&&!V.on)vStop();liveVoiceUI();}
+/* Stimme an/aus; wird sie während des Demo-Anrufs (Telefon-Gerät) eingeschaltet, startet der Anruf vorgelesen neu */
+function setVoice(on,persist){const was=V.on;V.on=!!on;if(persist&&cur)vPrefSet(vCls(cur),V.on);if(was&&!V.on)vStop();liveVoiceUI();
+  if(persist&&!was&&V.on&&cur&&cur.device==='phone'&&!liveOn){vUnlock();playDemo({voice:true});}}
 function liveVoiceUI(){const b=$('#liveVoice');if(b){b.textContent=V.on?'🔊 Stimme an':'🔇 Stimme aus';b.setAttribute('aria-pressed',V.on?'true':'false');}const l=$('#live');if(l)l.classList.toggle('von',V.on);
-  const i=$('#liveIn');if(i)i.placeholder=/^[A-ZÄÖÜ]/.test(liveWho[0])?'Nachricht an '+liveWho[0]+' …':'Schreib dem Agenten …';liveNoteSet();liveState();}
-function liveNoteSet(){const n=$('#liveNote');if(!n||!cur)return;const base=LIVE_BASE[cur.key]||'Echter Agent mit Beispiel-Wissensbasis. Deine eigene fügst du im Studio ein.';
+  const i=$('#liveIn');if(i)i.placeholder=/^[A-ZÄÖÜ]/.test(liveWho[0])?'Nachricht an '+liveWho[0]+' …':'Schreib dem Agenten …';vpLabel();ttsHintUI();liveNoteSet();liveState();}
+function liveNoteSet(){const n=$('#liveNote');if(!n||!cur)return;const base=cur.sectors?'Echter Telefon-Agent (Beispiel: '+phoneSec.company+').':(LIVE_BASE[cur.key]||'Echter Agent mit Beispiel-Wissensbasis. Deine eigene fügst du im Studio ein.');
   n.textContent=base+' '+(V.on?(SR?'Sprich mit ':'Schreib ')+liveWho[1]+' – antwortet mit Stimme.':'Mit 🔊 antwortet '+liveWho[0]+' mit Stimme.');}
-/* Statuszeile: spricht / hört zu / überlegt – sonst „Im Gespräch mit …“ */
+/* Statuszeile: spricht / hört zu / überlegt – sonst „Im Gespräch mit …“ (Live) bzw. „Demo-Gespräch mit …“ (vorgelesener Demo-Anruf) */
 function liveState(s){if(s!==undefined)liveSt=s;const l=$('#live'),w=$('#liveWho');if(!l||!w)return;const st=V.busy&&V.on?'spk':liveSt,N=vCap(liveWho[0]),ph=!!(cur&&cur.device==='phone');
   l.classList.toggle('lis',st==='listen');l.classList.toggle('thk',st==='think');const wv=$('#dWave');if(wv&&liveOn)wv.classList.toggle('lis',st==='listen');
-  w.textContent=st==='spk'?N+' spricht …':st==='listen'?N+' hört zu …':st==='think'?N+(ph?' überlegt …':' schreibt …'):(ph?'Im Gespräch mit ':'Live-Chat mit ')+liveWho[1];}
-/* Wellenform/Equalizer nur, solange wirklich Ton läuft */
-function vTalk(on){const w=$('#dWave');if(w&&liveOn){w.classList.toggle('talk',!!on);w.classList.toggle('idle',!on);}const l=$('#live');if(l)l.classList.toggle('spk',!!on);}
+  w.textContent=st==='spk'?N+' spricht …':st==='listen'?N+' hört zu …':st==='think'?N+(ph?' überlegt …':' schreibt …'):liveOn?(ph?'Im Gespräch mit ':'Live-Chat mit ')+liveWho[1]:'Demo-Gespräch mit '+liveWho[1];}
+/* Wellenform/Equalizer nur, solange wirklich Ton läuft (Live-Modus und vorgelesener Demo-Anruf) */
+function vTalk(on){const w=$('#dWave');if(w&&(liveOn||V.auto)){w.classList.toggle('talk',!!on);w.classList.toggle('idle',!on);}const l=$('#live');if(l)l.classList.toggle('spk',!!on);}
 function vEl(){if(!V.audio){const a=new Audio();a.preload='auto';try{a.setAttribute('playsinline','');}catch(e){}V.audio=a;}return V.audio;}
 function vUnlock(){if(V.unlocked)return;V.unlocked=true;
   try{if(V_SILENT){const a=vEl();a.src=V_SILENT;const p=a.play();if(p&&p.catch)p.catch(e=>{if(e&&e.name==='NotAllowedError')V.unlocked=false;});}}catch(e){V.unlocked=false;}
@@ -856,9 +996,10 @@ function vStop(){V.turn++;V.busy=false;try{V.ac&&V.ac.abort();}catch(e){}V.ac=wi
   const e=V.end;V.end=null;try{if(V.audio&&!V.audio.paused)V.audio.pause();}catch(x){}try{window.speechSynthesis&&speechSynthesis.cancel();}catch(x){}
   if(e)e();vTalk(false);liveState();}
 function vServer(){return V.tts&&!V.ttsDead&&Date.now()>V.ttsPause;}
-async function vFetch(it){if(!vServer()||!it||!it.t)return null;const ac=V.ac;
-  try{const r=await fetch(TTS_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({demo:V.demo,text:it.text,t:it.t}),cache:'no-store',signal:ac?ac.signal:undefined});
-    if(r.status===501)V.ttsDead=true;else if(r.status===429)V.ttsPause=Date.now()+120000;
+/* Server-Stimme: {demo, sector (nur Telefon-Agent), text, t, voice (gewählte Voreinstellung)} */
+async function vFetch(it){if(!vServer()||!it||!it.t)return null;const ac=V.ac;const body={demo:V.demo};if(V.sector)body.sector=V.sector;body.text=it.text;body.t=it.t;const pid=vPresetId();if(pid)body.voice=pid;
+  try{const r=await fetch(TTS_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store',signal:ac?ac.signal:undefined});
+    if(r.status===501){V.ttsDead=true;ttsHintUI();}else if(r.status===429)V.ttsPause=Date.now()+120000;
     if(!r.ok)return null;const ct=(r.headers.get('content-type')||'').toLowerCase();if(ct&&!/audio|octet-stream/.test(ct))return null;
     const b=await r.blob();if(!b||!b.size||(ac&&ac.signal.aborted))return null;return URL.createObjectURL(b);}catch(e){return null;}}
 function vPlayUrl(url,turn){return new Promise(res=>{if(turn!==V.turn)return res(false);const a=vEl();let fin=false,to=0;
@@ -875,16 +1016,20 @@ const VQ=/natural|online|neural|premium|enhanced|google|wavenet|network/i,
   VFEM=/katja|seraphina|amala|\banna\b|petra|helena|vicki|marlene|hedda|elke|louisa|ingrid|leni|klara|gisela|tanja|sabine|google deutsch|\bfemale|\bfrau\b|weiblich/i,
   VMAL=/conrad|florian|killian|markus|yannick|stefan|\bhans\b|ralf|bernd|christoph|kasper|klaus|jonas|viktor|martin|\bmale\b|\bmann\b|männlich/i,
   VNOV=/\b(eddy|flo|reed|rocko|sandy|shelley|grandma|grandpa|oma|opa|großmutter|großvater)\b/i;
-function pickVoice(g){let vs=[];try{vs=(window.speechSynthesis&&speechSynthesis.getVoices())||[];}catch(e){}if(!vs.length)vs=V.voices||[];
+/* p = Stimm-Voreinstellung: ihre bevorzugten Browser-Stimmnamen (Reihenfolge = Rang) zählen zusätzlich, damit sich die Stimmen auch ohne Server-Stimme unterscheiden */
+function pickVoice(g,p){let vs=[];try{vs=(window.speechSynthesis&&speechSynthesis.getVoices())||[];}catch(e){}if(!vs.length)vs=V.voices||[];
   const de=vs.filter(v=>v&&/^de([-_]|$)/i.test(v.lang||''));if(!de.length)return null;const want=g==='m'?VMAL:VFEM,other=g==='m'?VFEM:VMAL;
-  const sc=v=>{const n=v.name||'';let s=0;if(VQ.test(n))s+=6;s+=/^de[-_]de/i.test(v.lang)?3:1;if(want.test(n))s+=3;else if(other.test(n))s-=2;if(v.localService===false)s+=1;if(VNOV.test(n))s-=20;return s;};
+  const names=(p&&p.browser&&Array.isArray(p.browser.names)?p.browser.names:[]).map(n=>{try{return new RegExp('(^|[^a-zäöüß])'+String(n).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^a-zäöüß]|$)','i');}catch(e){return null;}});
+  const sc=v=>{const n=v.name||'';let s=0;if(VQ.test(n))s+=6;s+=/^de[-_]de/i.test(v.lang)?3:1;if(want.test(n))s+=3;else if(other.test(n))s-=2;if(v.localService===false)s+=1;if(VNOV.test(n))s-=20;
+    for(let k=0;k<names.length;k++)if(names[k]&&names[k].test(n)){s+=10-Math.min(k,8);break;}return s;};
   return de.slice().sort((a,b)=>sc(b)-sc(a))[0]||null;}
 try{if(window.speechSynthesis){const f=()=>{try{V.voices=speechSynthesis.getVoices()||[];}catch(e){}};if(speechSynthesis.addEventListener)speechSynthesis.addEventListener('voiceschanged',f);f();}}catch(e){}
 /* Browser-Stimme, Satz für Satz (kurze Äußerungen umgehen Chromes 15-Sekunden-Abbruch) */
 async function vBrowser(text,turn){const ss=window.speechSynthesis;if(!ss||!window.SpeechSynthesisUtterance||!text)return 'none';
   if(!V.vTried){V.vTried=true;await vVoicesReady();}if(turn!==V.turn)return false;
   return new Promise(res=>{let u;try{u=new SpeechSynthesisUtterance(text);}catch(e){return res('none');}
-    u.lang='de-DE';const v=pickVoice(V.gender);if(v){try{u.voice=v;u.lang=v.lang||'de-DE';}catch(e){}}u.rate=V.rate;u.pitch=V.pitch;
+    u.lang='de-DE';const p=vPreset(),v=pickVoice(vGender(),p);if(v){try{u.voice=v;u.lang=v.lang||'de-DE';}catch(e){}}
+    const own=!p||!V.preset||p.id===V.preset;u.rate=own?V.rate:vClamp(p.browser.rate,.7,1.3,V.rate);u.pitch=own?V.pitch:vClamp(p.browser.pitch,.7,1.3,V.pitch);   /* eigene Stimme der Persona: ihr Tempo/Tonhöhe; andere Voreinstellung: deren Werte */
     let fin=false,to=0;const done=r=>{if(fin)return;fin=true;clearTimeout(to);if(V.end===stop)V.end=null;if(V.utter===u)V.utter=null;vTalk(false);res(r);};
     const stop=()=>done(false);V.end=stop;V.utter=u;
     u.onstart=()=>{if(!fin)vTalk(true);};u.onend=()=>done(true);u.onerror=e=>done(e&&/interrupted|canceled/.test(e.error||'')?false:'err');
@@ -892,7 +1037,7 @@ async function vBrowser(text,turn){const ss=window.speechSynthesis;if(!ss||!wind
     try{if(ss.paused)ss.resume();ss.speak(u);}catch(e){done('none');}});}
 /* Sätze nacheinander: Server-Stimme mit Prefetch des nächsten Satzes, bei Fehler Browser-Stimme für den Rest */
 async function vSay(items,turn){items=(items||[]).filter(x=>x&&x.text);if(!items.length||turn!==V.turn||!V.on)return false;
-  V.busy=true;liveState();let srv=vServer(),ok=true;const pre=[];const get=i=>pre[i]||(pre[i]=vFetch(items[i]));
+  V.busy=true;if(!V.spoken){V.spoken=true;ttsHintUI();}liveState();let srv=vServer(),ok=true;const pre=[];const get=i=>pre[i]||(pre[i]=vFetch(items[i]));
   try{for(let i=0;i<items.length;i++){if(turn!==V.turn||!V.on){ok=false;break;}let r='none';
       if(srv&&items[i].t){const url=await get(i);if(turn!==V.turn){ok=false;break;}
         if(url){if(i+1<items.length&&items[i+1].t)get(i+1);r=await vPlayUrl(url,turn);try{URL.revokeObjectURL(url);}catch(e){}if(r===false){ok=false;break;}}
@@ -903,7 +1048,7 @@ async function vSay(items,turn){items=(items||[]).filter(x=>x&&x.text);if(!items
   return ok&&turn===V.turn;}
 /* Füllsatz („Mhm, einen kleinen Moment …“) – höchstens einer pro Antwort, Audio wird gecacht */
 function vFillerPick(){const f=V.fillers;if(!f.length)return null;let i=Math.floor(Math.random()*f.length);if(f.length>1&&i===V.lastF)i=(i+1)%f.length;V.lastF=i;return f[i];}
-function vFillerAudio(f){if(!vServer()||!f.t)return Promise.resolve(null);const k=V.demo+'|'+f.text;let p=V.fcache.get(k);if(!p){p=vFetch(f).then(u=>{if(!u)V.fcache.delete(k);return u;});V.fcache.set(k,p);}return p;}
+function vFillerAudio(f){if(!vServer()||!f.t)return Promise.resolve(null);const k=V.demo+'|'+V.sector+'|'+vPresetId()+'|'+f.text;let p=V.fcache.get(k);if(!p){p=vFetch(f).then(u=>{if(!u)V.fcache.delete(k);return u;});V.fcache.set(k,p);}return p;}
 async function vFiller(f,turn,st){const url=await vFillerAudio(f);if(st.answered||turn!==V.turn||!V.on)return;st.started=true;V.busy=true;liveState();
   const r=url?await vPlayUrl(url,turn):'none';if(r!==true&&r!==false&&turn===V.turn)await vBrowser(f.text,turn);if(turn===V.turn){V.busy=false;liveState();}}
 /* Ersatz, falls der Server kein speech[] liefert: einfache Satztrennung + Sprechnormalisierung */
@@ -925,10 +1070,11 @@ function speak(text,done){vSay(vItems(null,text),V.turn).then(ok=>{done&&done(ok
 /* Persona-Vorname aus dem Server (z. B. „Lea“), sonst Rollenbezeichnung */
 function livePersona(p){const s=vText(p&&typeof p==='object'?p.name:p).trim().split(/[,;:·–—(|]/)[0].trim().split(/\s+/)[0]||'';return /^[A-ZÄÖÜ][a-zäöüß]{1,13}$/.test(s)&&!/^(Der|Die|Das|Ein|Eine|Ihr|Ihre|Hier|Hallo)$/.test(s)?s:'';}
 function liveApply(j){if(!j||typeof j!=='object')return;const vo=j.voice&&typeof j.voice==='object'?j.voice:{};
-  if(vo.gender==='m'||vo.gender==='f')V.gender=vo.gender;V.rate=vClamp(vo.rate,.85,1.15,1);V.pitch=vClamp(vo.pitch,.8,1.2,1);
-  if(typeof j.demo==='string'&&/^[a-z0-9-]{2,40}$/.test(j.demo))V.demo=j.demo;V.tts=j.tts===true;
+  if(vo.gender==='m'||vo.gender==='f')V.gender=vo.gender;V.rate=vClamp(vo.rate,.85,1.15,1);V.pitch=vClamp(vo.pitch,.8,1.2,1);V.preset=vpId(vo.preset);
+  if(typeof j.demo==='string'&&/^[a-z0-9-]{2,40}$/.test(j.demo))V.demo=j.demo;V.sector=typeof j.sector==='string'&&/^[a-z0-9_-]{2,40}$/.test(j.sector)?j.sector:(cur&&cur.sectors?secCur:'');V.tts=j.tts===true;V.ttsKnown=true;
+  const vl=vVoicesNorm(j.voices);if(vl)voices=vl;V.greet=vItems(j.speech,vText(j.greeting));
   V.fillers=(Array.isArray(j.fillers)?j.fillers:[]).map(f=>typeof f==='string'?{text:f.trim(),t:''}:f&&typeof f==='object'?{text:vText(f.text).trim(),t:typeof f.t==='string'?f.t:''}:null).filter(f=>f&&f.text).slice(0,4);
-  liveChips=(Array.isArray(j.chips)?j.chips:[]).map(c=>vText(c).trim()).filter(Boolean).slice(0,4);const n=livePersona(j.persona);if(n)liveWho=[n,n];}
+  liveChips=(Array.isArray(j.chips)?j.chips:[]).map(c=>vText(c).trim()).filter(Boolean).slice(0,4);const n=livePersona(j.persona);if(n)liveWho=[n,n];vpRender();vpLabel();ttsHintUI();}
 /* Vorschläge unter der Eingabe – nach der ersten Nachricht nur noch zwei, kompakt */
 function liveChipsRender(used){const w=$('#liveChips');if(!w)return;if(used){const i=liveChips.indexOf(used);if(i>=0)liveChips.splice(i,1);}
   const cmp=liveUser>0,list=liveChips.slice(0,cmp?2:4);w.classList.toggle('cmp',cmp);w.textContent='';
@@ -938,19 +1084,21 @@ function liveTimerStart(keep){liveTimerStop();const el=$('#dTimer');if(!el||!cur
 function liveTimerStop(){clearInterval(liveTick);liveTick=0;}
 function liveRecStop(){micWanted=false;if(rec){const r=rec;rec=null;try{r.onresult=r.onend=r.onerror=null;r.abort();}catch(e){}}const m=$('#liveMic');if(m)m.classList.remove('rec');if(liveSt==='listen')liveState('');}
 /* Live-Modus verlassen (Demo-Wechsel, „Demo abspielen“) */
-function liveLeave(){vStop();liveRecStop();liveTimerStop();liveOn=false;liveSt='';liveSeq++;const l=$('#live');if(l)l.classList.remove('on','spk','lis','thk');const b=$('#btnLive');if(b)b.textContent='Selbst testen – live';
-  const w=$('#dWave');if(w)w.classList.remove('idle','talk','lis');const c=$('#liveChips');if(c){c.textContent='';c.hidden=true;}}
+function liveLeave(){vStop();liveRecStop();liveTimerStop();liveOn=false;V.auto=false;liveSt='';liveSeq++;const l=$('#live');if(l)l.classList.remove('on','spk','lis','thk','aut');const b=$('#btnLive');if(b)b.textContent='Selbst testen – live';
+  const w=$('#dWave');if(w)w.classList.remove('idle','talk','lis');const c=$('#liveChips');if(c){c.textContent='';c.hidden=true;}vpClose(false);ttsHintUI();}
 async function goLive(voice){if(liveOn&&!voice)return;vUnlock();vStop();liveRecStop();
-  liveOn=true;playId++;liveSeq++;liveHist=[];liveUser=0;liveChips=[];liveSt='';const d=cur;$('#live').classList.add('on');$('#btnLive').textContent='Live-Modus aktiv';
+  liveOn=true;V.auto=false;playId++;liveSeq++;liveHist=[];liveUser=0;liveChips=[];liveSt='';const d=cur;$('#live').classList.add('on');$('#live').classList.remove('aut');$('#btnLive').textContent='Live-Modus aktiv';
   const tr=$('#dTr');if(tr)tr.innerHTML='';stepOn(3);const out=$('#dOut');if(out)out.style.opacity=0;
-  V.demo=d.plan;V.gender=LIVE_G[d.key]||'f';V.rate=1;V.pitch=1;V.tts=false;V.fillers=[];V.lastF=-1;liveWho=(LIVE_WHO[d.key]||LIVE_WHO_DEF).slice();
+  V.demo=d.plan;V.sector=d.sectors?secCur:'';V.gender=d.sectors?phoneSec.gender:(LIVE_G[d.key]||'f');V.preset=d.sectors?(phoneSec.preset||''):(LIVE_PRESET[d.key]||'');V.rate=1;V.pitch=1;V.tts=false;V.fillers=[];V.lastF=-1;V.greet=[];liveWho=d.sectors?[phoneSec.persona,phoneSec.persona]:(LIVE_WHO[d.key]||LIVE_WHO_DEF).slice();
   $('#liveMic').style.display=SR?'inline-flex':'none';setVoice(vPrefGet(vCls(d))||!!(voice&&d.key==='phone'&&SR),false);liveChipsRender();liveState('');
   const wv=$('#dWave');if(wv){wv.classList.add('idle');wv.classList.remove('talk','lis');}liveTimerStart();
-  dmsg('sys','Live-Modus · echter Agent · Beispiel-Firma '+d.company);
-  const my=playId,turn=V.turn;let g=LIVE_FALLBACK,sp=null;
-  try{const r=await fetch(DEMO_API+'?agent='+encodeURIComponent(d.plan));const j=await r.json();if(my!==playId||cur!==d)return;
-    liveApply(j);const jg=vText(j&&j.greeting).trim();if(jg)g=jg;dmsg('a',g);if(jg&&!liveHist.length)histPush('assistant',g);sp=j&&j.speech;}
-  catch(e){if(my!==playId||cur!==d)return;dmsg('a',g);}
+  dmsg('sys','Live-Modus · echter Agent · Beispiel-Firma '+demoCo(d));
+  /* Telefon-Agent: Branchen-Daten (gecacht, GET ?agent=agent-phone&sector=…); andere Demos: GET ?agent=<plan> */
+  const my=playId,turn=V.turn;let g=d.sectors?secGreeting(phoneSec):LIVE_FALLBACK,sp=null,j=null;
+  try{if(d.sectors)j=await secData(secCur);else{const r=await fetch(DEMO_API+'?agent='+encodeURIComponent(d.plan));j=await r.json();}}catch(e){j=null;}
+  if(my!==playId||cur!==d)return;
+  if(j&&typeof j==='object'){if(d.sectors){secApply(j,secCur);secHeader();}liveApply(j);const jg=vText(j.greeting).trim();if(jg)g=jg;sp=j.speech;}
+  dmsg('a',g);if(!liveHist.length&&(d.sectors||g!==LIVE_FALLBACK))histPush('assistant',g);
   liveChipsRender();liveVoiceUI();
   const auto=!!(voice&&d.key==='phone'&&SR);if(!auto)try{$('#liveIn').focus();}catch(e){}
   const ok=V.on&&turn===V.turn?await vSay(vItems(sp,g),turn):false;
@@ -964,7 +1112,8 @@ async function liveSend(text){text=String(text||$('#liveIn').value||'').trim();i
   const st={answered:false,started:false};let fp=null,ft=0;
   if(V.on&&V.fillers.length){const f=vFillerPick();if(f){vFillerAudio(f);ft=setTimeout(()=>{if(!st.answered&&turn===V.turn&&V.on)fp=vFiller(f,turn,st);},1300);}}
   let j=null;
-  try{const r=await fetch(DEMO_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent:d.plan,channel:d.device==='phone'?'phone':'chat',messages:liveHist.slice(-10),lang:'de'})});j=await r.json();}catch(e){j=null;}
+  const body={agent:d.plan};if(d.sectors)body.sector=secCur;body.channel=d.device==='phone'?'phone':'chat';body.messages=liveHist.slice(-10);body.lang='de';   /* sector nur beim Telefon-Agenten */
+  try{const r=await fetch(DEMO_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});j=await r.json();}catch(e){j=null;}
   st.answered=true;clearTimeout(ft);
   if(d!==cur||play!==playId||!liveOn)return;
   if(seq===liveSeq)liveState('');
@@ -983,8 +1132,21 @@ async function liveSend(text){text=String(text||$('#liveIn').value||'').trim();i
 $('#liveForm').onsubmit=e=>{e.preventDefault();vUnlock();liveRecStop();liveSend();};
 $('#liveIn').addEventListener('input',()=>{vStop();if(rec)liveRecStop();});
 $('#liveVoice').onclick=()=>{vUnlock();setVoice(!V.on,true);};
-/* Erste Geste für die Live-Demo entsperrt Audio (iOS): Live-Knopf, Live-Leiste, alle „live testen“-Links */
-document.addEventListener('click',e=>{const t=e.target;if(t&&t.closest&&t.closest('#btnLive,#live button,[onclick*="goLive"]'))vUnlock();},true);
+/* Stimme wählen (Popover in der Live-Leiste): Frau/Mann, Voreinstellungen, Hörprobe, Zurücksetzen; Pfeiltasten innerhalb der Gruppen, Escape und Klick außerhalb schließen */
+$('#vpBtn').onclick=()=>{vUnlock();if($('#vpop').hidden)vpOpen();else vpClose(true);};
+$('#vpClose').onclick=()=>vpClose(true);$('#vpPlay').onclick=vpSample;$('#vpReset').onclick=vpReset;
+document.querySelectorAll('#vpGender [role="radio"]').forEach(b=>b.onclick=()=>vpSetGender(b.dataset.g));
+$('#vpop').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();vpClose(true);return;}if(!/^Arrow(Left|Right|Up|Down)$/.test(e.key))return;const g=e.target.closest&&e.target.closest('[role="radiogroup"]');if(!g)return;
+  const items=[...g.querySelectorAll('[role="radio"]')],i=items.indexOf(e.target);if(i<0)return;e.preventDefault();items[(i+(/Right|Down/.test(e.key)?1:items.length-1))%items.length].click();const f=g.querySelector('[aria-checked="true"]');if(f)f.focus();});
+document.addEventListener('click',e=>{const pop=$('#vpop');if(!pop||pop.hidden)return;const t=e.target;if(t&&t.closest&&t.closest('#vpop,#vpBtn'))return;vpClose(false);});
+/* Branchen-Suche („Branche suchen…“, Enter wählt den ersten Treffer, Escape leert) und Pfeiltasten im Branchen-Band */
+$('#secSearch').addEventListener('input',e=>secFilter(e.target.value));
+$('#secSearch').addEventListener('keydown',e=>{if(e.key==='Escape'&&e.target.value){e.target.value='';secFilter('');}else if(e.key==='Enter'){const b=document.querySelector('#secGs .sec:not([hidden])');if(b){e.preventDefault();b.click();}}});
+$('#secClear').onclick=()=>{const i=$('#secSearch');i.value='';secFilter('');i.focus();};
+$('#secGs').addEventListener('keydown',e=>{if(!/^(Arrow(Left|Right|Up|Down)|Home|End)$/.test(e.key))return;const items=[...document.querySelectorAll('#secGs .sec:not([hidden])')],i=items.indexOf(e.target);if(i<0)return;e.preventDefault();
+  (e.key==='Home'?items[0]:e.key==='End'?items[items.length-1]:items[(i+(/Right|Down/.test(e.key)?1:items.length-1))%items.length]).focus();});
+/* Erste Geste für die Live-Demo entsperrt Audio (iOS): Live-Knopf, Live-Leiste, Branchen-Chips, alle „live testen“-Links */
+document.addEventListener('click',e=>{const t=e.target;if(t&&t.closest&&t.closest('#btnLive,#live button,#secGs button,[onclick*="goLive"]'))vUnlock();},true);
 function listen(){if(!SR||!liveOn)return;vStop();if(rec){const o=rec;rec=null;try{o.onresult=o.onend=o.onerror=null;o.abort();}catch(e){}}
   let r;try{r=new SR();}catch(e){return;}rec=r;r.lang='de-DE';r.interimResults=false;r.maxAlternatives=1;micWanted=true;
   const off=()=>{if(rec!==r)return;rec=null;$('#liveMic').classList.remove('rec');if(liveSt==='listen')liveState('');};
@@ -992,7 +1154,7 @@ function listen(){if(!SR||!liveOn)return;vStop();if(rec){const o=rec;rec=null;tr
   r.onerror=e=>{off();if(e&&/not-allowed|service-not-allowed/.test(e.error||'')){micWanted=false;const n=$('#liveNote');if(n)n.textContent='Mikrofon nicht freigegeben – du kannst auch tippen.';}};
   r.onend=off;$('#liveMic').classList.add('rec');liveState('listen');try{r.start();}catch(e){off();}}
 $('#liveMic').onclick=()=>{vUnlock();if(rec&&$('#liveMic').classList.contains('rec')){try{rec.stop();}catch(e){}return;}if(!V.on)setVoice(true,true);listen();};
-demoSelect('phone');
+secRender();demoSelect('phone');
 
 /* ===== Telefon-Sektion: Endlos-Mini-Demo ===== */
 (async function telLoop(){const tr=$('#telTr');const wave=$('#telWave');wave.innerHTML='<i></i>'.repeat(26);document.querySelectorAll('#telWave i').forEach((el,i)=>{el.style.animationDelay=(i*0.07)+'s';el.style.animationDuration=(0.7+((i*37)%5)/10)+'s';});
