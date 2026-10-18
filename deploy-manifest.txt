@@ -97,3 +97,15 @@ site/media/avatars/m6.webp media/avatars/m6.webp
 site/media/avatars/m7.webp media/avatars/m7.webp
 site/media/avatars/m8.webp media/avatars/m8.webp
 site/media/avatars/m9.webp media/avatars/m9.webp
+# Rückruf (Lead-Formular, KI-Rückruf) + Agent-Training
+chat/callback-lib.php        chat/callback-lib.php
+chat/callback.php            chat/callback.php
+chat/lead-api.php            chat/lead-api.php
+chat/studio-panels/rueckruf.html chat/studio-panels/rueckruf.html
+chat/studio-panels/rueckruf.js chat/studio-panels/rueckruf.js
+chat/train-lib.php           chat/train-lib.php
+chat/studio-panels/training.html chat/studio-panels/training.html
+chat/studio-panels/training.js chat/studio-panels/training.js
+# Live-Modus: Sprachaufbereitung + Server-Stimmen
+chat/speech-lib.php          chat/speech-lib.php
+chat/tts.php                 chat/tts.php
