@@ -140,7 +140,21 @@ $G=[
  'ru'=>['hi'=>'Здравствуйте! Я ассистент ChatHelp. Скажите, что нужно: юридическое письмо, ИИ-агент для бизнеса, контент для соцсетей или API.',
         'chips'=>['Нужно написать возражение','Какой агент подходит моему магазину?','Сколько стоят токены?']],
  'es'=>['hi'=>'¡Hola! Soy el asistente de ChatHelp. Dime qué necesitas: una carta legal, un agente de IA, contenido para redes o la API.',
-        'chips'=>['Quiero redactar una reclamación','¿Qué agente encaja con mi tienda?','¿Cuánto cuestan los tokens?']],
+        'chips'=>['Quiero redactar una reclamación','¿Qué agente encaja con mi tienda?','¿Cuánto cuestan los tokens?']], /* Startseite in 13 Sprachen: Begrüßung des schwebenden Assistenten auch für it/az/nl/sv/no/fi/ja (sonst Englisch) */
+ 'it'=>['hi'=>'Ciao! Sono l’assistente di ChatHelp. Dimmi cosa ti serve: una lettera formale, un agente IA per la tua attività, contenuti social o l’API.',
+        'chips'=>['Quale agente fa per il mio ristorante?','Quanto costano i token?','Come funziona l’agente telefonico?']],
+ 'az'=>['hi'=>'Salam! Mən ChatHelp köməkçisiyəm. Nə lazım olduğunu de: rəsmi məktub, biznesin üçün süni intellekt agenti, sosial media məzmunu və ya API.',
+        'chips'=>['Klinikam üçün hansı agent uyğundur?','Tokenlər neçəyədir?','WhatsApp agenti necə işləyir?']],
+ 'nl'=>['hi'=>'Hallo! Ik ben de ChatHelp-assistent. Vertel wat je nodig hebt: een formele brief, een AI-agent voor je bedrijf, social-mediacontent of de API.',
+        'chips'=>['Welke agent past bij mijn webshop?','Wat kosten tokens?','Hoe werkt de telefoonagent?']],
+ 'sv'=>['hi'=>'Hej! Jag är ChatHelp-assistenten. Berätta vad du behöver: ett formellt brev, en AI-agent för ditt företag, innehåll för sociala medier eller API:t.',
+        'chips'=>['Vilken agent passar min webbutik?','Vad kostar tokens?','Hur fungerar telefonagenten?']],
+ 'no'=>['hi'=>'Hei! Jeg er ChatHelp-assistenten. Si hva du trenger: et formelt brev, en AI-agent for bedriften din, innhold til sosiale medier eller API-et.',
+        'chips'=>['Hvilken agent passer for nettbutikken min?','Hva koster tokens?','Hvordan fungerer telefonagenten?']],
+ 'fi'=>['hi'=>'Hei! Olen ChatHelp-avustaja. Kerro, mitä tarvitset: virallisen kirjeen, tekoälyagentin yrityksellesi, somesisältöä tai API:n.',
+        'chips'=>['Mikä agentti sopii verkkokauppaani?','Mitä tokenit maksavat?','Miten puhelinagentti toimii?']],
+ 'ja'=>['hi'=>'こんにちは！ChatHelpアシスタントです。正式な文書、事業向けAIエージェント、SNSコンテンツ、APIなど、ご用件をお聞かせください。',
+        'chips'=>['お店に合うエージェントは？','トークンの料金は？','電話エージェントの仕組みは？']],
 ];
 $g=$G[$lang] ?? $G['en'];
 /* Live-Demo eines Agenten (Startseite): ?agent=agent-phone[&sector=bank] → Beispiel-Firma + Wissensbasis, echter Agent */

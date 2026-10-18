@@ -6,6 +6,8 @@
  *   GET /chat/locale-api.php?lang=tr        → Sprache wählen  (setzt Cookie ch_lang, 1 Jahr)
  *   GET /chat/locale-api.php?cur=USD        → Währung wählen  (setzt Cookie ch_cur, 1 Jahr; RUB → EUR mit note)
  *   GET /chat/locale-api.php?cc=TR          → Vorschau als Besucher aus einem Land (setzt nichts)
+ * focus: Länder-Fokus der Startseite (chat/country-lib.php: Kategorien zuerst, „Beliebt in …“-Agenten, Hero-Nutzen, Begründung je Sprache) –
+ *        hängt nur vom Land ab (nicht von Sprache/Währung), null ohne Land. Die Sprachwahl ändert die Sprache, nicht das Land.
  * Land: Cloudflare-Header CF-IPCountry; ohne Land: Accept-Language; Auswahl per Cookie hat Vorrang (Details: ch_visitor_locale in i18n.php).
  * Die Startseite ist statisch und bis zu 31 Tage am Edge gecacht – deshalb wird nichts Länderabhängiges ins HTML gerendert,
  * die Seite fragt diesen Endpunkt einmal je Sitzung (sessionStorage) und lokalisiert im Browser.
@@ -13,6 +15,7 @@
  * Kein Konflikt mit dem alten chat/geo.php auf dem Server (anderer Dateiname).
  */
 require_once __DIR__.'/plans.php';   // CH_PLANS/CH_RUN_TIERS (Preistabelle) + i18n.php (Sprachen, Währungen, Kurse)
+require_once __DIR__.'/country-lib.php';   // ch_country_focus (reine Daten, keine Datenbank)
 
 /* Gleiche Kopfzeilen wie th_nocache() (tokens-lib): weder Browser noch Cloudflare/Plattform dürfen die Antwort speichern */
 header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0'); header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store');
@@ -24,6 +27,7 @@ $m=$_SERVER['REQUEST_METHOD'] ?? 'GET';
 if($m!=='GET' && $m!=='HEAD'){ http_response_code(405); header('Allow: GET, HEAD'); header('Content-Type: application/json; charset=UTF-8'); echo '{"error":"method_not_allowed"}'; exit; }
 
 $loc=ch_visitor_locale($_SERVER,$_COOKIE,$_GET);
+$loc['focus']=ch_country_focus((string)($loc['country'] ?? '')) ?: null;
 
 /* Ausdrückliche Wahl (?lang= / ?cur=) als Cookie merken – dieselben Cookies setzt die Website beim Umschalten selbst */
 $https=(($_SERVER['HTTPS'] ?? '')!=='' && ($_SERVER['HTTPS'] ?? '')!=='off') || strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))==='https' || str_contains((string)($_SERVER['HTTP_CF_VISITOR'] ?? ''),'https');
