@@ -388,7 +388,7 @@
   var PIP = { st: {}, pct: {}, js: null };
   function pipLib() {
     if (window.CHVoice || PIP.js) return;
-    PIP.js = document.createElement('script'); PIP.js.src = '/chat/voice/voice.js?v=2'; PIP.js.async = true;
+    PIP.js = document.createElement('script'); PIP.js.src = '/chat/voice/voice.js?v=3'; PIP.js.async = true;
     PIP.js.onload = function () { pipCheck(); voiceInfo(); };
     document.head.appendChild(PIP.js);
   }

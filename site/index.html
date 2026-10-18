@@ -2119,8 +2119,10 @@ async function vBrowser(text,turn){const ss=window.speechSynthesis;if(!ss||!wind
 /* Echte Stimme im Browser (Piper, /chat/voice/voice.js – ohne Cloud): jede Persona-Voreinstellung hat ein eigenes Stimmmodell.
    Lädt einmalig (21–77 MB) beim ersten Vorlesen, sofern kein Datensparmodus/Mobilfunk; bis dahin spricht die Browserstimme. */
 const PV={st:{},pct:{},js:null};
-function pvLib(){if(window.CHVoice||PV.js)return;PV.js=document.createElement('script');PV.js.src='/chat/voice/voice.js?v=2';PV.js.async=true;PV.js.onload=()=>pvCheck();document.head.appendChild(PV.js);}
-function pvVoice(){try{return window.CHVoice&&CHVoice.ok()?CHVoice.pick('de',vGender(),vPresetId()):null;}catch(e){return null;}}
+function pvLib(){if(window.CHVoice||PV.js)return;PV.js=document.createElement('script');PV.js.src='/chat/voice/voice.js?v=3';PV.js.async=true;PV.js.onload=()=>pvCheck();document.head.appendChild(PV.js);}
+/* Jede Persona (Demo + Branche) hat ihre eigene Stimme – solange niemand im Stimmen-Menü eine andere wählt; Sprache = Sprache der Antwort */
+function pvWho(){return !VP.g&&!VP[vGender()]?String(V.demo||'')+'|'+String(V.sector||''):'';}
+function pvVoice(){try{return window.CHVoice&&CHVoice.ok()?CHVoice.pick(V.rlang||'de',vGender(),vPresetId(),pvWho()):null;}catch(e){return null;}}
 function pvHint(t){const h=$('#ttsHint');if(h&&t)h.textContent=t;}
 function pvCheck(){const v=pvVoice();if(!v||PV.st[v.key])return;CHVoice.stored(v).then(ok=>{if(ok&&!PV.st[v.key])PV.st[v.key]='ready';});}
 function pvLoad(v){if(!v||PV.st[v.key]||!CHVoice.auto())return;PV.st[v.key]='loading';pvHint('Echte Stimme wird geladen (einmalig '+v.mb+' MB) – bis dahin hörst du die Systemstimme deines Browsers');
@@ -2168,7 +2170,7 @@ function speak(text,done){vSay(vItems(null,text),V.turn).then(ok=>{done&&done(ok
 function livePersona(p){const s=vText(p&&typeof p==='object'?p.name:p).trim().split(/[,;:·–—(|]/)[0].trim().split(/\s+/)[0]||'';return /^[A-ZÄÖÜ][a-zäöüß]{1,13}$/.test(s)&&!/^(Der|Die|Das|Ein|Eine|Ihr|Ihre|Hier|Hallo)$/.test(s)?s:'';}
 function liveApply(j){if(!j||typeof j!=='object')return;const vo=j.voice&&typeof j.voice==='object'?j.voice:{};
   if(vo.gender==='m'||vo.gender==='f')V.gender=vo.gender;V.rate=vClamp(vo.rate,.85,1.15,1);V.pitch=vClamp(vo.pitch,.8,1.2,1);V.preset=vpId(vo.preset);
-  if(typeof j.demo==='string'&&/^[a-z0-9-]{2,40}$/.test(j.demo))V.demo=j.demo;V.sector=typeof j.sector==='string'&&/^[a-z0-9_-]{2,40}$/.test(j.sector)?j.sector:(cur&&cur.sectors?secCur:'');V.tts=j.tts===true;V.ttsKnown=true;try{vpLabel();}catch(e){}
+  if(typeof j.demo==='string'&&/^[a-z0-9-]{2,40}$/.test(j.demo))V.demo=j.demo;V.sector=typeof j.sector==='string'&&/^[a-z0-9_-]{2,40}$/.test(j.sector)?j.sector:(cur&&cur.sectors?secCur:'');V.tts=j.tts===true;V.ttsKnown=true;V.rlang=typeof j.lang==='string'&&/^[a-z]{2}$/.test(j.lang)?j.lang:(V.rlang||'de');try{vpLabel();}catch(e){}
   const vl=vVoicesNorm(j.voices);if(vl)voices=vl;V.greet=vItems(j.speech,vText(j.greeting));
   V.fillers=(Array.isArray(j.fillers)?j.fillers:[]).map(f=>typeof f==='string'?{text:f.trim(),t:''}:f&&typeof f==='object'?{text:vText(f.text).trim(),t:typeof f.t==='string'?f.t:''}:null).filter(f=>f&&f.text).slice(0,4);
   liveChips=(Array.isArray(j.chips)?j.chips:[]).map(c=>vText(c).trim()).filter(Boolean).slice(0,4);const n=livePersona(j.persona);if(n)liveWho=[n,n];vpRender();vpLabel();ttsHintUI();}
@@ -2210,7 +2212,7 @@ async function liveSend(text){text=String(text||$('#liveIn').value||'').trim();i
   if(V.on&&V.fillers.length){const f=vFillerPick();if(f){vFillerAudio(f);ft=setTimeout(()=>{if(!st.answered&&turn===V.turn&&V.on)fp=vFiller(f,turn,st);},1300);}}
   let j=null;
   const fbm=dFb(d),body={agent:fbm?'agent-phone':d.plan};if(d.sectors)body.sector=secCur;else if(fbm)body.sector=d.fb;body.channel=d.device==='phone'?'phone':'chat';body.messages=liveHist.slice(-10);body.lang='de';   /* sector nur beim Telefon-Agenten */
-  try{const r=await fetch(DEMO_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});j=await r.json();}catch(e){j=null;}
+  try{const r=await fetch(DEMO_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});j=await r.json();}catch(e){j=null;}if(j&&j.lang)V.rlang=j.lang;
   st.answered=true;clearTimeout(ft);
   if(d!==cur||play!==playId||!liveOn)return;
   if(seq===liveSeq)liveState('');

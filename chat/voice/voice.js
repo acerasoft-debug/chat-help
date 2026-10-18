@@ -1,12 +1,12 @@
 /* ChatHelp — echte Stimmen im Browser (Piper, Open Source, kein API-Schlüssel). Gemeinsam für Studio-Assistent und Startseiten-Demos.
-   CHVoice.pick(lang, gender, preset) → Stimme der Voreinstellung (jede Voreinstellung eine eigene Stimme bzw. ein eigener Sprecher)
+   CHVoice.pick(lang, gender, preset[, who]) → Stimme der Voreinstellung bzw. mit who die eigene Stimme einer Persona (jede Voreinstellung eine eigene Stimme bzw. ein eigener Sprecher)
    CHVoice.say(text, voice, onProg) → Promise<Blob> (WAV)  ·  CHVoice.load(voice, onProg) lädt nur  ·  CHVoice.stored(voice) → Promise<bool>
    CHVoice.ok() = Browser kann es (Worker, WebAssembly, Cache Storage)  ·  CHVoice.auto() = darf ohne Nachfrage laden (kein Datensparmodus/Mobilfunk)
    Modelle: selbst gehostet unter /chat/vendor/voice/models/<key>.bin (Lizenzen: /chat/vendor/voice/LICENSES.txt + models/<key>.card.txt), einmalig im Browser zwischengespeichert. */
 (function () {
   'use strict';
   /* Voreinstellungen (speech-lib): f_warm Lea, f_klar Sophie, f_frisch Mia, f_sanft Hanna · m_freundlich Max, m_ruhig Jonas, m_souveraen Thomas, m_tief Paul.
-     Eintrag: [Modell, Sprecher-ID (Mehrsprecher-Modelle) oder null, Tempo (length_scale-Faktor: >1 langsamer), Anzeigename, MB] */
+     Eintrag: [Modell, Sprecher-ID (Mehrsprecher-Modelle) oder null, Tempo (length_scale-Faktor: >1 langsamer), Anzeigename, MB, Klangfarbe (optional, 1 = natürlich)] */
   var MAP = {
     /* Auswahl per Messung (Tonhöhe, Tempo) auf dem Runner, nur Lizenzen mit kommerzieller Nutzung (CC0, CC-BY, CC-BY-SA, M-AILABS, Public Domain, Apache, Unlicense) */
     de: {
@@ -21,11 +21,11 @@
       m_freundlich: ['fr_FR-upmc-medium', 'pierre', 1.0, 'Pierre', 77], m_ruhig: ['fr_FR-mls-medium', '5525', 1.04, 'MLS 5525', 77],
       m_souveraen: ['fr_FR-mls-medium', '3182', 1.0, 'MLS 3182', 77], m_tief: ['fr_FR-mls-medium', '66', 1.0, 'MLS 66', 77]
     },
-    es: {   /* nur zwei freie Frauenstimmen → „frisch“ und „sanft“ mit anderem Tempo */
+    es: {   /* drei freie Frauen-, vier Männerstimmen; „sanft“ als Klangfarben-Variante */
       f_warm: ['es_ES-sharvard-medium', 'F', 1.0, 'Sharvard F', 77], f_klar: ['es_MX-claude-high', null, 1.0, 'Claude (MX)', 63],
-      f_frisch: ['es_MX-claude-high', null, 0.9, 'Claude (MX)', 63], f_sanft: ['es_ES-sharvard-medium', 'F', 1.12, 'Sharvard F', 77],
+      f_frisch: ['es_AR-daniela-high', null, 0.96, 'Daniela (AR)', 114], f_sanft: ['es_ES-sharvard-medium', 'F', 1.06, 'Sharvard F', 77, 0.93],
       m_freundlich: ['es_ES-davefx-medium', null, 1.0, 'Davefx', 63], m_ruhig: ['es_ES-sharvard-medium', 'M', 1.06, 'Sharvard M', 77],
-      m_souveraen: ['es_ES-carlfm-x_low', null, 1.0, 'Carlfm', 28], m_tief: ['es_ES-davefx-medium', null, 1.12, 'Davefx', 63]
+      m_souveraen: ['es_MX-ald-medium', null, 1.0, 'Ald (MX)', 63], m_tief: ['es_ES-carlfm-x_low', null, 1.04, 'Carlfm', 28, 0.92]
     },
     en: {
       f_warm: ['en_US-kristin-medium', null, 1.0, 'Kristin', 64], f_klar: ['en_GB-alba-medium', null, 1.0, 'Alba', 63],
@@ -39,18 +39,57 @@
       m_freundlich: ['nl_BE-rdh-medium', null, 1.0, 'Rdh', 63], m_ruhig: ['nl_NL-mls-medium', '2450', 1.04, 'MLS 2450', 77],
       m_souveraen: ['nl_NL-mls-medium', '4429', 1.0, 'MLS 4429', 77], m_tief: ['nl_NL-mls-medium', '11290', 1.04, 'MLS 11290', 77]
     },
-    tr: {   /* zwei freie türkische Stimmen (CC0): Fettah (Frau), Fahrettin (Mann) – die Voreinstellungen unterscheiden sich im Tempo */
-      f_warm: ['tr_TR-fettah-medium', null, 1.0, 'Fettah', 63], f_klar: ['tr_TR-fettah-medium', null, 0.96, 'Fettah', 63],
-      f_frisch: ['tr_TR-fettah-medium', null, 0.9, 'Fettah', 63], f_sanft: ['tr_TR-fettah-medium', null, 1.1, 'Fettah', 63],
-      m_freundlich: ['tr_TR-fahrettin-medium', null, 1.0, 'Fahrettin', 63], m_ruhig: ['tr_TR-fahrettin-medium', null, 1.06, 'Fahrettin', 63],
-      m_souveraen: ['tr_TR-fahrettin-medium', null, 0.97, 'Fahrettin', 63], m_tief: ['tr_TR-fahrettin-medium', null, 1.1, 'Fahrettin', 63]
+    tr: {   /* zwei freie türkische Stimmen (CC0): Fettah (Frau), Fahrettin (Mann) – die Voreinstellungen unterscheiden sich in Klangfarbe (6. Feld) und Tempo */
+      f_warm: ['tr_TR-fettah-medium', null, 1.0, 'Fettah', 63], f_klar: ['tr_TR-fettah-medium', null, 0.98, 'Fettah', 63, 1.07],
+      f_frisch: ['tr_TR-fettah-medium', null, 0.92, 'Fettah', 63, 1.12], f_sanft: ['tr_TR-fettah-medium', null, 1.06, 'Fettah', 63, 0.93],
+      m_freundlich: ['tr_TR-fahrettin-medium', null, 1.0, 'Fahrettin', 63], m_ruhig: ['tr_TR-fahrettin-medium', null, 1.04, 'Fahrettin', 63, 0.95],
+      m_souveraen: ['tr_TR-fahrettin-medium', null, 0.98, 'Fahrettin', 63, 1.06], m_tief: ['tr_TR-fahrettin-medium', null, 1.05, 'Fahrettin', 63, 0.88]
     },
-    it: { m_freundlich: ['it_IT-riccardo-x_low', null, 1.0, 'Riccardo', 28] },
+    it: { f_warm: ['it_IT-serena-medium', null, 1.0, 'Serena', 63], m_freundlich: ['it_IT-riccardo-x_low', null, 1.0, 'Riccardo', 28] },
     ru: { m_freundlich: ['ru_RU-denis-medium', null, 1.0, 'Denis', 63] },
     sv: { m_freundlich: ['sv_SE-nst-medium', null, 1.0, 'NST', 63] },
     no: { m_freundlich: ['no_NO-talesyntese-medium', null, 1.0, 'Talesyntese', 63] },
     fi: { m_freundlich: ['fi_FI-harri-medium', null, 1.0, 'Harri', 63] }
   };
+  /* Stimmen je Persona (Startseiten-Demos, Agenten): jede Persona bekommt eine eigene Stimme aus dem Vorrat ihrer Sprache und ihres Geschlechts.
+     Vorrat = verschiedene Sprecher (Mehrsprecher-Modelle MLS: viele echte Menschen in einem Download), danach Klangfarben-Varianten:
+     shift > 1 heller/jünger, < 1 tiefer/voller (Abtastrate × shift, Tempo über length ausgeglichen) – für Sprachen mit wenigen freien Modellen. */
+  var B = function (key, sid, name, mb) { return [key, sid, 1.0, name, mb]; };
+  var DE_MLS = function (ids) { return ids.map(function (i) { return B('de_DE-mls-medium', i, 'MLS ' + i, 77); }); };
+  var FR_MLS = function (ids) { return ids.map(function (i) { return B('fr_FR-mls-medium', i, 'MLS ' + i, 77); }); };
+  var POOL = {
+    de: { f: [B('de_DE-kerstin-low', null, 'Kerstin', 63), B('de_DE-ramona-low', null, 'Ramona', 63), B('de_DE-eva_k-x_low', null, 'Eva', 21)].concat(DE_MLS(['589', '3990', '4174', '1649', '10179', '20', '327', '4650', '7261', '13871', '136', '9514', '5324'])),
+          m: [B('de_DE-thorsten-medium', null, 'Thorsten', 63), B('de_DE-karlsson-low', null, 'Karlsson', 63)].concat(DE_MLS(['5675', '11480', '5055', '252', '3494', '143', '9646', '145', '3040', '13255', '287', '6719', '10904'])) },
+    fr: { f: [B('fr_FR-siwis-medium', null, 'Siwis', 63), B('fr_FR-upmc-medium', 'jessica', 'Jessica', 77)].concat(FR_MLS(['12899', '13634', '12709', '3060', '11772', '2506', '14', '7614', '5553', '2155'])),
+          m: [B('fr_FR-upmc-medium', 'pierre', 'Pierre', 77)].concat(FR_MLS(['5525', '3182', '66', '1840', '5764', '12501', '62', '8582', '7377', '4699', '94'])) },
+    es: { f: [B('es_ES-sharvard-medium', 'F', 'Sharvard F', 77), B('es_MX-claude-high', null, 'Claude (MX)', 63), B('es_AR-daniela-high', null, 'Daniela (AR)', 114)],
+          m: [B('es_ES-davefx-medium', null, 'Davefx', 63), B('es_ES-sharvard-medium', 'M', 'Sharvard M', 77), B('es_ES-carlfm-x_low', null, 'Carlfm', 28), B('es_MX-ald-medium', null, 'Ald (MX)', 63)] },
+    tr: { f: [B('tr_TR-fettah-medium', null, 'Fettah', 63)], m: [B('tr_TR-fahrettin-medium', null, 'Fahrettin', 63)] }
+  };
+  var SHIFTS = [1.0, 0.93, 1.07, 0.88, 1.12, 0.96, 1.04];
+  /** Vorrat einer Sprache/eines Geschlechts: erst alle echten Sprecher, dann Klangfarben-Varianten reihum (mind. 8 verschiedene Stimmen). */
+  function pool(l, g) {
+    var src = POOL[l] && POOL[l][g];
+    if (!src) { src = []; var m = MAP[l] || {}; Object.keys(m).forEach(function (k) { if (k.charAt(0) === g && !src.some(function (x) { return x[0] === m[k][0] && x[1] === m[k][1]; })) src.push(B(m[k][0], m[k][1], m[k][3], m[k][4])); }); }
+    if (!src.length) return [];
+    var out = src.map(function (e) { return { e: e, shift: 1 }; });
+    for (var i = 1; out.length < 8 && i < SHIFTS.length; i++) src.forEach(function (e) { if (out.length < 12) out.push({ e: e, shift: SHIFTS[i] }); });
+    return out;
+  }
+  var TAKEN = {};
+  function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  /** Persona → feste Stimme (gleiche Persona = gleiche Stimme), verschiedene Personas derselben Seite → verschiedene Stimmen. */
+  function pickWho(l, g, who) {
+    var P = pool(l, g); if (!P.length) return null;
+    var k = l + '|' + g, t = TAKEN[k] || (TAKEN[k] = {}), i = hash(String(who)) % P.length, n = 0;
+    for (var w in t) { if (Object.prototype.hasOwnProperty.call(t, w) && w === String(who)) { i = t[w]; n = -1; break; } }
+    if (n === 0) {
+      var used = {}; for (var w2 in t) { if (Object.prototype.hasOwnProperty.call(t, w2)) used[t[w2]] = 1; }
+      while (used[i] && n < P.length) { i = (i + 1) % P.length; n++; }
+      t[String(who)] = i;
+    }
+    return P[i];
+  }
   /* Sprachen ohne eigenes Modell: Stimme einer verwandten Sprache mit eigener Aussprache (espeak) und Lautangleichung */
   var VIA = { az: { lang: 'tr', espeak: 'az', map: { 'æ': 'ɛ', 'x': 'h', 'ɣ': 'ɡ' } } };
   var W = null, seq = 0, wait = {};
@@ -77,12 +116,18 @@
     return new Promise(function (yes, no) { var id = ++seq; wait[id] = { yes: yes, no: no, prog: prog }; msg.id = id; worker().postMessage(msg); });
   }
   function norm(l) { l = String(l || 'de').toLowerCase().slice(0, 2); return l === 'nb' || l === 'nn' ? 'no' : l; }
-  function pick(lang, gender, preset) {
-    var l = norm(lang), via = VIA[l], src = MAP[via ? via.lang : l]; if (!src) return null;
-    var g = gender === 'm' ? 'm' : 'f', e = src[preset] || null;
-    if (!e || (preset && preset.charAt(0) !== g)) { var k = Object.keys(src).filter(function (x) { return x.charAt(0) === g; })[0]; e = k ? src[k] : null; }
-    if (!e) return null;
-    return { key: e[0], sid: e[1], length: e[2], name: e[3], mb: e[4], lang: l, espeak: via ? via.espeak : null, map: via ? via.map : null };
+  /** Stimme für Sprache + Geschlecht + Voreinstellung; mit who (Persona-Kennung) die eigene Stimme dieser Persona. */
+  function pick(lang, gender, preset, who) {
+    var l = norm(lang), via = VIA[l], ll = via ? via.lang : l, g = gender === 'm' ? 'm' : 'f', e = null, shift = 1;
+    if (who != null && who !== '') { var x = pickWho(ll, g, who); if (x) { e = x.e; shift = x.shift; } }
+    if (!e) {
+      var src = MAP[ll]; if (!src) return null;
+      e = src[preset] || null;
+      if (!e || (preset && preset.charAt(0) !== g)) { var k = Object.keys(src).filter(function (y) { return y.charAt(0) === g; })[0]; e = k ? src[k] : null; }
+      if (!e) return null;
+      shift = e[5] || 1;
+    }
+    return { key: e[0], sid: e[1], length: e[2], name: e[3] + (shift !== 1 ? (shift > 1 ? ' · hell' : ' · voll') : ''), mb: e[4], shift: shift, lang: l, espeak: via ? via.espeak : null, map: via ? via.map : null };
   }
   function url(v) { return '/chat/vendor/voice/models/' + v.key + '.bin'; }
   function stored(v) {
@@ -98,7 +143,8 @@
     return new Blob([b.buffer], { type: 'audio/wav' });
   }
   function say(text, v, prog) {
-    return call({ t: 'say', key: v.key, sid: v.sid, length: v.length, text: String(text || ''), espeak: v.espeak, map: v.map }, prog).then(function (m) { return wav(m.pcm, m.rate); });
+    var sh = Math.max(0.85, Math.min(1.15, Number(v.shift) || 1));   // Klangfarbe: schneller abspielen = heller, Tempo vorab über length ausgeglichen
+    return call({ t: 'say', key: v.key, sid: v.sid, length: (v.length || 1) * sh, text: String(text || ''), espeak: v.espeak, map: v.map }, prog).then(function (m) { return wav(m.pcm, Math.round(m.rate * sh)); });
   }
   window.CHVoice = { ok: ok, auto: auto, pick: pick, stored: stored, load: load, say: say, langs: function () { return Object.keys(MAP).concat(Object.keys(VIA)); } };
 })();
