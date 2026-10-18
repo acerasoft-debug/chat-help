@@ -5,11 +5,14 @@
  *   /chat/tokens-checkout.php?pack=10k|50k|200k        → sabit token paketi (Stripe Price ID, STRIPE_TOKEN_PRICES)
  *   /chat/tokens-checkout.php?tokens=37000[&email=..]  → istediği miktar (kademeli tarife, price_data, tek seferlik)
  *   /chat/tokens-checkout.php?plan=agent-support       → AYLIK abonelik (plans.php; price_data + recurring; dahil tokenlar her ay yüklenir)
+ *   /chat/tokens-checkout.php?plan=buy-termine         → Einmalkauf (Lizenz + Startguthaben + CH_BUY_INCLUDED_DAYS Tage Betrieb)
+ *   /chat/tokens-checkout.php?plan=betrieb-termine&email=…  bzw. byok-termine  → Folge-Abo zur Lizenz (Lizenz muss zum Konto gehören;
+ *                                                         während des Inklusiv-Betriebs startet die Abrechnung erst danach: trial_end)
  * db.php: define('STRIPE_SK','sk_live_…')  (alternatif adlar: STRIPE_SECRET, STRIPE_SECRET_KEY)
  *         define('STRIPE_TOKEN_PRICES', ['10k'=>'price_…','50k'=>'price_…','200k'=>'price_…']);  // sabit paketler için (isteğe bağlı)
  * Kademeli tarife siteyle BİREBİR aynı (tk_unit). Metadata webhook tarafından okunur. Mevcut stripe-checkout.php'ye DOKUNMAZ.
  */
-require_once __DIR__.'/db.php';
+require_once __DIR__.'/tokens-lib.php';   // db.php + billing-lib (Lizenzprüfung für Betrieb / eigenen Schlüssel)
 require_once __DIR__.'/plans.php';
 /* Yönlendirme (Stripe oturum URL'si) kişiye özel → asla edge/platform önbelleğine girmesin (platform varsayılanı 31 gün public) */
 header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0'); header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store'); header('Pragma: no-cache'); header('Expires: 0');
@@ -33,21 +36,12 @@ $params = [
 ];
 if($email) $params['customer_email']=$email;
 
-if($planId !== ''){                                                    /* ---- AYLIK PAKET / AGENT ---- */
+if($planId !== ''){                                                    /* ---- AYLIK PAKET / AGENT / EINMALKAUF / BETRIEB / EIGENER SCHLÜSSEL ---- */
   $pl = ch_plan($planId);
   if(!$pl){ http_response_code(404); header('Content-Type: text/plain; charset=UTF-8'); exit("Bilinmeyen paket: $planId\nMevcut: ".implode(', ',array_keys(CH_PLANS))); }
-  $buy = ($pl['kind']==='buy');
-  $params['mode']=$buy?'payment':'subscription';
-  $params['success_url']=SITE.'/chat/studio.php?welcome='.$pl['id'].'&session_id={CHECKOUT_SESSION_ID}';
-  $params['line_items[0][price_data][currency]']='eur';
-  $params['line_items[0][price_data][unit_amount]']=$pl['cents'];
-  if(!$buy) $params['line_items[0][price_data][recurring][interval]']='month'; else $params['invoice_creation[enabled]']='true';
-  $params['line_items[0][price_data][tax_behavior]']='exclusive';
-  $params['line_items[0][price_data][product_data][name]']='ChatHelp '.($buy?'Einmalkauf':($pl['kind']==='agent'?'Agent':'Paket')).': '.$pl['name'];
-  $params['line_items[0][price_data][product_data][description]']=$pl['desc'].($buy?' · inkl. '.number_format($pl['tokens'],0,',','.').' Tokens · dauerhafter Zugang':' · inkl. '.number_format($pl['tokens'],0,',','.').' Tokens / Monat · monatlich kündbar');
-  foreach(($buy?['metadata']:['metadata','subscription_data[metadata]']) as $m){
-    $params[$m.'[type]']='plan'; $params[$m.'[plan]']=$pl['id']; $params[$m.'[tokens]']=$pl['tokens']; $params[$m.'[kind]']=$pl['kind'];
-  }
+  $res = bl_checkout_plan_params($pl,$email,SITE);   // billing-lib: Lizenzprüfung, trial_end bis Ende des Inklusiv-Betriebs, Metadaten
+  if(isset($res['error'])){ http_response_code((int)$res['status']); header('Content-Type: text/plain; charset=UTF-8'); exit($res['message']); }
+  $params = $res['params'];
 } elseif($req>0){                                                      /* ---- SERBEST TOKEN MİKTARI ---- */
   $n=max(1000,min(5000000,(int)(round($req/1000)*1000)));
   $cents=(int)round($n*tk_unit($n)*100);
@@ -75,7 +69,7 @@ if($planId !== ''){                                                    /* ---- A
   $params['metadata[type]']='tokens'; $params['metadata[tokens]']=$n; $params['metadata[pack]']=$pack;
 } else { http_response_code(400); header('Content-Type: text/plain; charset=UTF-8'); exit('Geçersiz istek. ?tokens=N (min 1000) · ?pack=10k|50k|200k · ?plan=<id>'); }
 
-$ch=curl_init('https://api.stripe.com/v1/checkout/sessions');
+$ch=curl_init(bl_stripe_base().'/checkout/sessions');
 curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>http_build_query($params),CURLOPT_USERPWD=>$sk.':',CURLOPT_TIMEOUT=>20]);
 $res=json_decode(curl_exec($ch),true); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
 if($code>=200 && $code<300 && !empty($res['url'])){ header('Location: '.$res['url'],true,303); exit; }

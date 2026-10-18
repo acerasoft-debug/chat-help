@@ -264,16 +264,18 @@ switch(true){
     if($planId==='' || !ch_plan($planId)) th_json(400,['error'=>'plan_required']);
     $active=th_plan_active($aid,$planId);
     $c=th_agent_cfg($aid,$planId); unset($c['id'],$c['account_id']);
-    th_json(200,['config'=>$c,'plan_active'=>$active,
+    th_json(200,['config'=>$c,'plan_active'=>$active,'channels'=>ch_plan_channels($planId),
       'widget_snippet'=>$c['widget_key']?'<script src="https://chat-help.com/chat/widget.js" data-key="'.$c['widget_key'].'" async></script>':null,
       'phone_webhook'=>$c['widget_key']?'https://chat-help.com/chat/phone-webhook.php?key='.$c['widget_key']:null]);
 
   case $r==='agent/config' && $m==='POST':
     if($planId==='' || !ch_plan($planId)) th_json(400,['error'=>'plan_required']);
     $active=th_plan_active($aid,$planId);
+    $phoneNote=null;   // Kanalbündel: reine Website-Bots bekommen kein Telefon (außer ein anderes aktives Paket bündelt es)
+    if(!empty($b['phone_on']) && !ch_plan_has_channel($planId,'phone') && !ch_bundled_plan($aid,'phone')){ $b['phone_on']=0; $phoneNote='Telefon und WhatsApp sind in reinen Website-Bots nicht enthalten – dafür einen Kunden-Agenten (z. B. Telefon-, Termin- oder Bestell-Agent) wählen.'; }
     th_agent_cfg_save($aid,$planId,$b,$active);          // ohne aktiven Plan: speichern ja, Widget/Telefon einschalten nein
     $c=th_agent_cfg($aid,$planId); unset($c['id'],$c['account_id']);
-    th_json(200,['ok'=>true,'config'=>$c,'plan_active'=>$active,'note'=>$active?null:'Wissensbasis gespeichert. Website-Widget und Telefon werden mit aktivem Plan freigeschaltet.',
+    th_json(200,['ok'=>true,'config'=>$c,'plan_active'=>$active,'channels'=>ch_plan_channels($planId),'note'=>$phoneNote ?? ($active?null:'Wissensbasis gespeichert. Website-Widget und Telefon werden mit aktivem Plan freigeschaltet.'),
       'widget_snippet'=>'<script src="https://chat-help.com/chat/widget.js" data-key="'.$c['widget_key'].'" async></script>',
       'phone_webhook'=>'https://chat-help.com/chat/phone-webhook.php?key='.$c['widget_key']]);
 
