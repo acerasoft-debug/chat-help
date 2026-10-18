@@ -131,3 +131,5 @@ chat/icons/screen-heute.png  chat/icons/screen-heute.png
 chat/icons/screen-auftraege.png chat/icons/screen-auftraege.png
 chat/icons/screen-meldungen.png chat/icons/screen-meldungen.png
 chat/icons/screen-wide.png   chat/icons/screen-wide.png
+# Länder-Erkennung: Sprache + Währung
+chat/locale-api.php          chat/locale-api.php
