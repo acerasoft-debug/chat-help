@@ -1,99 +1,99 @@
-<div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h2 style="font-size:26px">Taxi-Zentrale</h2><p class="mute" style="margin:4px 0 0">Dein Taxi-Agent nimmt Fahrten am Telefon, per WhatsApp und im Website-Chat an: Abholort, sofort oder Vorbestellung, Personen, Gepäck, Kindersitz, Rollstuhl – mit Richtpreis nach deinem Tarif, Festpreisen und Wartezeit ab dem nächsten Taxistand. Die Zentrale disponiert live auf dem Board, der Fahrer bekommt die Fahrt aufs Handy, der Kunde „Ihr Taxi ist da: schwarzer Mercedes, K-TX 123“.</p></div><a class="btn gold" id="txRent" href="/chat/tokens-checkout.php?plan=agent-taxi" target="_blank">Taxi-Agent mieten · 129 €/Monat</a></div>
+<div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h2 style="font-size:26px" data-i18n="tx.taxi_zentrale">Taxi-Zentrale</h2><p class="mute" style="margin:4px 0 0" data-i18n="tx.dein_taxi_agent_nimmt">Dein Taxi-Agent nimmt Fahrten am Telefon, per WhatsApp und im Website-Chat an: Abholort, sofort oder Vorbestellung, Personen, Gepäck, Kindersitz, Rollstuhl – mit Richtpreis nach deinem Tarif, Festpreisen und Wartezeit ab dem nächsten Taxistand. Die Zentrale disponiert live auf dem Board, der Fahrer bekommt die Fahrt aufs Handy, der Kunde „Ihr Taxi ist da: schwarzer Mercedes, K-TX 123“.</p></div><a class="btn gold" id="txRent" href="/chat/tokens-checkout.php?plan=agent-taxi" target="_blank" data-i18n="tx.taxi_agent_mieten_129">Taxi-Agent mieten · 129 €/Monat</a></div>
 
 <div class="grid g4" style="margin-bottom:16px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
-  <div class="card"><span class="tag gold">Heute</span><div class="num" style="margin-top:8px" id="txKToday">–</div><div class="mute small">Fahrten mit Abholung heute</div></div>
-  <div class="card"><span class="tag indigo">Offen</span><div class="num" style="margin-top:8px" id="txKOpen">–</div><div class="mute small" id="txKPre">davon vorbestellt: –</div></div>
-  <div class="card"><span class="tag ok">Erledigt</span><div class="num" style="margin-top:8px" id="txKDone">–</div><div class="mute small" id="txKLost">storniert / nicht angetroffen: –</div></div>
-  <div class="card"><span class="tag teal">Umsatz heute</span><div class="num" style="margin-top:8px" id="txKRev">–</div><div class="mute small">Richtwert aus Preisen der erledigten Fahrten</div></div>
+  <div class="card"><span class="tag gold" data-i18n="tx.heute">Heute</span><div class="num" style="margin-top:8px" id="txKToday">–</div><div class="mute small" data-i18n="tx.fahrten_mit_abholung_heute">Fahrten mit Abholung heute</div></div>
+  <div class="card"><span class="tag indigo" data-i18n="tx.offen">Offen</span><div class="num" style="margin-top:8px" id="txKOpen">–</div><div class="mute small" id="txKPre" data-i18n="tx.davon_vorbestellt">davon vorbestellt: –</div></div>
+  <div class="card"><span class="tag ok" data-i18n="tx.erledigt">Erledigt</span><div class="num" style="margin-top:8px" id="txKDone">–</div><div class="mute small" id="txKLost" data-i18n="tx.storniert_nicht_angetroffen">storniert / nicht angetroffen: –</div></div>
+  <div class="card"><span class="tag teal" data-i18n="tx.umsatz_heute">Umsatz heute</span><div class="num" style="margin-top:8px" id="txKRev">–</div><div class="mute small" data-i18n="tx.richtwert_aus_preisen_der">Richtwert aus Preisen der erledigten Fahrten</div></div>
 </div>
 
 <div class="ws" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr))">
   <div>
     <div class="card">
-      <div class="sw" style="margin-top:0"><input type="checkbox" id="txOn"><div><b>Taxi-Annahme aktiv</b><div class="mute small">Agenten erhalten die Werkzeuge „Taxi-Infos“, „Fahrt kalkulieren“, „Taxi bestellen“, „Status“ und „Stornieren“ – am Telefon, per WhatsApp und im Chat</div></div></div>
-      <label for="txName">Unternehmen</label><input type="text" id="txName" placeholder="z. B. Taxi Rheinland · Köln" maxlength="120">
-      <label for="txAddress">Adresse der Zentrale (Mittelpunkt des Einsatzgebiets)</label><input type="text" id="txAddress" placeholder="Straße Nr., PLZ Ort" maxlength="200"><div class="mute small" id="txGeo" style="margin-top:6px"></div>
-      <div class="grid g2" style="gap:10px"><div><label for="txPhone">Telefon der Zentrale (für Kunden)</label><input type="tel" id="txPhone" placeholder="0221 …" maxlength="40"></div><div><label for="txNotify">Fahrt-Mails an</label><input type="email" id="txNotify" placeholder="zentrale@… (leer = Konto-E-Mail)" maxlength="190"></div></div>
+      <div class="sw" style="margin-top:0"><input type="checkbox" id="txOn"><div><b data-i18n="tx.taxi_annahme_aktiv">Taxi-Annahme aktiv</b><div class="mute small" data-i18n="tx.agenten_erhalten_die_werkzeu">Agenten erhalten die Werkzeuge „Taxi-Infos“, „Fahrt kalkulieren“, „Taxi bestellen“, „Status“ und „Stornieren“ – am Telefon, per WhatsApp und im Chat</div></div></div>
+      <label for="txName" data-i18n="tx.unternehmen">Unternehmen</label><input type="text" id="txName" placeholder="z. B. Taxi Rheinland · Köln" maxlength="120" data-i18n-attr="placeholder:tx.taxi_rheinland_koeln">
+      <label for="txAddress" data-i18n="tx.adresse_der_zentrale_mittelp">Adresse der Zentrale (Mittelpunkt des Einsatzgebiets)</label><input type="text" id="txAddress" placeholder="Straße Nr., PLZ Ort" maxlength="200" data-i18n-attr="placeholder:tx.strasse_nr_plz_ort"><div class="mute small" id="txGeo" style="margin-top:6px"></div>
+      <div class="grid g2" style="gap:10px"><div><label for="txPhone" data-i18n="tx.telefon_der_zentrale_fuer">Telefon der Zentrale (für Kunden)</label><input type="tel" id="txPhone" placeholder="0221 …" maxlength="40"></div><div><label for="txNotify" data-i18n="tx.fahrt_mails_an">Fahrt-Mails an</label><input type="email" id="txNotify" placeholder="zentrale@… (leer = Konto-E-Mail)" maxlength="190" data-i18n-attr="placeholder:tx.zentrale_leer_konto_mail"></div></div>
       <div class="grid g3" style="gap:10px">
-        <div><label for="txArea">Einsatz-Radius km</label><input type="text" id="txArea" inputmode="numeric" value="25"></div>
-        <div><label for="txEta">Grund-Wartezeit Min</label><input type="text" id="txEta" inputmode="numeric" value="8" title="Anfahrt-Grundzeit; dazu kommen 2 Min je km vom nächsten Taxistand mit freiem Fahrer"></div>
-        <div><label for="txPre">Vorbestellung bis Tage</label><input type="text" id="txPre" inputmode="numeric" value="14" title="0 = nur Sofortfahrten"></div>
+        <div><label for="txArea" data-i18n="tx.einsatz_radius_km">Einsatz-Radius km</label><input type="text" id="txArea" inputmode="numeric" value="25"></div>
+        <div><label for="txEta" data-i18n="tx.grund_wartezeit_min">Grund-Wartezeit Min</label><input type="text" id="txEta" inputmode="numeric" value="8" title="Anfahrt-Grundzeit; dazu kommen 2 Min je km vom nächsten Taxistand mit freiem Fahrer" data-i18n-attr="title:tx.anfahrt_grundzeit_dazu_komme"></div>
+        <div><label for="txPre" data-i18n="tx.vorbestellung_bis_tage">Vorbestellung bis Tage</label><input type="text" id="txPre" inputmode="numeric" value="14" title="0 = nur Sofortfahrten" data-i18n-attr="title:tx.nur_sofortfahrten"></div>
       </div>
       <div class="grid g2" style="gap:10px">
-        <div><label for="txPlz">Zusätzliche PLZ im Einsatzgebiet (optional)</label><input type="text" id="txPlz" placeholder="z. B. 50667, 51149 – Abholung hier immer erlaubt"></div>
-        <div><label for="txTz">Zeitzone</label><select id="txTz"><option>Europe/Berlin</option><option>Europe/Vienna</option><option>Europe/Zurich</option><option>Europe/Istanbul</option><option>Europe/Paris</option><option>Europe/London</option></select></div>
+        <div><label for="txPlz" data-i18n="tx.zusaetzliche_plz_im_einsatzg">Zusätzliche PLZ im Einsatzgebiet (optional)</label><input type="text" id="txPlz" placeholder="z. B. 50667, 51149 – Abholung hier immer erlaubt" data-i18n-attr="placeholder:tx.50667_51149_abholung_hier"></div>
+        <div><label for="txTz" data-i18n="tx.zeitzone">Zeitzone</label><select id="txTz"><option>Europe/Berlin</option><option>Europe/Vienna</option><option>Europe/Zurich</option><option>Europe/Istanbul</option><option>Europe/Paris</option><option>Europe/London</option></select></div>
       </div>
 
-      <div class="sec"><h3>Tarif</h3><p class="mute small" style="margin:4px 0 8px">Daraus berechnet der Agent den Richtpreis („ca. … €, es gilt der Taxameter“). Beträge in Euro.</p>
+      <div class="sec"><h3 data-i18n="tx.tarif">Tarif</h3><p class="mute small" style="margin:4px 0 8px" data-i18n="tx.daraus_berechnet_der_agent">Daraus berechnet der Agent den Richtpreis („ca. … €, es gilt der Taxameter“). Beträge in Euro.</p>
         <div class="grid g4" style="gap:10px">
-          <div><label for="txBase">Grundpreis €</label><input type="text" id="txBase" inputmode="decimal" placeholder="4,90"></div>
-          <div><label for="txKm1">€/km Stufe 1</label><input type="text" id="txKm1" inputmode="decimal" placeholder="2,40"></div>
-          <div><label for="txUpto">Stufe 1 bis km</label><input type="text" id="txUpto" inputmode="decimal" placeholder="7"></div>
-          <div><label for="txKm2">€/km danach</label><input type="text" id="txKm2" inputmode="decimal" placeholder="2,10"></div>
-          <div><label for="txWait">Wartezeit €/Min</label><input type="text" id="txWait" inputmode="decimal" placeholder="0,63"></div>
-          <div><label for="txMin">Mindestfahrpreis €</label><input type="text" id="txMin" inputmode="decimal" placeholder="0,00"></div>
-          <div><label for="txFee">Buchungsgebühr €</label><input type="text" id="txFee" inputmode="decimal" placeholder="0,00"></div>
-          <div><label for="txNight">Nachtzuschlag %</label><input type="text" id="txNight" inputmode="numeric" placeholder="0"></div>
+          <div><label for="txBase" data-i18n="tx.grundpreis">Grundpreis €</label><input type="text" id="txBase" inputmode="decimal" placeholder="4,90"></div>
+          <div><label for="txKm1" data-i18n="tx.km_stufe">€/km Stufe 1</label><input type="text" id="txKm1" inputmode="decimal" placeholder="2,40"></div>
+          <div><label for="txUpto" data-i18n="tx.stufe_bis_km">Stufe 1 bis km</label><input type="text" id="txUpto" inputmode="decimal" placeholder="7"></div>
+          <div><label for="txKm2" data-i18n="tx.km_danach">€/km danach</label><input type="text" id="txKm2" inputmode="decimal" placeholder="2,10"></div>
+          <div><label for="txWait" data-i18n="tx.wartezeit_min">Wartezeit €/Min</label><input type="text" id="txWait" inputmode="decimal" placeholder="0,63"></div>
+          <div><label for="txMin" data-i18n="tx.mindestfahrpreis">Mindestfahrpreis €</label><input type="text" id="txMin" inputmode="decimal" placeholder="0,00"></div>
+          <div><label for="txFee" data-i18n="tx.buchungsgebuehr">Buchungsgebühr €</label><input type="text" id="txFee" inputmode="decimal" placeholder="0,00"></div>
+          <div><label for="txNight" data-i18n="tx.nachtzuschlag">Nachtzuschlag %</label><input type="text" id="txNight" inputmode="numeric" placeholder="0"></div>
         </div>
-        <div class="grid g4" style="gap:10px"><div><label for="txNFrom">Nacht ab</label><input type="text" id="txNFrom" placeholder="22:00" maxlength="5"></div><div><label for="txNTo">Nacht bis</label><input type="text" id="txNTo" placeholder="06:00" maxlength="5"></div></div>
+        <div class="grid g4" style="gap:10px"><div><label for="txNFrom" data-i18n="tx.nacht_ab">Nacht ab</label><input type="text" id="txNFrom" placeholder="22:00" maxlength="5"></div><div><label for="txNTo" data-i18n="tx.nacht_bis">Nacht bis</label><input type="text" id="txNTo" placeholder="06:00" maxlength="5"></div></div>
         <div class="msg info" id="txTarifEx" style="margin-top:12px">–</div>
       </div>
 
-      <div class="sec"><h3>Fahrzeuge</h3><p class="mute small" style="margin:4px 0 8px">Name, Plätze, Preisfaktor (1 = Normaltarif, 1,25 = +25 %). Mehr Personen als Plätze → automatisch das nächstgrößere Fahrzeug; „Rollstuhl“ im Wunsch → Rollstuhl-Taxi.</p><div id="txVeh"></div><button class="btn s" type="button" id="txAddVeh" style="margin-top:8px">+ Fahrzeugtyp</button></div>
+      <div class="sec"><h3 data-i18n="tx.fahrzeuge">Fahrzeuge</h3><p class="mute small" style="margin:4px 0 8px" data-i18n="tx.name_plaetze_preisfaktor_nor">Name, Plätze, Preisfaktor (1 = Normaltarif, 1,25 = +25 %). Mehr Personen als Plätze → automatisch das nächstgrößere Fahrzeug; „Rollstuhl“ im Wunsch → Rollstuhl-Taxi.</p><div id="txVeh"></div><button class="btn s" type="button" id="txAddVeh" style="margin-top:8px" data-i18n="tx.fahrzeugtyp">+ Fahrzeugtyp</button></div>
 
-      <div class="sec"><h3>Festpreise</h3><p class="mute small" style="margin:4px 0 8px">Gilt, wenn Ziel oder Abholort eines der Stichwörter enthält (mit | trennen), z. B. <b>flughafen|airport|cgn</b>.</p><div id="txFix"></div><button class="btn s" type="button" id="txAddFix" style="margin-top:8px">+ Festpreis</button></div>
+      <div class="sec"><h3 data-i18n="tx.festpreise">Festpreise</h3><p class="mute small" style="margin:4px 0 8px" data-i18n-html="tx.gilt_wenn_ziel_oder">Gilt, wenn Ziel oder Abholort eines der Stichwörter enthält (mit | trennen), z. B. <b>flughafen|airport|cgn</b>.</p><div id="txFix"></div><button class="btn s" type="button" id="txAddFix" style="margin-top:8px" data-i18n="tx.festpreis">+ Festpreis</button></div>
 
-      <div class="sec"><h3>Taxistände</h3><p class="mute small" style="margin:4px 0 8px">Nennt ein Kunde „am Hauptbahnhof“ oder „Taxistand Neumarkt“, kennt der Agent den Ort. Die Wartezeit wird ab dem nächsten Stand mit freiem Fahrer berechnet.</p><div id="txStands"></div><button class="btn s" type="button" id="txAddStand" style="margin-top:8px">+ Taxistand</button></div>
+      <div class="sec"><h3 data-i18n="tx.taxistaende">Taxistände</h3><p class="mute small" style="margin:4px 0 8px" data-i18n="tx.nennt_ein_kunde_am">Nennt ein Kunde „am Hauptbahnhof“ oder „Taxistand Neumarkt“, kennt der Agent den Ort. Die Wartezeit wird ab dem nächsten Stand mit freiem Fahrer berechnet.</p><div id="txStands"></div><button class="btn s" type="button" id="txAddStand" style="margin-top:8px" data-i18n="tx.taxistand">+ Taxistand</button></div>
 
-      <div class="sec"><h3>Zahlarten</h3><div class="grid g2" style="gap:0 10px" id="txPay">
-        <div class="sw"><input type="checkbox" class="txPayC" value="bar" id="txPayBar"><div><b>Bar</b><div class="mute small">beim Fahrer</div></div></div>
-        <div class="sw"><input type="checkbox" class="txPayC" value="karte" id="txPayKarte"><div><b>EC-/Kreditkarte</b><div class="mute small">Kartenterminal im Taxi</div></div></div>
-        <div class="sw"><input type="checkbox" class="txPayC" value="app" id="txPayApp"><div><b>App / Apple Pay / Google Pay</b><div class="mute small">kontaktlos oder per Link</div></div></div>
-        <div class="sw"><input type="checkbox" class="txPayC" value="rechnung" id="txPayRe"><div><b>Rechnung</b><div class="mute small">Firmenkunden, Krankenfahrten</div></div></div>
+      <div class="sec"><h3 data-i18n="tx.zahlarten">Zahlarten</h3><div class="grid g2" style="gap:0 10px" id="txPay">
+        <div class="sw"><input type="checkbox" class="txPayC" value="bar" id="txPayBar"><div><b data-i18n="tx.bar">Bar</b><div class="mute small" data-i18n="tx.beim_fahrer">beim Fahrer</div></div></div>
+        <div class="sw"><input type="checkbox" class="txPayC" value="karte" id="txPayKarte"><div><b data-i18n="tx.ec_kreditkarte">EC-/Kreditkarte</b><div class="mute small" data-i18n="tx.kartenterminal_im_taxi">Kartenterminal im Taxi</div></div></div>
+        <div class="sw"><input type="checkbox" class="txPayC" value="app" id="txPayApp"><div><b data-i18n="tx.app_apple_pay_google">App / Apple Pay / Google Pay</b><div class="mute small" data-i18n="tx.kontaktlos_oder_per_link">kontaktlos oder per Link</div></div></div>
+        <div class="sw"><input type="checkbox" class="txPayC" value="rechnung" id="txPayRe"><div><b data-i18n="tx.rechnung">Rechnung</b><div class="mute small" data-i18n="tx.firmenkunden_krankenfahrten">Firmenkunden, Krankenfahrten</div></div></div>
       </div></div>
-      <div class="row" style="justify-content:space-between;margin-top:16px"><span class="mute small">Fahrer werden mitgespeichert. Änderungen wirken sofort für Agent, Board und Fahrer-App.</span><button class="btn p" type="button" id="txSave">Speichern</button></div><div id="txMsg"></div>
+      <div class="row" style="justify-content:space-between;margin-top:16px"><span class="mute small" data-i18n="tx.fahrer_werden_mitgespeichert">Fahrer werden mitgespeichert. Änderungen wirken sofort für Agent, Board und Fahrer-App.</span><button class="btn p" type="button" id="txSave" data-i18n="tx.speichern">Speichern</button></div><div id="txMsg"></div>
     </div>
 
-    <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="font-size:17px">Fahrer</h3><button class="btn s" type="button" id="txAddDrv">+ Fahrer</button></div>
-      <p class="mute small" style="margin:4px 0 8px">Jeder Fahrer bekommt einen persönlichen Link zur Fahrer-App (Handy: Fahrt annehmen, Navigation, „Bin da“, „Fahrt beendet“). Bei Zuteilung kommt die Fahrt zusätzlich per WhatsApp/SMS. Status-Knopf: frei → besetzt → Pause.</p>
+    <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="font-size:17px" data-i18n="tx.fahrer">Fahrer</h3><button class="btn s" type="button" id="txAddDrv" data-i18n="tx.fahrer_2">+ Fahrer</button></div>
+      <p class="mute small" style="margin:4px 0 8px" data-i18n="tx.jeder_fahrer_bekommt_einen">Jeder Fahrer bekommt einen persönlichen Link zur Fahrer-App (Handy: Fahrt annehmen, Navigation, „Bin da“, „Fahrt beendet“). Bei Zuteilung kommt die Fahrt zusätzlich per WhatsApp/SMS. Status-Knopf: frei → besetzt → Pause.</p>
       <div id="txDrivers"></div>
-      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn p" type="button" id="txSave2">Fahrer speichern</button></div><div id="txMsg2"></div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn p" type="button" id="txSave2" data-i18n="tx.fahrer_speichern">Fahrer speichern</button></div><div id="txMsg2"></div>
     </div>
   </div>
 
   <div>
-    <div class="card"><div class="row" style="justify-content:space-between"><h3 style="font-size:17px">Live-Fahrten</h3><div class="row"><label class="small mute" style="margin:0"><input type="checkbox" id="txAll"> auch erledigte (7 Tage)</label><button class="btn s" type="button" id="txReload" title="Neu laden">↻</button></div></div>
+    <div class="card"><div class="row" style="justify-content:space-between"><h3 style="font-size:17px" data-i18n="tx.live_fahrten">Live-Fahrten</h3><div class="row"><label class="small mute" style="margin:0" data-i18n-t="tx.auch_erledigte_tage"><input type="checkbox" id="txAll"> auch erledigte (7 Tage)</label><button class="btn s" type="button" id="txReload" title="Neu laden" data-i18n-attr="title:tx.neu_laden">↻</button></div></div>
       <div id="txList" class="mute small" style="margin-top:8px">–</div></div>
 
-    <div class="card" style="margin-top:16px"><h3 style="font-size:17px">Dispositions-Board</h3><p class="mute small" style="margin:4px 0 8px">Großansicht ohne Login für Zentrale, Tablet oder Bildschirm am Taxistand: neue Fahrten mit Ton, Fahrer zuteilen (Vorschlag ★ = nächster freier, passender Fahrer), Status per Tipp, Fahrerstatus.</p>
-      <div class="snip" id="txBoard">Speichern, um den Link zu erhalten.</div><div class="row" style="margin-top:8px"><a class="btn s" id="txBoardOpen" href="#" target="_blank" rel="noopener">Board öffnen</a><button class="btn s" type="button" id="txBoardCopy">Link kopieren</button></div><div id="txBoardMsg"></div></div>
+    <div class="card" style="margin-top:16px"><h3 style="font-size:17px" data-i18n="tx.dispositions_board">Dispositions-Board</h3><p class="mute small" style="margin:4px 0 8px" data-i18n="tx.grossansicht_ohne_login_fuer">Großansicht ohne Login für Zentrale, Tablet oder Bildschirm am Taxistand: neue Fahrten mit Ton, Fahrer zuteilen (Vorschlag ★ = nächster freier, passender Fahrer), Status per Tipp, Fahrerstatus.</p>
+      <div class="snip" id="txBoard" data-i18n="tx.speichern_um_den_link">Speichern, um den Link zu erhalten.</div><div class="row" style="margin-top:8px"><a class="btn s" id="txBoardOpen" href="#" target="_blank" rel="noopener" data-i18n="tx.board_oeffnen">Board öffnen</a><button class="btn s" type="button" id="txBoardCopy" data-i18n="tx.link_kopieren">Link kopieren</button></div><div id="txBoardMsg"></div></div>
 
-    <div class="card" style="margin-top:16px"><h3 style="font-size:17px">Preisrechner &amp; Fahrt eintragen</h3><p class="mute small" style="margin:4px 0 8px">So kalkuliert der Agent: Abholort (Einsatzgebiet), Strecke, Richtpreis bzw. Festpreis, Wartezeit. Anrufer am Festnetz der Zentrale? Fahrt direkt hier anlegen.</p>
-      <div class="grid g2" style="gap:10px"><div><label for="txCPick">Abholort</label><input type="text" id="txCPick" placeholder="Hauptbahnhof · Domstraße 10"></div><div><label for="txCDest">Ziel (optional)</label><input type="text" id="txCDest" placeholder="Flughafen Köln/Bonn"></div></div>
-      <div class="grid g3" style="gap:10px"><div><label for="txCTime">Zeit</label><input type="text" id="txCTime" placeholder="sofort · 14:30 · morgen 05:30" value="sofort"></div><div><label for="txCPax">Personen</label><input type="text" id="txCPax" inputmode="numeric" value="1"></div><div><label for="txCVeh">Fahrzeug</label><select id="txCVeh"></select></div></div>
-      <label for="txCExtras">Extras (optional)</label><input type="text" id="txCExtras" placeholder="Kindersitz 3 J., Rollstuhl, Hund …">
-      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn p" type="button" id="txCalc">Berechnen</button></div>
+    <div class="card" style="margin-top:16px"><h3 style="font-size:17px" data-i18n="tx.preisrechner_fahrt_eintragen">Preisrechner &amp; Fahrt eintragen</h3><p class="mute small" style="margin:4px 0 8px" data-i18n="tx.so_kalkuliert_der_agent">So kalkuliert der Agent: Abholort (Einsatzgebiet), Strecke, Richtpreis bzw. Festpreis, Wartezeit. Anrufer am Festnetz der Zentrale? Fahrt direkt hier anlegen.</p>
+      <div class="grid g2" style="gap:10px"><div><label for="txCPick" data-i18n="tx.abholort">Abholort</label><input type="text" id="txCPick" placeholder="Hauptbahnhof · Domstraße 10" data-i18n-attr="placeholder:tx.hauptbahnhof_domstrasse_10"></div><div><label for="txCDest" data-i18n="tx.ziel_optional">Ziel (optional)</label><input type="text" id="txCDest" placeholder="Flughafen Köln/Bonn" data-i18n-attr="placeholder:tx.flughafen_koeln_bonn"></div></div>
+      <div class="grid g3" style="gap:10px"><div><label for="txCTime" data-i18n="tx.zeit">Zeit</label><input type="text" id="txCTime" placeholder="sofort · 14:30 · morgen 05:30" value="sofort" data-i18n-attr="placeholder:tx.sofort_14_30_morgen"></div><div><label for="txCPax" data-i18n="tx.personen">Personen</label><input type="text" id="txCPax" inputmode="numeric" value="1"></div><div><label for="txCVeh" data-i18n="tx.fahrzeug">Fahrzeug</label><select id="txCVeh"></select></div></div>
+      <label for="txCExtras" data-i18n="tx.extras_optional">Extras (optional)</label><input type="text" id="txCExtras" placeholder="Kindersitz 3 J., Rollstuhl, Hund …" data-i18n-attr="placeholder:tx.kindersitz_rollstuhl_hund">
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn p" type="button" id="txCalc" data-i18n="tx.berechnen">Berechnen</button></div>
       <div id="txCRes" class="small" style="margin-top:10px"></div>
-      <div id="txBook" class="hidden"><div class="sec"><h3>Als Fahrt anlegen</h3>
-        <div class="grid g2" style="gap:10px"><div><label for="txBName">Name Fahrgast</label><input type="text" id="txBName" maxlength="120"></div><div><label for="txBPhone">Telefon</label><input type="tel" id="txBPhone" maxlength="40" placeholder="für den Fahrer"></div></div>
-        <div class="grid g2" style="gap:10px"><div><label for="txBPay">Zahlung</label><select id="txBPay"></select></div><div><label for="txBLug">Gepäck</label><input type="text" id="txBLug" maxlength="60" placeholder="z. B. 2 Koffer"></div></div>
-        <label for="txBNote">Hinweis für den Fahrer</label><input type="text" id="txBNote" maxlength="400" placeholder="z. B. Hinterhof, bei Müller klingeln">
-        <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn s hidden" type="button" id="txBForce">Trotzdem anlegen</button><button class="btn p" type="button" id="txBGo">Fahrt anlegen</button></div><div id="txBMsg"></div></div></div>
+      <div id="txBook" class="hidden"><div class="sec"><h3 data-i18n="tx.als_fahrt_anlegen">Als Fahrt anlegen</h3>
+        <div class="grid g2" style="gap:10px"><div><label for="txBName" data-i18n="tx.name_fahrgast">Name Fahrgast</label><input type="text" id="txBName" maxlength="120"></div><div><label for="txBPhone" data-i18n="tx.telefon">Telefon</label><input type="tel" id="txBPhone" maxlength="40" placeholder="für den Fahrer" data-i18n-attr="placeholder:tx.fuer_den_fahrer"></div></div>
+        <div class="grid g2" style="gap:10px"><div><label for="txBPay" data-i18n="tx.zahlung">Zahlung</label><select id="txBPay"></select></div><div><label for="txBLug" data-i18n="tx.gepaeck">Gepäck</label><input type="text" id="txBLug" maxlength="60" placeholder="z. B. 2 Koffer" data-i18n-attr="placeholder:tx.koffer"></div></div>
+        <label for="txBNote" data-i18n="tx.hinweis_fuer_den_fahrer">Hinweis für den Fahrer</label><input type="text" id="txBNote" maxlength="400" placeholder="z. B. Hinterhof, bei Müller klingeln" data-i18n-attr="placeholder:tx.hinterhof_bei_mueller_klinge">
+        <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn s hidden" type="button" id="txBForce" data-i18n="tx.trotzdem_anlegen">Trotzdem anlegen</button><button class="btn p" type="button" id="txBGo" data-i18n="tx.fahrt_anlegen">Fahrt anlegen</button></div><div id="txBMsg"></div></div></div>
     </div>
 
-    <div class="card" style="margin-top:16px"><h3 style="font-size:17px">So läuft eine Fahrt</h3><ol class="mute small" style="margin:8px 0 0 18px;padding:0;line-height:1.7">
-      <li>Kunde ruft an, schreibt per WhatsApp oder im Chat: „Ein Taxi zum Hauptbahnhof, sofort“ – der Agent fragt Abholort, Zeit, Personen, Ziel und Namen.</li>
-      <li>Kalkulation: Einsatzgebiet geprüft, Richtpreis bzw. Festpreis, Wartezeit ab dem nächsten freien Taxi.</li>
-      <li>Zusammenfassung → Kunde bestätigt → Fahrtcode + Status-Link; die Zentrale bekommt die Fahrt aufs Board und per E-Mail.</li>
-      <li>Zuteilen → der Fahrer bekommt die Fahrt per WhatsApp/SMS und in seiner App, der Kunde Fahrer, Fahrzeug und Kennzeichen.</li>
-      <li>„Bin da“ → der Kunde erhält „Ihr Taxi ist da …“; danach „Kunde an Bord“ und „Fahrt beendet“.</li></ol></div>
+    <div class="card" style="margin-top:16px"><h3 style="font-size:17px" data-i18n="tx.so_laeuft_eine_fahrt">So läuft eine Fahrt</h3><ol class="mute small" style="margin:8px 0 0 18px;padding:0;line-height:1.7">
+      <li data-i18n="tx.kunde_ruft_an_schreibt">Kunde ruft an, schreibt per WhatsApp oder im Chat: „Ein Taxi zum Hauptbahnhof, sofort“ – der Agent fragt Abholort, Zeit, Personen, Ziel und Namen.</li>
+      <li data-i18n="tx.kalkulation_einsatzgebiet_ge">Kalkulation: Einsatzgebiet geprüft, Richtpreis bzw. Festpreis, Wartezeit ab dem nächsten freien Taxi.</li>
+      <li data-i18n="tx.zusammenfassung_kunde_bestae">Zusammenfassung → Kunde bestätigt → Fahrtcode + Status-Link; die Zentrale bekommt die Fahrt aufs Board und per E-Mail.</li>
+      <li data-i18n="tx.zuteilen_der_fahrer_bekommt">Zuteilen → der Fahrer bekommt die Fahrt per WhatsApp/SMS und in seiner App, der Kunde Fahrer, Fahrzeug und Kennzeichen.</li>
+      <li data-i18n="tx.bin_da_der_kunde">„Bin da“ → der Kunde erhält „Ihr Taxi ist da …“; danach „Kunde an Bord“ und „Fahrt beendet“.</li></ol></div>
 
-    <details class="guide"><summary>Einrichtung in 5 Schritten</summary><ol>
-      <li><b>Zentrale &amp; Tarif</b> links eintragen (Adresse = Mittelpunkt des Einsatzgebiets), Fahrzeuge, Festpreise und Taxistände prüfen, <b>Taxi-Annahme aktiv</b> anhaken, speichern.</li>
-      <li><b>Telefonnummer</b>: im Tab <b>Telefon</b> den Taxi-Agenten wählen, Begrüßung festlegen („Taxi Rheinland, guten Tag – wohin darf’s gehen?“) und Telefon aktivieren – Anrufer werden automatisch angenommen; deine bestehende Nummer leitest du bei Besetzt oder nach Zeit um.</li>
-      <li><b>WhatsApp</b>: Zugangsdaten im Tab <b>Bestellungen → WhatsApp-Anbindung</b> hinterlegen (gilt für alle Agenten). Darüber bekommen auch Fahrer und Kunden ihre Nachrichten; ohne WhatsApp gehen sie per SMS bzw. als E-Mail an die Zentrale.</li>
-      <li><b>Board</b> auf Tablet oder Bildschirm in der Zentrale öffnen (Link rechts), Ton antippen und Vollbild ⛶ wählen – der Bildschirm bleibt an.</li>
-      <li><b>Fahrer</b> anlegen und jedem seinen Link schicken: im Handy-Browser öffnen und „Zum Startbildschirm hinzufügen“ – dann startet die Fahrer-App wie eine echte App.</li></ol>
-      <div class="tip">Test: Im Tab Agenten den Taxi-Agenten öffnen und „Ein Taxi zum Hauptbahnhof, sofort, 2 Personen“ schreiben – die Fahrt erscheint sofort oben rechts unter Live-Fahrten und auf dem Board.</div></details>
+    <details class="guide"><summary data-i18n="tx.einrichtung_in_schritten">Einrichtung in 5 Schritten</summary><ol>
+      <li data-i18n-html="tx.zentrale_tarif_links_eintrag"><b>Zentrale &amp; Tarif</b> links eintragen (Adresse = Mittelpunkt des Einsatzgebiets), Fahrzeuge, Festpreise und Taxistände prüfen, <b>Taxi-Annahme aktiv</b> anhaken, speichern.</li>
+      <li data-i18n-html="tx.telefonnummer_im_tab_telefon"><b>Telefonnummer</b>: im Tab <b>Telefon</b> den Taxi-Agenten wählen, Begrüßung festlegen („Taxi Rheinland, guten Tag – wohin darf’s gehen?“) und Telefon aktivieren – Anrufer werden automatisch angenommen; deine bestehende Nummer leitest du bei Besetzt oder nach Zeit um.</li>
+      <li data-i18n-html="tx.whatsapp_zugangsdaten_im_tab"><b>WhatsApp</b>: Zugangsdaten im Tab <b>Bestellungen → WhatsApp-Anbindung</b> hinterlegen (gilt für alle Agenten). Darüber bekommen auch Fahrer und Kunden ihre Nachrichten; ohne WhatsApp gehen sie per SMS bzw. als E-Mail an die Zentrale.</li>
+      <li data-i18n-html="tx.board_auf_tablet_oder"><b>Board</b> auf Tablet oder Bildschirm in der Zentrale öffnen (Link rechts), Ton antippen und Vollbild ⛶ wählen – der Bildschirm bleibt an.</li>
+      <li data-i18n-html="tx.fahrer_anlegen_und_jedem"><b>Fahrer</b> anlegen und jedem seinen Link schicken: im Handy-Browser öffnen und „Zum Startbildschirm hinzufügen“ – dann startet die Fahrer-App wie eine echte App.</li></ol>
+      <div class="tip" data-i18n="tx.test_im_tab_agenten">Test: Im Tab Agenten den Taxi-Agenten öffnen und „Ein Taxi zum Hauptbahnhof, sofort, 2 Personen“ schreiben – die Fahrt erscheint sofort oben rechts unter Live-Fahrten und auf dem Board.</div></details>
   </div>
 </div>

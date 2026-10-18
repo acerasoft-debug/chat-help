@@ -11,6 +11,9 @@
   var timer = null, saveT = null, bridgeP = null, bound = false, polling = false;
   var g = function (id) { return document.getElementById(id); };
   var h = function (v) { return esc(v == null ? '' : String(v)); };
+  var X = function (v) { return h(v == null ? '' : _tx(String(v))); };
+  /* Ereignisse/Gruppen kommen vom Server auf Deutsch: Übersetzung über den Schlüssel, sonst Quelltext-Wörterbuch */
+  var lb = function (k, fb) { return I18N.has(k) ? _t(k) : _tx(fb); };
   var visible = function () { var el = g(PANEL); return !!el && !el.closest('.hidden'); };
   var B = function () { return window.ChatHelpApp || null; };
   var key = function () { try { return KEY; } catch (e) { return ''; } };
@@ -48,15 +51,15 @@
   function ago(iso) {
     if (!iso) return ''; var t = new Date(iso).getTime(); if (!isFinite(t)) return '';
     var s = Math.round((Date.now() - t) / 1000);
-    if (s < 45) return 'gerade eben';
-    if (s < 3600) return 'vor ' + Math.max(1, Math.round(s / 60)) + ' Min.';
-    if (s < 6 * 3600) return 'vor ' + Math.round(s / 3600) + ' Std.';
-    var d = new Date(t), now = new Date(), hm = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-    if (d.toDateString() === now.toDateString()) return 'heute ' + hm;
-    var y = new Date(now.getTime() - 86400000); if (d.toDateString() === y.toDateString()) return 'gestern ' + hm;
-    return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '. ' + hm;
+    if (s < 45) return _t('kuj.now');
+    if (s < 3600) return _t('kuj.ago',{n:Math.max(1, Math.round(s / 60))});
+    if (s < 6 * 3600) return _t('ntj.agoH',{n:Math.round(s / 3600)});
+    var d = new Date(t), now = new Date(), hm = I18N.time(d);
+    if (d.toDateString() === now.toDateString()) return _t('kuj.today',{t:hm});
+    var y = new Date(now.getTime() - 86400000); if (d.toDateString() === y.toDateString()) return _t('kuj.yest',{t:hm});
+    return I18N.date(d, { day: '2-digit', month: '2-digit' }) + ' ' + hm;
   }
-  function dfull(iso) { try { return new Date(iso).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return ''; } }
+  function dfull(iso) { try { return I18N.dt(iso, { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return ''; } }
   function iosOld() { var m = /OS (\d+)[_.](\d+)/.exec(navigator.userAgent || ''); return !!(m && (+m[1] < 16 || (+m[1] === 16 && +m[2] < 4))); }
   function uaLabel() {
     var ua = navigator.userAgent || '', b = 'Browser', o = '';
@@ -97,7 +100,7 @@
   function setUnread(n) {
     UNREAD = Math.max(0, parseInt(n, 10) || 0);
     var t = g('bnUnreadTag');
-    if (t) { t.textContent = UNREAD > 0 ? UNREAD + ' ungelesen' : 'Alles gelesen'; t.className = UNREAD > 0 ? 'tag gold' : 'tag ok'; }
+    if (t) { t.textContent = UNREAD > 0 ? _t('sj.unread',{n:UNREAD}) : _t('ntj.allRead'); t.className = UNREAD > 0 ? 'tag gold' : 'tag ok'; }
     var ra = g('bnReadAll'); if (ra) ra.disabled = UNREAD === 0;
     ensureTabBadge();
     var A = B();
@@ -113,7 +116,7 @@
     var tag = g('bnStTag'); tag.className = 'tag' + (o.tag ? ' ' + o.tag : ''); tag.textContent = o.tagText || '';
     g('bnStDev').textContent = o.dev || '';
     g('bnStTitle').textContent = o.title || '';
-    g('bnStText').innerHTML = o.text || '';
+    g('bnStText').innerHTML = o.text || '';   /* Texte unten bereits übersetzt bzw. escaped */
     var st = g('bnStSteps'); st.innerHTML = (o.steps || []).map(function (s) { return '<li>' + s + '</li>'; }).join(''); st.classList.toggle('hidden', !(o.steps && o.steps.length));
     var nt = g('bnStNote'); nt.textContent = o.note || ''; nt.classList.toggle('hidden', !o.note);
     var en = g('bnEnable'); show('bnEnable', !!o.enable); if (o.enable) en.textContent = o.enable;
@@ -124,36 +127,36 @@
   function refreshStatus() {
     var A = B();
     if (!A) {
-      paintStatus({ tone: 'rose', icon: 'block', tag: 'rose', tagText: 'Nicht geladen', title: 'Benachrichtigungen konnten nicht geladen werden', text: 'Bitte die Seite neu laden. Wichtige Ereignisse bekommst du weiterhin per E-Mail.', recheck: true });
+      paintStatus({ tone: 'rose', icon: 'block', tag: 'rose', tagText: _t('ntj.notLoaded'), title: _t('ntj.loadFail'), text: _t('ntj.reload'), recheck: true });
       return Promise.resolve();
     }
     return Promise.all([A.pushState(), A.deviceHash()]).then(function (r) {
       STATE = r[0]; HASH = r[1] || '';
       var mine = CFG && HASH ? CFG.devices.filter(function (d) { return d.h === HASH; })[0] : null;
-      var dev = mine ? mine.label : uaLabel(), mailHint = CFG && CFG.email_fallback ? ' Bis dahin bekommst du wichtige Ereignisse per E-Mail.' : '';
+      var dev = mine ? mine.label : uaLabel(), mailHint = CFG && CFG.email_fallback ? ' ' + _t('ntj.mailHint') : '';
       if (STATE === 'subscribed' && mine) {
-        paintStatus({ tone: 'ok', icon: 'check', tag: 'ok', tagText: 'Aktiv', dev: dev, title: 'Benachrichtigungen sind auf diesem Gerät aktiv',
-          text: 'Neue Aufträge erreichen dich hier sofort – auch wenn das Studio geschlossen ist.' + (mine.last_ok ? ' Zuletzt zugestellt ' + h(ago(mine.last_ok)) + '.' : ' Mit „Test senden“ prüfst du in Sekunden alle Geräte.'),
+        paintStatus({ tone: 'ok', icon: 'check', tag: 'ok', tagText: _t('sj.active'), dev: dev, title: _t('ntj.onTitle'),
+          text: _t('ntj.onText') + ' ' + (mine.last_ok ? h(_t('ntj.lastOk',{t:ago(mine.last_ok)})) : _t('ntj.testHint')),
           test: true, disable: true });
       } else if (STATE === 'subscribed' || STATE === 'granted') {
-        paintStatus({ tone: 'gold', icon: 'bell', tag: 'gold', tagText: 'Fast fertig', dev: dev, title: 'Noch dieses Gerät verbinden',
-          text: 'Die Erlaubnis ist erteilt, aber dieses Gerät ist (nicht mehr) in deiner Geräteliste – z. B. weil es entfernt wurde oder abgelaufen ist. Ein Tipp verbindet es wieder.', enable: 'Gerät verbinden' });
+        paintStatus({ tone: 'gold', icon: 'bell', tag: 'gold', tagText: _t('ntj.almost'), dev: dev, title: _t('ntj.connTitle'),
+          text: _t('ntj.connText'), enable: _t('ntj.connBtn') });
       } else if (STATE === 'default') {
         var tip = A.isNative ? '' : A.installHint();
-        paintStatus({ tone: 'gold', icon: 'bell', tag: '', tagText: 'Aus', dev: dev, title: 'Benachrichtigungen aktivieren',
-          text: 'Tippe auf den Knopf und bestätige mit „Zulassen“ – dann meldet sich ChatHelp bei jeder neuen Bestellung, Fahrt oder jedem Termin sofort, mit Ton.' + (tip ? '<br><span class="mute small">' + h(tip) + '</span>' : ''),
-          enable: 'Benachrichtigungen aktivieren' });
+        paintStatus({ tone: 'gold', icon: 'bell', tag: '', tagText: _t('ntj.off'), dev: dev, title: _t('ntj.enable'),
+          text: _t('ntj.enableText') + (tip ? '<br><span class="mute small">' + X(tip) + '</span>' : ''),
+          enable: _t('ntj.enable') });
       } else if (STATE === 'denied') {
-        paintStatus({ tone: 'rose', icon: 'block', tag: 'rose', tagText: 'Blockiert', dev: dev, title: 'Benachrichtigungen sind blockiert',
-          text: h(A.deniedHint()) + mailHint, recheck: true });
+        paintStatus({ tone: 'rose', icon: 'block', tag: 'rose', tagText: _t('ntj.blocked'), dev: dev, title: _t('ntj.blockedT'),
+          text: X(A.deniedHint()) + mailHint, recheck: true });
       } else if (A.isIOS && !A.isStandalone && !A.isNative && !iosOld()) {
-        paintStatus({ tone: 'gold', icon: 'share', tag: 'gold', tagText: 'iPhone & iPad', dev: dev, title: 'Zuerst zum Home-Bildschirm hinzufügen',
-          text: 'Apple erlaubt Benachrichtigungen nur für installierte Web-Apps (ab iOS 16.4). So geht’s – dauert 20 Sekunden:',
-          steps: ['In Safari unten auf <b>Teilen</b> tippen (Quadrat mit Pfeil nach oben).', '<b>„Zum Home-Bildschirm“</b> wählen und <b>„Hinzufügen“</b> tippen.',
-            'ChatHelp über das <b>neue Symbol</b> öffnen, hier „Benachrichtigungen“ wählen und <b>„Benachrichtigungen aktivieren“</b> tippen.'], note: mailHint.trim() });
+        paintStatus({ tone: 'gold', icon: 'share', tag: 'gold', tagText: 'iPhone & iPad', dev: dev, title: _t('ntj.homeT'),
+          text: _t('ntj.homeText'),
+          steps: [_t('ntj.ios1'), _t('ntj.ios2'),
+            _t('ntj.ios3')], note: mailHint.trim() });
       } else {
-        paintStatus({ tone: 'mute', icon: 'block', tag: '', tagText: 'Nicht unterstützt', dev: dev, title: 'Dieser Browser kann keine Push-Benachrichtigungen',
-          text: h(A.installHint() && A.isIOS ? A.installHint() : 'Nutze Chrome, Edge, Firefox oder Safari – oder die ChatHelp-App.') + mailHint });
+        paintStatus({ tone: 'mute', icon: 'block', tag: '', tagText: _t('ntj.unsup'), dev: dev, title: _t('ntj.unsupT'),
+          text: (A.installHint() && A.isIOS ? X(A.installHint()) : _t('ntj.useBrowser')) + mailHint });
       }
       renderDevices();
     }).catch(function () {});
@@ -168,51 +171,51 @@
   function renderDevices() {
     var box = g('bnDevices'); if (!box || !CFG) return;
     var list = CFG.devices || [];
-    g('bnDevCount').textContent = list.length ? list.length + (list.length === 1 ? ' Gerät' : ' Geräte') : '';
+    g('bnDevCount').textContent = list.length ? (list.length === 1 ? _t('ntj.dev1') : _t('ntj.devN',{n:list.length})) : '';
     if (!list.length) {
-      box.innerHTML = '<div class="call" style="text-align:center;padding:20px 14px"><div class="mute small">Noch kein Gerät angemeldet. Aktiviere oben die Benachrichtigungen auf diesem Gerät – und am besten auch auf deinem Handy.</div></div>';
+      box.innerHTML = '<div class="call" style="text-align:center;padding:20px 14px"><div class="mute small">' + _t('ntj.noDev') + '</div></div>';
     } else {
       box.innerHTML = list.map(function (d) {
         var mine = HASH && d.h === HASH, t = TEST[d.id], bits = [];
         bits.push(d.type === 'fcm' ? 'ChatHelp-App' : 'Browser-Push');
-        if (d.created) bits.push('seit ' + new Date(d.created).toLocaleDateString('de-DE'));
-        bits.push(d.last_ok ? 'zuletzt zugestellt ' + ago(d.last_ok) : 'noch nichts zugestellt');
+        if (d.created) bits.push(_t('ntj.since',{d:I18N.date(d.created)}));
+        bits.push(d.last_ok ? _t('ntj.lastDel',{t:ago(d.last_ok)}) : _t('ntj.noneDel'));
         var res = '';
-        if (t) res = t.ok ? '<div class="small" style="color:var(--ok);margin-top:4px">✓ Test zugestellt' + (t.status ? ' (' + t.status + ')' : '') + '</div>'
-          : '<div class="small" style="color:var(--rose);margin-top:4px">✗ ' + h(t.removed ? 'Nicht mehr erreichbar – Gerät wurde entfernt' : (t.error || 'nicht zugestellt')) + '</div>';
-        else if (d.last_error) res = '<div class="small" style="color:var(--rose);margin-top:4px">Letzter Fehler: ' + h(d.last_error) + (d.fails ? ' · ' + d.fails + '× in Folge' : '') + '</div>';
+        if (t) res = t.ok ? '<div class="small" style="color:var(--ok);margin-top:4px">' + h(_t('ntj.testOk') + (t.status ? ' (' + t.status + ')' : '')) + '</div>'
+          : '<div class="small" style="color:var(--rose);margin-top:4px">✗ ' + h(t.removed ? _t('ntj.gone') : (t.error ? _tx(t.error) : _t('ntj.notDel'))) + '</div>';
+        else if (d.last_error) res = '<div class="small" style="color:var(--rose);margin-top:4px">' + h(_t('ntj.lastErr',{e:_tx(d.last_error)}) + (d.fails ? ' · ' + _t('ntj.fails',{n:d.fails}) : '')) + '</div>';
         return '<div class="call" style="display:flex;gap:12px;align-items:center' + (mine ? ';border-color:#bfe8cf' : '') + '">' + devIcon(d) +
-          '<div style="flex:1;min-width:0"><div class="row" style="gap:6px"><b style="font-size:14.5px">' + h(d.label) + '</b>' + (mine ? '<span class="tag ok" style="font-size:10px;padding:3px 8px">Dieses Gerät</span>' : '') + '</div>' +
+          '<div style="flex:1;min-width:0"><div class="row" style="gap:6px"><b style="font-size:14.5px">' + h(d.label) + '</b>' + (mine ? '<span class="tag ok" style="font-size:10px;padding:3px 8px">' + _t('ntj.thisDev') + '</span>' : '') + '</div>' +
           '<div class="mute small">' + h(bits.join(' · ')) + '</div>' + res + '</div>' +
-          '<button class="btn s ghost" type="button" data-rm="' + d.id + '" title="Gerät entfernen" style="color:var(--rose)">Entfernen</button></div>';
+          '<button class="btn s ghost" type="button" data-rm="' + d.id + '" title="' + h(_t('ntj.rmT')) + '" style="color:var(--rose)">' + _t('ntj.rm') + '</button></div>';
       }).join('');
       box.querySelectorAll('[data-rm]').forEach(function (b) { b.onclick = function () { removeDevice(+b.getAttribute('data-rm')); }; });
     }
     var extra = [];
-    if (CFG.drivers) extra.push(CFG.drivers + (CFG.drivers === 1 ? ' Fahrer-Handy' : ' Fahrer-Handys'));
-    if (CFG.boards) extra.push(CFG.boards + (CFG.boards === 1 ? ' Board' : ' Boards'));
+    if (CFG.drivers) extra.push(CFG.drivers === 1 ? _t('ntj.drv1') : _t('ntj.drvN',{n:CFG.drivers}));
+    if (CFG.boards) extra.push(CFG.boards === 1 ? _t('ntj.board1') : _t('ntj.boardN',{n:CFG.boards}));
     var notes = [];
-    if (extra.length) notes.push('Außerdem angemeldet: ' + h(extra.join(' · ')) + ' – diese bekommen nur ihre eigenen Aufträge.');
-    if (!CFG.fcm_ready && list.some(function (d) { return d.type === 'fcm'; })) notes.push('Die ChatHelp-App wird gerade für Benachrichtigungen freigeschaltet – bis dahin kommen Meldungen über den Browser und per E-Mail.');
+    if (extra.length) notes.push(h(_t('ntj.extra',{l:extra.join(' · ')})));
+    if (!CFG.fcm_ready && list.some(function (d) { return d.type === 'fcm'; })) notes.push(_t('ntj.fcm'));
     msg(g('bnDevMsg'), notes.join('<br>'), 'info');
   }
   function removeDevice(id) {
     var d = (CFG.devices || []).filter(function (x) { return x.id === id; })[0]; if (!d) return;
     var mine = HASH && d.h === HASH;
-    if (!confirm('„' + d.label + '“ entfernen? Dieses Gerät bekommt dann keine Benachrichtigungen mehr.')) return;
+    if (!confirm(_t('ntj.rmQ',{n:d.label}))) return;
     var A = B();
     var p = mine && A ? A.disablePush().then(function () { return api('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ id: id }) }); })
       : api('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ id: id }) });
-    p.then(function (j) { if (j && j.devices) CFG.devices = j.devices; delete TEST[id]; msg(g('bnDevMsg'), 'Gerät entfernt.', 'ok'); return loadCfg(); })
+    p.then(function (j) { if (j && j.devices) CFG.devices = j.devices; delete TEST[id]; msg(g('bnDevMsg'), _t('ntj.removed'), 'ok'); return loadCfg(); })
       .then(refreshStatus).catch(function (e) { msg(g('bnDevMsg'), h(e.message), 'err'); });
   }
   function sendTest(btn) {
     if (btn) btn.disabled = true;
-    msg(g('bnStMsg'), 'Test wird gesendet …', 'info');
+    msg(g('bnStMsg'), _t('ntj.testing'), 'info');
     api('/push/test', { method: 'POST', body: '{}' }).then(function (j) {
       TEST = {}; (j.results || []).forEach(function (r) { TEST[r.id] = r; });
       if (j.devices) CFG.devices = j.devices;
-      msg(g('bnStMsg'), h(j.message || '') + (j.total ? ' Die Meldung liegt auch im Postfach.' : ''), j.total ? (j.ok ? 'ok' : 'err') : 'info');
+      msg(g('bnStMsg'), X(j.message || '') + (j.total ? ' ' + _t('ntj.inInbox') : ''), j.total ? (j.ok ? 'ok' : 'err') : 'info');
       renderDevices(); pollInbox(); if (typeof j.unread === 'number') setUnread(j.unread);
     }).catch(function (e) { msg(g('bnStMsg'), h(e.message), 'err'); }).then(function () { if (btn) btn.disabled = false; });
   }
@@ -223,15 +226,15 @@
     var groups = CFG.groups || {}, html = '';
     Object.keys(groups).forEach(function (gk, i) {
       var evs = (CFG.events || []).filter(function (e) { return e.group === gk; }); if (!evs.length) return;
-      html += '<div class="sec"' + (i === 0 ? ' style="margin-top:12px"' : '') + '><h3 style="font-size:15px">' + h(groups[gk]) + '</h3>';
+      html += '<div class="sec"' + (i === 0 ? ' style="margin-top:12px"' : '') + '><h3 style="font-size:15px">' + h(lb('ntj.g.' + gk, groups[gk])) + '</h3>';
       evs.forEach(function (e) {
-        var on = CFG.prefs ? CFG.prefs[e.key] !== false : e.on;
-        html += '<div class="sw" data-row="' + h(e.key) + '" style="cursor:pointer;align-items:flex-start"><input type="checkbox" data-ev="' + h(e.key) + '"' + (on ? ' checked' : '') + ' aria-label="' + h(e.label) + '" style="margin-top:2px">' +
+        var on = CFG.prefs ? CFG.prefs[e.key] !== false : e.on, L = lb('ntj.ev.' + e.key, e.label);
+        html += '<div class="sw" data-row="' + h(e.key) + '" style="cursor:pointer;align-items:flex-start"><input type="checkbox" data-ev="' + h(e.key) + '"' + (on ? ' checked' : '') + ' aria-label="' + h(L) + '" style="margin-top:2px">' +
           iconBox(e.key, e.group, 30) +
-          '<div style="flex:1;min-width:0"><div class="row" style="gap:6px"><b>' + h(e.label) + '</b>' +
-          (e.urgent ? '<span class="tag gold" style="font-size:10px;padding:3px 7px">Dringend</span>' : '') +
-          (e.critical ? '<span class="tag" style="font-size:10px;padding:3px 7px" title="Bei aktivem E-Mail-Ersatz zusätzlich per E-Mail">+ E-Mail</span>' : '') +
-          '</div><div class="mute small">' + h(e.hint || '') + '</div></div></div>';
+          '<div style="flex:1;min-width:0"><div class="row" style="gap:6px"><b>' + h(L) + '</b>' +
+          (e.urgent ? '<span class="tag gold" style="font-size:10px;padding:3px 7px">' + _t('rrj.urgent') + '</span>' : '') +
+          (e.critical ? '<span class="tag" style="font-size:10px;padding:3px 7px" title="' + h(_t('ntj.critT')) + '">' + _t('ntj.plusMail') + '</span>' : '') +
+          '</div><div class="mute small">' + h(lb('ntj.evh.' + e.key, e.hint || '')) + '</div></div></div>';
       });
       html += '</div>';
     });
@@ -245,12 +248,12 @@
   /* ---------- Ruhezeiten + E-Mail ---------- */
   function fillTimes(sel) {
     if (sel.options.length) return;
-    var o = '<option value="">Aus</option>';
-    for (var m = 0; m < 1440; m += 30) { var t = ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2); o += '<option value="' + t + '">' + t + ' Uhr</option>'; }
+    var o = '<option value="">' + _t('ntj.off') + '</option>';
+    for (var m = 0; m < 1440; m += 30) { var t = ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2); o += '<option value="' + t + '">' + h(_t('od.at',{t:t})) + '</option>'; }
     sel.innerHTML = o;
   }
   function setSel(sel, v) {
-    if (v && !Array.prototype.some.call(sel.options, function (o) { return o.value === v; })) { var op = document.createElement('option'); op.value = v; op.textContent = v + ' Uhr'; sel.appendChild(op); }
+    if (v && !Array.prototype.some.call(sel.options, function (o) { return o.value === v; })) { var op = document.createElement('option'); op.value = v; op.textContent = _t('od.at',{t:v}); sel.appendChild(op); }
     sel.value = v || '';
   }
   function renderQuiet() {
@@ -263,13 +266,13 @@
     var active = !!(q.from && q.to);
     g('bnQUrgentRow').style.opacity = active ? '1' : '.55';
     var tzName = tz.options[tz.selectedIndex] ? tz.options[tz.selectedIndex].textContent : q.tz;
-    msg(g('bnQNow'), active ? (CFG.in_quiet ? '🌙 Gerade ist Ruhezeit (' + h(q.from) + '–' + h(q.to) + ' Uhr, ' + h(tzName) + ') – ' + (q.urgent !== false ? 'nur dringende Aufträge klingeln.' : 'alles wartet im Postfach.')
-      : 'Ruhezeit täglich ' + h(q.from) + '–' + h(q.to) + ' Uhr (' + h(tzName) + ').') : '', 'info');
+    msg(g('bnQNow'), active ? (CFG.in_quiet ? h(_t('ntj.quietNow',{f:q.from,t:q.to,z:tzName})) + ' ' + (q.urgent !== false ? _t('ntj.urgentOnly') : _t('ntj.allWait'))
+      : h(_t('ntj.quietDaily',{f:q.from,t:q.to,z:tzName}))) : '', 'info');
     g('bnMail').checked = !!CFG.email_fallback;
-    g('bnMailTo').textContent = CFG.email || 'deine Konto-E-Mail';
+    g('bnMailTo').textContent = CFG.email || _t('ntj.yourMail');
   }
   function scheduleSave() {
-    clearTimeout(saveT); g('bnSaved').textContent = 'Speichert …'; g('bnSaved').style.color = '';
+    clearTimeout(saveT); g('bnSaved').textContent = _t('kuj.savingN'); g('bnSaved').style.color = '';
     saveT = setTimeout(save, 450);
   }
   function save() {
@@ -279,9 +282,9 @@
     api('/push/prefs', { method: 'POST', body: JSON.stringify(body) }).then(function (j) {
       CFG.prefs = j.prefs; CFG.email_fallback = j.email_fallback; CFG.quiet = j.quiet; CFG.in_quiet = j.in_quiet;
       renderQuiet();
-      var s = g('bnSaved'); s.textContent = 'Gespeichert ✓'; s.style.color = 'var(--ok)';
-      setTimeout(function () { if (s.textContent === 'Gespeichert ✓') s.textContent = ''; }, 2500);
-    }).catch(function (e) { var s = g('bnSaved'); s.textContent = 'Nicht gespeichert: ' + e.message; s.style.color = 'var(--rose)'; });
+      var s = g('bnSaved'); s.textContent = _t('c.saved'); s.style.color = 'var(--ok)';
+      setTimeout(function () { if (s.textContent === _t('c.saved')) s.textContent = ''; }, 2500);
+    }).catch(function (e) { var s = g('bnSaved'); s.textContent = _t('ntj.notSaved',{e:e.message}); s.style.color = 'var(--rose)'; });
   }
 
   /* ---------- Postfach ---------- */
@@ -298,17 +301,17 @@
       '<div style="flex:1;min-width:0">' +
       '<div style="font-weight:' + (it.read ? '500' : '700') + ';color:' + (it.read ? 'var(--ink2)' : 'var(--ink)') + ';overflow-wrap:break-word;line-height:1.4">' + h(it.title) + '</div>' +
       (it.body ? '<div class="small" style="color:var(--ink2);margin-top:3px;white-space:pre-line;overflow-wrap:break-word">' + h(it.body) + '</div>' : '') +
-      '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap"><div class="row" style="gap:8px"><span class="tag ' + c[2] + '" style="font-size:10px;padding:3px 8px">' + h(it.label) + '</span>' +
-      (it.url && tgt !== 'benachrichtigungen' ? '<span class="small" style="color:var(--gold);font-weight:600">Öffnen →</span>' : '') + '</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap"><div class="row" style="gap:8px"><span class="tag ' + c[2] + '" style="font-size:10px;padding:3px 8px">' + h(lb('ntj.ev.' + it.event, it.label)) + '</span>' +
+      (it.url && tgt !== 'benachrichtigungen' ? '<span class="small" style="color:var(--gold);font-weight:600">' + _t('ntj.open') + '</span>' : '') + '</div>' +
       '<span class="mute small" style="white-space:nowrap" title="' + h(dfull(it.created)) + '">' + h(ago(it.created)) + '</span></div></div>' +
-      (it.read ? '' : '<span title="ungelesen" style="width:9px;height:9px;border-radius:50%;background:var(--gold);flex:0 0 auto;margin-top:7px;box-shadow:0 0 0 3px var(--goldl)"></span>') +
+      (it.read ? '' : '<span title="' + h(_t('ntj.unreadT')) + '" style="width:9px;height:9px;border-radius:50%;background:var(--gold);flex:0 0 auto;margin-top:7px;box-shadow:0 0 0 3px var(--goldl)"></span>') +
       '</div>';
   }
   function renderInbox() {
     var box = g('bnInbox'); if (!box) return;
     var list = ITEMS.filter(passes);
     if (!list.length) {
-      var empty = ITEMS.length ? 'Keine Meldungen in dieser Ansicht.' : 'Noch keine Meldungen. Sobald dein Agent eine Bestellung, Fahrt, einen Termin oder Rückrufwunsch annimmt, steht es hier – und auf deinen Geräten.';
+      var empty = ITEMS.length ? _t('ntj.noneView') : _t('ntj.none');
       box.innerHTML = '<div style="text-align:center;padding:30px 12px"><div style="width:52px;height:52px;margin:0 auto 10px;border-radius:18px;display:grid;place-items:center;background:var(--sur2);color:var(--mute)">' + SV(IC.bell, 24) + '</div><div class="mute small" style="max-width:40ch;margin:0 auto">' + h(empty) + '</div></div>';
     } else box.innerHTML = list.map(itemHtml).join('');
     show('bnMore', MORE && FILTER !== 'unread');
@@ -373,17 +376,17 @@
   }
   function load() {
     return Promise.all([loadCfg(), loadInbox()]).then(refreshStatus).catch(function (e) {
-      msg(g('bnStMsg'), 'Benachrichtigungen konnten nicht geladen werden: ' + h(e.message), 'err');
+      msg(g('bnStMsg'), h(_t('ntj.loadFail') + ': ' + e.message), 'err');
     });
   }
   function bind() {
     if (bound) return; bound = true;
     g('bnEnable').onclick = function () {
       var A = B(), btn = g('bnEnable'); if (!A) { refreshStatus(); return; }
-      btn.disabled = true; msg(g('bnStMsg'), 'Einen Moment – bitte im Dialog „Zulassen“ wählen …', 'info');
+      btn.disabled = true; msg(g('bnStMsg'), _t('ntj.allow'), 'info');
       A.enablePush({ label: '' }).then(function (r) {   // direkt im Klick: der Browser zeigt den Erlaubnis-Dialog nur mit Nutzergeste
         btn.disabled = false;
-        msg(g('bnStMsg'), h(r.message), r.ok ? 'ok' : (r.reason === 'dismissed' ? 'info' : 'err'));
+        msg(g('bnStMsg'), X(r.message), r.ok ? 'ok' : (r.reason === 'dismissed' ? 'info' : 'err'));
         return loadCfg().then(refreshStatus);
       }).catch(function () { btn.disabled = false; });
     };
@@ -391,10 +394,10 @@
     g('bnTestTop').onclick = function () { sendTest(g('bnTestTop')); };
     g('bnDisable').onclick = function () {
       var A = B(); if (!A) return; var btn = g('bnDisable'); btn.disabled = true;
-      A.disablePush().then(function (r) { btn.disabled = false; msg(g('bnStMsg'), h(r.message), r.ok ? 'ok' : 'err'); return loadCfg().then(refreshStatus); });
+      A.disablePush().then(function (r) { btn.disabled = false; msg(g('bnStMsg'), X(r.message), r.ok ? 'ok' : 'err'); return loadCfg().then(refreshStatus); });
     };
     g('bnRecheck').onclick = function () { msg(g('bnStMsg'), '', ''); loadCfg().then(refreshStatus); };
-    g('bnInstall').onclick = function () { var A = B(); if (A) A.install().then(function (r) { msg(g('bnStMsg'), h(r.message), r.ok ? 'ok' : 'info'); refreshStatus(); }); };
+    g('bnInstall').onclick = function () { var A = B(); if (A) A.install().then(function (r) { msg(g('bnStMsg'), X(r.message), r.ok ? 'ok' : 'info'); refreshStatus(); }); };
     window.addEventListener('chathelp:installable', function () { if (visible()) refreshStatus(); });
     g('bnReadAll').onclick = readAll;
     g('bnMore').onclick = loadMore;
@@ -426,11 +429,14 @@
     timer = setInterval(function () { if (!visible()) return; if (!CFG) load(); else pollInbox(); }, 30000);
   }
 
+  
+  
+  
   window.STUDIO_PANELS = window.STUDIO_PANELS || {};
   STUDIO_PANELS['benachrichtigungen'] = {
     init: function () {
       bind(); startTimer();
-      paintStatus({ tone: 'mute', icon: 'bell', tagText: 'Wird geprüft …', title: 'Dieses Gerät', text: '' });
+      paintStatus({ tone: 'mute', icon: 'bell', tagText: _t('ntj.checking'), title: _t('ntj.thisDev'), text: '' });
       ensureBridge().then(function () { initBridge(); return load(); });
     },
     show: function () { startTimer(); load(); }

@@ -104,9 +104,12 @@ function profile_sectors(): array {
     uasort($o,fn($a,$b)=>(CH_CATEGORIES[$a['category']]['order'] <=> CH_CATEGORIES[$b['category']]['order']));
     return $o;
 }
-function profile_options(): array {
+function profile_options(?array $profile=null): array {
     $sec=[]; foreach(profile_sectors() as $k=>$s) $sec[]=['id'=>$k,'label'=>$s['label'],'icon'=>$s['icon'],'category'=>$s['category'],'group'=>CH_CATEGORIES[$s['category']]['label'],'kw'=>$s['kw']];
-    return ['sectors'=>$sec,
+    /* Länder-Fokus (country-lib, falls vorhanden): Kategorien je Land in Prioritätsreihenfolge – der Assistent sortiert die Branchen-Chips danach */
+    $cc=profile_country($profile); $focus=[];
+    if(profile_focus_ready()) foreach(array_keys(PROFILE_COUNTRIES) as $c){ $f=ch_country_focus($c); if(!empty($f['cats'])) $focus[$c]=$f['cats']; }
+    return ['country'=>$cc,'sector_rank'=>$focus[$cc] ?? (($f=profile_focus($cc)) ? ($f['cats'] ?? []) : []),'sector_focus'=>(object)$focus,'sectors'=>$sec,
       'needs'=>array_map(fn($k,$n)=>['id'=>$k,'label'=>$n[0],'icon'=>$n[1]],array_keys(PROFILE_NEEDS),PROFILE_NEEDS),
       'private_tasks'=>array_map(fn($k,$n)=>['id'=>$k,'label'=>$n[0],'icon'=>$n[1]],array_keys(PROFILE_PRIVATE_TASKS),PROFILE_PRIVATE_TASKS),
       'sizes'=>array_map(fn($k,$l)=>['id'=>$k,'label'=>$l],array_keys(PROFILE_SIZES),PROFILE_SIZES),
@@ -168,30 +171,65 @@ function profile_save(int $aid, array $d, bool $dismissed=false): array {
 }
 function profile_delete(int $aid): void { profile_bootstrap(); th_db()->prepare("DELETE FROM account_profile WHERE account_id=?")->execute([$aid]); }
 
+/* ======================================================================= Länder-Fokus */
+/** country-lib.php (Länder-Schwerpunkte) ist optional: nur nutzen, wenn vorhanden. */
+function profile_focus_ready(): bool {
+    static $ok=null; if($ok!==null) return $ok;
+    if(!function_exists('ch_country_focus') && is_file(__DIR__.'/country-lib.php')) require_once __DIR__.'/country-lib.php';
+    return $ok=function_exists('ch_country_focus');
+}
+/** Land des Profils, sonst Cloudflare-Land der Anfrage (CF-IPCountry); '' ohne Angabe. */
+function profile_country(?array $profile): string {
+    $c=strtoupper(trim((string)($profile['country'] ?? '')));
+    if(preg_match('/^[A-Z]{2}$/',$c)) return $c;
+    $h=strtoupper(substr(trim((string)($_SERVER['HTTP_CF_IPCOUNTRY'] ?? '')),0,2));
+    return preg_match('/^[A-Z]{2}$/',$h) && !in_array($h,['XX','T1'],true) ? $h : '';
+}
+/** ch_country_focus($cc) oder [] (kein Land, keine country-lib, Fehler). */
+function profile_focus(string $cc): array {
+    if($cc==='' || !profile_focus_ready()) return [];
+    try{ $f=ch_country_focus($cc); return is_array($f) ? $f : []; }catch(Throwable $e){ return []; }
+}
+
 /* ======================================================================= Empfehlung */
 /**
  * Profil → empfohlene Pläne (max. 4) + Studio-Bereiche.
- * Punkte: Hauptagent der Branche 5, weitere Branchen-Agenten 3, Bedarf 2, Telefon/WhatsApp gewünscht und Agent kann es +1.
+ * Punkte (halbe Punkte als ganze Zahlen ×2): Hauptagent der Branche 10, weitere Branchen-Agenten 6, Bedarf 4, Telefon/WhatsApp gewünscht und Agent kann es +2.
+ * Länder-Fokus (country-lib, Land aus dem Profil, sonst CF-IPCountry): Agenten, die das Land zuerst braucht, +2 (Schwerpunkt-Kategorie +1) –
+ * Branche und Bedarf bleiben wichtiger; sind weniger als 4 Agenten empfohlen, füllen die Länder-Agenten auf.
+ * Begründung je Plan: reason (deutscher Text, wie bisher) + why {k: sector|need|task|default|country, id, label} für die Übersetzung im Studio.
  * Bereiche: Tabs aus dem Bedarf + Fachmodule (PROFILE_MOD_FOR) und Kanäle der empfohlenen Agenten.
- * @return array{plans:list<array>,areas:list<string>,primary:?string}
+ * @return array{plans:list<array>,areas:list<string>,primary:?string,country:string,focus:?array}
  */
 function ch_profile_recommend(?array $profile): array {
-    $p=profile_clean($profile ?? []); $score=[]; $why=[]; $order=array_flip(array_keys(CH_PLANS));
-    $add=function(string $id,int $pts,string $reason) use(&$score,&$why){ if(!isset(CH_PLANS[$id])) return; $score[$id]=($score[$id] ?? 0)+$pts; $why[$id] ??= $reason; };
-    $areas=[];
+    $p=profile_clean($profile ?? []); $score=[]; $why=[]; $whyc=[]; $order=array_flip(array_keys(CH_PLANS));
+    $add=function(string $id,int $pts,string $reason,array $code) use(&$score,&$why,&$whyc){ if(!isset(CH_PLANS[$id])) return; $score[$id]=($score[$id] ?? 0)+$pts; $why[$id] ??= $reason; $whyc[$id] ??= $code; };
+    $areas=[]; $cc=profile_country($profile); $F=profile_focus($cc); $boost=$F['boost'] ?? []; $fcats=array_slice($F['cats'] ?? [],0,3);
+    $planCats=[]; foreach(CH_CATEGORIES as $ck=>$c) foreach(($c['plans'] ?? []) as $pid) $planCats[$pid][]=$ck;
+    $countryName=PROFILE_COUNTRIES[$cc] ?? $cc;
+    $boostScored=function(callable $ok) use(&$score,$boost,$fcats,$planCats){
+        foreach(array_keys($score) as $pid){ if(!$ok($pid)) continue;
+            if(in_array($pid,$boost,true)) $score[$pid]+=2; elseif(array_intersect($planCats[$pid] ?? [],$fcats)) $score[$pid]+=1; }
+    };
     if($p['kind']==='private'){
-        foreach($p['needs'] as $n) if(isset(PROFILE_PRIVATE_TASKS[$n])) $add(PROFILE_PRIVATE_TASKS[$n][2],4,'Für „'.PROFILE_PRIVATE_TASKS[$n][0].'“');
-        if(!$score) $add('privat-assistent',1,'Dein Alltags-Assistent für Briefe, Termine und Fragen');
+        foreach($p['needs'] as $n) if(isset(PROFILE_PRIVATE_TASKS[$n])) $add(PROFILE_PRIVATE_TASKS[$n][2],8,'Für „'.PROFILE_PRIVATE_TASKS[$n][0].'“',['k'=>'task','id'=>$n,'label'=>PROFILE_PRIVATE_TASKS[$n][0]]);
+        if($boost){ $isPriv=fn($pid)=>str_starts_with($pid,'privat-'); $boostScored($isPriv);
+            foreach($boost as $pid) if($isPriv($pid) && count($score)<4 && !isset($score[$pid])) $add($pid,1,'Beliebt in '.$countryName,['k'=>'country','id'=>$cc]); }
+        if(!$score) $add('privat-assistent',2,'Dein Alltags-Assistent für Briefe, Termine und Fragen',['k'=>'default','id'=>'privat']);
         $areas=['assistant','agents'];
     } elseif($p['kind']==='business' || $p['sectors'] || $p['needs']){
         $S=profile_sectors();
         foreach($p['sectors'] as $sid){ $s=$S[$sid] ?? null; if(!$s) continue;
-            foreach($s['plans'] as $i=>$pid) $add($pid,$i===0 ? 5 : 3,'Passt zu deiner Branche „'.$s['label'].'“'); }
+            foreach($s['plans'] as $i=>$pid) $add($pid,$i===0 ? 10 : 6,'Passt zu deiner Branche „'.$s['label'].'“',['k'=>'sector','id'=>$sid,'label'=>$s['label']]); }
         foreach($p['needs'] as $n){ $nd=PROFILE_NEEDS[$n] ?? null; if(!$nd) continue; if($nd[2]!=='') $areas[]=$nd[2];
-            foreach($nd[3] as $pid) $add($pid,2,'Für „'.$nd[0].'“'); }
+            foreach($nd[3] as $pid) $add($pid,4,'Für „'.$nd[0].'“',['k'=>'need','id'=>$n,'label'=>$nd[0]]); }
         $wantVoice=array_intersect($p['needs'],['phone','whatsapp']);
-        if($wantVoice) foreach(array_keys($score) as $pid) if(in_array('phone',ch_plan_channels($pid),true)) $score[$pid]++;
-        if(!$score){ $add('agent-phone',1,'Nimmt Anrufe an und beantwortet Fragen rund um die Uhr'); $add('agent-support',1,'Beantwortet Fragen auf deiner Website'); }
+        if($wantVoice) foreach(array_keys($score) as $pid) if(in_array('phone',ch_plan_channels($pid),true)) $score[$pid]+=2;
+        if($boost){ $isBiz=fn($pid)=>!str_starts_with($pid,'privat-'); $boostScored($isBiz);
+            /* Auffüllen: ohne Branche frei, sonst nur Länder-Agenten aus den Kategorien der gewählten Branchen (kein Taxi-Agent für den Friseursalon) */
+            $myCats=array_values(array_unique(array_filter(array_map(fn($sid)=>$S[$sid]['category'] ?? null,$p['sectors']))));
+            foreach($boost as $pid) if($isBiz($pid) && count($score)<4 && !isset($score[$pid]) && (!$myCats || array_intersect($planCats[$pid] ?? [],$myCats))) $add($pid,1,'Beliebt in '.$countryName,['k'=>'country','id'=>$cc]); }
+        if(!$score){ $add('agent-phone',2,'Nimmt Anrufe an und beantwortet Fragen rund um die Uhr',['k'=>'default','id'=>'phone']); $add('agent-support',2,'Beantwortet Fragen auf deiner Website',['k'=>'default','id'=>'web']); }
     }
     uksort($score,fn($a,$b)=>($score[$b] <=> $score[$a]) ?: ($order[$a] <=> $order[$b]));
     $plans=[];
@@ -200,10 +238,11 @@ function ch_profile_recommend(?array $profile): array {
         foreach(PROFILE_MOD_FOR as $tab=>$ids) if(in_array($pid,$ids,true)) $areas[]=$tab;
         if($pl['kind']==='agent'){ if(in_array('phone',$ch,true)) $areas[]='phone'; if(in_array('whatsapp',$ch,true)) $areas[]='whatsapp'; if(in_array('web',$ch,true)) $areas[]='website'; }
         $plans[]=['id'=>$pid,'name'=>$pl['name'],'desc'=>mb_substr($pl['desc'],0,170).(mb_strlen($pl['desc'])>170 ? '…' : ''),'eur_month'=>$pl['cents']/100,'kind'=>$pl['kind'],
-          'sector'=>$pl['sector'],'channels'=>$ch,'reason'=>$why[$pid] ?? '','checkout'=>'/chat/tokens-checkout.php?plan='.rawurlencode($pid)];
+          'sector'=>$pl['sector'],'channels'=>$ch,'reason'=>$why[$pid] ?? '','why'=>$whyc[$pid] ?? null,'popular'=>in_array($pid,$boost,true),'checkout'=>'/chat/tokens-checkout.php?plan='.rawurlencode($pid)];
     }
     if($plans && $p['kind']!=='private') $areas[]='kunden';
-    return ['plans'=>$plans,'areas'=>array_values(array_unique($areas)),'primary'=>$plans[0]['id'] ?? null];
+    return ['plans'=>$plans,'areas'=>array_values(array_unique($areas)),'primary'=>$plans[0]['id'] ?? null,'country'=>$cc,
+      'focus'=>$F ? ['cc'=>$F['cc'] ?? $cc,'cats'=>$F['cats'] ?? [],'boost'=>$boost,'why'=>$F['why'] ?? null] : null];
 }
 
 /** Kurzfassung für Systemprompts (Studio-Assistent): höchstens 300 Zeichen, '' ohne Profil. */
@@ -231,5 +270,5 @@ function ch_profile_brief(int $aid): string {
 /** Antwort für GET/POST /v1/profile. */
 function profile_response(int $aid, ?array $p=null): array {
     $p ??= profile_get($aid);
-    return ['profile'=>$p,'exists'=>$p!==null,'complete'=>$p!==null && $p['kind']!==null,'rec'=>ch_profile_recommend($p),'brief'=>ch_profile_brief($aid),'options'=>profile_options()];
+    return ['profile'=>$p,'exists'=>$p!==null,'complete'=>$p!==null && $p['kind']!==null,'rec'=>ch_profile_recommend($p),'brief'=>ch_profile_brief($aid),'options'=>profile_options($p)];
 }

@@ -1,99 +1,99 @@
-<div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h2 style="font-size:26px">Hotel-Rezeption</h2><p class="mute" style="margin:4px 0 0">Ihre digitale Rezeption rund um die Uhr: Verfügbarkeit und Preise, Buchungen oder Anfragen, Fragen zu Check-in, Parken, Frühstück und Haustieren – und während des Aufenthalts die Wünsche aus dem Zimmer (Handtücher, Weckruf, Taxi, Late Check-out). Per Telefon, WhatsApp und Website-Chat, in der Sprache des Gastes. Die Rezeption sieht alles live auf dem Board.</p></div><div class="row"><span class="tag ok hidden" id="htActive">Hotel-Agent aktiv</span><a class="btn gold" id="htRent" href="/chat/tokens-checkout.php?plan=agent-hotel" target="_blank" rel="noopener">Hotel-Agent mieten · 149 €/Monat</a></div></div>
+<div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h2 style="font-size:26px" data-i18n="ht.hotel_rezeption">Hotel-Rezeption</h2><p class="mute" style="margin:4px 0 0" data-i18n="ht.ihre_digitale_rezeption_rund">Ihre digitale Rezeption rund um die Uhr: Verfügbarkeit und Preise, Buchungen oder Anfragen, Fragen zu Check-in, Parken, Frühstück und Haustieren – und während des Aufenthalts die Wünsche aus dem Zimmer (Handtücher, Weckruf, Taxi, Late Check-out). Per Telefon, WhatsApp und Website-Chat, in der Sprache des Gastes. Die Rezeption sieht alles live auf dem Board.</p></div><div class="row"><span class="tag ok hidden" id="htActive" data-i18n="ht.hotel_agent_aktiv">Hotel-Agent aktiv</span><a class="btn gold" id="htRent" href="/chat/tokens-checkout.php?plan=agent-hotel" target="_blank" rel="noopener" data-i18n="ht.hotel_agent_mieten_149">Hotel-Agent mieten · 149 €/Monat</a></div></div>
 <div class="ws" style="grid-template-columns:1fr 1fr">
   <div>
     <div class="card">
-      <div class="sw"><input type="checkbox" id="htOn"><div><b>Hotel-Rezeption aktiv</b><div class="mute small">Ihre Agenten erhalten die Werkzeuge „Hotel-Infos“, „Verfügbarkeit“, „Zimmer buchen“, „Buchung ansehen/stornieren“, „Gästewunsch“ und „Taxi für Gäste“.</div></div></div>
-      <label>Hotel / Haus</label><input type="text" id="htName" placeholder="z. B. Hotel Alster Residenz">
-      <label>Adresse (für Route, Kalender und Taxi-Abholung)</label><input type="text" id="htAddress" placeholder="Straße Nr., PLZ Ort">
-      <div class="grid g2" style="gap:10px"><div><label>Telefon der Rezeption</label><input type="tel" id="htPhone" placeholder="040 …"></div><div><label>Benachrichtigungen an</label><input type="email" id="htNotify" placeholder="rezeption@… (leer = Konto-E-Mail)"></div></div>
-      <div class="grid g2" style="gap:10px"><div><label>Zeitzone</label><select id="htTz"><option>Europe/Berlin</option><option>Europe/Vienna</option><option>Europe/Zurich</option><option>Europe/Istanbul</option><option>Europe/Paris</option><option>Europe/London</option><option>Europe/Madrid</option><option>Europe/Rome</option></select></div><div></div></div>
+      <div class="sw"><input type="checkbox" id="htOn"><div><b data-i18n="ht.hotel_rezeption_aktiv">Hotel-Rezeption aktiv</b><div class="mute small" data-i18n="ht.ihre_agenten_erhalten_die">Ihre Agenten erhalten die Werkzeuge „Hotel-Infos“, „Verfügbarkeit“, „Zimmer buchen“, „Buchung ansehen/stornieren“, „Gästewunsch“ und „Taxi für Gäste“.</div></div></div>
+      <label data-i18n="ht.hotel_haus">Hotel / Haus</label><input type="text" id="htName" placeholder="z. B. Hotel Alster Residenz" data-i18n-attr="placeholder:ht.hotel_alster_residenz">
+      <label data-i18n="ht.adresse_fuer_route_kalender">Adresse (für Route, Kalender und Taxi-Abholung)</label><input type="text" id="htAddress" placeholder="Straße Nr., PLZ Ort" data-i18n-attr="placeholder:ht.strasse_nr_plz_ort">
+      <div class="grid g2" style="gap:10px"><div><label data-i18n="ht.telefon_der_rezeption">Telefon der Rezeption</label><input type="tel" id="htPhone" placeholder="040 …"></div><div><label data-i18n="ht.benachrichtigungen_an">Benachrichtigungen an</label><input type="email" id="htNotify" placeholder="rezeption@… (leer = Konto-E-Mail)" data-i18n-attr="placeholder:ht.rezeption_leer_konto_mail"></div></div>
+      <div class="grid g2" style="gap:10px"><div><label data-i18n="ht.zeitzone">Zeitzone</label><select id="htTz"><option>Europe/Berlin</option><option>Europe/Vienna</option><option>Europe/Zurich</option><option>Europe/Istanbul</option><option>Europe/Paris</option><option>Europe/London</option><option>Europe/Madrid</option><option>Europe/Rome</option></select></div><div></div></div>
 
-      <div class="sec"><h3>Zeiten &amp; Buchungsmodus</h3>
-        <div class="grid g2" style="gap:10px"><div><label>Check-in ab</label><input type="time" id="htIn" value="15:00" style="width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line2);background:#fff;color:var(--ink)"></div><div><label>Check-out bis</label><input type="time" id="htOut" value="11:00" style="width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line2);background:#fff;color:var(--ink)"></div></div>
-        <div class="sw"><input type="checkbox" id="htAuto"><div><b>Sofortbuchung</b><div class="mute small">An: Der Agent bucht verbindlich, der Gast erhält sofort die Bestätigung. Aus: Buchungen gehen als Anfrage ein (das Zimmer ist vorgemerkt) – Sie bestätigen oder lehnen per Klick ab, der Gast wird automatisch informiert.</div></div></div>
+      <div class="sec"><h3 data-i18n="ht.zeiten_buchungsmodus">Zeiten &amp; Buchungsmodus</h3>
+        <div class="grid g2" style="gap:10px"><div><label data-i18n="ht.check_in_ab">Check-in ab</label><input type="time" id="htIn" value="15:00" style="width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line2);background:#fff;color:var(--ink)"></div><div><label data-i18n="ht.check_out_bis">Check-out bis</label><input type="time" id="htOut" value="11:00" style="width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line2);background:#fff;color:var(--ink)"></div></div>
+        <div class="sw"><input type="checkbox" id="htAuto"><div><b data-i18n="ht.sofortbuchung">Sofortbuchung</b><div class="mute small" data-i18n="ht.an_der_agent_bucht">An: Der Agent bucht verbindlich, der Gast erhält sofort die Bestätigung. Aus: Buchungen gehen als Anfrage ein (das Zimmer ist vorgemerkt) – Sie bestätigen oder lehnen per Klick ab, der Gast wird automatisch informiert.</div></div></div>
       </div>
 
-      <div class="sec"><h3>Preise &amp; Aufenthalt</h3>
-        <div class="grid g3" style="gap:10px"><div><label>Frühstück</label><select id="htBfMode"><option value="none">nicht angeboten</option><option value="included">im Zimmerpreis inklusive</option><option value="optional">optional dazubuchbar</option></select></div><div><label>Frühstück € p. P. / Nacht</label><input type="text" id="htBf" value="0,00" inputmode="decimal"></div><div><label>City-Tax % auf Zimmerpreis</label><input type="text" id="htTax" value="0" inputmode="decimal" title="z. B. Kulturförderabgabe / Beherbergungssteuer; 0 = keine"></div></div>
-        <div class="grid g3" style="gap:10px"><div><label>Mindestaufenthalt (Nächte)</label><input type="text" id="htMin" value="1" inputmode="numeric"></div><div><label>Höchstens online (Nächte)</label><input type="text" id="htMax" value="30" inputmode="numeric"></div><div><label>Kostenfrei stornierbar bis … Std. vor Anreise</label><input type="text" id="htCancel" value="48" inputmode="numeric"></div></div>
-        <p class="mute small" style="margin:8px 0 0">Die Frist zählt ab Anreisetag und Check-in-Zeit. Gäste können auf ihrer Buchungsseite innerhalb der Frist selbst stornieren; danach verweist der Agent an die Rezeption.</p>
+      <div class="sec"><h3 data-i18n="ht.preise_aufenthalt">Preise &amp; Aufenthalt</h3>
+        <div class="grid g3" style="gap:10px"><div><label data-i18n="ht.fruehstueck">Frühstück</label><select id="htBfMode"><option value="none" data-i18n="ht.nicht_angeboten">nicht angeboten</option><option value="included" data-i18n="ht.im_zimmerpreis_inklusive">im Zimmerpreis inklusive</option><option value="optional" data-i18n="ht.optional_dazubuchbar">optional dazubuchbar</option></select></div><div><label data-i18n="ht.fruehstueck_nacht">Frühstück € p. P. / Nacht</label><input type="text" id="htBf" value="0,00" inputmode="decimal"></div><div><label data-i18n="ht.city_tax_auf_zimmerpreis">City-Tax % auf Zimmerpreis</label><input type="text" id="htTax" value="0" inputmode="decimal" title="z. B. Kulturförderabgabe / Beherbergungssteuer; 0 = keine" data-i18n-attr="title:ht.kulturfoerderabgabe_beherber"></div></div>
+        <div class="grid g3" style="gap:10px"><div><label data-i18n="ht.mindestaufenthalt_naechte">Mindestaufenthalt (Nächte)</label><input type="text" id="htMin" value="1" inputmode="numeric"></div><div><label data-i18n="ht.hoechstens_online_naechte">Höchstens online (Nächte)</label><input type="text" id="htMax" value="30" inputmode="numeric"></div><div><label data-i18n="ht.kostenfrei_stornierbar_bis_s">Kostenfrei stornierbar bis … Std. vor Anreise</label><input type="text" id="htCancel" value="48" inputmode="numeric"></div></div>
+        <p class="mute small" style="margin:8px 0 0" data-i18n="ht.die_frist_zaehlt_ab">Die Frist zählt ab Anreisetag und Check-in-Zeit. Gäste können auf ihrer Buchungsseite innerhalb der Frist selbst stornieren; danach verweist der Agent an die Rezeption.</p>
       </div>
 
-      <div class="sec"><h3>Hausregeln &amp; Infos</h3><p class="mute small" style="margin:4px 0 8px">Was Gäste oft fragen: Hunde, Parken, Rauchen, Frühstückszeiten, Late Check-out, WLAN, Anreise. Eine Info pro Zeile – der Agent antwortet daraus, die Buchungsseite zeigt sie unter „Gut zu wissen“.</p><textarea id="htPolicies" style="min-height:130px" placeholder="Hunde willkommen: 15 € pro Nacht&#10;Tiefgarage: 22 € pro Tag&#10;Nichtraucherhotel&#10;Late Check-out bis 14 Uhr für 30 € nach Verfügbarkeit"></textarea></div>
+      <div class="sec"><h3 data-i18n="ht.hausregeln_infos">Hausregeln &amp; Infos</h3><p class="mute small" style="margin:4px 0 8px" data-i18n="ht.was_gaeste_oft_fragen">Was Gäste oft fragen: Hunde, Parken, Rauchen, Frühstückszeiten, Late Check-out, WLAN, Anreise. Eine Info pro Zeile – der Agent antwortet daraus, die Buchungsseite zeigt sie unter „Gut zu wissen“.</p><textarea id="htPolicies" style="min-height:130px" placeholder="Hunde willkommen: 15 € pro Nacht&#10;Tiefgarage: 22 € pro Tag&#10;Nichtraucherhotel&#10;Late Check-out bis 14 Uhr für 30 € nach Verfügbarkeit" data-i18n-attr="placeholder:ht.hunde_willkommen_15_pro"></textarea></div>
 
-      <div class="sec"><div class="row" style="justify-content:space-between"><h3>Zimmerkategorien</h3><button class="btn s" id="htDemoRooms" type="button">Beispiel laden</button></div>
-        <p class="mute small" style="margin:4px 0 0">Je Kategorie: maximale Personen, Anzahl gleichartiger Zimmer (für die Verfügbarkeit), Preis pro Nacht und optional ein Wochenendpreis für Freitag- und Samstagnächte.</p>
-        <div id="htRooms"></div><button class="btn s" id="htAddRoom" type="button" style="margin-top:10px">+ Zimmerkategorie</button></div>
+      <div class="sec"><div class="row" style="justify-content:space-between"><h3 data-i18n="ht.zimmerkategorien">Zimmerkategorien</h3><button class="btn s" id="htDemoRooms" type="button" data-i18n="ht.beispiel_laden">Beispiel laden</button></div>
+        <p class="mute small" style="margin:4px 0 0" data-i18n="ht.je_kategorie_maximale_person">Je Kategorie: maximale Personen, Anzahl gleichartiger Zimmer (für die Verfügbarkeit), Preis pro Nacht und optional ein Wochenendpreis für Freitag- und Samstagnächte.</p>
+        <div id="htRooms"></div><button class="btn s" id="htAddRoom" type="button" style="margin-top:10px" data-i18n="ht.zimmerkategorie">+ Zimmerkategorie</button></div>
 
-      <div class="row" style="justify-content:space-between;margin-top:16px"><span class="mute small">Zimmerkategorien werden mitgespeichert.</span><button class="btn p" id="htSave" type="button">Speichern</button></div><div id="htMsg"></div>
+      <div class="row" style="justify-content:space-between;margin-top:16px"><span class="mute small" data-i18n="ht.zimmerkategorien_werden_mitg">Zimmerkategorien werden mitgespeichert.</span><button class="btn p" id="htSave" type="button" data-i18n="ht.speichern">Speichern</button></div><div id="htMsg"></div>
     </div>
   </div>
 
   <div>
     <div class="card">
-      <div class="row" style="justify-content:space-between"><h3 style="font-size:17px">Heute im Haus</h3><span class="mute small" id="htToday"></span></div>
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:17px" data-i18n="ht.heute_im_haus">Heute im Haus</h3><span class="mute small" id="htToday"></span></div>
       <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:10px">
-        <div class="call" style="margin:0;text-align:center"><div class="num" id="htKA">–</div><div class="mute small">Anreisen heute</div></div>
-        <div class="call" style="margin:0;text-align:center"><div class="num" id="htKD">–</div><div class="mute small">Abreisen heute</div></div>
-        <div class="call" style="margin:0;text-align:center"><div class="num" id="htKH">–</div><div class="mute small">im Haus</div></div>
-        <div class="call" style="margin:0;text-align:center"><div class="num" id="htKR">–</div><div class="mute small">offene Wünsche</div></div>
-        <div class="call" style="margin:0;text-align:center"><div class="num" id="htKP">–</div><div class="mute small">offene Anfragen</div></div>
+        <div class="call" style="margin:0;text-align:center"><div class="num" id="htKA">–</div><div class="mute small" data-i18n="ht.anreisen_heute">Anreisen heute</div></div>
+        <div class="call" style="margin:0;text-align:center"><div class="num" id="htKD">–</div><div class="mute small" data-i18n="ht.abreisen_heute">Abreisen heute</div></div>
+        <div class="call" style="margin:0;text-align:center"><div class="num" id="htKH">–</div><div class="mute small" data-i18n="ht.im_haus">im Haus</div></div>
+        <div class="call" style="margin:0;text-align:center"><div class="num" id="htKR">–</div><div class="mute small" data-i18n="ht.offene_wuensche">offene Wünsche</div></div>
+        <div class="call" style="margin:0;text-align:center"><div class="num" id="htKP">–</div><div class="mute small" data-i18n="ht.offene_anfragen">offene Anfragen</div></div>
       </div>
     </div>
 
-    <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="font-size:17px">Buchungsanfragen</h3><span class="tag rose hidden" id="htPendTag"></span></div>
-      <p class="mute small" style="margin:4px 0 0">Bei „Anfrage“-Modus: bestätigen oder ablehnen – der Gast erhält automatisch eine E-Mail (bzw. WhatsApp/SMS).</p>
+    <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="font-size:17px" data-i18n="ht.buchungsanfragen">Buchungsanfragen</h3><span class="tag rose hidden" id="htPendTag"></span></div>
+      <p class="mute small" style="margin:4px 0 0" data-i18n="ht.bei_anfrage_modus_bestaetige">Bei „Anfrage“-Modus: bestätigen oder ablehnen – der Gast erhält automatisch eine E-Mail (bzw. WhatsApp/SMS).</p>
       <div id="htPending" class="small" style="margin-top:6px">–</div></div>
 
-    <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="font-size:17px">Anstehende Buchungen · 14 Tage</h3><div class="row"><label class="small mute" style="margin:0"><input type="checkbox" id="htUpAll"> auch storniert/abgereist</label><button class="btn s" id="htReload" type="button" title="Neu laden">↻</button></div></div>
+    <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="font-size:17px" data-i18n="ht.anstehende_buchungen_14_tage">Anstehende Buchungen · 14 Tage</h3><div class="row"><label class="small mute" style="margin:0" data-i18n-t="ht.auch_storniert_abgereist"><input type="checkbox" id="htUpAll"> auch storniert/abgereist</label><button class="btn s" id="htReload" type="button" title="Neu laden" data-i18n-attr="title:ht.neu_laden">↻</button></div></div>
       <div id="htUpcoming" class="small" style="margin-top:6px">–</div><div id="htUpMsg"></div></div>
 
-    <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="font-size:17px">Gästewünsche</h3><select id="htReqScope" style="width:auto;padding:7px 11px"><option value="open">offen &amp; in Arbeit</option><option value="all">alle (14 Tage)</option></select></div>
+    <div class="card" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="font-size:17px" data-i18n="ht.gaestewuensche">Gästewünsche</h3><select id="htReqScope" style="width:auto;padding:7px 11px"><option value="open" data-i18n="ht.offen_in_arbeit">offen &amp; in Arbeit</option><option value="all" data-i18n="ht.alle_14_tage">alle (14 Tage)</option></select></div>
       <div id="htReqs" class="small" style="margin-top:6px">–</div>
-      <details class="guide" id="htRqBox"><summary>+ Wunsch erfassen (z. B. Anruf an der Rezeption)</summary><div style="padding:0 14px 14px">
-        <div class="grid g2" style="gap:8px"><div><label>Zimmer</label><input type="text" id="htRqRoom" placeholder="214"></div><div><label>Art</label><select id="htRqKind"></select></div></div>
-        <label>Was genau?</label><input type="text" id="htRqDet" placeholder="z. B. 2 zusätzliche Handtücher">
-        <div class="grid g2" style="gap:8px"><div><label>Zeit (Pflicht bei Weckruf/Taxi)</label><input type="text" id="htRqDue" placeholder="z. B. morgen 6:30"></div><div><label>Gast (optional)</label><input type="text" id="htRqName" placeholder="Name"></div></div>
-        <div class="row" style="margin-top:10px"><button class="btn s p" id="htRqAdd" type="button">Wunsch anlegen</button></div><div id="htRqMsg"></div>
+      <details class="guide" id="htRqBox"><summary data-i18n="ht.wunsch_erfassen_anruf_an">+ Wunsch erfassen (z. B. Anruf an der Rezeption)</summary><div style="padding:0 14px 14px">
+        <div class="grid g2" style="gap:8px"><div><label data-i18n="ht.zimmer">Zimmer</label><input type="text" id="htRqRoom" placeholder="214"></div><div><label data-i18n="ht.art">Art</label><select id="htRqKind"></select></div></div>
+        <label data-i18n="ht.was_genau">Was genau?</label><input type="text" id="htRqDet" placeholder="z. B. 2 zusätzliche Handtücher" data-i18n-attr="placeholder:ht.zusaetzliche_handtuecher">
+        <div class="grid g2" style="gap:8px"><div><label data-i18n="ht.zeit_pflicht_bei_weckruf">Zeit (Pflicht bei Weckruf/Taxi)</label><input type="text" id="htRqDue" placeholder="z. B. morgen 6:30" data-i18n-attr="placeholder:ht.morgen_30"></div><div><label data-i18n="ht.gast_optional">Gast (optional)</label><input type="text" id="htRqName" placeholder="Name" data-i18n-attr="placeholder:ht.name"></div></div>
+        <div class="row" style="margin-top:10px"><button class="btn s p" id="htRqAdd" type="button" data-i18n="ht.wunsch_anlegen">Wunsch anlegen</button></div><div id="htRqMsg"></div>
       </div></details>
     </div>
 
-    <div class="card" style="margin-top:16px"><h3 style="font-size:17px">Verfügbarkeit prüfen &amp; buchen</h3><p class="mute small" style="margin:4px 0 8px">So rechnet der Agent: freie Zimmer je Nacht, Wochenendpreise, Frühstück, City-Tax. Telefonische Buchungen hier direkt eintragen (sofort bestätigt).</p>
-      <div class="grid g3" style="gap:8px"><div><label>Anreise</label><input type="date" id="htAvIn" style="width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line2);background:#fff;color:var(--ink)"></div><div><label>Abreise</label><input type="date" id="htAvOut" style="width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line2);background:#fff;color:var(--ink)"></div><div><label>Personen</label><select id="htAvG"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div></div>
-      <div class="row" style="margin-top:10px"><button class="btn s p" id="htAvGo" type="button">Verfügbarkeit prüfen</button></div>
+    <div class="card" style="margin-top:16px"><h3 style="font-size:17px" data-i18n="ht.verfuegbarkeit_pruefen_buche">Verfügbarkeit prüfen &amp; buchen</h3><p class="mute small" style="margin:4px 0 8px" data-i18n="ht.so_rechnet_der_agent">So rechnet der Agent: freie Zimmer je Nacht, Wochenendpreise, Frühstück, City-Tax. Telefonische Buchungen hier direkt eintragen (sofort bestätigt).</p>
+      <div class="grid g3" style="gap:8px"><div><label data-i18n="ht.anreise">Anreise</label><input type="date" id="htAvIn" style="width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line2);background:#fff;color:var(--ink)"></div><div><label data-i18n="ht.abreise">Abreise</label><input type="date" id="htAvOut" style="width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line2);background:#fff;color:var(--ink)"></div><div><label data-i18n="ht.personen">Personen</label><select id="htAvG"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div></div>
+      <div class="row" style="margin-top:10px"><button class="btn s p" id="htAvGo" type="button" data-i18n="ht.verfuegbarkeit_pruefen">Verfügbarkeit prüfen</button></div>
       <div id="htAvRes" class="small" style="margin-top:8px"></div>
       <div id="htBkBox" class="hidden" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
-        <b id="htBkTitle">Buchung</b>
-        <div class="grid g2" style="gap:8px"><div><label>Name des Gastes</label><input type="text" id="htBkName" placeholder="Vor- und Nachname"></div><div><label>E-Mail (für die Bestätigung)</label><input type="email" id="htBkMail" placeholder="gast@…"></div></div>
-        <div class="grid g2" style="gap:8px"><div><label>Telefon</label><input type="tel" id="htBkPhone" placeholder="+49 …"></div><div><label>Notiz</label><input type="text" id="htBkNote" placeholder="Anreisezeit, Hund, Babybett …"></div></div>
-        <div class="sw hidden" id="htBkBfRow"><input type="checkbox" id="htBkBf"><div><b>Frühstück dazubuchen</b><div class="mute small" id="htBkBfTxt"></div></div></div>
-        <div class="row" style="margin-top:10px"><button class="btn s p" id="htBkGo" type="button">Verbindlich buchen</button><button class="btn s ghost" id="htBkX" type="button">Abbrechen</button></div><div id="htBkMsg"></div>
+        <b id="htBkTitle" data-i18n="ht.buchung">Buchung</b>
+        <div class="grid g2" style="gap:8px"><div><label data-i18n="ht.name_des_gastes">Name des Gastes</label><input type="text" id="htBkName" placeholder="Vor- und Nachname" data-i18n-attr="placeholder:ht.vor_und_nachname"></div><div><label data-i18n="ht.mail_fuer_die_bestaetigung">E-Mail (für die Bestätigung)</label><input type="email" id="htBkMail" placeholder="gast@…" data-i18n-attr="placeholder:ht.gast"></div></div>
+        <div class="grid g2" style="gap:8px"><div><label data-i18n="ht.telefon">Telefon</label><input type="tel" id="htBkPhone" placeholder="+49 …"></div><div><label data-i18n="ht.notiz">Notiz</label><input type="text" id="htBkNote" placeholder="Anreisezeit, Hund, Babybett …" data-i18n-attr="placeholder:ht.anreisezeit_hund_babybett"></div></div>
+        <div class="sw hidden" id="htBkBfRow"><input type="checkbox" id="htBkBf"><div><b data-i18n="ht.fruehstueck_dazubuchen">Frühstück dazubuchen</b><div class="mute small" id="htBkBfTxt"></div></div></div>
+        <div class="row" style="margin-top:10px"><button class="btn s p" id="htBkGo" type="button" data-i18n="ht.verbindlich_buchen">Verbindlich buchen</button><button class="btn s ghost" id="htBkX" type="button" data-i18n="ht.abbrechen">Abbrechen</button></div><div id="htBkMsg"></div>
       </div>
     </div>
 
-    <div class="card" style="margin-top:16px"><h3 style="font-size:17px">Rezeptions-Board (Tablet)</h3><p class="mute small" style="margin:4px 0 8px">Großansicht ohne Login für Rezeption und Nachtportier: Gästewünsche mit Ton, Weckrufe und Taxis mit Fälligkeit, Anreisen mit Check-in und Zimmernummer, Abreisen, Buchungsanfragen. Hell oder dunkel, als App auf dem Homescreen speicherbar.</p>
-      <div class="snip" id="htBoard">Wird geladen …</div>
-      <div class="row" style="margin-top:8px"><a class="btn s" id="htBoardOpen" href="#" target="_blank" rel="noopener">Board öffnen</a><button class="btn s" id="htBoardCopy" type="button">Link kopieren</button><button class="btn s ghost" id="htBoardNew" type="button" title="Alter Link funktioniert danach nicht mehr">Neuen Link erzeugen</button></div><div id="htBoardMsg"></div>
+    <div class="card" style="margin-top:16px"><h3 style="font-size:17px" data-i18n="ht.rezeptions_board_tablet">Rezeptions-Board (Tablet)</h3><p class="mute small" style="margin:4px 0 8px" data-i18n="ht.grossansicht_ohne_login_fuer">Großansicht ohne Login für Rezeption und Nachtportier: Gästewünsche mit Ton, Weckrufe und Taxis mit Fälligkeit, Anreisen mit Check-in und Zimmernummer, Abreisen, Buchungsanfragen. Hell oder dunkel, als App auf dem Homescreen speicherbar.</p>
+      <div class="snip" id="htBoard" data-i18n="ht.wird_geladen">Wird geladen …</div>
+      <div class="row" style="margin-top:8px"><a class="btn s" id="htBoardOpen" href="#" target="_blank" rel="noopener" data-i18n="ht.board_oeffnen">Board öffnen</a><button class="btn s" id="htBoardCopy" type="button" data-i18n="ht.link_kopieren">Link kopieren</button><button class="btn s ghost" id="htBoardNew" type="button" title="Alter Link funktioniert danach nicht mehr" data-i18n="ht.neuen_link_erzeugen" data-i18n-attr="title:ht.alter_link_funktioniert_dana">Neuen Link erzeugen</button></div><div id="htBoardMsg"></div>
     </div>
 
-    <div class="card" style="margin-top:16px"><h3 style="font-size:17px">Einrichten &amp; Tipps</h3>
-      <details class="guide"><summary>QR-Code im Zimmer – Wünsche per WhatsApp oder Chat</summary><ol>
-        <li>WhatsApp verbinden (Tab <b>Bestellungen → WhatsApp-Anbindung</b>, gilt für alle Agenten) oder im Tab <b>Agenten</b> beim Hotel-Agenten das Website-Widget aktivieren.</li>
-        <li>Je Zimmer einen Link mit vorausgefüllter Zimmernummer erzeugen: <code>https://wa.me/49401234567?text=Zimmer%20214%3A%20</code> – so kennt der Agent die Zimmernummer sofort.</li>
-        <li>Den Link als QR-Code drucken (Aufsteller am Nachttisch, Schreibtischkarte): „Handtücher, Weckruf, Taxi? Schreiben Sie uns – rund um die Uhr.“</li>
-        <li>Wünsche erscheinen sofort auf dem Rezeptions-Board (mit Ton) und hier unter „Gästewünsche“.</li></ol>
-        <div class="tip">Tipp: Den gleichen QR-Code auch auf Zimmerkarte und WLAN-Kärtchen – Gäste nutzen ihn erfahrungsgemäß vor allem abends und morgens.</div></details>
-      <details class="guide"><summary>Weckrufe &amp; Taxi</summary><ol>
-        <li>Weckrufe nimmt der Agent nur mit konkreter Uhrzeit an („morgen 6:30“) und fragt die Zimmernummer ab.</li>
-        <li>Auf dem Board stehen Weckrufe und Taxis nach Uhrzeit sortiert; 15 Minuten vorher leuchtet die Karte und es ertönt ein Hinweis.</li>
-        <li>Taxi: Ist im selben Konto die <b>Taxi-Zentrale</b> aktiv, bucht der Agent die Fahrt direkt (Fahrtcode auf dem Board). Sonst landet der Auftrag mit Ziel, Zeit und Personen bei der Rezeption.</li>
-        <li>Nach Erledigung „✓ Erledigt“ tippen – offene Aufträge bleiben sichtbar, bis jemand sie abschließt.</li></ol></details>
-      <details class="guide"><summary>Telefon-Rezeption nachts</summary><ol>
-        <li>Im Tab <b>Telefon</b> eine Rufnummer für den Hotel-Agenten verbinden (Begrüßung z. B. „Hotel Alster Residenz, guten Abend …“).</li>
-        <li>An Ihrer Telefonanlage eine Rufumleitung einrichten: nachts (z. B. 23–7 Uhr) bzw. „bei Nichtmelden“ auf die ChatHelp-Nummer.</li>
-        <li>Der Agent nimmt Buchungsanfragen und Wünsche an, liest am Telefon keine Links vor und schickt Bestätigungen per E-Mail.</li>
-        <li>Für Notfälle eine Weiterleitungsnummer (Nachtmanager) im Telefon-Tab hinterlegen; der Agent verweist bei medizinischen Notfällen sofort an 112.</li></ol>
-        <div class="tip">Das Board auf dem Tablet an der Nachtrezeption zeigt alles, was nachts telefonisch hereinkommt.</div></details>
+    <div class="card" style="margin-top:16px"><h3 style="font-size:17px" data-i18n="ht.einrichten_tipps">Einrichten &amp; Tipps</h3>
+      <details class="guide"><summary data-i18n="ht.qr_code_im_zimmer">QR-Code im Zimmer – Wünsche per WhatsApp oder Chat</summary><ol>
+        <li data-i18n-html="ht.whatsapp_verbinden_tab_beste">WhatsApp verbinden (Tab <b>Bestellungen → WhatsApp-Anbindung</b>, gilt für alle Agenten) oder im Tab <b>Agenten</b> beim Hotel-Agenten das Website-Widget aktivieren.</li>
+        <li data-i18n-html="ht.je_zimmer_einen_link">Je Zimmer einen Link mit vorausgefüllter Zimmernummer erzeugen: <code>https://wa.me/49401234567?text=Zimmer%20214%3A%20</code> – so kennt der Agent die Zimmernummer sofort.</li>
+        <li data-i18n="ht.den_link_als_qr">Den Link als QR-Code drucken (Aufsteller am Nachttisch, Schreibtischkarte): „Handtücher, Weckruf, Taxi? Schreiben Sie uns – rund um die Uhr.“</li>
+        <li data-i18n="ht.wuensche_erscheinen_sofort_a">Wünsche erscheinen sofort auf dem Rezeptions-Board (mit Ton) und hier unter „Gästewünsche“.</li></ol>
+        <div class="tip" data-i18n="ht.tipp_den_gleichen_qr">Tipp: Den gleichen QR-Code auch auf Zimmerkarte und WLAN-Kärtchen – Gäste nutzen ihn erfahrungsgemäß vor allem abends und morgens.</div></details>
+      <details class="guide"><summary data-i18n="ht.weckrufe_taxi">Weckrufe &amp; Taxi</summary><ol>
+        <li data-i18n="ht.weckrufe_nimmt_der_agent">Weckrufe nimmt der Agent nur mit konkreter Uhrzeit an („morgen 6:30“) und fragt die Zimmernummer ab.</li>
+        <li data-i18n="ht.auf_dem_board_stehen">Auf dem Board stehen Weckrufe und Taxis nach Uhrzeit sortiert; 15 Minuten vorher leuchtet die Karte und es ertönt ein Hinweis.</li>
+        <li data-i18n-html="ht.taxi_ist_im_selben">Taxi: Ist im selben Konto die <b>Taxi-Zentrale</b> aktiv, bucht der Agent die Fahrt direkt (Fahrtcode auf dem Board). Sonst landet der Auftrag mit Ziel, Zeit und Personen bei der Rezeption.</li>
+        <li data-i18n="ht.nach_erledigung_erledigt_tip">Nach Erledigung „✓ Erledigt“ tippen – offene Aufträge bleiben sichtbar, bis jemand sie abschließt.</li></ol></details>
+      <details class="guide"><summary data-i18n="ht.telefon_rezeption_nachts">Telefon-Rezeption nachts</summary><ol>
+        <li data-i18n-html="ht.im_tab_telefon_eine">Im Tab <b>Telefon</b> eine Rufnummer für den Hotel-Agenten verbinden (Begrüßung z. B. „Hotel Alster Residenz, guten Abend …“).</li>
+        <li data-i18n="ht.an_ihrer_telefonanlage_eine">An Ihrer Telefonanlage eine Rufumleitung einrichten: nachts (z. B. 23–7 Uhr) bzw. „bei Nichtmelden“ auf die ChatHelp-Nummer.</li>
+        <li data-i18n="ht.der_agent_nimmt_buchungsanfr">Der Agent nimmt Buchungsanfragen und Wünsche an, liest am Telefon keine Links vor und schickt Bestätigungen per E-Mail.</li>
+        <li data-i18n="ht.fuer_notfaelle_eine_weiterle">Für Notfälle eine Weiterleitungsnummer (Nachtmanager) im Telefon-Tab hinterlegen; der Agent verweist bei medizinischen Notfällen sofort an 112.</li></ol>
+        <div class="tip" data-i18n="ht.das_board_auf_dem">Das Board auf dem Tablet an der Nachtrezeption zeigt alles, was nachts telefonisch hereinkommt.</div></details>
     </div>
   </div>
 </div>

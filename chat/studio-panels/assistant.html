@@ -298,9 +298,9 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><linearGradient id="asGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd08a"/><stop offset="1" stop-color="#b8862b"/></linearGradient></defs></svg>
 
 <div class="row as-titlerow" style="justify-content:space-between;margin-bottom:14px">
-  <div style="min-width:0;flex:1 1 420px"><h2 style="font-size:26px" id="asTitle">Deine persönliche Assistentin</h2>
-    <p class="mute" style="margin:4px 0 0" id="asSub">Erzähl einfach, was erledigt werden soll – Lea fragt nach, was noch fehlt, merkt sich alles und richtet deine Agenten mit dir ein.</p></div>
-  <span class="tag gold" id="asCost">≈ 6 Tokens je Antwort</span>
+  <div style="min-width:0;flex:1 1 420px"><h2 style="font-size:26px" id="asTitle" data-i18n="as.deine_persoenliche_assistent">Deine persönliche Assistentin</h2>
+    <p class="mute" style="margin:4px 0 0" id="asSub" data-i18n="as.erzaehl_einfach_was_erledigt">Erzähl einfach, was erledigt werden soll – Lea fragt nach, was noch fehlt, merkt sich alles und richtet deine Agenten mit dir ein.</p></div>
+  <span class="tag gold" id="asCost" data-i18n="as.tokens_je_antwort">≈ 6 Tokens je Antwort</span>
 </div>
 
 <section class="as-cho hidden" id="asCho" aria-labelledby="asChoTitle">
@@ -309,29 +309,29 @@
       <div class="as-cho-pin">
         <div class="as-cho-por"><img id="asChoImg" alt="" width="512" height="640" decoding="async"></div>
         <div class="as-cho-side">
-          <div class="as-cho-cap"><b id="asChoName">Lea</b><span id="asChoRole">Deine persönliche Assistentin</span></div>
-          <div class="as-cho-now"><div>So klingt <span id="asChoWho">sie</span><b id="asChoVoice">Warm &amp; herzlich</b></div><button type="button" class="as-cho-play" id="asChoPlay" data-play="main" aria-label="Hörprobe der gewählten Stimme">▶ Hörprobe</button></div>
+          <div class="as-cho-cap"><b id="asChoName">Lea</b><span id="asChoRole" data-i18n="as.deine_persoenliche_assistent">Deine persönliche Assistentin</span></div>
+          <div class="as-cho-now"><div data-i18n-html="as.so_klingt_sie_warm">So klingt <span id="asChoWho">sie</span><b id="asChoVoice">Warm &amp; herzlich</b></div><button type="button" class="as-cho-play" id="asChoPlay" data-play="main" aria-label="Hörprobe der gewählten Stimme" data-i18n="as.hoerprobe" data-i18n-attr="aria-label:as.hoerprobe_der_gewaehlten_sti">▶ Hörprobe</button></div>
         </div>
       </div>
     </div>
     <div class="as-cho-form">
-      <span class="tag gold">✦ Deine persönliche Assistenz</span>
-      <h2 id="asChoTitle">Wer soll dich begleiten?</h2>
-      <p class="mute as-cho-lead" id="asChoLead">Wähle Person, Stimme und Art – so, wie es zu dir passt. Alles lässt sich später jederzeit ändern.</p>
+      <span class="tag gold" data-i18n="as.deine_persoenliche_assistenz">✦ Deine persönliche Assistenz</span>
+      <h2 id="asChoTitle" data-i18n="as.wer_soll_dich_begleiten">Wer soll dich begleiten?</h2>
+      <p class="mute as-cho-lead" id="asChoLead" data-i18n="as.waehle_person_stimme_und">Wähle Person, Stimme und Art – so, wie es zu dir passt. Alles lässt sich später jederzeit ändern.</p>
 
       <div class="as-cho-step">
-        <h3 class="as-cho-h" id="asCGenderL"><span class="n" aria-hidden="true">1</span>Frau oder Mann</h3>
-        <div class="as-gt" id="asCGender" role="group" aria-labelledby="asCGenderL"><button type="button" data-v="f" aria-pressed="true"><i aria-hidden="true">♀</i>Frau</button><button type="button" data-v="m" aria-pressed="false"><i aria-hidden="true">♂</i>Mann</button></div>
+        <h3 class="as-cho-h" id="asCGenderL" data-i18n-t="as.frau_oder_mann"><span class="n" aria-hidden="true">1</span>Frau oder Mann</h3>
+        <div class="as-gt" id="asCGender" role="group" aria-labelledby="asCGenderL"><button type="button" data-v="f" aria-pressed="true" data-i18n-t="as.frau"><i aria-hidden="true">♀</i>Frau</button><button type="button" data-v="m" aria-pressed="false" data-i18n-t="as.mann"><i aria-hidden="true">♂</i>Mann</button></div>
       </div>
 
       <div class="as-cho-step">
-        <h3 class="as-cho-h" id="asCPortraitsL"><span class="n" aria-hidden="true">2</span>Gesicht</h3>
+        <h3 class="as-cho-h" id="asCPortraitsL" data-i18n-t="as.gesicht"><span class="n" aria-hidden="true">2</span>Gesicht</h3>
         <div class="as-cpg" id="asCPortraits" role="group" aria-labelledby="asCPortraitsL"></div>
-        <div class="as-consent" id="asCConsent">Die Studio-Porträts sind synthetisch erzeugte Gesichter – keine realen Personen. Eigenes Foto: JPEG, PNG oder WebP, nur mit Bildrechten.</div>
+        <div class="as-consent" id="asCConsent" data-i18n="as.die_studio_portraets_sind">Die Studio-Porträts sind synthetisch erzeugte Gesichter – keine realen Personen. Eigenes Foto: JPEG, PNG oder WebP, nur mit Bildrechten.</div>
       </div>
 
       <div class="as-cho-step">
-        <h3 class="as-cho-h" id="asCTonesL"><span class="n" aria-hidden="true">3</span>Stimme &amp; Art</h3>
+        <h3 class="as-cho-h" id="asCTonesL" data-i18n-t="as.stimme_art"><span class="n" aria-hidden="true">3</span>Stimme &amp; Art</h3>
         <div class="as-tc" id="asCTones" role="group" aria-labelledby="asCTonesL"></div>
         <div class="as-vstat" id="asCVoiceStat" role="status" aria-live="polite"></div>
         <div class="as-vname-l" id="asCVoiceName"></div>
@@ -339,19 +339,19 @@
       </div>
 
       <div class="as-cho-step">
-        <h3 class="as-cho-h"><span class="n" aria-hidden="true">4</span>Name &amp; Umgang</h3>
+        <h3 class="as-cho-h" data-i18n-t="as.name_umgang"><span class="n" aria-hidden="true">4</span>Name &amp; Umgang</h3>
         <div class="as-cho-row">
-          <div><label for="asCName">Name</label><input type="text" id="asCName" maxlength="30" autocomplete="off" spellcheck="false" placeholder="z. B. Lea"></div>
-          <div><label id="asCAddressL">Anrede</label><div class="as-chips" id="asCAddress" role="group" aria-labelledby="asCAddressL"><button type="button" data-v="du" aria-pressed="true">du</button><button type="button" data-v="sie" aria-pressed="false">Sie</button></div></div>
+          <div><label for="asCName" data-i18n="as.name">Name</label><input type="text" id="asCName" maxlength="30" autocomplete="off" spellcheck="false" placeholder="z. B. Lea" data-i18n-attr="placeholder:as.lea"></div>
+          <div><label id="asCAddressL" data-i18n="as.anrede">Anrede</label><div class="as-chips" id="asCAddress" role="group" aria-labelledby="asCAddressL"><button type="button" data-v="du" aria-pressed="true" data-i18n="as.du">du</button><button type="button" data-v="sie" aria-pressed="false" data-i18n="as.sie">Sie</button></div></div>
         </div>
-        <label id="asCMoodL">Persönlichkeit</label>
-        <div class="as-chips as-moods" id="asCMood" role="group" aria-labelledby="asCMoodL"><button type="button" data-v="herzlich" aria-pressed="true">Herzlich<small>warm &amp; persönlich</small></button><button type="button" data-v="professionell" aria-pressed="false">Professionell<small>klar &amp; seriös</small></button><button type="button" data-v="locker" aria-pressed="false">Locker<small>entspannt &amp; nahbar</small></button></div>
+        <label id="asCMoodL" data-i18n="as.persoenlichkeit">Persönlichkeit</label>
+        <div class="as-chips as-moods" id="asCMood" role="group" aria-labelledby="asCMoodL"><button type="button" data-v="herzlich" aria-pressed="true" data-i18n-html="as.herzlich_warm_persoenlich">Herzlich<small>warm &amp; persönlich</small></button><button type="button" data-v="professionell" aria-pressed="false" data-i18n-html="as.professionell_klar_serioes">Professionell<small>klar &amp; seriös</small></button><button type="button" data-v="locker" aria-pressed="false" data-i18n-html="as.locker_entspannt_nahbar">Locker<small>entspannt &amp; nahbar</small></button></div>
       </div>
 
       <div id="asCMsg" role="alert"></div>
       <div class="as-cho-cta">
-        <button class="btn p as-start" type="button" id="asCStart">Mit <b id="asCStartName">Lea</b> starten →</button>
-        <span class="mute" id="asCHint">Du kannst Person und Stimme jederzeit unter „Person &amp; Stimme ändern“ wechseln.</span>
+        <button class="btn p as-start" type="button" id="asCStart" data-i18n-html="as.mit_lea_starten">Mit <b id="asCStartName">Lea</b> starten →</button>
+        <span class="mute" id="asCHint" data-i18n="as.du_kannst_person_und">Du kannst Person und Stimme jederzeit unter „Person &amp; Stimme ändern“ wechseln.</span>
       </div>
     </div>
   </div>
@@ -365,36 +365,36 @@
           <div class="as-halo" aria-hidden="true"></div>
           <div class="as-ph"><img id="asImg" class="ld" alt="" width="512" height="512" decoding="async"></div>
           <div class="as-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-          <div class="as-st" role="status" aria-live="polite"><span class="as-dot"></span><span id="asStatus">bereit</span></div>
+          <div class="as-st" role="status" aria-live="polite"><span class="as-dot"></span><span id="asStatus" data-i18n="as.bereit">bereit</span></div>
         </div>
         <div style="min-width:0">
-          <div class="as-who"><h3 id="asName">Lea</h3><div class="mute small" id="asRole">Deine persönliche Assistentin</div></div>
+          <div class="as-who"><h3 id="asName">Lea</h3><div class="mute small" id="asRole" data-i18n="as.deine_persoenliche_assistent">Deine persönliche Assistentin</div></div>
           <div class="row as-ctrls">
-            <button class="btn s" type="button" id="asVoiceBtn" aria-pressed="false" title="Antworten vorlesen">🔇 Stimme aus</button>
-            <button class="as-mic" type="button" id="asMicBig" title="Antippen zum Sprechen – oder gedrückt halten" aria-label="Sprechen">🎙</button>
+            <button class="btn s" type="button" id="asVoiceBtn" aria-pressed="false" title="Antworten vorlesen" data-i18n="as.stimme_aus" data-i18n-attr="title:as.antworten_vorlesen">🔇 Stimme aus</button>
+            <button class="as-mic" type="button" id="asMicBig" title="Antippen zum Sprechen – oder gedrückt halten" aria-label="Sprechen" data-i18n-attr="title:as.antippen_zum_sprechen_oder;aria-label:as.sprechen">🎙</button>
           </div>
         </div>
       </div>
       <div class="as-tones">
-        <div class="as-tlbl" id="asTonesL">Stimme<span>antippen = sofort wechseln</span></div>
+        <div class="as-tlbl" id="asTonesL" data-i18n-html="as.stimme_antippen_sofort_wechs">Stimme<span>antippen = sofort wechseln</span></div>
         <div class="as-tchips" id="asTones" role="group" aria-labelledby="asTonesL"></div>
       </div>
       <div class="as-vstat as-vinfo" id="asVoiceInfo" role="status" aria-live="polite"></div>
       <div class="as-vname-l" id="asVoiceName"></div>
-      <button class="btn gold as-change" type="button" id="asCustomize" aria-haspopup="dialog">✦ Person &amp; Stimme ändern</button>
-      <div class="as-tip hidden" id="asTip">Tipp: Unter <b>Person &amp; Stimme ändern</b> legst du Aussehen, Stimme, Sprache und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.</div>
+      <button class="btn gold as-change" type="button" id="asCustomize" aria-haspopup="dialog" data-i18n="as.person_stimme_aendern">✦ Person &amp; Stimme ändern</button>
+      <div class="as-tip hidden" id="asTip" data-i18n-html="as.tipp_unter_person_stimme">Tipp: Unter <b>Person &amp; Stimme ändern</b> legst du Aussehen, Stimme, Sprache und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.</div>
     </div>
   </aside>
 
-  <section class="card as-chat" aria-label="Gespräch mit dem Assistenten">
-    <div class="as-head"><b>Gespräch</b><span class="mute small" id="asHeadInfo">Ich ändere nichts, ohne dich vorher zu fragen.</span><select class="as-ml" id="asMicLang" aria-label="Sprache der Spracheingabe" title="Sprache der Spracheingabe"><option value="auto">Auto</option></select><button class="btn ghost s" type="button" id="asReset" title="Verlauf leeren – das Gedächtnis bleibt">Neu beginnen</button></div>
+  <section class="card as-chat" aria-label="Gespräch mit dem Assistenten" data-i18n-attr="aria-label:as.gespraech_mit_dem_assistente">
+    <div class="as-head"><b data-i18n="as.gespraech">Gespräch</b><span class="mute small" id="asHeadInfo" data-i18n="as.ich_aendere_nichts_ohne">Ich ändere nichts, ohne dich vorher zu fragen.</span><select class="as-ml" id="asMicLang" aria-label="Sprache der Spracheingabe" title="Sprache der Spracheingabe" data-i18n-attr="title:as.sprache_der_spracheingabe;aria-label:as.sprache_der_spracheingabe"><option value="auto" data-i18n="as.auto">Auto</option></select><button class="btn ghost s" type="button" id="asReset" title="Verlauf leeren – das Gedächtnis bleibt" data-i18n="as.neu_beginnen" data-i18n-attr="title:as.verlauf_leeren_das_gedaechtn">Neu beginnen</button></div>
     <div class="as-msgs" id="asMsgs" aria-live="polite" aria-relevant="additions"></div>
     <div class="as-foot">
       <div class="as-sg" id="asSugg"></div>
       <form class="as-form" id="asForm" autocomplete="off">
-        <textarea id="asInput" rows="1" maxlength="2000" placeholder="Erzähl mir, was ich erledigen soll …" aria-label="Nachricht an den Assistenten"></textarea>
-        <button class="as-mic" type="button" id="asMic" title="Antippen zum Sprechen – oder gedrückt halten" aria-label="Sprechen">🎙</button>
-        <button class="btn p as-send" type="submit" id="asSend">Senden</button>
+        <textarea id="asInput" rows="1" maxlength="2000" placeholder="Erzähl mir, was ich erledigen soll …" aria-label="Nachricht an den Assistenten" data-i18n-attr="placeholder:as.erzaehl_mir_was_ich;aria-label:as.nachricht_an_den_assistenten"></textarea>
+        <button class="as-mic" type="button" id="asMic" title="Antippen zum Sprechen – oder gedrückt halten" aria-label="Sprechen" data-i18n-attr="title:as.antippen_zum_sprechen_oder;aria-label:as.sprechen">🎙</button>
+        <button class="btn p as-send" type="submit" id="asSend" data-i18n="as.senden">Senden</button>
       </form>
       <div id="asNote"></div>
     </div>
@@ -403,15 +403,15 @@
   <aside class="as-right">
     <div class="card">
       <div class="as-ringw">
-        <div class="as-ring" role="img" aria-label="Fortschritt der Einrichtung" id="asRing"><svg width="66" height="66" viewBox="0 0 66 66" aria-hidden="true"><circle class="bg" cx="33" cy="33" r="27"/><circle class="fg" id="asRingFg" cx="33" cy="33" r="27" stroke-dasharray="169.65" stroke-dashoffset="169.65"/></svg><b id="asPct">0 %</b></div>
-        <div><h3 style="font-size:17px">Einrichtung</h3><div class="mute small" id="asPctTxt">Wir starten gemeinsam.</div></div>
+        <div class="as-ring" role="img" aria-label="Fortschritt der Einrichtung" id="asRing" data-i18n-attr="aria-label:as.fortschritt_der_einrichtung"><svg width="66" height="66" viewBox="0 0 66 66" aria-hidden="true"><circle class="bg" cx="33" cy="33" r="27"/><circle class="fg" id="asRingFg" cx="33" cy="33" r="27" stroke-dasharray="169.65" stroke-dashoffset="169.65"/></svg><b id="asPct">0 %</b></div>
+        <div><h3 style="font-size:17px" data-i18n="as.einrichtung">Einrichtung</h3><div class="mute small" id="asPctTxt" data-i18n="as.wir_starten_gemeinsam">Wir starten gemeinsam.</div></div>
       </div>
       <ul class="as-cl" id="asCheck"></ul>
     </div>
     <div class="card">
-      <div class="row" style="justify-content:space-between"><h3 style="font-size:17px" id="asMemTitle">Was ich über dich weiß</h3><span class="tag" id="asMemN">0</span></div>
+      <div class="row" style="justify-content:space-between"><h3 style="font-size:17px" id="asMemTitle" data-i18n="as.was_ich_ueber_dich">Was ich über dich weiß</h3><span class="tag" id="asMemN">0</span></div>
       <ul class="as-mem" id="asMem"></ul>
-      <div class="mute small" id="asMemEmpty" style="margin-top:10px">Noch nichts – erzähl mir von deinem Betrieb, ich merke mir das Wichtigste.</div>
+      <div class="mute small" id="asMemEmpty" style="margin-top:10px" data-i18n="as.noch_nichts_erzaehl_mir">Noch nichts – erzähl mir von deinem Betrieb, ich merke mir das Wichtigste.</div>
     </div>
   </aside>
 </div>
@@ -419,47 +419,47 @@
 <div class="as-drawer hidden" id="asDrawer" role="dialog" aria-modal="true" aria-labelledby="asDrTitle">
   <div class="as-scrim" id="asScrim"></div>
   <div class="as-sheet">
-    <div class="as-sh-h"><img id="asDrImg" alt=""><div style="flex:1;min-width:0"><h3 style="font-size:19px" id="asDrTitle">Person &amp; Stimme ändern</h3><div class="mute small" id="asDrSub">Aussehen, Stimme und Persönlichkeit</div></div><button class="btn ghost s" type="button" id="asDrClose" aria-label="Schließen">✕</button></div>
+    <div class="as-sh-h"><img id="asDrImg" alt=""><div style="flex:1;min-width:0"><h3 style="font-size:19px" id="asDrTitle" data-i18n="as.person_stimme_aendern_2">Person &amp; Stimme ändern</h3><div class="mute small" id="asDrSub" data-i18n="as.aussehen_stimme_und_persoenl">Aussehen, Stimme und Persönlichkeit</div></div><button class="btn ghost s" type="button" id="asDrClose" aria-label="Schließen" data-i18n-attr="aria-label:as.schliessen">✕</button></div>
     <div class="as-sh-b">
-      <label for="asFName">Name</label>
-      <input type="text" id="asFName" maxlength="30" autocomplete="off" spellcheck="false" placeholder="z. B. Lea">
-      <label id="asFGenderL">Wer soll dich begleiten?</label>
-      <div class="as-seg" id="asFGender" role="group" aria-label="Frau oder Mann"><button type="button" data-v="f">Frau</button><button type="button" data-v="m">Mann</button></div>
+      <label for="asFName" data-i18n="as.name">Name</label>
+      <input type="text" id="asFName" maxlength="30" autocomplete="off" spellcheck="false" placeholder="z. B. Lea" data-i18n-attr="placeholder:as.lea">
+      <label id="asFGenderL" data-i18n="as.wer_soll_dich_begleiten">Wer soll dich begleiten?</label>
+      <div class="as-seg" id="asFGender" role="group" aria-label="Frau oder Mann" data-i18n-attr="aria-label:as.frau_oder_mann"><button type="button" data-v="f" data-i18n="as.frau">Frau</button><button type="button" data-v="m" data-i18n="as.mann">Mann</button></div>
 
-      <h4>Porträt</h4>
+      <h4 data-i18n="as.portraet">Porträt</h4>
       <div class="as-pg" id="asFPortraits"></div>
       <input type="file" id="asFFile" accept="image/jpeg,image/png,image/webp" class="hidden">
-      <div class="row" style="margin-top:8px"><button class="btn ghost s hidden" type="button" id="asFPhotoRm">Eigenes Foto entfernen</button></div>
-      <div class="as-consent">📷 Eigenes Foto: JPEG, PNG oder WebP – wird im Browser auf 512 px verkleinert. <b id="asFRights">Nur Fotos verwenden, für die du die Rechte hast.</b></div>
-      <div class="mute small" style="margin-top:4px" id="asFCredit">Die Studio-Porträts sind synthetisch erzeugte Gesichter (StyleGAN2) – keine realen Personen.</div>
+      <div class="row" style="margin-top:8px"><button class="btn ghost s hidden" type="button" id="asFPhotoRm" data-i18n="as.eigenes_foto_entfernen">Eigenes Foto entfernen</button></div>
+      <div class="as-consent" data-i18n-html="as.eigenes_foto_jpeg_png">📷 Eigenes Foto: JPEG, PNG oder WebP – wird im Browser auf 512 px verkleinert. <b id="asFRights">Nur Fotos verwenden, für die du die Rechte hast.</b></div>
+      <div class="mute small" style="margin-top:4px" id="asFCredit" data-i18n="as.die_studio_portraets_sind_2">Die Studio-Porträts sind synthetisch erzeugte Gesichter (StyleGAN2) – keine realen Personen.</div>
 
-      <h4 id="asFVoicesL">Stimme &amp; Art</h4>
+      <h4 id="asFVoicesL" data-i18n="as.stimme_art">Stimme &amp; Art</h4>
       <div class="as-tc as-tc1" id="asFVoices" role="group" aria-labelledby="asFVoicesL"></div>
       <div class="as-vstat" id="asFPrevInfo" role="status" aria-live="polite"></div>
       <div class="as-vname-l" id="asFVoiceName"></div>
       <div class="as-vhint hidden" id="asFVoiceHint"></div>
-      <label>Sprechweise</label>
-      <div class="as-seg" id="asFTone" role="group" aria-label="Sprechweise"><button type="button" data-v="warm">Warm</button><button type="button" data-v="ruhig">Ruhig</button><button type="button" data-v="energisch">Energisch</button><button type="button" data-v="sachlich">Sachlich</button></div>
-      <label for="asFRate">Tempo</label>
+      <label data-i18n="as.sprechweise">Sprechweise</label>
+      <div class="as-seg" id="asFTone" role="group" aria-label="Sprechweise" data-i18n-attr="aria-label:as.sprechweise"><button type="button" data-v="warm" data-i18n="as.warm">Warm</button><button type="button" data-v="ruhig" data-i18n="as.ruhig">Ruhig</button><button type="button" data-v="energisch" data-i18n="as.energisch">Energisch</button><button type="button" data-v="sachlich" data-i18n="as.sachlich">Sachlich</button></div>
+      <label for="asFRate" data-i18n="as.tempo">Tempo</label>
       <div class="as-range"><input type="range" id="asFRate" min="0.8" max="1.2" step="0.05"><output id="asFRateO" for="asFRate">1,00×</output></div>
-      <label for="asFPitch">Tonhöhe</label>
+      <label for="asFPitch" data-i18n="as.tonhoehe">Tonhöhe</label>
       <div class="as-range"><input type="range" id="asFPitch" min="0.8" max="1.2" step="0.05"><output id="asFPitchO" for="asFPitch">1,00×</output></div>
-      <div class="row" style="margin-top:12px"><button class="btn s" type="button" id="asFPreview" data-play="main" style="min-height:44px">▶ Hörprobe mit diesen Einstellungen</button></div>
+      <div class="row" style="margin-top:12px"><button class="btn s" type="button" id="asFPreview" data-play="main" style="min-height:44px" data-i18n="as.hoerprobe_mit_diesen_einstel">▶ Hörprobe mit diesen Einstellungen</button></div>
 
-      <h4>Persönlichkeit</h4>
-      <label>Anrede</label>
-      <div class="as-seg" id="asFAddress" role="group" aria-label="Anrede"><button type="button" data-v="du">du</button><button type="button" data-v="sie">Sie</button></div>
-      <label>Art</label>
-      <div class="as-seg" id="asFMood" role="group" aria-label="Art"><button type="button" data-v="herzlich">Herzlich</button><button type="button" data-v="professionell">Professionell</button><button type="button" data-v="locker">Locker</button></div>
-      <label>Humor</label>
-      <div class="as-seg" id="asFHumor" role="group" aria-label="Humor"><button type="button" data-v="0">Kein</button><button type="button" data-v="1">Ein wenig</button><button type="button" data-v="2">Gern</button></div>
-      <label>Antwortlänge</label>
-      <div class="as-seg" id="asFDetail" role="group" aria-label="Antwortlänge"><button type="button" data-v="kurz">Kurz &amp; knapp</button><button type="button" data-v="ausführlich">Ausführlich</button></div>
-      <label for="asFLang">Sprache</label>
-      <select id="asFLang"><option value="de">Deutsch</option><option value="en">English · Englisch</option><option value="fr">Français · Französisch</option><option value="es">Español · Spanisch</option><option value="tr">Türkçe · Türkisch</option><option value="ru">Русский · Russisch</option><option value="it">Italiano · Italienisch</option><option value="nl">Nederlands · Niederländisch</option><option value="sv">Svenska · Schwedisch</option><option value="no">Norsk · Norwegisch</option><option value="fi">Suomi · Finnisch</option><option value="ja">日本語 · Japanisch</option><option value="az">Azərbaycanca · Aserbaidschanisch</option></select>
-      <div class="mute small" style="margin-top:6px" id="asFLangHint">Schreibst oder sprichst du in einer anderen Sprache, antwortet der Assistent automatisch darin – in allen 13 Sprachen.</div>
+      <h4 data-i18n="as.persoenlichkeit">Persönlichkeit</h4>
+      <label data-i18n="as.anrede">Anrede</label>
+      <div class="as-seg" id="asFAddress" role="group" aria-label="Anrede" data-i18n-attr="aria-label:as.anrede"><button type="button" data-v="du" data-i18n="as.du">du</button><button type="button" data-v="sie" data-i18n="as.sie">Sie</button></div>
+      <label data-i18n="as.art">Art</label>
+      <div class="as-seg" id="asFMood" role="group" aria-label="Art" data-i18n-attr="aria-label:as.art"><button type="button" data-v="herzlich" data-i18n="as.herzlich">Herzlich</button><button type="button" data-v="professionell" data-i18n="as.professionell">Professionell</button><button type="button" data-v="locker" data-i18n="as.locker">Locker</button></div>
+      <label data-i18n="as.humor">Humor</label>
+      <div class="as-seg" id="asFHumor" role="group" aria-label="Humor" data-i18n-attr="aria-label:as.humor"><button type="button" data-v="0" data-i18n="as.kein">Kein</button><button type="button" data-v="1" data-i18n="as.ein_wenig">Ein wenig</button><button type="button" data-v="2" data-i18n="as.gern">Gern</button></div>
+      <label data-i18n="as.antwortlaenge">Antwortlänge</label>
+      <div class="as-seg" id="asFDetail" role="group" aria-label="Antwortlänge" data-i18n-attr="aria-label:as.antwortlaenge"><button type="button" data-v="kurz" data-i18n="as.kurz_knapp">Kurz &amp; knapp</button><button type="button" data-v="ausführlich" data-i18n="as.ausfuehrlich">Ausführlich</button></div>
+      <label for="asFLang" data-i18n="as.sprache">Sprache</label>
+      <select id="asFLang"><option value="de">Deutsch</option><option value="en" data-i18n="as.english_englisch">English · Englisch</option><option value="fr" data-i18n="as.francais_franzoesisch">Français · Französisch</option><option value="es" data-i18n="as.espanol_spanisch">Español · Spanisch</option><option value="tr" data-i18n="as.tuerkce_tuerkisch">Türkçe · Türkisch</option><option value="ru" data-i18n="as.russisch">Русский · Russisch</option><option value="it" data-i18n="as.italiano_italienisch">Italiano · Italienisch</option><option value="nl" data-i18n="as.nederlands_niederlaendisch">Nederlands · Niederländisch</option><option value="sv" data-i18n="as.svenska_schwedisch">Svenska · Schwedisch</option><option value="no" data-i18n="as.norsk_norwegisch">Norsk · Norwegisch</option><option value="fi" data-i18n="as.suomi_finnisch">Suomi · Finnisch</option><option value="ja" data-i18n="as.japanisch">日本語 · Japanisch</option><option value="az" data-i18n="as.az_rbaycanca_aserbaidschanis">Azərbaycanca · Aserbaidschanisch</option></select>
+      <div class="mute small" style="margin-top:6px" id="asFLangHint" data-i18n="as.schreibst_oder_sprichst_du">Schreibst oder sprichst du in einer anderen Sprache, antwortet der Assistent automatisch darin – in allen 13 Sprachen.</div>
       <div id="asFMsg"></div>
     </div>
-    <div class="as-sh-f"><button class="btn" type="button" id="asFCancel">Abbrechen</button><button class="btn p" type="button" id="asFSave">Speichern</button></div>
+    <div class="as-sh-f"><button class="btn" type="button" id="asFCancel" data-i18n="as.abbrechen">Abbrechen</button><button class="btn p" type="button" id="asFSave" data-i18n="as.speichern">Speichern</button></div>
   </div>
 </div>

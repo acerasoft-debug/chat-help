@@ -28,7 +28,14 @@
   var LANG_TAG = {}; LANGS.forEach(function (l) { LANG_TAG[l.code] = l.tag; });
   var TABN = { home: 'Übersicht', agents: 'Agenten', training: 'Training', phone: 'Telefon', rueckruf: 'Rückrufe', termine: 'Termine', bestellungen: 'Bestellungen',
     taxi: 'Taxi', hotel: 'Hotel', benachrichtigungen: 'Benachrichtigungen', tokens: 'Tokens & API' };
-  var STATUS = { idle: 'bereit', listening: 'hört zu…', thinking: 'denkt…', speaking: 'spricht…' };
+  /* Oberflächentexte: Tab-Namen aus der (übersetzten) Navigation, Sprachnamen über Intl, du/Sie-Varianten über Schlüssel „…“ / „….f“ */
+  function tabName(k) { var t = document.querySelector('#tabs .tab[data-v="' + k + '"]'); var s = t ? t.textContent.replace(/^[^\p{L}\p{N}]+/u, '').trim() : ''; return s || TABN[k]; }
+  var DN = null; try { DN = new Intl.DisplayNames([I18N.tag], { type: 'language' }); } catch (e) { DN = null; }
+  function lname(l) { if (!l) return ''; if (I18N.lang === 'de' || !DN) return l.name; try { var n = DN.of(l.code === 'no' ? 'nb' : l.code); return n ? n.charAt(0).toLocaleUpperCase(I18N.tag) + n.slice(1) : l.native; } catch (e) { return l.native; } }
+  function TS(k, v) { return _t(isSie() ? k + '.f' : k, v); }
+  function vpL(v) { return v ? (I18N.lang !== 'de' && I18N.has('asj.vp.' + v.id) ? _t('asj.vp.' + v.id) : _tx(v.label)) : ''; }
+  function vpD(v) { return v && v.desc ? (I18N.lang !== 'de' && I18N.has('asj.vpd.' + v.id) ? _t('asj.vpd.' + v.id) : _tx(v.desc)) : ''; }
+  var STATUS = { idle: _t('asj.st.idle'), listening: _t('asj.st.listen'), thinking: _t('asj.st.think'), speaking: _t('asj.st.speak') };
   var C_RING = 169.65;
   var CHECK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   var SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
@@ -111,7 +118,7 @@
   /* gen = Abbruchzähler, pv = gerade laufende Hörprobe (Voreinstellung oder „main“), trouble = Browser gibt nachweislich keinen Ton aus,
      why = warum die Server-Stimme ausfällt (balance = kein Guthaben), voicesReady = Browserstimmen geladen (oder lange genug gewartet) */
   var SPK = { gen: 0, el: null, url: null, serverOk: true, noLang: {}, pv: null, trouble: false, why: '', voicesReady: false, voicesWait: [] };
-  var NO_VOICE_TXT = 'Kein Ton möglich – dieser Browser hat keine nutzbare Stimme. Natürliche Stimmen brauchen einen Sprachdienst-Schlüssel, den der Betreiber hinterlegt.';
+  var NO_VOICE_TXT = _t('asj.noVoice');
   function audioEl() { if (!SPK.el) { SPK.el = new Audio(); SPK.el.preload = 'auto'; } return SPK.el; }
   /** Im Klick-Handler aufrufen: entsperrt Audio (Safari/iOS) und die Browserstimme. */
   function unlockAudio() {
@@ -132,10 +139,10 @@
     document.querySelectorAll('#' + PANEL + ' [data-play]').forEach(function (b) {
       var on = !!SPK.pv && b.dataset.play === SPK.pv;
       b.classList.toggle('playing', on);
-      if (b.classList.contains('pl') || b.classList.contains('as-cho-play')) b.textContent = on ? '■ Stopp' : '▶ Hörprobe';
-      else if (b.id === 'asFPreview') b.textContent = on ? '■ Hörprobe stoppen' : '▶ Hörprobe mit diesen Einstellungen';
-      var base = b.getAttribute('data-label') || 'Hörprobe';
-      b.setAttribute('aria-label', on ? base + ' stoppen' : base);
+      if (b.classList.contains('pl') || b.classList.contains('as-cho-play')) b.textContent = on ? _t('asj.stop') : _t('asj.sample');
+      else if (b.id === 'asFPreview') b.textContent = on ? _t('asj.sampleStop') : _t('asj.sampleSet');
+      var base = b.getAttribute('data-label') || _t('asj.sampleW');
+      b.setAttribute('aria-label', on ? _t('asj.stopX',{x:base}) : base);
     });
   }
   function presetOf(id, gender) {
@@ -153,7 +160,7 @@
   function shortLabel(v) { return String((v && v.label) || '').split(/\s*&\s*/)[0]; }
   /** Persona der Voreinstellung („Lea“, „Sophie“ …) – vom Server (speech-lib-Label vor „·“), sonst der Klang-Name („Warm“). */
   function personaOf(v) { return String((v && v.persona) || '').trim() || shortLabel(v); }
-  function joinNames(a) { a = a.slice(); if (a.length < 2) return a.join(''); var last = a.pop(); return a.join(', ') + ' und ' + last; }
+  function joinNames(a) { a = a.slice(); if (a.length < 2) return a.join(''); try { if (I18N.lang !== 'de' && Intl.ListFormat) return new Intl.ListFormat(I18N.tag, { type: 'conjunction' }).format(a); } catch (e) { /* alt */ } var last = a.pop(); return a.join(', ') + ' und ' + last; }
   var DEFAULT_PRESET = { f: 'f_warm', m: 'm_freundlich' };
   var NAMES_F = ['katja', 'seraphina', 'amala', 'anna', 'petra', 'helena', 'hedda', 'marlene', 'vicki', 'louisa', 'elke', 'gisela', 'klarissa', 'maja', 'tanja', 'ingrid', 'sabine', 'female', 'frau', 'aria', 'jenny', 'samantha', 'ava', 'emma', 'libby', 'sonia', 'zira', 'hazel', 'susan', 'karen', 'moira', 'tessa', 'fiona', 'serena', 'denise', 'elsa', 'isabella', 'paulina', 'milena', 'zosia', 'yelda', 'filiz', 'emel', 'amelie', 'audrey', 'marie', 'alice', 'federica', 'fenna', 'colette', 'dariya', 'svetlana', 'kyoko', 'nanami', 'alva', 'nora', 'satu', 'sara', 'ellen', 'carmit', 'monica', 'luciana', 'joana', 'mariska', 'laura', 'kate', 'victoria', 'allison', 'nicky', 'catherine', 'veena', 'lekha'];
   var NAMES_M = ['conrad', 'florian', 'killian', 'markus', 'yannick', 'stefan', 'martin', 'hans', 'bernd', 'christoph', 'kasper', 'ralf', 'klaus', 'jonas', 'viktor', 'male', 'mann', 'guy', 'davis', 'andrew', 'brian', 'ryan', 'thomas', 'george', 'daniel', 'alex', 'fred', 'david', 'mark', 'oliver', 'henri', 'remy', 'diego', 'alvaro', 'cosimo', 'maarten', 'marek', 'dmitry', 'ahmet', 'xander', 'giuseppe', 'pavel', 'otoya', 'keita', 'jorge', 'juan', 'luca', 'reed', 'aaron', 'arthur', 'gordon', 'rishi', 'tom', 'lee', 'jacques', 'yuri', 'magnus', 'onni', 'cem', 'tolga'];
@@ -412,7 +419,7 @@
       if (p >= (PIP.pct[v.key] || 0) + 4) { PIP.pct[v.key] = p; voiceInfo(); }
     }).then(function () {
       PIP.st[v.key] = 'ready'; voiceInfo();
-      note('Die echte Stimme von ' + h(personaOf(presetOf((PROF && PROF.voice && PROF.voice.preset) || '', PROF && PROF.gender))) + ' ist bereit – ab jetzt ohne Systemstimme.', 'ok');
+      note(h(_t('asj.pipReady',{n:personaOf(presetOf((PROF && PROF.voice && PROF.voice.preset) || '', PROF && PROF.gender))})), 'ok');
     }, function () { PIP.st[v.key] = 'fail'; voiceInfo(); });
   }
   /** Wie speakServer, nur dass der Ton im Browser entsteht; nächster Satz wird schon berechnet, während der aktuelle läuft. */
@@ -469,21 +476,21 @@
   /** Ehrliche Statuszeile: KI-Stimme nur, wenn der Server sie wirklich liefert – sonst sagen, dass es die Systemstimme ist und warum. */
   function voiceStatus(lng) {
     var L = LANGS.filter(function (l) { return l.code === normLang(lng); })[0];
-    if (serverCan(lng)) return { k: 'ok', t: 'Natürliche KI-Stimme aktiv' };
+    if (serverCan(lng)) return { k: 'ok', t: _t('asj.vs.ok') };
     if (!window.speechSynthesis || SPK.trouble) return { k: 'warn', t: NO_VOICE_TXT };
-    if (TTS && SPK.serverOk && !serverLangOk(lng)) return { k: 'info', t: 'Systemstimme des Browsers – die natürliche KI-Stimme spricht ' + (L ? L.name : 'diese Sprache') + ' noch nicht' };
-    if (TTS && SPK.why === 'balance') return { k: 'info', t: 'Systemstimme des Browsers – die natürliche KI-Stimme braucht Guthaben oder einen aktiven Agenten' };
-    if (TTS && SPK.why === 'limit') return { k: 'info', t: 'Systemstimme des Browsers – das Tageslimit der KI-Stimme ist erreicht' };
-    return { k: 'info', t: 'Systemstimme des Browsers – natürliche Stimmen schaltet der Betreiber frei' };
+    if (TTS && SPK.serverOk && !serverLangOk(lng)) return { k: 'info', t: _t('asj.vs.lang',{l:L ? lname(L) : _t('asj.thisLang')}) };
+    if (TTS && SPK.why === 'balance') return { k: 'info', t: _t('asj.vs.bal') };
+    if (TTS && SPK.why === 'limit') return { k: 'info', t: _t('asj.vs.limit') };
+    return { k: 'info', t: _t('asj.vs.op') };
   }
   /** Wird gerade die Browserstimme benutzt (kein Sprachdienst, aber Ton möglich)? Dann zeigen wir ehrlich, welche. */
   function browserUsed(lng) { return voiceStatus(lng).k === 'info'; }
   /** Tooltip-Zusatz „ · Browserstimme: Katja“ für Chips und Hörprobe-Knöpfe (leer, wenn die Server-Stimme spricht). */
   function voiceTip(gender, preset, lng) {
-    if (!serverCan(lng) && pipReady(pipOf(gender, preset, lng))) return ' · echte Stimme';
+    if (!serverCan(lng) && pipReady(pipOf(gender, preset, lng))) return ' · ' + _t('asj.real');
     if (!browserUsed(lng)) return '';
     var pk = pickVoiceEx(gender, preset, tagOf(lng));
-    return pk.v ? ' · Browserstimme: ' + voiceLabel(pk.v) + (pk.shared ? ' (geteilt)' : '') : '';
+    return pk.v ? ' · ' + _t('asj.bvoice',{n:voiceLabel(pk.v)}) + (pk.shared ? ' ' + _t('asj.shared') : '') : '';
   }
   /** Zeile „Browserstimme: <Name>“ für die aktive Voreinstellung + ein Satz, wenn sich Voreinstellungen eine Stimme teilen müssen. */
   function voiceLineHtml(gender, preset, lng) {
@@ -491,40 +498,40 @@
     var tag = tagOf(lng), m = voiceMap(gender, tag), pk = pickVoiceEx(gender, preset, tag);
     if (!pk.v) return '';
     var L = LANGS.filter(function (l) { return l.code === normLang(lng); })[0];
-    var s = '<span class="as-vname">Browserstimme: <b>' + h(voiceLabel(pk.v)) + '</b>' +
-      (m.level === 'any' ? ' <span class="as-vlang">(' + h(pk.v.lang || '') + ' – keine Stimme für ' + h(L ? L.name : 'diese Sprache') + ' installiert)</span>' : '') + '</span>';
+    var s = '<span class="as-vname">' + _t('asj.bvoice',{n:'<b>' + h(voiceLabel(pk.v)) + '</b>'}) +
+      (m.level === 'any' ? ' <span class="as-vlang">' + h(_t('asj.noLangVoice',{c:pk.v.lang || '',l:L ? lname(L) : _t('asj.thisLang')})) + '</span>' : '') + '</span>';
     if (m.shares.length) {
       s += '<span class="as-vshare">' + m.shares.map(function (x) {
-        return h(joinNames(x.ids.map(function (id) { return personaOf(presetOf(id, gender)); }))) + ' teilen sich die Browserstimme ' + h(voiceLabel(x.v));
-      }).join('; ') + ' – nur Tempo und Tonhöhe unterscheiden sich.</span>';
+        return h(_t('asj.share',{n:joinNames(x.ids.map(function (id) { return personaOf(presetOf(id, gender)); })),v:voiceLabel(x.v)}));
+      }).join('; ') + ' – ' + _t('asj.shareTail') + '</span>';
     }
     return s;
   }
   /** Hinweis in Auswahl und Seitenleiste: mit KI-Stimme hat jede Assistenz eine eigene, echte Stimme. */
   function kiHint(gender) {
     var names = VOICES.filter(function (v) { return v.gender === gender; }).map(personaOf);
-    return 'Mit aktivierter KI-Stimme klingt jede Assistenz wie eine echte Person' + (names.length > 1 ? ' – ' + joinNames(names) + ' haben dann eigene Stimmen.' : '.');
+    return names.length > 1 ? _t('asj.kiN',{n:joinNames(names)}) : _t('asj.ki1');
   }
   /** Zeile zur echten Stimme: bereit, lädt (Prozent) oder Knopf zum Laden. Leer, wenn es für Sprache/Geschlecht keine gibt. */
   function pipLine(v) {
     if (!v) return '';
     var s = PIP.st[v.key];
-    if (s === 'loading') return '<span class="as-vpip">Echte Stimme wird geladen … ' + (PIP.pct[v.key] || 0) + ' % (einmalig ' + v.mb + ' MB) – bis dahin die Systemstimme</span>';
-    if (s === 'fail') return '<span class="as-vpip">Die echte Stimme konnte nicht geladen werden. <button type="button" class="as-pipload" data-pip="1">Erneut versuchen</button></span>';
-    return '<span class="as-vpip"><button type="button" class="as-pipload" data-pip="1">Echte Stimme laden</button> einmalig ' + v.mb + ' MB, läuft danach direkt in diesem Browser</span>';
+    if (s === 'loading') return '<span class="as-vpip">' + h(_t('asj.pipLoading',{p:PIP.pct[v.key] || 0,mb:I18N.num(v.mb)})) + '</span>';
+    if (s === 'fail') return '<span class="as-vpip">' + _t('asj.pipFail') + ' <button type="button" class="as-pipload" data-pip="1">' + _t('pw.retry') + '</button></span>';
+    return '<span class="as-vpip"><button type="button" class="as-pipload" data-pip="1">' + _t('asj.pipLoad') + '</button> ' + h(_t('asj.pipOnce',{mb:I18N.num(v.mb)})) + '</span>';
   }
   function paintStatus(el, gender, preset, lng, nameEl, hintEl) {
     var pv = serverCan(lng) ? null : pipOf(gender, preset, lng);
     if (pipReady(pv)) {
-      if (el) { el.textContent = 'Echte Stimme aktiv – läuft direkt in diesem Browser'; el.setAttribute('data-k', 'ok'); el.title = 'Stimmmodell: ' + pv.name; }
-      if (nameEl) nameEl.innerHTML = '<span class="as-vpip">Open-Source-Stimme „' + h(pv.name) + '“ · <a href="/chat/vendor/voice/LICENSES.txt" target="_blank" rel="noopener">Lizenzen</a></span>';
+      if (el) { el.textContent = _t('asj.pipOn'); el.setAttribute('data-k', 'ok'); el.title = _t('asj.model',{n:pv.name}); }
+      if (nameEl) nameEl.innerHTML = '<span class="as-vpip">' + h(_t('asj.oss',{n:pv.name})) + ' · <a href="/chat/vendor/voice/LICENSES.txt" target="_blank" rel="noopener">' + _t('asj.lic') + '</a></span>';
       if (hintEl) { hintEl.textContent = ''; hintEl.classList.add('hidden'); }
       return;
     }
     var st = voiceStatus(lng), used = st.k === 'info', pk = used ? pickVoiceEx(gender, preset, tagOf(lng)) : null;
     if (el) {
       el.textContent = st.t; el.setAttribute('data-k', st.k);
-      if (pk && pk.v) el.title = 'Browserstimme: ' + voiceLabel(pk.v); else el.removeAttribute('title');
+      if (pk && pk.v) el.title = _t('asj.bvoice',{n:voiceLabel(pk.v)}); else el.removeAttribute('title');
     }
     if (nameEl) nameEl.innerHTML = used ? voiceLineHtml(gender, preset, lng) + pipLine(pv) : '';
     if (hintEl) { hintEl.textContent = used && !pv ? kiHint(gender) : ''; hintEl.classList.toggle('hidden', !used || !!pv); }
@@ -532,14 +539,14 @@
   /** Tooltips der Stimm-Chips und Hörprobe-Knöpfe nachziehen (Stimmenliste kommt asynchron). */
   function voiceTips() {
     if (PROF) document.querySelectorAll('#asTones button[data-v]').forEach(function (b) {
-      var v = presetOf(b.dataset.v, PROF.gender); if (v) b.title = v.label + (v.desc ? ' – ' + v.desc : '') + voiceTip(PROF.gender, v.id, PROF.lang);
+      var v = presetOf(b.dataset.v, PROF.gender); if (v) b.title = vpL(v) + (v.desc ? ' – ' + vpD(v) : '') + voiceTip(PROF.gender, v.id, PROF.lang);
     });
     if (D) {
       document.querySelectorAll('#' + (isCho() ? 'asCTones' : 'asFVoices') + ' .pl[data-play]').forEach(function (b) {
-        var v = presetOf(b.dataset.play, D.gender); if (v) b.title = 'Hörprobe: ' + v.label + voiceTip(D.gender, v.id, D.lang);
+        var v = presetOf(b.dataset.play, D.gender); if (v) b.title = _t('asj.sampleOf',{n:vpL(v)}) + voiceTip(D.gender, v.id, D.lang);
       });
       var main = g(isCho() ? 'asChoPlay' : 'asFPreview'), pre = presetOf(D.voice.preset, D.gender);
-      if (main) main.title = 'Hörprobe' + (pre ? ': ' + pre.label : '') + voiceTip(D.gender, D.voice.preset, D.lang);
+      if (main) main.title = (pre ? _t('asj.sampleOf',{n:vpL(pre)}) : _t('asj.sampleW')) + voiceTip(D.gender, D.voice.preset, D.lang);
     }
   }
   function voiceInfo() {
@@ -565,9 +572,9 @@
       input.value = ((before ? before + ' ' : '') + REC.final + interim).trim(); autosize();
     };
     r.onerror = function (e) {
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { micUsed = false; note('Das Mikrofon ist blockiert – bitte in den Browser-Einstellungen für diese Seite erlauben.', 'err'); }
-      else if (e.error === 'network') note('Die Spracherkennung braucht eine Internetverbindung.', 'err');
-      else if (e.error === 'language-not-supported') note('Diese Sprache kann der Browser nicht erkennen – bitte oben eine andere Sprache für die Spracheingabe wählen oder tippen.', 'err');
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { micUsed = false; note(_t('asj.micBlocked'), 'err'); }
+      else if (e.error === 'network') note(_t('asj.micNet'), 'err');
+      else if (e.error === 'language-not-supported') note(_t('asj.micLang'), 'err');
     };
     r.onend = function () {
       REC.on = false; micUi(false); if (state === 'listening') setState('idle');
@@ -580,7 +587,7 @@
   function abortListen() { if (REC.r && REC.on) { REC.sent = true; try { REC.r.abort(); } catch (e) { /* egal */ } } }
   function bindMic(btn) {
     if (!btn) return;
-    if (!SR) { btn.disabled = true; btn.title = 'Spracheingabe wird von diesem Browser nicht unterstützt – Chrome, Edge oder Safari verwenden.'; return; }
+    if (!SR) { btn.disabled = true; btn.title = _t('asj.noSR'); return; }
     btn.addEventListener('pointerdown', function (e) {
       if (e.button !== undefined && e.button !== 0) return;
       e.preventDefault(); unlockAudio();
@@ -597,25 +604,23 @@
   function applyProfile() {
     if (!PROF) return;
     var img = g('asImg'), url = avatar();
-    if (img && img.getAttribute('src') !== url) { img.classList.add('ld'); img.onload = function () { img.classList.remove('ld'); }; img.onerror = function () { img.classList.remove('ld'); }; img.src = url; img.alt = 'Porträt von ' + PROF.name; }
+    if (img && img.getAttribute('src') !== url) { img.classList.add('ld'); img.onload = function () { img.classList.remove('ld'); }; img.onerror = function () { img.classList.remove('ld'); }; img.src = url; img.alt = _t('asj.portraitOf',{n:PROF.name}); }
     g('asName').textContent = PROF.name;
-    g('asRole').textContent = PROF.role;
-    g('asTitle').textContent = PROF.role;
+    g('asRole').textContent = _tx(PROF.role);
+    g('asTitle').textContent = _tx(PROF.role);
     var sie = isSie(), f = fem();
-    g('asSub').textContent = (sie ? 'Erzählen Sie einfach, was erledigt werden soll – ' : 'Erzähl einfach, was erledigt werden soll – ') + PROF.name + ' fragt nach, was noch fehlt, merkt sich alles und richtet ' + (sie ? 'Ihre Agenten mit Ihnen' : 'deine Agenten mit dir') + ' ein.';
-    g('asHeadInfo').textContent = !TOOLS ? T('Gerade kann ich nur beraten – Einstellungen trägst du im jeweiligen Bereich selbst ein.', 'Gerade kann ich nur beraten – Einstellungen tragen Sie im jeweiligen Bereich selbst ein.')
-      : (sie ? 'Ich ändere nichts, ohne Sie vorher zu fragen.' : 'Ich ändere nichts, ohne dich vorher zu fragen.');
+    g('asSub').textContent = TS('asj.sub', { n: PROF.name });
+    g('asHeadInfo').textContent = !TOOLS ? TS('asj.advOnly') : TS('asj.noChange');
     g('asHeadInfo').classList.toggle('as-warn', !TOOLS);
-    g('asTip').innerHTML = T('Tipp: Unter <b>Person &amp; Stimme ändern</b> legst du Aussehen, Stimme, Sprache und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.',
-      'Tipp: Unter <b>Person &amp; Stimme ändern</b> legen Sie Aussehen, Stimme, Sprache und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.');
-    g('asTonesL').innerHTML = 'Stimme<span>' + T('antippen = sofort wechseln', 'antippen = sofort wechseln') + '</span>';
+    g('asTip').innerHTML = TS('asj.tip');
+    g('asTonesL').innerHTML = h(_t('asj.voice')) + '<span>' + h(_t('asj.tapSwitch')) + '</span>';
     renderToneChips();
     micLangUi();
-    g('asMemTitle').textContent = sie ? 'Was ich über Sie weiß' : 'Was ich über dich weiß';
-    g('asMemEmpty').textContent = sie ? 'Noch nichts – erzählen Sie mir von Ihrem Betrieb, ich merke mir das Wichtigste.' : 'Noch nichts – erzähl mir von deinem Betrieb, ich merke mir das Wichtigste.';
-    g('asInput').placeholder = sie ? 'Sagen Sie mir, was ich erledigen soll …' : 'Erzähl mir, was ich erledigen soll …';
+    g('asMemTitle').textContent = TS('asj.memT');
+    g('asMemEmpty').textContent = TS('asj.memE');
+    g('asInput').placeholder = TS('asj.inPh');
     g('asTip').classList.toggle('hidden', !!PROF.saved);
-    var sec = document.querySelector('#' + PANEL + ' .as-chat'); if (sec) sec.setAttribute('aria-label', 'Gespräch mit ' + PROF.name + ' (' + (f ? 'Assistentin' : 'Assistent') + ')');
+    var sec = document.querySelector('#' + PANEL + ' .as-chat'); if (sec) sec.setAttribute('aria-label', _t('asj.convWith',{n:PROF.name,r:f ? _t('asj.asstF') : _t('asj.asstM')}));
     document.querySelectorAll('#' + PANEL + ' .as-av').forEach(function (a) { a.src = url; });
     voiceBtn(); if (window.CHVoice) pipCheck(); voiceInfo();
   }
@@ -624,7 +629,7 @@
     var box = g('asTones'); if (!box || !PROF) return;
     box.innerHTML = VOICES.filter(function (v) { return v.gender === PROF.gender; }).map(function (v) {
       var on = PROF.voice && PROF.voice.preset === v.id;
-      return '<button type="button" data-v="' + h(v.id) + '" data-play="chip:' + h(v.id) + '" data-label="Stimme ' + h(v.label) + (on ? ' (aktiv) – Hörprobe' : ' wählen und anhören') + '" aria-pressed="' + (on ? 'true' : 'false') + '" title="' + h(v.label + (v.desc ? ' – ' + v.desc : '') + voiceTip(PROF.gender, v.id, PROF.lang)) + '" aria-label="Stimme ' + h(v.label) + '">' + h(shortLabel(v)) + '</button>';
+      return '<button type="button" data-v="' + h(v.id) + '" data-play="chip:' + h(v.id) + '" data-label="' + h(on ? _t('asj.chipOn',{n:vpL(v)}) : _t('asj.chipPick',{n:vpL(v)})) + '" aria-pressed="' + (on ? 'true' : 'false') + '" title="' + h(vpL(v) + (v.desc ? ' – ' + vpD(v) : '') + voiceTip(PROF.gender, v.id, PROF.lang)) + '" aria-label="' + h(_t('asj.voiceN',{n:vpL(v)})) + '">' + h(I18N.lang === 'de' ? shortLabel(v) : vpL(v).split(/\s*&\s*/)[0]) + '</button>';
     }).join('');
     markPlaying();
   }
@@ -644,11 +649,11 @@
     api('/assistant/profile', { method: 'POST', body: JSON.stringify({ voice: { preset: id, tone: tone } }) }).then(function (j) {
       if (my !== toneBusy) return;
       takeProfile(j); renderToneChips(); voiceInfo();
-      note('Stimme gewechselt: ' + h(pre.label) + ' – gespeichert.', 'ok');
+      note(h(_t('asj.switched',{n:vpL(pre)})), 'ok');
     }).catch(function (e) {
       if (my !== toneBusy) return;
       PROF.voice.preset = old.preset; PROF.voice.tone = old.tone; renderToneChips(); voiceInfo();
-      note(h(((e && e.data && e.data.message) || (e && e.message) || 'Die Stimme konnte nicht gespeichert werden.')), 'err');
+      note(h(((e && e.message) || _t('asj.voiceFail'))), 'err');
     });
   }
   /** Auswahl „Sprache der Spracheingabe“ (Auto = Sprache des Gesprächs) und Sprachliste im Anpassen-Dialog aus derselben Tabelle. */
@@ -657,8 +662,8 @@
     var cur = sel.value;
     var pre = withAuto ? '🎙 ' : '';
     var cl = (LANGS.filter(function (l) { return l.code === convLang(); })[0]) || LANGS[0];
-    sel.innerHTML = (withAuto ? '<option value="auto">' + pre + 'Auto</option>' : '') +
-      LANGS.map(function (l) { return '<option value="' + h(l.code) + '">' + (withAuto ? pre + h(l.code.toUpperCase()) + ' · ' + h(l.native) : h(l.native) + (l.native !== l.name ? ' · ' + h(l.name) : '')) + '</option>'; }).join('');
+    sel.innerHTML = (withAuto ? '<option value="auto">' + pre + h(_t('asj.auto')) + '</option>' : '') +
+      LANGS.map(function (l) { var ln = lname(l); return '<option value="' + h(l.code) + '">' + (withAuto ? pre + h(l.code.toUpperCase()) + ' · ' + h(l.native) : h(l.native) + (l.native !== ln ? ' · ' + h(ln) : '')) + '</option>'; }).join('');
     if (cur && sel.querySelector('option[value="' + cur + '"]')) sel.value = cur;
   }
   function micLangUi() {
@@ -666,23 +671,23 @@
     langOptions(sel, true);
     sel.value = micLangPick !== 'auto' && LANG_TAG[micLangPick] ? micLangPick : 'auto';
     var cl = ((LANGS.filter(function (l) { return l.code === convLang(); })[0]) || LANGS[0]);
-    sel.title = 'Sprache der Spracheingabe – Auto: ' + cl.name + ' (Sprache des Gesprächs)';
+    sel.title = _t('asj.micT',{l:lname(cl)});
     sel.setAttribute('aria-label', sel.title);
   }
   function voiceBtn() {
     var b = g('asVoiceBtn'); if (!b) return;
-    b.textContent = voiceOn ? '🔊 Stimme an' : '🔇 Stimme aus';
+    b.textContent = voiceOn ? _t('asj.vOn') : _t('asj.vOff');
     b.setAttribute('aria-pressed', voiceOn ? 'true' : 'false');
     b.classList.toggle('gold', voiceOn);
-    b.title = voiceOn ? 'Antworten werden vorgelesen – klicken zum Ausschalten' : 'Antworten vorlesen lassen';
+    b.title = voiceOn ? _t('asj.vOnT') : _t('asj.vOffT');
   }
 
   /* ======================================================================= Gespräch */
   function actsHtml(acts) {
     if (!acts || !acts.length) return '';
     return '<div class="as-acts">' + acts.map(function (a) {
-      var link = a.link && /^https:\/\//.test(String(a.link.url || '')) ? '<a class="as-go" href="' + h(a.link.url) + '" target="_blank" rel="noopener noreferrer">' + h(a.link.label || 'Öffnen') + ' →</a>' : '';
-      var tab = a.ok && a.tab && TABN[a.tab] ? '<button type="button" class="as-go" data-tab="' + h(a.tab) + '">' + h(TABN[a.tab]) + ' →</button>' : '';
+      var link = a.link && /^https:\/\//.test(String(a.link.url || '')) ? '<a class="as-go" href="' + h(a.link.url) + '" target="_blank" rel="noopener noreferrer">' + h(a.link.label ? _tx(a.link.label) : _t('sj.open')) + ' →</a>' : '';
+      var tab = a.ok && a.tab && TABN[a.tab] ? '<button type="button" class="as-go" data-tab="' + h(a.tab) + '">' + h(tabName(a.tab)) + ' →</button>' : '';
       return '<div class="as-act' + (a.ok ? '' : ' err') + '"><span class="ic" aria-hidden="true">' + (a.ok ? '✓' : '!') + '</span><span class="tx">' + h(a.summary || a.name) + '</span>' + link + tab + '</div>';
     }).join('') + '</div>';
   }
@@ -691,7 +696,7 @@
     if (m.role === 'user') return '<div class="as-m u' + (fresh ? ' as-new' : '') + '"><div class="as-col"><div class="as-b">' + fmt(m.content) + '</div></div></div>';
     var canPlay = !!(window.speechSynthesis || TTS);
     return '<div class="as-m a' + (fresh ? ' as-new' : '') + '"><img class="as-av" src="' + h(avatar()) + '" alt=""><div class="as-col"><div class="as-b">' + fmt(m.content) + '</div>' + actsHtml(m.actions) +
-      (canPlay ? '<button type="button" class="as-play" data-i="' + i + '" aria-label="Vorlesen">▶ vorlesen</button>' : '') + '</div></div>';
+      (canPlay ? '<button type="button" class="as-play" data-i="' + i + '" aria-label="' + h(_t('asj.readL')) + '">' + _t('asj.read') + '</button>' : '') + '</div></div>';
   }
   function renderHistory() {
     var box = g('asMsgs'); if (!box) return;
@@ -708,7 +713,7 @@
   function sysMsg(html, err) { addMsg({ role: 'sys', html: html, err: !!err }); }
   function typing(on) {
     var t = g('asTyping');
-    if (on && !t) { g('asMsgs').insertAdjacentHTML('beforeend', '<div class="as-m a as-typing as-new" id="asTyping" aria-label="' + h(PROF ? PROF.name : '') + ' schreibt …"><img class="as-av" src="' + h(avatar()) + '" alt=""><div class="as-b"><i></i><i></i><i></i></div></div>'); scrollDown(); }
+    if (on && !t) { g('asMsgs').insertAdjacentHTML('beforeend', '<div class="as-m a as-typing as-new" id="asTyping" aria-label="' + h(_t('asj.typing',{n:PROF ? PROF.name : ''})) + '"><img class="as-av" src="' + h(avatar()) + '" alt=""><div class="as-b"><i></i><i></i><i></i></div></div>'); scrollDown(); }
     if (!on && t) t.remove();
   }
   function busyUi(on) {
@@ -716,17 +721,17 @@
     document.querySelectorAll('#asSugg button').forEach(function (b) { b.disabled = on; });
   }
   function renderSugg(list) {
-    g('asSugg').innerHTML = (list || []).slice(0, 4).map(function (s) { return '<button type="button" data-s="' + h(s) + '">' + h(s) + '</button>'; }).join('');
+    g('asSugg').innerHTML = (list || []).slice(0, 4).map(function (s) { s = _tx(s); return '<button type="button" data-s="' + h(s) + '">' + h(s) + '</button>'; }).join('');
   }
   function renderCheck(items, pct) {
     pct = Math.max(0, Math.min(100, Number(pct) || 0));
     g('asRingFg').setAttribute('stroke-dashoffset', String(C_RING * (1 - pct / 100)));
     g('asPct').textContent = pct + ' %';
-    g('asRing').setAttribute('aria-label', 'Einrichtung zu ' + pct + ' % erledigt');
+    g('asRing').setAttribute('aria-label', _t('asj.ringL',{p:pct}));
     var n = (items || []).filter(function (i) { return i.done; }).length, t = (items || []).length;
-    g('asPctTxt').textContent = pct === 0 ? 'Wir starten gemeinsam.' : (pct >= 100 ? 'Alles eingerichtet – stark!' : n + ' von ' + t + ' erledigt' + (pct >= 50 ? ' – mehr als die Hälfte.' : '.'));
+    g('asPctTxt').textContent = pct === 0 ? _t('asj.start') : (pct >= 100 ? _t('asj.allDone') : (pct >= 50 ? _t('asj.halfN',{n:n,t:t}) : _t('asj.nOfT',{n:n,t:t})));
     g('asCheck').innerHTML = (items || []).map(function (i) {
-      return '<li class="' + (i.done ? 'done' : 'open') + '"' + (i.done ? '' : ' role="button" tabindex="0" data-p="' + h(i.prompt || '') + '" title="Mit dem Assistenten erledigen"') + '><span class="as-ck" aria-hidden="true">' + (i.done ? CHECK : '') + '</span><div><b>' + h(i.label) + '</b><span>' + h(i.hint || '') + '</span></div></li>';
+      return '<li class="' + (i.done ? 'done' : 'open') + '"' + (i.done ? '' : ' role="button" tabindex="0" data-p="' + h(_tx(i.prompt || '')) + '" title="' + h(_t('asj.doWith')) + '"') + '><span class="as-ck" aria-hidden="true">' + (i.done ? CHECK : '') + '</span><div><b>' + h(_tx(i.label)) + '</b><span>' + h(_tx(i.hint || '')) + '</span></div></li>';
     }).join('');
   }
   function renderMem(list) {
@@ -734,7 +739,7 @@
     g('asMemN').textContent = String(list.length);
     g('asMemEmpty').classList.toggle('hidden', list.length > 0);
     g('asMem').innerHTML = list.map(function (m) {
-      return '<li data-id="' + h(m.id) + '"><div style="min-width:0"><span class="tp">' + h(m.topic) + '</span>' + h(m.fact) + '</div><button type="button" class="as-x" data-id="' + h(m.id) + '" aria-label="„' + h(m.topic) + '“ vergessen" title="Vergessen">×</button></li>';
+      return '<li data-id="' + h(m.id) + '"><div style="min-width:0"><span class="tp">' + h(m.topic) + '</span>' + h(m.fact) + '</div><button type="button" class="as-x" data-id="' + h(m.id) + '" aria-label="' + h(_t('asj.forgetL',{t:m.topic})) + '" title="' + h(_t('asj.forget')) + '">×</button></li>';
     }).join('');
   }
   function applyState(j) {
@@ -743,7 +748,7 @@
     if (j.memory) renderMem(j.memory);
     if (j.suggestions) renderSugg(j.suggestions);
     if (typeof j.balance === 'number') setBalance(j.balance);
-    if (j.cost) { COST = j.cost; g('asCost').textContent = '≈ ' + COST.turn + ' Tokens je Antwort · +' + COST.tool + ' je Aktion'; }
+    if (j.cost) { COST = j.cost; g('asCost').textContent = _t('asj.cost',{t:COST.turn,a:COST.tool}); }
   }
   function runOpens(acts) {
     var a = (acts || []).filter(function (x) { return x.ok && x.open && x.tab; })[0];
@@ -752,7 +757,7 @@
   function send(text, o) {
     text = String(text || '').trim();
     if (!text || busy) return;
-    if (text.length > 2000) { note('Die Nachricht ist zu lang (höchstens 2.000 Zeichen).', 'err'); return; }
+    if (text.length > 2000) { note(h(_t('asj.tooLong',{n:I18N.num(2000)})), 'err'); return; }
     stopSpeaking(); abortListen(); unlockAudio();
     busy = true; busyUi(true); lastViaVoice = !!(o && o.viaVoice);
     var input = g('asInput'); input.value = ''; autosize(); msg(g('asNote'), '');
@@ -775,14 +780,14 @@
       typing(false); setState('idle');
       var d = (e && e.data) || {};
       if (e && e.status === 402) {
-        sysMsg(h(d.message || T('Dein', 'Ihr') + ' Guthaben reicht nicht für eine Antwort.') + ' <a href="/#preise" target="_blank" rel="noopener">Tokens kaufen</a>', true);
+        sysMsg(h((I18N.lang === 'de' && d.message) || TS('asj.noBal')) + ' <a href="/#preise" target="_blank" rel="noopener">' + _t('st.tokens_kaufen') + '</a>', true);
         if (typeof d.balance === 'number') setBalance(d.balance);
       } else if (e && e.status === 503) {
-        sysMsg(h(d.message || 'Ich bin gerade nicht erreichbar – bitte gleich noch einmal versuchen.'), true);
+        sysMsg(h((I18N.lang === 'de' && d.message) || _t('asj.away')), true);
         if (d.actions && d.actions.length) { HIST.push({ role: 'assistant', content: '', actions: d.actions }); g('asMsgs').insertAdjacentHTML('beforeend', '<div class="as-m a as-new"><img class="as-av" src="' + h(avatar()) + '" alt=""><div class="as-col">' + actsHtml(d.actions) + '</div></div>'); scrollDown(); }
         input.value = text; autosize();
       } else {
-        sysMsg(h((e && e.message) || 'Das hat nicht geklappt.'), true);
+        sysMsg(h((e && e.message) || _t('asj.failed')), true);
         input.value = text; autosize();
       }
     }).then(function () { busy = false; busyUi(false); if (!REDUCED && window.innerWidth > 820 && !lastViaVoice) { try { input.focus({ preventScroll: true }); } catch (x) { /* egal */ } } });
@@ -799,8 +804,7 @@
       HIST = histFrom(st);
       applyProfile(); renderHistory(); applyState(st); micLangUi();
       if (r[1]) { if (PROF && PROF.chosen === false) showChooser(); else if (D && D.mode === 'cho') hideChooser(); }
-      if (!TOOLS) sysMsg(h(T('Hinweis: Das automatische Einrichten ist gerade nicht verfügbar. Ich kann dich beraten und Texte vorschlagen – eintragen musst du sie im jeweiligen Bereich selbst.',
-        'Hinweis: Das automatische Einrichten ist gerade nicht verfügbar. Ich kann Sie beraten und Texte vorschlagen – eintragen müssen Sie sie im jeweiligen Bereich selbst.')));
+      if (!TOOLS) sysMsg(h(TS('asj.noTools')));
       lastLoad = Date.now();
     });
   }
@@ -832,30 +836,30 @@
   function portraitById(id) { var x = null; PORTRAITS.forEach(function (p) { if (p.id === id) x = p; }); return x; }
   function draftImg() { if (D.portrait === 'custom' && D.photoUrl) return imgUrl(D.photoUrl); var p = portraitById(D.portrait); return p ? imgUrl(p.url) : avatar(); }
   function seg(id, val) { document.querySelectorAll('#' + id + ' button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.v) === String(val) ? 'true' : 'false'); }); }
-  function fx(n) { return (Math.round(Number(n) * 100) / 100).toFixed(2).replace('.', ',') + '×'; }
-  function draftRole() { var f = D.gender !== 'm', sie = D.personality.address === 'sie'; return f ? (sie ? 'Ihre persönliche Assistentin' : 'Deine persönliche Assistentin') : (sie ? 'Ihr persönlicher Assistent' : 'Dein persönlicher Assistent'); }
-  function draftName() { return (D.name || '').replace(/\s+/g, ' ').trim() || (D.gender !== 'm' ? 'Assistentin' : 'Assistent'); }
+  function fx(n) { return I18N.num(Math.round(Number(n) * 100) / 100, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '×'; }
+  function draftRole() { var f = D.gender !== 'm', sie = D.personality.address === 'sie'; return f ? (sie ? _t('asj.roleFf') : _t('asj.roleF')) : (sie ? _t('asj.roleMf') : _t('asj.roleM')); }
+  function draftName() { return (D.name || '').replace(/\s+/g, ' ').trim() || (D.gender !== 'm' ? _t('asj.asstF') : _t('asj.asstM')); }
   /** Porträt-Kacheln (eigenes Foto zuerst, Hochladen zuletzt) – gleiche Kacheln in Auswahl und Seitenleiste. */
   function portraitTiles(upId) {
     var tiles = PORTRAITS.filter(function (p) { return p.gender === D.gender; }).map(function (p) {
-      return '<button type="button" data-p="' + h(p.id) + '" aria-pressed="' + (D.portrait === p.id ? 'true' : 'false') + '" aria-label="Porträt ' + h(p.label) + '"><img src="' + h(imgUrl(p.url)) + '" alt="" loading="lazy"><span class="lb">' + h(p.label) + '</span></button>';
+      return '<button type="button" data-p="' + h(p.id) + '" aria-pressed="' + (D.portrait === p.id ? 'true' : 'false') + '" aria-label="' + h(_t('asj.portraitN',{n:p.label})) + '"><img src="' + h(imgUrl(p.url)) + '" alt="" loading="lazy"><span class="lb">' + h(p.label) + '</span></button>';
     });
-    if (D.photoUrl) tiles.unshift('<button type="button" data-p="custom" aria-pressed="' + (D.portrait === 'custom' ? 'true' : 'false') + '" aria-label="Eigenes Foto"><img src="' + h(imgUrl(D.photoUrl)) + '" alt=""><span class="lb">Eigenes Foto</span></button>');
-    tiles.push('<button type="button" class="up"' + (upId ? ' id="' + upId + '"' : '') + ' aria-label="Eigenes Foto hochladen"><i aria-hidden="true">＋</i>Eigenes Foto</button>');
+    if (D.photoUrl) tiles.unshift('<button type="button" data-p="custom" aria-pressed="' + (D.portrait === 'custom' ? 'true' : 'false') + '" aria-label="' + h(_t('asj.own')) + '"><img src="' + h(imgUrl(D.photoUrl)) + '" alt=""><span class="lb">' + h(_t('asj.own')) + '</span></button>');
+    tiles.push('<button type="button" class="up"' + (upId ? ' id="' + upId + '"' : '') + ' aria-label="' + h(_t('asj.ownUp')) + '"><i aria-hidden="true">＋</i>' + h(_t('asj.own')) + '</button>');
     return tiles.join('');
   }
   /** Stimmkarten: Auswahl-Knopf (data-v, aria-pressed) + eigener ▶-Hörprobe-Knopf (data-play) je Voreinstellung. */
   function toneCards() {
     return VOICES.filter(function (v) { return v.gender === D.gender; }).map(function (v) {
       var on = D.voice.preset === v.id;
-      return '<div class="as-tcard' + (on ? ' on' : '') + '"><button type="button" class="sel" data-v="' + h(v.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '"><b>' + h(v.label) + '</b>' + h(v.desc || '') + '</button>' +
-        '<button type="button" class="pl" data-play="' + h(v.id) + '" data-label="Hörprobe: ' + h(v.label) + '" aria-label="Hörprobe: ' + h(v.label) + '" title="' + h('Hörprobe: ' + v.label + voiceTip(D.gender, v.id, D.lang)) + '">▶ Hörprobe</button></div>';
+      return '<div class="as-tcard' + (on ? ' on' : '') + '"><button type="button" class="sel" data-v="' + h(v.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '"><b>' + h(vpL(v)) + '</b>' + h(vpD(v)) + '</button>' +
+        '<button type="button" class="pl" data-play="' + h(v.id) + '" data-label="' + h(_t('asj.sampleOf',{n:vpL(v)})) + '" aria-label="' + h(_t('asj.sampleOf',{n:vpL(v)})) + '" title="' + h(_t('asj.sampleOf',{n:vpL(v)}) + voiceTip(D.gender, v.id, D.lang)) + '">' + _t('asj.sample') + '</button></div>';
     }).join('');
   }
   function drawDrawer() {
     var f = D.gender !== 'm';
     g('asDrImg').src = draftImg();
-    g('asDrTitle').textContent = (D.name || (f ? 'Assistentin' : 'Assistent')) + ' · Person & Stimme';
+    g('asDrTitle').textContent = (D.name || (f ? _t('asj.asstF') : _t('asj.asstM'))) + ' · ' + _t('asj.pv');
     g('asDrSub').textContent = draftRole();
     seg('asFGender', D.gender); seg('asFTone', D.voice.tone); seg('asFAddress', D.personality.address); seg('asFMood', D.personality.mood); seg('asFHumor', D.personality.humor); seg('asFDetail', D.personality.detail);
     g('asFPortraits').innerHTML = portraitTiles('asFUp');
@@ -865,26 +869,26 @@
     g('asFPitch').value = String(D.voice.pitch); g('asFPitchO').textContent = fx(D.voice.pitch);
     g('asFLang').value = D.lang;
     var sie = D.personality.address === 'sie';
-    g('asFGenderL').textContent = sie ? 'Wer soll Sie begleiten?' : 'Wer soll dich begleiten?';
-    g('asFRights').textContent = sie ? 'Nur Fotos verwenden, für die Sie die Rechte haben.' : 'Nur Fotos verwenden, für die du die Rechte hast.';
-    g('asFLangHint').textContent = (sie ? 'Schreiben oder sprechen Sie' : 'Schreibst oder sprichst du') + ' in einer anderen Sprache, antwortet ' + (f ? 'die Assistentin' : 'der Assistent') + ' automatisch darin – in allen ' + LANGS.length + ' Sprachen.';
+    g('asFGenderL').textContent = sie ? _t('asj.who.f') : _t('asj.who');
+    g('asFRights').textContent = sie ? _t('asj.rights.f') : _t('asj.rights');
+    g('asFLangHint').textContent = _t('asj.langHint' + (f ? 'F' : 'M') + (sie ? '.f' : ''), { n: LANGS.length });
     voiceInfo(); markPlaying();
   }
   function drawChooser() {
     var f = D.gender !== 'm', sie = D.personality.address === 'sie', nm = draftName(), pre = presetOf(D.voice.preset, D.gender);
     var img = g('asChoImg'), u = draftImg(); if (img.getAttribute('src') !== u) img.src = u;
-    img.alt = 'Porträt von ' + nm;
+    img.alt = _t('asj.portraitOf',{n:nm});
     g('asChoName').textContent = nm; g('asChoRole').textContent = draftRole();
-    g('asChoWho').textContent = f ? 'sie' : 'er';
-    g('asChoVoice').textContent = pre ? pre.label : '';
-    g('asChoTitle').textContent = sie ? 'Wer soll Sie begleiten?' : 'Wer soll dich begleiten?';
-    g('asChoLead').textContent = sie ? 'Wählen Sie Person, Stimme und Art – so, wie es zu Ihnen passt. Alles lässt sich später jederzeit ändern.' : 'Wähle Person, Stimme und Art – so, wie es zu dir passt. Alles lässt sich später jederzeit ändern.';
-    g('asCHint').textContent = (sie ? 'Sie können' : 'Du kannst') + ' Person und Stimme jederzeit unter „Person & Stimme ändern“ wechseln.';
+    g('asChoWho').textContent = f ? _t('asj.she') : _t('asj.he');
+    g('asChoVoice').textContent = pre ? vpL(pre) : '';
+    g('asChoTitle').textContent = sie ? _t('asj.who.f') : _t('asj.who');
+    g('asChoLead').textContent = sie ? _t('asj.lead.f') : _t('asj.lead');
+    g('asCHint').textContent = sie ? _t('asj.hint.f') : _t('asj.hint');
     seg('asCGender', D.gender); seg('asCAddress', D.personality.address); seg('asCMood', D.personality.mood);
     g('asCPortraits').innerHTML = portraitTiles('');
     g('asCTones').innerHTML = toneCards();
     g('asCStartName').textContent = nm;
-    g('asCStart').setAttribute('aria-label', 'Mit ' + nm + ' starten – Auswahl speichern');
+    g('asCStart').setAttribute('aria-label', _t('asj.startL',{n:nm}));
     voiceInfo(); markPlaying();
   }
   function showChooser() {
@@ -951,28 +955,28 @@
   function handleFile(file) {
     if (!file || !D) return;
     var box = msgEl();
-    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { msg(box, 'Bitte ein Foto als JPEG, PNG oder WebP wählen.', 'err'); return; }
-    if (file.size > 15 * 1024 * 1024) { msg(box, 'Das Foto ist zu groß (höchstens 15 MB vor dem Verkleinern).', 'err'); return; }
-    msg(box, 'Foto wird vorbereitet …', 'info');
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { msg(box, _t('asj.ph.type'), 'err'); return; }
+    if (file.size > 15 * 1024 * 1024) { msg(box, _t('asj.ph.big'), 'err'); return; }
+    msg(box, _t('asj.ph.prep'), 'info');
     var url = URL.createObjectURL(file), im = new Image();
     im.onload = function () {
       try {
         if (!D) return;
         var w = im.naturalWidth, hh = im.naturalHeight;
-        if (w < 64 || hh < 64) { msg(box, 'Das Foto ist zu klein (mindestens 64 × 64 Pixel).', 'err'); return; }
+        if (w < 64 || hh < 64) { msg(box, _t('asj.ph.small'), 'err'); return; }
         var s = Math.min(w, hh), sx = (w - s) / 2, sy = Math.max(0, (hh - s) * 0.35), out = Math.min(512, s);
         var c = document.createElement('canvas'); c.width = out; c.height = out;
         var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, out, out); x.imageSmoothingQuality = 'high';
         x.drawImage(im, sx, sy, s, s, 0, 0, out, out);
         var q = 0.88, d = c.toDataURL('image/jpeg', q);
         while (Math.floor((d.length - d.indexOf(',') - 1) * 3 / 4) > PHOTO_MAX && q > 0.4) { q -= 0.08; d = c.toDataURL('image/jpeg', q); }
-        if (Math.floor((d.length - d.indexOf(',') - 1) * 3 / 4) > PHOTO_MAX) { msg(box, 'Das Foto ließ sich nicht klein genug speichern – bitte ein anderes wählen.', 'err'); return; }
+        if (Math.floor((d.length - d.indexOf(',') - 1) * 3 / 4) > PHOTO_MAX) { msg(box, _t('asj.ph.comp'), 'err'); return; }
         D.photo = d; D.photoUrl = d; D.portrait = 'custom'; D.remove_photo = false;
-        msg(box, isCho() ? 'Foto übernommen.' : 'Foto übernommen – mit „Speichern“ bestätigen.', 'ok'); redraw();
-      } catch (e) { msg(box, 'Das Foto konnte nicht gelesen werden.', 'err'); }
+        msg(box, isCho() ? _t('asj.ph.ok') : _t('asj.ph.okSave'), 'ok'); redraw();
+      } catch (e) { msg(box, _t('asj.ph.read'), 'err'); }
       finally { URL.revokeObjectURL(url); }
     };
-    im.onerror = function () { URL.revokeObjectURL(url); msg(box, 'Das Foto konnte nicht gelesen werden – bitte JPEG, PNG oder WebP verwenden.', 'err'); };
+    im.onerror = function () { URL.revokeObjectURL(url); msg(box, _t('asj.ph.read2'), 'err'); };
     im.src = url;
   }
   /** Hörprobe: Text in der gewählten Sprache (vom Server: {preview}, sonst Browser). Erneutes Antippen desselben Knopfs stoppt. */
@@ -1003,11 +1007,11 @@
     var cho = isCho(), box = msgEl(), inp = nameEl();
     var name = (inp.value || '').replace(/\s+/g, ' ').trim();
     var ok = false; try { ok = new RegExp('^\\p{L}[\\p{L}\\p{M} \\-]*$', 'u').test(name); } catch (e) { ok = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ \-]*$/.test(name); }
-    if (!name || name.length > 30 || !ok) { msg(box, 'Name: 1–30 Zeichen, nur Buchstaben, Leerzeichen und Bindestrich.', 'err'); inp.focus(); return; }
+    if (!name || name.length > 30 || !ok) { msg(box, _t('asj.nameRule'), 'err'); inp.focus(); return; }
     var body = { name: name, gender: D.gender, voice: D.voice, personality: D.personality, lang: D.lang };
     if (D.photo) body.photo = D.photo; else body.portrait = D.portrait;
     if (D.remove_photo && !D.photo) body.remove_photo = 1;
-    var btn = g(cho ? 'asCStart' : 'asFSave'); btn.disabled = true; msg(box, 'Wird gespeichert …', 'info');
+    var btn = g(cho ? 'asCStart' : 'asFSave'); btn.disabled = true; msg(box, _t('asj.saving'), 'info');
     unlockAudio();
     var onlyGreeting = HIST.length === 1 && HIST[0].greeting;
     var changedIntro = PROF.name !== name || PROF.gender !== D.gender || PROF.personality.address !== D.personality.address || PROF.personality.mood !== D.personality.mood || PROF.lang !== D.lang;
@@ -1016,7 +1020,7 @@
       if (cho) hideChooser(); else closeDrawer();
       applyProfile();
       if (cho) { try { window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' }); } catch (e) { window.scrollTo(0, 0); } }
-      note(cho ? h(PROF.name) + ' ist für ' + T('dich', 'Sie') + ' da – los geht’s.' : 'Gespeichert – ' + h(PROF.name) + ' ist bereit.', 'ok');
+      note(h(cho ? TS('asj.here', { n: PROF.name }) : _t('asj.ready',{n:PROF.name})), 'ok');
       /* Nur die Begrüßung im Verlauf? Dann neu begrüßen – mit neuem Namen, neuer Anrede (kostenlos, ohne KI). */
       if (onlyGreeting && changedIntro) return api('/assistant/reset', { method: 'POST', body: '{}' }).then(function (st) {
         HIST = histFrom(st);
@@ -1026,7 +1030,7 @@
       renderHistory();
     }).catch(function (e) {
       var d = (e && e.data) || {};
-      msg(box, h(d.message || (e && e.message) || 'Speichern fehlgeschlagen.'), 'err');
+      msg(box, h((e && e.message) || _t('c.saveFail')), 'err');
     }).then(function () { btn.disabled = false; });
   }
   function saveDrawer() { saveDraft(); }
@@ -1075,7 +1079,7 @@
     g('asChoPlay').addEventListener('click', function () { if (isCho()) preview('main'); });
     g('asCName').addEventListener('input', function () {
       if (!isCho()) return; D.name = g('asCName').value.replace(/\s+/g, ' ').trim(); D.autoName = false;
-      var nm = draftName(); g('asCStartName').textContent = nm; g('asChoName').textContent = nm; g('asCStart').setAttribute('aria-label', 'Mit ' + nm + ' starten – Auswahl speichern');
+      var nm = draftName(); g('asCStartName').textContent = nm; g('asChoName').textContent = nm; g('asCStart').setAttribute('aria-label', _t('asj.startL',{n:nm}));
     });
     g('asCName').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); saveDraft(); } });
     ['asCAddress', 'asCMood'].forEach(function (id) {
@@ -1088,7 +1092,7 @@
     g('asCStart').addEventListener('click', saveDraft);
     g('asReset').addEventListener('click', function () {
       if (busy) return;
-      if (!window.confirm('Gespräch neu beginnen? Der Verlauf wird geleert – was ' + (PROF ? PROF.name : 'der Assistent') + ' über ' + (isSie() ? 'Sie' : 'dich') + ' weiß, bleibt erhalten.')) return;
+      if (!window.confirm(TS('asj.resetQ', { n: PROF ? PROF.name : _t('asj.asstM') }))) return;
       stopSpeaking(); abortListen();
       api('/assistant/reset', { method: 'POST', body: '{}' }).then(function (st) {
         HIST = histFrom(st);
@@ -1108,7 +1112,7 @@
     g('asMem').addEventListener('click', function (e) {
       var b = e.target.closest('.as-x[data-id]'); if (!b) return;
       var li = b.closest('li'); if (li) li.style.opacity = '.4'; b.disabled = true;
-      api('/assistant/forget', { method: 'POST', body: JSON.stringify({ id: Number(b.dataset.id) }) }).then(function (j) { applyState(j); note('Vergessen.', 'ok'); })
+      api('/assistant/forget', { method: 'POST', body: JSON.stringify({ id: Number(b.dataset.id) }) }).then(function (j) { applyState(j); note(_t('asj.forgot'), 'ok'); })
         .catch(function (err) { if (li) li.style.opacity = ''; b.disabled = false; note(h(err.message), 'err'); });
     });
     /* Drawer */
@@ -1117,7 +1121,7 @@
     g('asFCancel').addEventListener('click', closeDrawer);
     g('asFSave').addEventListener('click', saveDrawer);
     g('asFPreview').addEventListener('click', function () { preview('main'); });
-    g('asFName').addEventListener('input', function () { if (!D || isCho()) return; D.name = g('asFName').value.trim(); D.autoName = false; g('asDrTitle').textContent = (D.name || 'Assistent') + ' · Person & Stimme'; });
+    g('asFName').addEventListener('input', function () { if (!D || isCho()) return; D.name = g('asFName').value.trim(); D.autoName = false; g('asDrTitle').textContent = (D.name || _t('asj.asstM')) + ' · ' + _t('asj.pv'); });
     g('asFGender').addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b && D && !isCho()) setGender(b.dataset.v); });
     g('asFPortraits').addEventListener('click', function (e) {
       if (!D || isCho()) return;
@@ -1156,14 +1160,15 @@
     document.addEventListener('visibilitychange', function () { if (document.hidden) abortListen(); });
   }
 
+  
   window.STUDIO_PANELS = window.STUDIO_PANELS || {};
   STUDIO_PANELS['assistant'] = {
     init: function () {
       bind(); setState('idle'); voiceBtn();
-      g('asMsgs').innerHTML = '<div class="as-m sys"><div class="as-b">Einen Moment …</div></div>';
+      g('asMsgs').innerHTML = '<div class="as-m sys"><div class="as-b">' + _t('asj.moment') + '</div></div>';
       load(true).catch(function (e) {
         g('asMsgs').innerHTML = '';
-        sysMsg(h((e && e.message) || 'Der Assistent konnte nicht geladen werden.') + ' – bitte die Seite neu laden.', true);
+        sysMsg(h((e && e.message) || _t('asj.loadFail')) + ' – ' + _t('asj.reload'), true);
       });
     },
     show: function () {

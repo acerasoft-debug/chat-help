@@ -135,6 +135,36 @@ chat/icons/screen-meldungen.png chat/icons/screen-meldungen.png
 chat/icons/screen-wide.png   chat/icons/screen-wide.png
 # Länder-Erkennung: Sprache + Währung
 chat/locale-api.php          chat/locale-api.php
+chat/country-lib.php         chat/country-lib.php
 # Echte Stimmen im Browser (Piper) – Bibliothek/Modelle lädt chat/ops/voice-fetch.php nach chat/vendor/voice/
 chat/voice/voice.js           chat/voice/voice.js
 chat/voice/piper-worker.js    chat/voice/piper-worker.js
+# Startseite: Übersetzungen je Sprache (Deutsch steht in index.html; ?v=<hash> setzt tools/site-i18n.mjs)
+site/i18n/en.json            i18n/en.json
+site/i18n/fr.json            i18n/fr.json
+site/i18n/tr.json            i18n/tr.json
+site/i18n/az.json            i18n/az.json
+site/i18n/es.json            i18n/es.json
+site/i18n/it.json            i18n/it.json
+site/i18n/ru.json            i18n/ru.json
+site/i18n/nl.json            i18n/nl.json
+site/i18n/sv.json            i18n/sv.json
+site/i18n/no.json            i18n/no.json
+site/i18n/fi.json            i18n/fi.json
+site/i18n/ja.json            i18n/ja.json
+# Studio: Übersetzungen (Deutsch = Quelle, Fallback EN → DE; ?v=<mtime> setzt studio-i18n.php)
+chat/studio-i18n.php             chat/studio-i18n.php
+chat/studio-i18n.js              chat/studio-i18n.js
+chat/studio-i18n/de.json         chat/studio-i18n/de.json
+chat/studio-i18n/en.json         chat/studio-i18n/en.json
+chat/studio-i18n/fr.json         chat/studio-i18n/fr.json
+chat/studio-i18n/tr.json         chat/studio-i18n/tr.json
+chat/studio-i18n/az.json         chat/studio-i18n/az.json
+chat/studio-i18n/es.json         chat/studio-i18n/es.json
+chat/studio-i18n/it.json         chat/studio-i18n/it.json
+chat/studio-i18n/ru.json         chat/studio-i18n/ru.json
+chat/studio-i18n/nl.json         chat/studio-i18n/nl.json
+chat/studio-i18n/sv.json         chat/studio-i18n/sv.json
+chat/studio-i18n/no.json         chat/studio-i18n/no.json
+chat/studio-i18n/fi.json         chat/studio-i18n/fi.json
+chat/studio-i18n/ja.json         chat/studio-i18n/ja.json
