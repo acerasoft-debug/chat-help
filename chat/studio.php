@@ -11,6 +11,7 @@ a{color:var(--gold);text-decoration:none}button,input,select,textarea{font:inher
 .top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 22px;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 #acct{flex-wrap:nowrap;min-width:0}#acct .pill,#acct .btn{white-space:nowrap}#acct #who{overflow:hidden;text-overflow:ellipsis;max-width:220px}
 @media(max-width:720px){.top{padding:10px 14px;gap:8px}.top .brand{font-size:19px}.top .brand .mark{width:30px;height:30px}#acct{gap:6px}#acct #who{display:none}#acct .pill{padding:6px 9px;font-size:12px}#acct .btn{padding:7px 10px;font-size:12px}}
+.tab.tab-all{border:1px dashed var(--line2);color:var(--mute);background:transparent}.tab.tab-all:hover{color:var(--ink)}
 @media(max-width:420px){#acct .btn.gold{display:none}.top{padding:9px 12px}.top .logo{font-size:0;gap:0}.top .logo .em{margin:0}#acct .pill{padding:6px 8px;font-size:11.5px}#acct #logout{padding:7px 9px;font-size:11.5px}}
 .logo{display:flex;align-items:center;gap:10px;font:600 19px var(--serif);color:var(--ink)}.logo .em{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#f3dfa6,#c9972f);display:grid;place-items:center}.logo span.s{color:var(--gold)}
 .nav2{position:sticky;top:61px;z-index:4;background:rgba(246,247,251,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}.nav2 .tabs{max-width:1240px;margin:0 auto;padding:8px 22px;overflow-x:auto;scrollbar-width:none}.nav2 .tabs::-webkit-scrollbar{display:none}
@@ -85,7 +86,7 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
 </div>
 
 <!-- ===== APP ===== -->
-<div class="nav2 hidden" id="nav2"><div class="tabs" id="tabs"><button class="tab on" data-v="home">Übersicht</button><?php if(isset($CH_PANELS["assistant"])): ?><button class="tab" data-v="assistant">✦ Assistent</button><?php endif; ?><button class="tab" data-v="agents">Agenten</button><?php if(isset($CH_PANELS["training"])): ?><button class="tab" data-v="training">Training</button><?php endif; ?><span class="tabsep"></span><button class="tab" data-v="phone">Telefon</button><?php if(isset($CH_PANELS["rueckruf"])): ?><button class="tab" data-v="rueckruf">Rückrufe</button><?php endif; ?><span class="tabsep"></span><button class="tab" data-v="termine">Termine</button><button class="tab" data-v="bestellungen">Bestellungen</button><?php if(isset($CH_PANELS["taxi"])): ?><button class="tab" data-v="taxi">Taxi</button><?php endif; ?><?php if(isset($CH_PANELS["hotel"])): ?><button class="tab" data-v="hotel">Hotel</button><?php endif; ?><span class="tabsep"></span><?php if(isset($CH_PANELS["benachrichtigungen"])): ?><button class="tab" data-v="benachrichtigungen">🔔 Benachrichtigungen<span class="dot hidden" id="bellDot" style="background:var(--rose)"></span></button><?php endif; ?><button class="tab" data-v="tokens">Tokens &amp; API</button></div></div>
+<div class="nav2 hidden" id="nav2"><div class="tabs" id="tabs"><button class="tab on" data-v="home">Übersicht</button><?php if(isset($CH_PANELS["assistant"])): ?><button class="tab" data-v="assistant">✦ Assistent</button><?php endif; ?><button class="tab" data-v="agents">Agenten</button><span class="tabsep" data-sep="ch"></span><button class="tab" data-v="whatsapp" data-ch="wa">💬 WhatsApp</button><button class="tab" data-v="phone" data-ch="tel">☎ Telefon</button><button class="tab" data-v="website" data-ch="web">🌐 Website</button><span class="tabsep" data-sep="mod"></span><button class="tab" data-v="termine">Termine</button><button class="tab" data-v="bestellungen">Bestellungen</button><?php if(isset($CH_PANELS["taxi"])): ?><button class="tab" data-v="taxi">Taxi</button><?php endif; ?><?php if(isset($CH_PANELS["hotel"])): ?><button class="tab" data-v="hotel">Hotel</button><?php endif; ?><?php if(isset($CH_PANELS["rueckruf"])): ?><button class="tab" data-v="rueckruf">Rückrufe</button><?php endif; ?><?php if(isset($CH_PANELS["kunden"])): ?><button class="tab" data-v="kunden">Kunden</button><?php endif; ?><?php if(isset($CH_PANELS["training"])): ?><button class="tab" data-v="training">Training</button><?php endif; ?><span class="tabsep" data-sep="end"></span><?php if(isset($CH_PANELS["benachrichtigungen"])): ?><button class="tab" data-v="benachrichtigungen">🔔 Benachrichtigungen<span class="dot hidden" id="bellDot" style="background:var(--rose)"></span></button><?php endif; ?><button class="tab" data-v="tokens">Tokens &amp; API</button><button class="tab tab-all" id="navAll" type="button" title="Alle Bereiche ein- oder ausblenden">＋ Alle Bereiche</button></div></div>
 <div id="vApp" class="wrap hidden">
   <?php foreach($CH_PANELS as $k=>$x): ?><div id="panel-<?= $k ?>" class="hidden"></div><?php endforeach; ?>
   <!-- Übersicht -->
@@ -151,6 +152,18 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- WhatsApp (Kanal) -->
+  <div id="pWhatsapp" class="hidden">
+    <div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h2 style="font-size:26px">WhatsApp</h2><p class="mute" style="margin:4px 0 0">Kunden schreiben dir per WhatsApp – dein Agent antwortet sofort, rund um die Uhr. Ein Verlauf pro Kunde, gemeinsam mit dem Telefon.</p></div><span class="pill" id="waState">–</span></div>
+    <div id="waHost"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn p" id="waSave">WhatsApp speichern</button></div><div id="waMsg"></div>
+  </div>
+  <!-- Website (Kanal) -->
+  <div id="pWebsite" class="hidden">
+    <div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h2 style="font-size:26px">Website</h2><p class="mute" style="margin:4px 0 0">Eine Zeile Code auf deiner Website – Besucher chatten mit deinem Agenten. Wähle den Agenten, den du einbinden möchtest.</p></div></div>
+    <div class="grid g2" id="webList"></div>
   </div>
 
   <!-- Telefon -->
@@ -255,7 +268,7 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
             <li>Business-Einstellungen → Systembenutzer anlegen → Token mit den Rechten <code>whatsapp_business_messaging</code> und <code>whatsapp_business_management</code> erzeugen (läuft nicht ab) → als <b>Access Token</b> eintragen.</li>
             <li>Einen <b>Verify-Token</b> frei wählen, hier eintragen und <b>Speichern</b>.</li>
             <li>WhatsApp → <b>Konfiguration → Webhook</b>: Callback-URL = Webhook-URL oben, Verify-Token = dein Verify-Token → „Bestätigen und speichern“ → Feld <code>messages</code> abonnieren.</li>
-            <li>Testnachricht an deine WhatsApp-Nummer schicken: Der Agent antwortet, Bestellungen erscheinen links unter „Live-Bestellungen“ und auf dem Küchen-Board.</li></ol>
+            <li>Testnachricht an deine WhatsApp-Nummer schicken: Dein Agent antwortet sofort. Gespräche, Bestellungen, Termine und Rückrufwünsche erscheinen im Studio im jeweiligen Bereich.</li></ol>
             <div class="tip">Twilio statt Meta: Anbieter „Twilio“ wählen, WhatsApp-Absendernummer eintragen und in Twilio unter „When a message comes in“ die Webhook-URL (POST) setzen. Einrichtung durch uns: support@chat-help.com.</div></details>
         </div>
       </div>
@@ -352,19 +365,60 @@ $('#logout').onclick=()=>{localStorage.removeItem('ch_api_key');location.href=lo
 async function boot(){if(LINK_LOGIN&&!boot._link){boot._link=1;if(!KEY||(localStorage.getItem('ch_email')||'').toLowerCase()!==LINK_LOGIN.email.toLowerCase()){show('login');linkLogin();return;}}if(!KEY){show('login');return;}
   try{const [me,sec]=await Promise.all([api('/me'),api('/sectors')]);ME=me;PLANS=sec.plans||[];}
   catch(e){if(e.status===401){localStorage.removeItem('ch_api_key');KEY='';show('login');msg($('#lMsg'),'Sitzung ungültig – bitte neu anmelden.','err');return;}alert('Fehler: '+e.message);return;}
-  show('app');$('#who').textContent=ME.email;renderHome();renderAgents();renderPhone();renderTokens();
+  show('app');$('#who').textContent=ME.email;renderHome();renderAgents();renderPhone();renderTokens();applyNav();
   refreshBell();
   const q=new URLSearchParams(location.search);const w=q.get('welcome');if(w&&PLANS.find(p=>p.id===w)){go('agents');openAgent(w);}else{const h=(location.hash||'').slice(1);if(h&&(STATIC_TABS[h]||PANELS[h]))go(h);}
   if(sessionStorage.getItem('ch_trial')){$('#trialBanner').classList.remove('hidden');sessionStorage.removeItem('ch_trial');}}
 function show(v){$('#vLogin').classList.toggle('hidden',v!=='login');$('#vApp').classList.toggle('hidden',v!=='app');$('#nav2').classList.toggle('hidden',v!=='app');$('#acct').classList.toggle('hidden',v!=='app');}
-const STATIC_TABS={home:'pHome',agents:'pAgents',phone:'pPhone',termine:'pTermine',bestellungen:'pBestellungen',tokens:'pTokens'};
+const STATIC_TABS={home:'pHome',agents:'pAgents',whatsapp:'pWhatsapp',phone:'pPhone',website:'pWebsite',termine:'pTermine',bestellungen:'pBestellungen',tokens:'pTokens'};
 const PANELS=<?= json_encode((object)array_map(fn($x)=>$x['v'],$CH_PANELS)) ?>;window.STUDIO_PANELS=window.STUDIO_PANELS||{};
 function go(v){if(!STATIC_TABS[v]&&!PANELS[v])v='home';document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
   Object.entries(STATIC_TABS).forEach(([k,id])=>{const el=document.getElementById(id);if(el)el.classList.toggle('hidden',k!==v);});
   Object.keys(PANELS).forEach(k=>{const el=document.getElementById('panel-'+k);if(el)el.classList.toggle('hidden',k!==v);});
+  waPlace(v);if(v==='whatsapp')loadWa();if(v==='website')renderWeb();
   if(v==='termine'&&!AP)loadAppt();if(v==='bestellungen'&&!OS)loadOrd();if(PANELS[v])loadPanel(v);
   const t=document.querySelector('.tab[data-v="'+v+'"]');if(t&&t.scrollIntoView)t.scrollIntoView({inline:'nearest',block:'nearest'});
   try{history.replaceState(null,'','#'+v);}catch(e){}window.scrollTo({top:0,behavior:'smooth'});}
+/* ===== Navigation nach gewähltem Agenten: nur passende Bereiche, Kanäle (WhatsApp · Telefon · Website) zuerst ===== */
+const MOD_FOR={termine:['agent-termine','agent-beauty','praxis-agent','agent-autohaus','praxis-termine','gastro-agent'],bestellungen:['agent-bestellung','gastro-agent'],taxi:['agent-taxi'],hotel:['agent-hotel'],
+  rueckruf:['agent-phone','immo-agent','agent-hausverwaltung','agent-versicherung','agent-kanzlei','agent-steuer','agent-inkasso','agent-bank','agent-behoerde','agent-aesthetic','agent-hair-tr','agent-dental-tr','praxis-agent','agent-autohaus','agent-hotel','agent-sales','privat-anruf']};
+const ALWAYS_TABS=['home','assistant','agents','benachrichtigungen','tokens'];
+function planBase(id){const P=(PLANS||[]).find(x=>x.id===id);if(P&&P.demo&&P.demo!==id&&(PLANS||[]).find(x=>x.id===P.demo))return P.demo;
+  const m=/^(buy|betrieb|byok)-(.+)$/.exec(id||'');if(m){for(const c of ['agent-'+m[2],m[2]+'-agent',m[2]])if((PLANS||[]).find(x=>x.id===c))return c;}return id;}
+function planChannels(id){const P=(PLANS||[]).find(x=>x.id===id)||(PLANS||[]).find(x=>x.id===planBase(id));return (P&&P.channels)||['web'];}
+function focusGet(){try{return JSON.parse(localStorage.getItem('ch_focus')||'[]').filter(x=>typeof x==='string');}catch(e){return [];}}
+function focusAdd(id){if(!id)return;const f=focusGet().filter(x=>x!==id);f.unshift(id);try{localStorage.setItem('ch_focus',JSON.stringify(f.slice(0,6)));}catch(e){}}
+function focusPlans(){const s=new Set();(ME&&ME.plans||[]).filter(p=>p.active).forEach(p=>s.add(planBase(p.id)));focusGet().forEach(id=>s.add(planBase(id)));if(CUR)s.add(planBase(CUR.id));return [...s].filter(Boolean);}
+function navAllOn(){try{return localStorage.getItem('ch_nav_all')==='1';}catch(e){return false;}}
+function applyNav(){const F=focusPlans(),all=navAllOn(),ch=new Set();F.forEach(id=>planChannels(id).forEach(c=>ch.add(c)));
+  const want=new Set(ALWAYS_TABS);
+  if(F.length){want.add('website');want.add('training');want.add('kunden');if(ch.has('whatsapp'))want.add('whatsapp');if(ch.has('phone'))want.add('phone');
+    Object.entries(MOD_FOR).forEach(([tab,ids])=>{if(F.some(id=>ids.includes(id)))want.add(tab);});}
+  document.querySelectorAll('#tabs .tab[data-v]').forEach(t=>{const v=t.dataset.v;t.classList.toggle('hidden',!(all||want.has(v)));});
+  const vis=v=>{const t=document.querySelector('#tabs .tab[data-v="'+v+'"]');return t&&!t.classList.contains('hidden');};
+  const sep=(k,list)=>{const e=document.querySelector('#tabs .tabsep[data-sep="'+k+'"]');if(e)e.classList.toggle('hidden',!list.some(vis));};
+  sep('ch',['whatsapp','phone','website']);sep('mod',['termine','bestellungen','taxi','hotel','rueckruf','kunden','training']);sep('end',['benachrichtigungen','tokens']);
+  const b=$('#navAll');if(b){b.textContent=all?'– Nur Passendes':'＋ Alle Bereiche';b.setAttribute('aria-pressed',all?'true':'false');}
+  /* Übersicht: Modul-Karten nur für passende Bereiche */
+  document.querySelectorAll('#pHome .call[onclick]').forEach(c=>{const m=/go\('([a-z]+)'\)/.exec(c.getAttribute('onclick')||'');if(m)c.classList.toggle('hidden',!vis(m[1]));});
+  const cur=(document.querySelector('#tabs .tab.on')||{}).dataset;if(cur&&cur.v&&!vis(cur.v)&&!all)go('home');}
+document.addEventListener('click',e=>{if(e.target&&e.target.id==='navAll'){try{localStorage.setItem('ch_nav_all',navAllOn()?'0':'1');}catch(_){}applyNav();}});
+/* WhatsApp-Ansicht nutzt die vorhandene WhatsApp-Karte (gleiche Speicherung wie im Bestell-Modul) */
+let WA_CARD=null,WA_HOME=null;
+function waPlace(v){if(!WA_CARD){const sel=$('#odWaProv');if(!sel)return;WA_CARD=sel.closest('.card');WA_HOME=document.createComment('wa-card');WA_CARD.parentNode.insertBefore(WA_HOME,WA_CARD);}
+  if(v==='whatsapp'&&WA_CARD.parentNode!==$('#waHost')){$('#waHost').appendChild(WA_CARD);WA_CARD.style.marginTop='0';}
+  else if(v==='bestellungen'&&WA_HOME&&WA_CARD.parentNode===$('#waHost')){WA_HOME.parentNode.insertBefore(WA_CARD,WA_HOME.nextSibling);WA_CARD.style.marginTop='16px';}}
+async function loadWa(){try{const j=await api('/order/settings');renderOrd(j);const st=j.settings||{};const ok=(st.wa_provider==='meta'&&st.wa_phone_id&&(st.wa_token_set||st.wa_token))||(st.wa_provider==='twilio'&&st.wa_number);
+  const e=$('#waState');if(e){e.textContent=ok?'● verbunden':'○ noch nicht verbunden';e.style.color=ok?'var(--ok)':'var(--mute)';}}catch(e){msg($('#waMsg'),esc(e.message),'err');}}
+$('#waSave').onclick=async()=>{const b=$('#waSave');b.disabled=true;try{const p={wa_provider:$('#odWaProv').value,wa_phone_id:$('#odWaPhoneId').value.trim(),wa_verify:$('#odWaVerify').value.trim(),wa_number:$('#odWaNumber').value.trim()};
+  const t=$('#odWaToken').value.trim();if(t&&!/^•+$/.test(t))p.wa_token=t;
+  const j=await api('/order/settings',{method:'POST',body:JSON.stringify(p)});renderOrd(j);msg($('#waMsg'),'Gespeichert ✓ – die Webhook-URL oben bei Meta bzw. Twilio eintragen.','ok');loadWa();}catch(e){msg($('#waMsg'),esc(e.message),'err');}b.disabled=false;};
+/* Website-Ansicht: gewählte Agenten mit direktem Weg zum Widget-Code */
+function renderWeb(){const F=focusPlans();const el=$('#webList');if(!el)return;
+  if(!F.length){el.innerHTML='<div class="card"><b>Noch kein Agent gewählt</b><p class="mute small">Wähle unter „Agenten“ deinen Agenten – dann erscheint hier sein Website-Code.</p><button class="btn p s" onclick="go(\'agents\')">Agenten ansehen</button></div>';return;}
+  el.innerHTML=F.map(id=>{const P=(PLANS||[]).find(x=>x.id===id)||{name:id};const on=active(id);return `<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(P.name||id)}</b><span class="pill small">${on?'aktiv':'Test'}</span></div><p class="mute small" style="margin:6px 0 10px">${planChannels(id).includes('phone')?'Website-Chat · gleicher Agent wie am Telefon und bei WhatsApp':'Website-Chat'}</p><button class="btn p s" data-web="${esc(id)}">Widget-Code holen</button></div>`;}).join('');
+  el.querySelectorAll('[data-web]').forEach(b=>b.onclick=async()=>{await openAgent(b.dataset.web);const w=$('#cWidgetOn');if(w){w.closest('.sec').scrollIntoView({behavior:'smooth',block:'center'});w.closest('.sec').style.outline='2px solid var(--gold2)';setTimeout(()=>{w.closest('.sec').style.outline='';},2500);}});}
+
 /* Modul-Panels (Training, Rückrufe, Taxi, Hotel) werden beim ersten Öffnen nachgeladen: studio-panels/<key>.html + .js */
 const PANEL_LOADING={};
 function loadPanel(k){const el=document.getElementById('panel-'+k);if(!el)return Promise.resolve();
@@ -409,7 +463,7 @@ function renderAgents(){const f=$('#agFilter');const F=[['all','Alle'],['mine','
   list.sort((a,b)=>(active(b.id)-active(a.id))||(BERUF.includes(b.sector)-BERUF.includes(a.sector)));
   $('#agGrid').innerHTML=list.map(p=>`<div class="card ag" onclick="openAgent('${p.id}')"><div class="row" style="justify-content:space-between"><div class="ic">${ICON[p.sector]||'✦'}</div>${active(p.id)?'<span class="tag ok">Aktiv</span>':'<span class="tag">Testen mit Tokens</span>'}</div><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><div class="pr">${p.eur_month.toLocaleString('de-DE')} €/Monat · ${de(p.tokens_month)} Tokens</div><div style="margin-top:6px">${chChips(p.channels)}</div></div>`).join('');}
 function showList(){$('#agWork').classList.add('hidden');$('#agList').classList.remove('hidden');CUR=null;}
-async function openAgent(id){const p=planOf(id);if(!p)return;CUR=p;HIST=[];$('#agList').classList.add('hidden');$('#agWork').classList.remove('hidden');go('agents');
+async function openAgent(id){const p=planOf(id);if(!p)return;CUR=p;focusAdd(p.id);applyNav();HIST=[];$('#agList').classList.add('hidden');$('#agWork').classList.remove('hidden');go('agents');
   $('#wName').textContent=p.name;$('#wDesc').textContent=p.desc;$('#wStatus').textContent=active(id)?'Aktiv · freigeschaltet':'Studio-Test · '+ME.pricing.agent_turn+' Tokens je Antwort';$('#wStatus').className='tag '+(active(id)?'ok':'');
   $('#wRent').href='/chat/tokens-checkout.php?plan='+id+'&_='+Date.now().toString(36);$('#wRent').classList.toggle('hidden',active(id));
   $('#wMs').innerHTML='';$('#wChips').innerHTML=(CHIPS[id]||CHIPS.default).map(c=>`<span class="chip" onclick="send(${JSON.stringify(c).replace(/"/g,'&quot;')})">${esc(c)}</span>`).join('');

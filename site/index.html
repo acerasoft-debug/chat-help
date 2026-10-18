@@ -338,6 +338,16 @@ section{padding:100px 0;scroll-margin-top:84px}@media(max-width:720px){section{p
 .trs{font:italic 500 16px/1.4 var(--serif);color:#0b7f7c;margin-top:10px}.pro .trs{font-size:14px;margin-top:4px}
 .langs{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.langs>span{font:600 12.5px var(--sans);padding:7px 11px;border-radius:999px;background:#fff;border:1px solid #d7ecea;color:var(--ink2)}.langs b{color:var(--teal);margin-right:6px}
 .browser .lst.nf .ph::after{content:none}
+/* Einmalkauf: Ablauf + Stufen */
+.buyx{display:grid;grid-template-columns:1fr 1.1fr;gap:18px;margin-top:26px;text-align:left}@media(max-width:900px){.buyx{grid-template-columns:1fr}}
+.bsteps{list-style:none;display:grid;gap:10px}.bsteps li{display:flex;gap:12px;padding:14px 16px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line)}
+.bsteps li i{font-style:normal;flex:0 0 auto;width:30px;height:30px;border-radius:10px;background:var(--goldl);color:var(--gold);display:grid;place-items:center;font:800 13px var(--sans)}
+.bsteps li b{display:block;font:700 14.5px var(--sans)}.bsteps li span{color:var(--ink2);font-size:13.5px}
+.tiers{border:1px solid #eadbb0;border-radius:var(--r2);background:linear-gradient(160deg,#fffaf0,#fff);padding:18px 18px 14px;min-width:0;overflow-x:auto}
+.tiers table{width:100%;border-collapse:collapse;font-size:14px}.tiers caption{text-align:left;font:700 12px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--gold);padding-bottom:8px}
+.tiers th,.tiers td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}.tiers thead th{font:600 12.5px var(--sans);color:var(--mute)}.tiers tbody th{font-weight:500;color:var(--ink2);white-space:nowrap}
+.tiers td b{font:800 17px var(--sans);color:var(--ink)}.tiers td small{display:block;color:var(--mute);font-size:12px}.tiers>small{display:block;margin-top:10px;color:var(--mute);font-size:12.5px}
+@media(max-width:480px){.tiers th,.tiers td{padding:9px 5px}.tiers td b{font-size:15px}}
 /* Demo: Kundenkomfort – Fortschritt, Schnellwahl, Mensch */
 .cmf{display:grid;gap:10px;padding:14px 16px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line)}
 .cmf .cmp{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
@@ -496,7 +506,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
       </div>
       <div class="flow"><span>Anruf</span><i>→</i><span>Agent begrüßt</span><i>→</i><span>Anliegen &amp; Antwort</span><i>→</i><span>Termin · Rückruf · Weiterleitung</span><i>→</i><span>Transkript im Studio</span></div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-phone">Telefon-Agent mieten · 149 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('phone');goLive(true);},300)">🎙️ Jetzt im Browser sprechen</a></div>
-      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 40.000 Tokens/Monat (≈ 5.000 Gesprächsantworten) · Einmalkauf 1.490 € inkl. 200.000 Tokens · Telefonie über unseren Partner, Nummern für DE/AT/CH/TR/EU.</p>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 40.000 Tokens/Monat (≈ 5.000 Gesprächsantworten) · Einmalkauf 1.490 € inkl. 200.000 Tokens + 90 Tage Betrieb · Telefonie über unseren Partner, Nummern für DE/AT/CH/TR/EU.</p>
     </div>
   </div>
 </div></section>
@@ -515,7 +525,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
       </div>
       <div class="inds"><span>Zahnarzt &amp; Arztpraxis</span><span>Physiotherapie</span><span>Friseur</span><span>Kosmetik &amp; Nagelstudio</span><span>Massage &amp; Spa</span><span>Tattoo</span><span>Kfz-Werkstatt</span><span>Beratung &amp; Coaching</span><span>Fitness &amp; Personal Training</span><span>Fotostudio</span></div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-termine">Termin-Agent mieten · 99 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('termine');goLive(true);},300)">💬 Im Chat einen Termin buchen</a></div>
-      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 25.000 Tokens/Monat · Einmalkauf 990 € inkl. 150.000 Tokens · mit Telefon-Agent kombinierbar: Anrufer buchen direkt im Gespräch.</p>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 25.000 Tokens/Monat · Einmalkauf 990 € inkl. 150.000 Tokens + 90 Tage Betrieb · mit Telefon-Agent kombinierbar: Anrufer buchen direkt im Gespräch.</p>
     </div>
     <div class="reveal"><div class="browser bookframe" style="max-width:none"><div class="bar"><i></i><i></i><i></i><span>chat-help.com/chat/book.php?k=demo · Salon Luna</span></div><iframe src="/chat/book.php?k=demo" loading="lazy" title="Buchungsseite Demo – Salon Luna"></iframe></div><p style="color:var(--mute);font-size:12.5px;margin-top:10px;text-align:center">Echte Demo-Buchungsseite (Salon Luna). Probier es aus – Demo-Termine werden nach 2 Tagen gelöscht.</p></div>
   </div>
@@ -564,7 +574,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
       </div>
       <div class="flow"><span>„2 Salami groß, bitte liefern“</span><i>→</i><span>Größe · Extras · Adresse</span><i>→</i><span>Zone geprüft · 2,50 € · 35 Min</span><i>→</i><span>Bestätigung · Code</span><i>→</i><span>Küche · Fahrer · Kunde</span></div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-bestellung">Bestell-Agent mieten · 129 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('bestellung');goLive(true);},300)">🍕 Demo-Bestellung aufgeben</a></div>
-      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 35.000 Tokens/Monat (≈ 5.000 Bestell-Nachrichten) · Einmalkauf 1.290 € inkl. 180.000 Tokens · 0 % Provision pro Bestellung.</p>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 35.000 Tokens/Monat (≈ 5.000 Bestell-Nachrichten) · Einmalkauf 1.290 € inkl. 180.000 Tokens + 90 Tage Betrieb · 0 % Provision pro Bestellung.</p>
     </div>
   </div>
 </div></section>
@@ -595,7 +605,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
       </div>
       <div class="flow"><span>Anruf</span><i>→</i><span>Abholort &amp; Zeit</span><i>→</i><span>Richtpreis</span><i>→</i><span>Code</span><i>→</i><span>Fahrer zugeteilt</span><i>→</i><span>„Ihr Taxi ist da“</span></div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-taxi">Taxi-Agent mieten · 129 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('taxi');goLive(true);},300)">🚕 Demo-Taxi bestellen</a></div>
-      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 35.000 Tokens/Monat · Einmalkauf 1.290 € inkl. 180.000 Tokens · Preise sind Richtpreise, es gilt der Taxameter (außer Festpreise).</p>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 35.000 Tokens/Monat · Einmalkauf 1.290 € inkl. 180.000 Tokens + 90 Tage Betrieb · Preise sind Richtpreise, es gilt der Taxameter (außer Festpreise).</p>
     </div>
   </div>
 </div></section>
@@ -614,7 +624,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
       </div>
       <div class="inds"><span>Stadthotel</span><span>Boutique-Hotel</span><span>Pension &amp; Gasthof</span><span>Ferienwohnungen</span><span>Serviced Apartments</span><span>Hostel</span><span>Landhotel &amp; Wellness</span></div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-hotel">Hotel-Agent mieten · 149 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('hotel');goLive(true);},300)">🛎 Demo-Rezeption testen</a></div>
-      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 40.000 Tokens/Monat · Einmalkauf 1.490 € inkl. 200.000 Tokens</p>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 40.000 Tokens/Monat · Einmalkauf 1.490 € inkl. 200.000 Tokens + 90 Tage Betrieb</p>
     </div>
     <div class="ordstage reveal">
       <div class="phone wa"><div class="scr"><div class="wahd"><div class="av">🛎</div><div><b>Hotel Alster Residenz</b><small>Rezeption · online</small></div></div><div class="tr" id="hotelTr"></div><div class="wain"><span>Nachricht</span><i>➤</i></div></div></div>
@@ -709,7 +719,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 <section id="preise"><div class="wrap center">
   <span class="eyebrow">Preise</span>
   <h2 style="margin-top:12px">Mieten, kaufen oder <span class="g">nach Verbrauch.</span></h2>
-  <p class="sub">Jeder Agent enthält Studio, Wissensbasis, Website-Widget und ein monatliches Token-Guthaben. Mieten: monatlich kündbar. Kaufen: einmal zahlen, dauerhaft nutzen. Tokens: ein Guthaben für alles, verfällt nicht.</p>
+  <p class="sub">Jeder Agent enthält Studio, Wissensbasis, Website-Widget und ein monatliches Token-Guthaben. Mieten: monatlich kündbar. Kaufen: einmal zahlen – Einrichtung, Lizenz, Startguthaben und 90 Tage Betrieb –, danach Betrieb ab 19 €/Monat oder dein eigener KI-Schlüssel ab 9 €/Monat. Tokens: ein Guthaben für alles, verfällt nicht.</p>
   <div class="bund" id="bundle">
     <div class="bh"><div class="bic" aria-hidden="true"><i>☎</i><i>💬</i><i>🗨</i></div><h3>Telefon + WhatsApp immer zusammen – ein Verlauf pro Kunde, in beide Richtungen</h3></div>
     <ul>
@@ -743,7 +753,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
     <details><summary>Wie bekommt der Telefon-Agent eine Nummer?</summary><p>Nach der Buchung richten wir innerhalb von 24 Stunden eine Rufnummer (DE/AT/CH/TR/EU) über unseren Telefonie-Partner ein oder du leitest deine bestehende Nummer bei Besetzt/außerhalb der Zeiten um. Begrüßung, Stimme und Weiterleitungsnummer stellst du im Studio ein.</p></details>
     <details><summary>Was passiert, wenn der Agent etwas nicht weiß?</summary><p>Er sagt es ehrlich, bietet Rückruf oder Weiterleitung an und übergibt an dein Team. Er erfindet keine Preise, Fristen oder Zusagen – das ist in jeder Rolle fest verankert.</p></details>
     <details><summary>Darf eine KI für Inkasso, Kanzlei oder Steuerberatung arbeiten?</summary><p>Ja, als Assistenz: Der Agent nimmt auf, bereitet vor, erklärt Abläufe und erstellt Entwürfe. Entscheidungen, Rechtsrat, Steuerberatung und Zusagen bleiben beim Berufsträger – genau so sind die Rollen definiert.</p></details>
-    <details><summary>Mieten oder kaufen – was ist der Unterschied?</summary><p>Mieten: monatliche Gebühr, monatlich kündbar, jeden Monat frisches Token-Guthaben. Kaufen: einmal zahlen, dauerhafter Zugang plus großes Token-Guthaben; weitere Tokens kaufst du bei Bedarf nach.</p></details>
+    <details><summary>Mieten oder kaufen – was ist der Unterschied?</summary><p>Mieten: monatliche Gebühr, monatlich kündbar, jeden Monat frisches Token-Guthaben. Kaufen: einmal zahlen – Einrichtung, Lizenz, großes Startguthaben (verfällt nicht) und 90 Tage Betrieb inklusive. Danach wählst du: Betrieb für 19, 29 oder 39 €/Monat inklusive Tokens (je nach Stufe des Agenten) oder dein eigener Claude- bzw. DeepSeek-Schlüssel für 9, 14 oder 19 €/Monat Plattformgebühr – dann zahlst du die KI direkt beim Anbieter.</p></details>
+    <details><summary>Was bedeutet „eigener KI-Schlüssel“?</summary><p>Du hinterlegst im Studio unter Verbindungen deinen Claude- oder DeepSeek-Schlüssel (verschlüsselt gespeichert, angezeigt werden nur die letzten Zeichen). Der Agent rechnet dann direkt über deinen Anbieter ab, ChatHelp bucht keine Tokens ab und berechnet nur die kleine Plattformgebühr. Ist der Schlüssel ungültig, siehst du es sofort im Studio.</p></details>
     <details><summary>Was ist ein Token?</summary><p>Die Abrechnungseinheit für alle Dienste. Richtwerte: eine Chat-Antwort 6 Tokens, eine Telefon-Antwort 8, ein Social-Post 5, ein YouTube-Skript 50. Tokens verfallen nicht und gelten für Studio, Widget, Telefon und API.</p></details>
     <details><summary>Wie binde ich den Agenten auf meiner Website ein?</summary><p>Im Studio das Widget aktivieren und eine Zeile Code vor das schließende body-Tag deiner Seite kopieren. Besucher chatten mit deinem Agenten, der nur auf deine Wissensbasis zugreift.</p></details>
     <details><summary>Wie bucht der Termin-Agent echte Termine?</summary><p>Im Studio trägst du Leistungen (Dauer, Preis), Öffnungszeiten und Taktung ein. Der Agent sieht nur wirklich freie Zeiten, bucht mit Buchungscode, schickt die Bestätigung mit Kalenderdatei und erinnert 24 Stunden vorher. Chat, Telefon, WhatsApp und deine Buchungsseite schreiben in denselben Kalender – Doppelbuchungen sind ausgeschlossen.</p></details>
@@ -1117,7 +1128,7 @@ function finderInit(){finderChips();finderRender();privatRender();showRender();
   const i=$('#fSearch');i.addEventListener('input',e=>{fQ=e.target.value;finderRender();});
   i.addEventListener('keydown',e=>{if(e.key==='Escape'&&i.value){i.value='';fQ='';finderRender();}});
   $('#fClear').onclick=()=>{i.value='';fQ='';finderRender();i.focus();};$('#fAll').onclick=()=>{fCat='all';finderRender();};
-  catsLoad();}
+  catsLoad();prcLoad();}
 /* Plan-ID → Demo-Key; ohne eigene Demo die nächstliegende Text-Demo (nie ungefragt die Telefon-Demo mit Mikrofon) */
 const DEMO_NEAR={'fin-mahnung':'backoffice','gastro-agent':'bestellung','log-support':'support','agent-sales':'support','agent-website':'support','agent-content':'support','hr-screening':'support'},DEMO_SAME={'ec-support':'support'};
 function demoFor(plan){const s=API_PLAN.get(plan),sk=s&&typeof s.demo==='string'?s.demo:'';const d=DEMOS.find(x=>x.plan===plan)||(sk&&DEMOS.find(x=>x.key===sk||x.plan===sk))||(DEMO_SAME[plan]&&DEMOS.find(x=>x.key===DEMO_SAME[plan]));if(d)return {key:d.key,exact:true,tab:d.tab};
@@ -1135,7 +1146,7 @@ function openPro(id){const p=PRO.find(x=>x.id===id);if(!p)return;const [bg,fg]=C
     <a class="btn gold" href="${CHECKOUT}?plan=${p.id}">Agent mieten →</a>
     ${p.lim?`<div class="buy" style="margin-top:0">ⓘ ${p.lim}</div>`:''}<button class="btn p" type="button" onclick="tryPlan('${p.id}')">${dm.exact?'Live testen (Demo)':'Ähnliche Demo testen · '+esc(dm.tab)}</button>
     <a class="btn" href="${STUDIO}">Im Studio mit eigener Wissensbasis testen</a>
-    ${p.buy?`<div class="buy">Einmal kaufen: <b>${de(p.buy.p)} €</b> · dauerhaft, inkl. ${de(p.buy.tk)} Tokens, Einrichtung durch uns · <a href="${CHECKOUT}?plan=${p.buy.id}" style="color:var(--indigo);font-weight:700">Kaufen →</a></div>`:''}
+    ${buyLine(p.id)?`<div class="buy">${buyLine(p.id)}</div>`:''}
     <div style="color:var(--mute);font-size:12.5px;margin-top:14px">Alle Preise zzgl. MwSt. · Tokens verfallen nicht · AVV auf Anfrage · Einrichtung durch uns: support@chat-help.com</div>
   </div></div>`;
   $('#modal').classList.add('open');document.body.style.overflow='hidden';}
@@ -1727,13 +1738,46 @@ const ABO=[
  {id:'gastro-reviews',n:'Bewertungs-Antworten Gastro',p:39,tk:10000,d:'Google/Tripadvisor/Booking professionell beantwortet.'},
  {id:'edu-kurs',n:'Kurs-Generator',p:49,tk:12000,d:'Lernziele, Module, Übungen, Quizze.'}
 ];
+/* ===== Einmalkauf → Betrieb oder eigener KI-Schlüssel (GET /v1/pricing, sonst eingebaute Werte) ===== */
+const PRICING_API='/chat/tokens-api.php/v1/pricing';
+const PRC_FALLBACK={days:90,src:'builtin',rule:'Einmalkauf = Einrichtung + Lizenz + Startguthaben (Tokens verfallen nicht) + 90 Tage Betrieb. Danach Betrieb (inkl. Tokens) oder eigener KI-Schlüssel – monatlich kündbar.',
+ tiers:{S:{label:'Basis',betrieb:19,tokens:4000,byok:9},M:{label:'Standard',betrieb:29,tokens:6000,byok:14},L:{label:'Profi',betrieb:39,tokens:8000,byok:19}},
+ byokNote:'Mit eigenem Claude- oder DeepSeek-Schlüssel zahlst du die KI direkt beim Anbieter; ChatHelp berechnet nur die Plattformgebühr.',providers:['Claude (Anthropic)','DeepSeek'],
+ one:[['buy-website','agent-website',490,60000,'S'],['buy-phone','agent-phone',1490,200000,'L'],['buy-inkasso','agent-inkasso',1790,250000,'L'],['buy-kanzlei','agent-kanzlei',1690,250000,'L'],['buy-steuer','agent-steuer',1490,200000,'L'],['buy-termine','agent-termine',990,150000,'M'],['buy-taxi','agent-taxi',1290,180000,'M'],['buy-hotel','agent-hotel',1490,200000,'L'],['buy-bestellung','agent-bestellung',1290,180000,'M'],['buy-support','agent-support',990,150000,'S'],['buy-content','agent-content',690,100000,'S'],['buy-beauty','agent-beauty',990,150000,'M'],['buy-aesthetic','agent-aesthetic',1790,250000,'L'],['buy-hair-tr','agent-hair-tr',1890,260000,'L'],['buy-dental-tr','agent-dental-tr',1890,260000,'L']]
+  .map(([id,base,price,start,tier])=>({id,base,price,start,tier,name:'',days:90}))};
+let PRC=PRC_FALLBACK;
+const eurOf=(c,e)=>isFinite(c)&&c>0?c/100:(isFinite(e)&&e>0?+e:null);
+function prcNorm(j){if(!j||typeof j!=='object'||!j.tiers||!Array.isArray(j.one_time))return null;const tiers={};
+  Object.keys(j.tiers).forEach(k=>{const t=j.tiers[k]||{};const b=eurOf(t.betrieb_cents,t.betrieb),y=eurOf(t.byok_cents,t.byok);if(/^[A-Z]{1,3}$/.test(k)&&b&&y)tiers[k]={label:vText(t.label)||k,betrieb:b,tokens:+t.betrieb_tokens||0,byok:y};});
+  if(!Object.keys(tiers).length)return null;
+  const one=j.one_time.filter(o=>o&&/^[a-z0-9-]{2,40}$/.test(String(o.id||''))).map(o=>({id:String(o.id),base:String(o.base||''),name:vText(o.name).replace(/\s*\(Einmalkauf\)\s*$/,''),price:eurOf(o.price_cents,o.price),start:+o.start_tokens||0,tier:String(o.tier||''),days:+o.included_days||+j.included_days||90,
+    betrieb:o.betrieb&&isFinite(o.betrieb.price)?{id:String(o.betrieb.id||''),price:+o.betrieb.price,tokens:+o.betrieb.tokens||0}:null,byok:o.byok&&isFinite(o.byok.price)?{id:String(o.byok.id||''),price:+o.byok.price}:null,
+    monthly:o.monthly_alternative&&isFinite(o.monthly_alternative.price)?{id:String(o.monthly_alternative.id||o.base),price:+o.monthly_alternative.price}:null,channels:o.channels})).filter(o=>o.price);
+  if(!one.length)return null;const pv=j.byok&&j.byok.providers&&typeof j.byok.providers==='object'?Object.values(j.byok.providers).map(x=>vText(x&&x.label)).filter(Boolean):[];
+  return {days:+j.included_days||90,src:'api',rule:vText(j.rule)||PRC_FALLBACK.rule,tiers,byokNote:vText(j.byok&&j.byok.note)||PRC_FALLBACK.byokNote,providers:pv.length?pv:PRC_FALLBACK.providers,one};}
+/* Folge-Tarife eines Einmalkaufs: Server-Angabe, sonst aus der Stufe */
+function prcFollow(o){const t=PRC.tiers[o.tier]||PRC.tiers.M||Object.values(PRC.tiers)[0],sfx=o.id.replace(/^buy-/,'');
+  return {tier:t,betrieb:o.betrieb||{id:'betrieb-'+sfx,price:t.betrieb,tokens:t.tokens},byok:o.byok||{id:'byok-'+sfx,price:t.byok}};}
+const prcFor=plan=>PRC.one.find(o=>o.base===plan)||null;
+const prcMin=()=>{const v=Object.values(PRC.tiers);return {b:Math.min(...v.map(t=>t.betrieb)),y:Math.min(...v.map(t=>t.byok))};};
+/* Kurztext für Detail-Fenster und Karten */
+function buyLine(plan){const o=prcFor(plan);if(!o)return '';const f=prcFollow(o);
+  return `Einmal kaufen: <b>${fmtEur(o.price)}</b> – Einrichtung, Lizenz, ${de(o.start)} Tokens Startguthaben und ${o.days} Tage Betrieb. Danach ${fmtEur(f.betrieb.price)}/Monat Betrieb (inkl. ${de(f.betrieb.tokens)} Tokens) oder ${fmtEur(f.byok.price)}/Monat mit eigenem KI-Schlüssel · <a href="${CHECKOUT}?plan=${encodeURIComponent(o.id)}" style="color:var(--indigo);font-weight:700">Kaufen →</a>`;}
+function buyRender(el){const T=PRC.tiers,mn=prcMin(),list=PRC.one.slice().sort((a,b)=>catIdx(a.base)-catIdx(b.base));
+  const rows=Object.keys(T).map(k=>`<tr><th scope="row"><b>${esc(k)}</b> ${esc(T[k].label)}</th><td><b>${fmtEur(T[k].betrieb)}</b> / Monat<small>inkl. ${de(T[k].tokens)} Tokens</small></td><td><b>${fmtEur(T[k].byok)}</b> / Monat<small>KI zahlst du direkt beim Anbieter</small></td></tr>`).join('');
+  el.innerHTML=`<div class="buyx"><ol class="bsteps"><li><i>1</i><div><b>Einmal zahlen</b><span>Einrichtung, Lizenz und Startguthaben – die Tokens verfallen nicht.</span></div></li><li><i>2</i><div><b>${PRC.days} Tage Betrieb inklusive</b><span>Telefon, WhatsApp, Chat und Studio laufen ohne Monatsgebühr.</span></div></li><li><i>3</i><div><b>Danach wählst du</b><span>Betrieb ab ${fmtEur(mn.b)}/Monat inkl. Tokens – oder dein eigener KI-Schlüssel (${PRC.providers.map(esc).join(' oder ')}) ab ${fmtEur(mn.y)}/Monat. Monatlich kündbar.</span></div></li></ol>
+    <div class="tiers"><table><caption>Nach ${PRC.days} Tagen – je nach Stufe des Agenten</caption><thead><tr><th scope="col">Stufe</th><th scope="col">Betrieb (inkl. Tokens)</th><th scope="col">Eigener KI-Schlüssel</th></tr></thead><tbody>${rows}</tbody></table><small>${esc(PRC.byokNote)} Alle Preise zzgl. USt.</small></div></div>
+   <div class="pgrid2">${list.map(o=>{const a=AG.find(x=>x.id===o.base),i=pInfo(o.base),f=prcFollow(o),n=o.name||(a?a.n:i?i.n.replace(/<[^>]+>/g,''):o.base),mo=o.monthly||(a?{id:a.id,price:priceOf(a.id,a.p)}:null);
+     return `<div class="card pk feat" data-buy="${esc(o.id)}"><span class="tag gold">Einmalkauf · Stufe ${esc(o.tier||'–')}</span><h3>${esc(n)}</h3><p class="d">${a?a.d:i?i.tag:''}</p><ul><li>${chanText(o.base)}</li><li>${de(o.start)} Tokens Startguthaben</li><li>${o.days} Tage Betrieb inklusive, Einrichtung durch uns</li><li>Danach ${fmtEur(f.betrieb.price)}/Monat Betrieb oder ${fmtEur(f.byok.price)}/Monat mit eigenem Schlüssel</li></ul><div class="pr"><b>${fmtEur(o.price)}</b><small>einmalig</small></div><div class="inc">zzgl. USt. · Rechnung</div><div class="acts"><a class="btn gold" href="${CHECKOUT}?plan=${encodeURIComponent(o.id)}">Kaufen</a>${mo?`<a class="btn" href="${CHECKOUT}?plan=${encodeURIComponent(mo.id)}">lieber mieten · ${fmtEur(mo.price)}/M</a>`:''}</div></div>`;}).join('')}</div>`;}
+async function prcLoad(){try{const ac=window.AbortController?new AbortController():null,to=setTimeout(()=>ac&&ac.abort(),5000);const r=await fetch(PRICING_API,{cache:'no-store',signal:ac?ac.signal:undefined});clearTimeout(to);if(!r.ok)throw 0;const n=prcNorm(await r.json());if(!n)throw 0;PRC=n;}catch(e){PRC=PRC_FALLBACK;}
+  const pt=$('.ptab.on');if(pt&&/^(agents|buy)$/.test(pt.dataset.k))renderPrice(pt.dataset.k);}
 const PT=[['agents','Agenten mieten'],['privat','Für dich privat'],['buy','Einmal kaufen'],['tokens','Tokens'],['abo','Content-Pakete']];
 (function(){const w=$('#ptabs');PT.forEach(([k,l])=>{const b=document.createElement('button');b.type='button';b.className='ptab';b.dataset.k=k;b.textContent=l;b.onclick=()=>renderPrice(k);w.appendChild(b);});renderPrice('agents');})();
 finderInit();
 function renderPrice(k){document.querySelectorAll('.ptab').forEach(b=>b.classList.toggle('on',b.dataset.k===k));const el=$('#pbody');
-  if(k==='agents'){el.innerHTML=`<div class="pgrid2">${AG.slice().sort((x,y)=>catIdx(x.id)-catIdx(y.id)).map(a=>{const c=catOf(a.id),pr=priceOf(a.id,a.p);return `<div class="card pk"><span class="tag indigo">${esc(c?c.name:'Agent')}</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Studio · Wissensbasis · ${chanText(a.id)}</li><li>${de(a.tk)} Tokens / Monat inklusive</li><li>Monatlich kündbar</li></ul><div class="pr"><b>${fmtEur(pr)}</b><small>/ Monat</small></div><div class="inc">zzgl. MwSt.${a.buy?' · Einmalkauf '+de(a.buy.p)+' €':''}</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Mieten</a>${PRO.find(p=>p.id===a.id)?`<button class="btn" type="button" onclick="openPro('${a.id}')">Details</button>`:`<button class="btn" type="button" onclick="tryPlan('${a.id}')">Live testen</button>`}</div></div>`;}).join('')}</div>`;}
+  if(k==='agents'){el.innerHTML=`<div class="pgrid2">${AG.slice().sort((x,y)=>catIdx(x.id)-catIdx(y.id)).map(a=>{const c=catOf(a.id),pr=priceOf(a.id,a.p);return `<div class="card pk"><span class="tag indigo">${esc(c?c.name:'Agent')}</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Studio · Wissensbasis · ${chanText(a.id)}</li><li>${de(a.tk)} Tokens / Monat inklusive</li><li>Monatlich kündbar</li></ul><div class="pr"><b>${fmtEur(pr)}</b><small>/ Monat</small></div><div class="inc">zzgl. MwSt.${prcFor(a.id)?' · Einmalkauf '+fmtEur(prcFor(a.id).price)+' inkl. '+prcFor(a.id).days+' Tage Betrieb':''}</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Mieten</a>${PRO.find(p=>p.id===a.id)?`<button class="btn" type="button" onclick="openPro('${a.id}')">Details</button>`:`<button class="btn" type="button" onclick="tryPlan('${a.id}')">Live testen</button>`}</div></div>`;}).join('')}</div>`;}
   else if(k==='privat'){const c=CATS.find(x=>x.id==='privat');el.innerHTML=`<p class="sub center" style="margin:26px auto 0">Für dich privat: günstige Assistenten für Behördengänge, Bank, Reise, Briefe und Anrufe – im Chat am Handy oder Rechner. Monatlich kündbar, du bestätigst jeden Schritt.</p><div class="pgrid2">${(c?c.plans:[]).map(x=>pInfo(x.id)).filter(Boolean).map(i=>`<div class="card pk${i.feat?' feat':''}"><span class="tag gold">Privat</span><h3>${i.n}</h3><p class="d">${i.tag}</p><ul><li>${chanText(i.id)}</li>${i.tk?`<li>${de(i.tk)} Tokens / Monat inklusive</li>`:''}<li>${i.lim||'Monatlich kündbar'}</li></ul><div class="pr"><b>${i.p?'ab '+fmtEur(i.p):'–'}</b><small>/ Monat</small></div><div class="inc">monatlich kündbar</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${encodeURIComponent(i.id)}">Mieten</a><button class="btn" type="button" onclick="tryPlan('${i.id}')">Live testen</button></div></div>`).join('')}</div>`;}
-  else if(k==='buy'){el.innerHTML=`<p class="sub center" style="margin:26px auto 0">Einmal zahlen, dauerhaft nutzen: Agent + großes Token-Guthaben + Einrichtung durch uns. Keine Monatsgebühr; weitere Tokens kaufst du bei Bedarf nach.</p><div class="pgrid2">${AG.filter(a=>a.buy).map(a=>`<div class="card pk feat"><span class="tag gold">Lifetime</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Dauerhafter Zugang, keine Monatsgebühr</li><li>${de(a.buy.tk)} Tokens inklusive</li><li>Einrichtung durch uns (Video-Call)</li></ul><div class="pr"><b>${de(a.buy.p)} €</b><small>einmalig</small></div><div class="inc">zzgl. MwSt. · Rechnung</div><div class="acts"><a class="btn gold" href="${CHECKOUT}?plan=${a.buy.id}">Kaufen</a><a class="btn" href="${CHECKOUT}?plan=${a.id}">lieber mieten · ${a.p} €/M</a></div></div>`).join('')}</div>`;}
+  else if(k==='buy'){buyRender(el);}
   else if(k==='tokens'){el.innerHTML=`<div class="pgrid2">
     <div class="card pk"><span class="tag">Starter</span><div class="pr" style="margin-top:12px"><b>49 €</b></div><div style="font:700 16px var(--sans)">10.000 Tokens</div><div class="inc">0,0049 € / Token</div><ul><li>Alle Agenten, Studio & API</li><li>Verfallen nicht</li></ul><a class="btn" href="${CHECKOUT}?pack=10k" style="margin-top:auto">Kaufen</a></div>
     <div class="card pk feat"><span class="tag gold">Pro</span><div class="pr" style="margin-top:12px"><b>199 €</b></div><div style="font:700 16px var(--sans)">50.000 Tokens</div><div class="inc">0,0040 € / Token · −18 %</div><ul><li>Alle Agenten, Studio & API</li><li>Priorisierte Verarbeitung</li></ul><a class="btn gold" href="${CHECKOUT}?pack=50k" style="margin-top:auto">Kaufen</a></div>
