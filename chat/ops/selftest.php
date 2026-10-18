@@ -362,6 +362,17 @@ try {
     $r=http('GET',"$BASE/chat/locale-api.php?cc=TR&_=".rnd(4),null,['CF-IPCountry: TR']); ok($r['code']===200 && ($r['json']['currency'] ?? '')==='TRY' && ($r['json']['lang'] ?? '')==='tr','Länder-Erkennung: Türkei → Türkisch + TRY',short($r['json'] ?? $r['body'],120));
     $r=http('GET',"$BASE/chat/locale-api.php?cc=RU&_=".rnd(4)); ok($r['code']===200 && ($r['json']['currency'] ?? '')==='EUR','Länder-Erkennung: Russland → keine Rubel (EUR)',short($r['json']['currency'] ?? '',20));
     $r=http('GET',"$BASE/chat/tokens-api.php/v1/pricing?cur=USD&lang=en&_=".rnd(4)); ok($r['code']===200 && isset($r['json']['display_currency']),'Preis-API mit Landeswährung (USD)',"HTTP {$r['code']}");
+    foreach(['fr','tr','az','es','it','en'] as $l){
+        $r=http('GET',"$BASE/i18n/$l.json?_=".rnd(4),null,[],'json',true); $n=is_array($r['json']) ? count($r['json']) : 0;
+        $r2=http('GET',"$BASE/chat/studio-i18n/$l.json?_=".rnd(4),null,[],'json',true); $n2=is_array($r2['json']) ? count($r2['json'],COUNT_RECURSIVE) : 0;
+        ok($r['code']===200 && $n>500 && $r2['code']===200 && $n2>500,"Übersetzung $l: Startseite + Studio","Startseite $n Schlüssel · Studio $n2");
+    }
+    foreach(['TR'=>'bestellung','DE'=>'gesundheit','ES'=>'gastro'] as $cc=>$first){
+        $r=http('GET',"$BASE/chat/locale-api.php?cc=$cc&_=".rnd(4)); $cats=$r['json']['focus']['cats'] ?? [];
+        ok($r['code']===200 && $cats && in_array($first,array_slice($cats,0,3),true),"Länderfokus $cc: $first unter den ersten",implode(', ',array_slice($cats,0,4)));
+    }
+    $r=http('GET',"$BASE/chat/studio.php?lang=tr&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'studio-i18n'),'Studio lädt die Übersetzung (lang=tr)',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/chat/widget.js?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'ChatHelpWidget'),'Website-Widget (neue Fassung)',"HTTP {$r['code']} · ".strlen($r['body']).' Bytes');
     foreach(['chat/app.php'=>'ChatHelp','chat/app-download.php'=>'ChatHelp','datenschutz.html'=>'Stimmen im Browser','agb.html'=>'AGB','impressum.html'=>'Acerasoft'] as $f=>$needle){
         $r=http('GET',"$BASE/$f?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],$needle),"Seite /$f","HTTP {$r['code']}");
     }
