@@ -1,0 +1,30 @@
+name: Stimmen prüfen (Piper – Lizenz, Tonhöhe, Hörproben)
+
+# Vorübergehend: prüft die Kandidaten für die Assistenten-Stimmen auf einem Runner (Hugging Face erreichbar).
+# Läuft nur bei Änderungen an tools/voice-check/ oder an dieser Datei; berührt den Server nicht.
+on:
+  push:
+    branches: [claude/chat-help-system-video-x0nofb]
+    paths: [tools/voice-check/**, .github/workflows/voice-check.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -q piper-tts==1.8.0 praat-parselmouth==0.4.7
+      - run: python tools/voice-check/check.py out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voice-samples
+          path: out
+          retention-days: 7
