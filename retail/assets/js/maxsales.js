@@ -1154,7 +1154,9 @@ document.addEventListener('error', function (e) {
       btn.setAttribute('aria-busy', 'true');
       setTimeout(function () { btn.disabled = true; }, 0);
       // Geçiş gerçekleşmezse (engellendi/iptal edildi) düğme kilitli kalmasın.
-      payTimer = setTimeout(payUnlock, 15000);
+      // Süre sunucunun en uzun sağlayıcı çağrısından (OxaPay 10+25 sn) uzun:
+      // kilit erken açılırsa ikinci tıklama ikinci sipariş yazar.
+      payTimer = setTimeout(payUnlock, 40000);
     });
     window.addEventListener('pageshow', payUnlock);
   }

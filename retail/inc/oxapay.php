@@ -71,7 +71,8 @@ function vr_oxapay_create_invoice(array $order): array
     $cfg = vr_oxapay_settings();
     if (!$cfg['configured']) return [false, 'oxapay_not_configured'];
 
-    $origin = vr_canonical_origin();
+    // Alt klasör kurulumunda (/shop) callback ve dönüş adresleri de ön eki taşısın.
+    $origin = vr_canonical_origin() . vr_base_url();
     $amount = round((int)$order['total_cents'] / 100, 2);
     if ($amount <= 0) return [false, 'amount_zero'];
 
@@ -142,7 +143,9 @@ function vr_oxapay_status_map(string $status): string
         'paid'                 => 'paid',
         'paying', 'confirming' => 'confirming',
         'expired'              => 'expired',
-        'refunding', 'refunded' => 'refunded',
+        'failed'               => 'failed',
+        // 'refunding' yalnız kaydedilir: iade tamamlanmadan stok geri açılmaz.
+        'refunded'             => 'refunded',
         default                => '',
     };
 }
@@ -212,17 +215,30 @@ function vr_oxapay_apply(array $order, array $d): string
     ])]);
 
     $cur = (string)($order['status'] ?? '');
-    if ($new === 'paid') {
-        vr_order_mark_paid($orderId);                  // stok/los/kupon/payout/mail (idempotent)
-    } elseif ($new === 'expired') {
-        if ($cur !== 'paid') vr_order_mark_failed($orderId, 'oxapay_expired');
-    } elseif ($new === 'refunded') {
-        if ($cur === 'paid') {
-            vr_order_update($orderId, ['status' => 'refunded', 'refunded_at' => time()]);
-            vr_stock_restore((array)($order['lines'] ?? []));
+    // E-postalar (sipariş onayı, Widerrufsbelehrung) müşterinin diliyle gitsin:
+    // webhook OxaPay'in sunucusundan, süpürme admin/CLI'dan gelir — isteğin dili
+    // müşterininki değildir. Siparişte kasadaki dil saklı (orders.php 'lang').
+    $prevLang = $GLOBALS['vr_lang'] ?? null;
+    $GLOBALS['vr_lang'] = (string)($order['lang'] ?? vr_config('primary_lang', 'en'));
+    try {
+        if ($new === 'paid') {
+            vr_order_mark_paid($orderId);              // stok/los/kupon/payout/mail (idempotent)
+        } elseif ($new === 'expired' || $new === 'failed') {
+            if ($cur !== 'paid') vr_order_mark_failed($orderId, 'oxapay_' . $new);
+        } elseif ($new === 'refunded') {
+            if ($cur === 'paid') {
+                vr_order_update($orderId, ['status' => 'refunded', 'refunded_at' => time()]);
+                vr_stock_restore((array)($order['lines'] ?? []));
+            }
+        } elseif ($new === '' && !in_array(strtolower($status), ['', 'new', 'waiting', 'paying', 'confirming', 'refunding'], true)) {
+            // Tanımadığımız bir durum (ör. under_paid, manual_accept): sipariş
+            // pending kalır ama panelde görünsün diye iz bırak.
+            vr_log('oxapay_status_unmapped', ['order' => $orderId, 'status' => $status]);
         }
+        // 'confirming' (paying/confirming): yalnız oxapay durumu güncellendi; sipariş pending kalır.
+    } finally {
+        if ($prevLang === null) unset($GLOBALS['vr_lang']); else $GLOBALS['vr_lang'] = $prevLang;
     }
-    // 'confirming' (paying/confirming): yalnız oxapay durumu güncellendi; sipariş pending kalır.
     return $new;
 }
 

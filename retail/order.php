@@ -50,6 +50,13 @@ if ($order !== null && (string)($order['payment_method'] ?? '') === 'crypto' && 
     $synced = vr_oxapay_sync($order, !empty($_GET['paid']) ? 0 : 20);
     if ($synced !== null) $order = $synced;
 }
+// Ödenmiş kripto siparişi, siparişi veren oturumdan görüntüleniyorsa sepeti
+// boşalt (kartta bunu Stripe dönüşü yapıyor; kriptoda webhook oturuma erişemez).
+// Oturum eşlemesi: bağlantıyı açan başka bir ziyaretçinin sepeti silinmesin.
+if ($order !== null && (string)($order['payment_method'] ?? '') === 'crypto'
+    && (string)$order['status'] === 'paid' && (string)($order['session_id'] ?? '') === session_id()) {
+    vr_cart_clear(false);
+}
 
 // ----------------------------------------------- Stripe'tan dönüş doğrulaması
 if ($order !== null && (string)$order['status'] !== 'paid' && !empty($_GET['paid'])) {
