@@ -11,6 +11,8 @@
      onNotificationTap(cb)  // cb(data{url,event,tag,id}); gibt cb true zurück, entfällt die Standard-Navigation
      deviceHash()  → Promise<string> (16 Hex, passt zu devices[].h aus /v1/push/config)
      setUnread(n), startUnreadWatch(sec), install(), canInstall
+     haptic(kind)  // 'light'|'medium'|'heavy'|'success'|'warning'|'error'|'select' – native Taptic/Vibration, im Browser navigator.vibrate
+     setShell(s)   // 'app' = dieses Gerät nutzt die Business-App (app.php): Tipp auf Meldungen öffnet den passenden App-Bereich
    }
    Ereignisse auf window: 'chathelp:push' (detail = Nutzlast, auch im Vordergrund), 'chathelp:unread' (detail = {count}).
    Wirft nie – fehlende Plugins/APIs ergeben {ok:false, reason, message}. */
@@ -18,7 +20,7 @@
   'use strict';
   if (window.ChatHelpApp && window.ChatHelpApp.version) return;
 
-  var VERSION = '2026-10-17.1';
+  var VERSION = '2026-10-18.1';
   var SW_URL = '/chat/sw.js', SW_SCOPE = '/chat/', SUB_URL = '/chat/push-sub.php', API_BASE = '/chat/tokens-api.php/v1';
   var cfg = { api: null, getKey: null, scope: 'owner', token: '', module: '', label: '' };
   var inited = false, regPromise = null, infoPromise = null, nativeReady = false, nativeToken = '', deferredInstall = null;
@@ -440,6 +442,34 @@
     }, function () { return res(false, 'error', 'Installation nicht möglich.'); });
   }
 
+  /* ---------- Haptik (native: @capacitor/haptics, Browser: kurze Vibration – iOS-Safari ignoriert sie still) ---------- */
+  var lastHaptic = 0;
+  function haptic(kind) {
+    try {
+      var now = Date.now(); if (now - lastHaptic < 40) return; lastHaptic = now;
+      kind = String(kind || 'light');
+      var H = isNative() ? plugin('Haptics') : null;
+      if (H) {
+        if (kind === 'select' && H.selectionChanged) { Promise.resolve(safe(function () { return H.selectionStart ? H.selectionStart().then(function () { return H.selectionChanged(); }) : H.selectionChanged(); })).catch(noop); return; }
+        if ((kind === 'success' || kind === 'warning' || kind === 'error') && H.notification) { Promise.resolve(safe(function () { return H.notification({ type: kind.toUpperCase() }); })).catch(noop); return; }
+        if (H.impact) { Promise.resolve(safe(function () { return H.impact({ style: kind === 'heavy' ? 'HEAVY' : (kind === 'medium' ? 'MEDIUM' : 'LIGHT') }); })).catch(noop); return; }
+      }
+      if (navigator.vibrate) {
+        var pat = { light: 8, select: 6, medium: 14, heavy: 24, success: [12, 60, 18], warning: [20, 80, 20], error: [30, 60, 30, 60, 30] }[kind] || 8;
+        safe(function () { navigator.vibrate(pat); });
+      }
+    } catch (e) {}
+  }
+  /* ---------- App-Hülle an den Service Worker melden (Ziel für Tipps auf Meldungen) ---------- */
+  function setShell(s) {
+    if (isNative()) return Promise.resolve(false);
+    return getReg().then(function (reg) {
+      var msg = { type: 'chathelp-shell', shell: s === 'app' ? 'app' : '' };
+      if (reg) { tellSW(reg, msg); return true; }
+      return ensureSW().then(function (r) { if (!r) return false; return waitActive(r).then(function () { tellSW(r, msg); return true; }); });
+    }).catch(function () { return false; });
+  }
+
   /* ---------- Start ---------- */
   function init(o) {
     o = o || {};
@@ -496,7 +526,9 @@
     setUnread: setUnread,
     startUnreadWatch: startUnreadWatch,
     install: install,
-    navigate: navigateTo
+    navigate: navigateTo,
+    haptic: haptic,
+    setShell: setShell
   };
   Object.defineProperty(api, 'isNative', { get: isNative, enumerable: true });
   Object.defineProperty(api, 'isStandalone', { get: isStandalone, enumerable: true });

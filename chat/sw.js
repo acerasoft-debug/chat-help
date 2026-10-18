@@ -1,13 +1,23 @@
 /* ChatHelp Business — Service Worker (Scope /chat/)
    Push-Benachrichtigungen (Web Push, verschlüsselt nach RFC 8291), Klick → passendes Fenster öffnen,
    Abo-Erneuerung (pushsubscriptionchange) und Offline-Seite für fehlgeschlagene Navigationen.
-   API-Antworten werden NIE zwischengespeichert – nur offline.html und die App-Symbole. */
+   Business-App (/chat/app.php): die HTML-Hülle (ohne Kundendaten) + app-bridge.js werden nach jedem erfolgreichen Laden
+   zwischengespeichert, damit die App auch offline startet; Tipp auf eine Meldung öffnet – wenn die App auf diesem Gerät
+   genutzt wird – direkt den passenden Bereich der App statt des Studios.
+   API-Antworten werden NIE zwischengespeichert – nur offline.html, die App-Hülle und die App-Symbole. */
 'use strict';
-const SW_VERSION = 'chathelp-sw-2026-10-17.1';
+const SW_VERSION = 'chathelp-sw-2026-10-18.1';
 const SHELL_CACHE = 'chathelp-shell-' + SW_VERSION;
 const META_CACHE = 'chathelp-push-meta';                 // gespeicherter VAPID-Schlüssel + aktuelles Abo (für pushsubscriptionchange)
 const META_KEY = '/chat/__push-meta.json';
 const OFFLINE_URL = '/chat/offline.html?v=' + encodeURIComponent(SW_VERSION);
+const APP_CACHE = 'chathelp-app-' + SW_VERSION;          // Hülle der Business-App (HTML ohne Daten) + app-bridge.js
+const APP_PATH = '/chat/app.php';
+const APP_SHELL_KEY = '/chat/__app-shell.html';
+const APP_BRIDGE_KEY = '/chat/__app-bridge.js';
+/* Studio-Bereich → Bereich der Business-App (für Tipps auf Meldungen, wenn die App auf diesem Gerät genutzt wird) */
+const APP_ROUTES = { home: 'heute', heute: 'heute', phone: 'heute', bestellungen: 'bestellungen', termine: 'termine', taxi: 'taxi', hotel: 'hotel',
+  rueckruf: 'rueckruf', kunden: 'kunden', benachrichtigungen: 'benachrichtigungen', whatsapp: 'kunden' };
 const ICON = '/chat/icons/icon-192.png';
 const BADGE = '/chat/icons/badge-96.png';
 const DEFAULT_URL = '/chat/studio.php#benachrichtigungen';
@@ -34,28 +44,48 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter((k) => k.startsWith('chathelp-shell-') && k !== SHELL_CACHE).map((k) => caches.delete(k)));
+    await Promise.all(keys.filter((k) => (k.startsWith('chathelp-shell-') && k !== SHELL_CACHE) || (k.startsWith('chathelp-app-') && k !== APP_CACHE)).map((k) => caches.delete(k)));
     try { if (self.registration.navigationPreload) await self.registration.navigationPreload.enable(); } catch (e) {}
     await self.clients.claim();
   })());
 });
 
-/* ---------- Netzwerk: nur Navigationen anfassen, sonst nichts (keine API-Antworten im Cache) ---------- */
+/* ---------- Netzwerk: nur Navigationen (+ app-bridge.js der App) anfassen, sonst nichts (keine API-Antworten im Cache) ---------- */
+async function putApp(key, res) {
+  try { if (res && res.ok && res.status === 200 && res.type === 'basic') { const c = await caches.open(APP_CACHE); await c.put(key, res); } } catch (e) {}
+}
+async function matchApp(key) { try { const c = await caches.open(APP_CACHE); return (await c.match(key)) || null; } catch (e) { return null; } }
+function offlineResponse() {
+  return new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline</title><body style="font-family:system-ui,sans-serif;padding:40px;color:#0f1222;background:#f6f7fb"><h1 style="font-family:Georgia,serif">Keine Verbindung</h1><p>Bitte Internetverbindung prüfen und erneut versuchen.</p><button onclick="location.reload()">Erneut versuchen</button>',
+    { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
+}
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET' || req.mode !== 'navigate') return;
+  if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin || !url.pathname.startsWith('/chat/')) return;
+  /* app-bridge.js für die Business-App: Netz zuerst, offline aus dem App-Cache (andere Seiten laden sie wie bisher direkt) */
+  if (req.mode !== 'navigate') {
+    let ref = ''; try { ref = req.referrer ? new URL(req.referrer).pathname : ''; } catch (e) {}
+    if (url.pathname !== '/chat/app-bridge.js' || ref !== APP_PATH) return;
+    event.respondWith((async () => {
+      try { const res = await fetch(req); event.waitUntil(putApp(APP_BRIDGE_KEY, res.clone())); return res; }
+      catch (e) { const hit = await matchApp(APP_BRIDGE_KEY); if (hit) return hit; throw e; }
+    })());
+    return;
+  }
+  const isApp = url.pathname === APP_PATH;
   event.respondWith((async () => {
     try {
       const pre = await event.preloadResponse;
-      if (pre) return pre;
-      return await fetch(req);
+      const res = pre || await fetch(req);
+      if (isApp) event.waitUntil(putApp(APP_SHELL_KEY, res.clone()));   // Hülle ohne Daten – Inhalte lädt die App selbst über die API
+      return res;
     } catch (e) {
+      if (isApp) { const shell = await matchApp(APP_SHELL_KEY); if (shell) return shell; }
       const c = await caches.open(SHELL_CACHE);
       const off = await c.match(OFFLINE_URL);
-      return off || new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline</title><body style="font-family:system-ui,sans-serif;padding:40px;color:#0f1222;background:#f6f7fb"><h1 style="font-family:Georgia,serif">Keine Verbindung</h1><p>Bitte Internetverbindung prüfen und erneut versuchen.</p><button onclick="location.reload()">Erneut versuchen</button>',
-        { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
+      return off || offlineResponse();
     }
   })());
 });
@@ -142,8 +172,22 @@ self.addEventListener('push', (event) => {
 });
 
 /* ---------- Klick: vorhandenes Fenster fokussieren und dorthin navigieren, sonst neues Fenster ---------- */
+/** Nutzt dieses Gerät die Business-App (app.php meldet sich per „chathelp-shell“), führen Studio-Links in den passenden App-Bereich. */
+function appTarget(target, data, meta) {
+  try {
+    if (!meta || meta.shell !== 'app') return target;
+    const u = new URL(target);
+    if (u.origin !== self.location.origin || u.pathname !== '/chat/studio.php') return target;
+    const r = APP_ROUTES[(u.hash || '').slice(1)] || (u.hash ? '' : 'heute');
+    if (!r) return target;   // z. B. Tokens, Agenten → bleibt im Studio
+    const q = new URLSearchParams({ src: 'push' });
+    if (data && data.tag) q.set('tag', String(data.tag).slice(0, 64));
+    if (data && Number(data.id) > 0) q.set('nid', String(Number(data.id)));
+    return new URL(APP_PATH + '?' + q.toString() + '#' + r, self.location.origin).href;
+  } catch (e) { return target; }
+}
 async function openFromNotification(data) {
-  const target = safeUrl(data && data.url);
+  const target = appTarget(safeUrl(data && data.url), data, await readMeta());
   const t = new URL(target);
   const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
   const sameOrigin = list.filter((c) => { try { return new URL(c.url).origin === t.origin; } catch (e) { return false; } });
@@ -255,6 +299,9 @@ self.addEventListener('message', (event) => {
     event.waitUntil(readMeta().then((old) => writeMeta(Object.assign({}, old, {
       vapid: String(m.vapid || old.vapid || ''), endpoint: String(m.endpoint || ''), auth: String(m.auth || ''), updated: Date.now()
     }))));
+  } else if (m.type === 'chathelp-shell') {
+    /* app.php: „dieses Gerät nutzt die Business-App“ (shell:'app') bzw. zurück zum Studio (shell:'') */
+    event.waitUntil(readMeta().then((old) => writeMeta(Object.assign({}, old, { shell: m.shell === 'app' ? 'app' : '', shellAt: Date.now() }))));
   } else if (m.type === 'chathelp-badge') {
     event.waitUntil(setBadge(Math.max(0, Number(m.count) || 0)));
   } else if (m.type === 'chathelp-skip-waiting') {

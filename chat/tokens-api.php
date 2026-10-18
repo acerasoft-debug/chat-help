@@ -5,6 +5,7 @@
  *   GET  /chat/tokens-api.php/v1/sectors                                   → sektörler, task'lar, token fiyatları (herkese açık)
  *   GET  /chat/tokens-api.php/v1/categories                                → Hauptkategorien mit Plänen, Preisen, Kanälen, Demo-Schlüssel (öffentlich, 5 Min. Cache)
  *   GET  /chat/tokens-api.php/v1/pricing                                   → Einmalkauf → Betrieb / eigener KI-Schlüssel, Stufen, KI-Listenpreise (öffentlich)
+ *        /v1/categories?cur=USD&lang=en · /v1/pricing?cur=TRY               → zusätzlich „local“-Anzeigepreise + display_currency (EUR-Felder unverändert)
  *   GET  /v1/billing · GET /v1/usage?month=YYYY-MM · POST /v1/connections/ai-test {provider}   → Lizenzen/Betrieb, Kostenübersicht, Schlüssel-Test (Studio)
  *   GET  /chat/tokens-api.php/v1/me                                        → hesap, bakiye, aktif paketler/agentler, son kullanım
  *   GET  /chat/tokens-api.php/v1/balance                                   → bakiye + son kullanım
@@ -80,14 +81,43 @@ function pricing_public(): array {
       'rule'=>'Einmalkauf = Einrichtung + Lizenz + Startguthaben (Tokens verfallen nicht) + '.CH_BUY_INCLUDED_DAYS.' Tage Betrieb. Danach Betrieb (inkl. Tokens) oder eigener KI-Schlüssel – monatlich kündbar.'];
 }
 
+/* ---- Anzeigepreise in Landeswährung (?cur=USD …, ?lang= für die Schreibweise): EUR-Felder bleiben unverändert, dazu „local“-Objekte ---- */
+/** ['currency','amount' (Haupteinheit),'minor' (Stripe unit_amount),'formatted','approx'] – derselbe Betrag wie im Checkout (tokens-checkout.php ?cur=). */
+function local_price(int $eurCents, string $cur, string $lang): array {
+    $m=ch_price_local($eurCents,$cur); $dec=CH_CURRENCIES[$cur]['dec'];
+    return ['currency'=>$cur,'amount'=>$dec ? $m/100 : $m,'minor'=>$m,'formatted'=>ch_cur_format($m,$cur,$lang),'approx'=>$cur!=='EUR'];
+}
+/** Kopf der Anzeigewährung: Kurs, Stand, ob Stripe in dieser Währung abrechnet, Rundungsregel. null = kein/ungültiger ?cur. */
+function display_currency(): ?array {
+    $want=ch_cur_norm((string)($_GET['cur'] ?? '')); if($want==='') return null;
+    [$cur,$note]=ch_display_currency($want); $fx=ch_fx_rates(); $co=ch_cur_checkout($cur);
+    $lang=ch_lang_norm((string)($_GET['lang'] ?? '')) ?: 'de';
+    return ['code'=>$cur,'requested'=>$want,'symbol'=>CH_CURRENCIES[$cur]['sym'],'decimals'=>CH_CURRENCIES[$cur]['dec'],'rate'=>$fx['rates'][$cur],'rate_date'=>$fx['date'],'rate_source'=>$fx['source'],
+      'billing'=>$co ? $cur : 'EUR','checkout'=>$co,'note'=>$note ?? ($co ? null : 'billing_eur'),'lang'=>$lang,'rounding'=>'Tageskurs × EUR-Preis, aufgerundet auf den nächsten Preispunkt (…9, …99, …990), höchstens 1,5 % darunter; EUR unverändert'];
+}
+function categories_local(array $cats, array $d): array {
+    foreach($cats as &$c) foreach($c['plans'] as &$p){ $p['local']=local_price((int)$p['price_cents'],$d['code'],$d['lang']);
+        foreach(($p['followups'] ?? []) as $k=>$f) $p['followups'][$k]['local']=local_price((int)$f['price_cents'],$d['code'],$d['lang']); }
+    unset($c,$p); return $cats;
+}
+function pricing_local(array $pr, array $d): array {
+    $lp=fn($eur)=>local_price((int)round($eur*100),$d['code'],$d['lang']);
+    foreach($pr['one_time'] as &$o){ $o['local']=$lp($o['price']);
+        foreach(['monthly_alternative','betrieb','byok'] as $k) if(is_array($o[$k] ?? null)) $o[$k]['local']=$lp($o[$k]['price']); }
+    unset($o);
+    $pr['tiers_local']=array_map(fn($t)=>['betrieb'=>local_price((int)$t['betrieb_cents'],$d['code'],$d['lang']),'byok'=>local_price((int)$t['byok_cents'],$d['code'],$d['lang'])],$pr['tiers']);
+    return $pr+['display_currency'=>$d];
+}
+
 /* ---- Router ---- */
 $r = rtrim(route(),'/'); $m=$_SERVER['REQUEST_METHOD'];
 if($r==='sectors' && $m==='GET'){
     public_json(['sectors'=>array_map(fn($k,$v)=>['id'=>$k,'name'=>$v['name']],array_keys(SECTORS),SECTORS),'plans'=>plans_public(),'pricing_tokens'=>PRICING,'tasks'=>['generate','translate','subtitles','agent'],
       'channels'=>CH_CHANNELS,'categories'=>array_map(fn($k,$c)=>['id'=>$k,'label'=>$c['label'],'icon'=>$c['icon'],'order'=>$c['order']],array_keys(CH_CATEGORIES),CH_CATEGORIES)]);
 }
-if($r==='categories' && $m==='GET') public_json(['categories'=>ch_categories_public(),'channels'=>CH_CHANNELS,'included_days'=>CH_BUY_INCLUDED_DAYS]);
-if($r==='pricing' && $m==='GET') public_json(pricing_public());
+if($r==='categories' && $m==='GET'){ $d=display_currency(); $cats=ch_categories_public();
+    public_json(['categories'=>$d ? categories_local($cats,$d) : $cats,'channels'=>CH_CHANNELS,'included_days'=>CH_BUY_INCLUDED_DAYS]+($d ? ['display_currency'=>$d] : [])); }
+if($r==='pricing' && $m==='GET'){ $d=display_currency(); public_json($d ? pricing_local(pricing_public(),$d) : pricing_public()); }
 /* ---- Studio-Login (öffentlich): E-Mail → 6-stelliger Code → API-Key. Neue Konten erhalten einmalig CH_TRIAL_TOKENS. ---- */
 if(($r==='auth/request' || $r==='auth/verify') && $m==='POST'){
     $b=body(); $email=strtolower(trim((string)($b['email']??''))); $lang=substr(preg_replace('/[^a-z]/','',strtolower($b['lang']??'de')),0,2) ?: 'de';

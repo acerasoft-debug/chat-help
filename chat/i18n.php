@@ -330,6 +330,191 @@ function ch_lang_switcher(string $cur, array $allowed=[]): string {
     return $o.'</ul></details></nav>';
 }
 
+/* ======================================================================= Land → Währung, Wechselkurse, „schöne“ Landespreise
+ * Besucher-Standort (Cloudflare CF-IPCountry) → Sprache + Währung für die Website (chat/locale-api.php), Anzeigepreise in /v1/pricing + /v1/categories (?cur=)
+ * und Stripe-Checkout in Landeswährung (tokens-checkout.php ?cur=). Ohne Datenbank; Kurse aus der EZB-Tagesdatei mit Datei-Cache (chat/cache/fx-eur.json).
+ *
+ *   ch_cur_norm('usd') → 'USD' (unbekannt → '')        ch_country_norm('de') → 'DE' (XX, T1, A1 … → '')
+ *   ch_country_currency('CH') → 'CHF' (sonst 'EUR')    ch_display_currency('RUB') → ['EUR','no_checkout_currency'] (RUB wird erkannt, nie angeboten)
+ *   ch_fx_rates() → ['rates'=>[CUR=>Kurs je 1 EUR],'date','source'=>'ecb'|'fallback','fetched']
+ *   ch_price_nice($x)  „schöner“ Landespreis (Hauptwährungseinheit) – Regel siehe CH_PRICE_STEPS
+ *   ch_price_local($eurCents,$cur) → Betrag in kleinster Einheit (Cent bzw. Yen); EUR unverändert
+ *   ch_cur_format($minor,$cur,$lang) → „$139“, „CHF 109“, „1 099 kr“, „₺3.499“, „¥24,990“ (EUR wie ch_fmt_money)
+ *   ch_visitor_locale($srv,$cookie,$get) → Land, Sprache, Währung, Kurs, Rundungsregel, Preistabelle (Antwort von locale-api.php)
+ */
+/** Ersatzkurse (rate, je 1 EUR, Stand Herbst 2026 – nur wenn weder EZB-Abruf noch Cache da sind). pos: pre „$139“ · pre_sp „CHF 109“ · post „1 099 kr“ · lang = wie ch_fmt_money.
+ *  dec = Nachkommastellen bei Stripe (0 = zero-decimal, Betrag in Yen). stripe = Checkout in dieser Währung. show = in der Auswahl angeboten.
+ *  peg = fester Kurs zu einer anderen Währung (AZN = 1,70 USD; die EZB veröffentlicht keinen AZN-Kurs). RUB: keine Zahlung in Rubel → EUR mit Hinweis. */
+const CH_CURRENCIES = [
+  'EUR'=>['sym'=>'€',  'pos'=>'lang',  'dec'=>2,'rate'=>1.0,  'stripe'=>true, 'show'=>true, 'name'=>'Euro'],
+  'USD'=>['sym'=>'$',  'pos'=>'pre',   'dec'=>2,'rate'=>1.16, 'stripe'=>true, 'show'=>true, 'name'=>'US Dollar'],
+  'GBP'=>['sym'=>'£',  'pos'=>'pre',   'dec'=>2,'rate'=>0.87, 'stripe'=>true, 'show'=>true, 'name'=>'British Pound'],
+  'CHF'=>['sym'=>'CHF','pos'=>'pre_sp','dec'=>2,'rate'=>0.93, 'stripe'=>true, 'show'=>true, 'name'=>'Swiss Franc'],
+  'TRY'=>['sym'=>'₺',  'pos'=>'pre',   'dec'=>2,'rate'=>48.8, 'stripe'=>true, 'show'=>true, 'name'=>'Turkish Lira'],
+  'SEK'=>['sym'=>'kr', 'pos'=>'post',  'dec'=>2,'rate'=>10.95,'stripe'=>true, 'show'=>true, 'name'=>'Swedish Krona'],
+  'NOK'=>['sym'=>'kr', 'pos'=>'post',  'dec'=>2,'rate'=>11.75,'stripe'=>true, 'show'=>true, 'name'=>'Norwegian Krone'],
+  'DKK'=>['sym'=>'kr.','pos'=>'post',  'dec'=>2,'rate'=>7.46, 'stripe'=>true, 'show'=>true, 'name'=>'Danish Krone'],
+  'PLN'=>['sym'=>'zł', 'pos'=>'post',  'dec'=>2,'rate'=>4.25, 'stripe'=>true, 'show'=>true, 'name'=>'Polish Złoty'],
+  'JPY'=>['sym'=>'¥',  'pos'=>'pre',   'dec'=>0,'rate'=>176.0,'stripe'=>true, 'show'=>true, 'name'=>'Japanese Yen'],
+  'AZN'=>['sym'=>'₼',  'pos'=>'post',  'dec'=>2,'rate'=>1.97, 'stripe'=>true, 'show'=>true, 'name'=>'Azerbaijani Manat','peg'=>['USD',1.7]],
+  'CAD'=>['sym'=>'CA$','pos'=>'pre',   'dec'=>2,'rate'=>1.63, 'stripe'=>true, 'show'=>true, 'name'=>'Canadian Dollar'],
+  'AUD'=>['sym'=>'A$', 'pos'=>'pre',   'dec'=>2,'rate'=>1.78, 'stripe'=>true, 'show'=>true, 'name'=>'Australian Dollar'],
+  'RUB'=>['sym'=>'₽',  'pos'=>'post',  'dec'=>2,'rate'=>95.0, 'stripe'=>false,'show'=>false,'name'=>'Russian Ruble'],
+];
+/** Land → Währung (alle übrigen Länder, auch die Eurozone: EUR). */
+const CH_COUNTRY_CUR = ['US'=>'USD','PR'=>'USD','GU'=>'USD','VI'=>'USD','AS'=>'USD','MP'=>'USD','UM'=>'USD','EC'=>'USD','SV'=>'USD','PA'=>'USD',
+  'GB'=>'GBP','IM'=>'GBP','JE'=>'GBP','GG'=>'GBP','CH'=>'CHF','LI'=>'CHF','TR'=>'TRY','SE'=>'SEK','NO'=>'NOK','SJ'=>'NOK','DK'=>'DKK','GL'=>'DKK','FO'=>'DKK',
+  'PL'=>'PLN','JP'=>'JPY','AZ'=>'AZN','CA'=>'CAD','AU'=>'AUD','RU'=>'RUB'];
+/**
+ * Rundungsregel für Landespreise: x = EUR-Preis × Tageskurs (Hauptwährungseinheit). Gesucht ist der kleinste „schöne“ Preis p = k·step − minus
+ * mit p ≥ x·(1 − CH_PRICE_TOL); also aufrunden auf den nächsten Preispunkt, höchstens 1,5 % darunter (deckt Kursschwankung und Stripe-Umrechnungsgebühr).
+ *   x <     50 → ganze Einheiten           7,56 → 8 · 42,10 → 42
+ *   x <    100 → …4 / …9      (step 5)     58 → 59 · 93,06 → 94
+ *   x <  1 000 → …9           (step 10)    114,84 → 119 · 172,84 → 179
+ *   x < 10 000 → …99          (step 100)   1 728 → 1 799 · 3 465 → 3 499
+ *   x < 50 000 → …490 / …990  (step 500)   16 830 → 16 990
+ *   x < 100 000 → …990        (step 1 000) 74 500 → 73 990
+ *   x < 500 000 → …4 990 / …9 990 (step 5 000) · darüber step 10 000
+ * Die Website (site/index.html) rechnet mit derselben Tabelle (kommt aus locale-api.php); EUR wird nie gerundet. JPY ohne Nachkommastellen.
+ */
+const CH_PRICE_STEPS = [[50,1,0],[100,5,1],[1000,10,1],[10000,100,1],[50000,500,10],[100000,1000,10],[500000,5000,10],[INF,10000,10]];
+const CH_PRICE_TOL = 0.015;
+/** EZB-Referenzkurse (werktags ca. 16 Uhr MEZ). CH_FX_URL in db.php überschreibt die Quelle (Tests: Attrappe), CH_FX_CACHE_DIR den Cache-Ordner. */
+const CH_FX_URL_DEFAULT = 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml';
+const CH_FX_TTL = 21600;        // 6 h: danach neu abrufen
+const CH_FX_RETRY = 3600;       // nach Fehlschlag frühestens nach 1 h erneut versuchen
+const CH_FX_MAX_AGE = 2592000;  // 30 Tage: ältere Cache-Kurse werden durch die Ersatzkurse ersetzt
+
+function ch_cur_norm($c): string { $c=is_string($c) ? strtoupper(trim($c)) : ''; return isset(CH_CURRENCIES[$c]) ? $c : ''; }
+function ch_country_norm($cc): string {
+    $cc=is_string($cc) ? strtoupper(trim($cc)) : '';
+    return preg_match('/^[A-Z]{2}$/',$cc) && !in_array($cc,['XX','T1','A1','A2','O1','EU','AP','ZZ'],true) ? $cc : '';
+}
+function ch_country_currency(string $cc): string { return CH_COUNTRY_CUR[ch_country_norm($cc)] ?? 'EUR'; }
+/** Gewünschte Währung → angezeigte Währung + Hinweis-Code (RUB u. a. ohne show: EUR, 'no_checkout_currency'). */
+function ch_display_currency(string $cur): array {
+    $c=ch_cur_norm($cur) ?: 'EUR';
+    return CH_CURRENCIES[$c]['show'] ? [$c,null] : ['EUR','no_checkout_currency'];
+}
+/** Kann Stripe in dieser Währung abrechnen? Tabelle + optional CH_STRIPE_CURRENCIES (db.php, Liste der fürs Konto freigeschalteten Währungen). */
+function ch_cur_checkout(string $cur): bool {
+    $c=ch_cur_norm($cur); if($c==='' || empty(CH_CURRENCIES[$c]['stripe']) || empty(CH_CURRENCIES[$c]['show'])) return false;
+    if($c!=='EUR' && defined('CH_STRIPE_CURRENCIES') && is_array(CH_STRIPE_CURRENCIES)) return in_array($c,array_map('strtoupper',CH_STRIPE_CURRENCIES),true);
+    return true;
+}
+/** HTTP-GET für den Kursabruf: [Status, Body]. Tests setzen $GLOBALS['__ch_fx_http_mock'] = fn(string $url): [int, string]. */
+function ch_fx_http(string $url): array {
+    $mock=$GLOBALS['__ch_fx_http_mock'] ?? null; if(is_callable($mock)){ $r=$mock($url); return [(int)($r[0] ?? 0),(string)($r[1] ?? '')]; }
+    if(!function_exists('curl_init')) return [0,''];
+    $ch=curl_init($url); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>4,CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_MAXREDIRS=>2,CURLOPT_USERAGENT=>'ChatHelp-FX/1.0 (+https://chat-help.com)']);
+    $b=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+    return [$code,is_string($b) ? $b : ''];
+}
+/** EZB-Tagesdatei → ['date'=>'YYYY-MM-DD','rates'=>[CUR=>float]] (nur Währungen aus CH_CURRENCIES, plausibel: Faktor 2,5 um den Ersatzkurs) oder null. */
+function ch_fx_parse_ecb(string $xml): ?array {
+    if(!preg_match("/<Cube\s+time=['\"](\d{4}-\d{2}-\d{2})['\"]/",$xml,$d)) return null;
+    preg_match_all("/<Cube\s+currency=['\"]([A-Z]{3})['\"]\s+rate=['\"]([0-9]+(?:\.[0-9]+)?)['\"]/",$xml,$m,PREG_SET_ORDER);
+    $rates=[];
+    foreach($m as [, $c, $r]){ $r=(float)$r; $fb=CH_CURRENCIES[$c]['rate'] ?? null; if($fb===null || $c==='EUR' || $r<=0) continue;
+        if($r>=$fb/2.5 && $r<=$fb*2.5) $rates[$c]=$r; }
+    return count($rates)>=3 ? ['date'=>$d[1],'rates'=>$rates] : null;
+}
+function ch_fx_cache_dir(): string { return rtrim(defined('CH_FX_CACHE_DIR') ? (string)CH_FX_CACHE_DIR : __DIR__.'/cache','/'); }
+/**
+ * Tageskurse je 1 EUR für alle CH_CURRENCIES. Reihenfolge: Datei-Cache (≤ 6 h) → EZB-Abruf (ein Prozess zugleich, flock) → älterer Cache (≤ 30 Tage) → Ersatzkurse.
+ * Fehlschläge brechen nie ab; nach einem Fehlschlag wird frühestens nach 1 h erneut abgerufen. $reset=true leert den Request-Speicher (Tests).
+ */
+function ch_fx_rates(bool $reset=false): array {
+    static $memo=null; if($reset) $memo=null; if($memo!==null) return $memo;
+    $dir=ch_fx_cache_dir(); $file=$dir.'/fx-eur.json'; $now=time();
+    $read=function() use($file): ?array { $j=is_file($file) ? json_decode((string)@file_get_contents($file),true) : null; return is_array($j) ? $j : null; };
+    $c=$read();
+    $stale=!$c || $now-(int)($c['fetched'] ?? 0)>=CH_FX_TTL; $waiting=$c && $now-(int)($c['last_try'] ?? 0)<CH_FX_RETRY;
+    if($stale && !$waiting){
+        if(!is_dir($dir)) @mkdir($dir,0775,true);
+        $lk=@fopen($dir.'/fx-eur.lock','c');
+        if($lk && flock($lk,LOCK_EX|LOCK_NB)){
+            $c=$read();   // ein anderer Prozess kann gerade aktualisiert haben
+            if(!$c || $now-(int)($c['fetched'] ?? 0)>=CH_FX_TTL){
+                [$code,$body]=ch_fx_http(defined('CH_FX_URL') ? (string)CH_FX_URL : CH_FX_URL_DEFAULT);
+                $got=$code>=200 && $code<300 ? ch_fx_parse_ecb($body) : null;
+                if($got) $c=['source'=>'ecb','date'=>$got['date'],'fetched'=>$now,'last_try'=>$now,'rates'=>$got['rates']];
+                else { $c=is_array($c) ? $c : ['rates'=>[]]; $c['last_try']=$now; error_log('CH fx: EZB-Kurse nicht abrufbar (HTTP '.$code.')'); }
+                $tmp=$file.'.'.getmypid().'.tmp';
+                if(@file_put_contents($tmp,json_encode($c,JSON_UNESCAPED_SLASHES))!==false) @rename($tmp,$file); else @unlink($tmp);
+            }
+            flock($lk,LOCK_UN);
+        }
+        if($lk) fclose($lk);
+    }
+    $ok=is_array($c) && !empty($c['rates']) && $now-(int)($c['fetched'] ?? 0)<CH_FX_MAX_AGE;
+    $rates=[]; foreach(CH_CURRENCIES as $k=>$v){ $r=$ok ? (float)($c['rates'][$k] ?? 0) : 0.0; $rates[$k]=$k==='EUR' ? 1.0 : ($r>0 ? $r : (float)$v['rate']); }
+    foreach(CH_CURRENCIES as $k=>$v) if(isset($v['peg'])){ [$base,$f]=$v['peg']; if($ok && !empty($c['rates'][$base])) $rates[$k]=round((float)$c['rates'][$base]*$f,4); }
+    return $memo=['rates'=>$rates,'date'=>$ok ? (string)($c['date'] ?? '') : null,'source'=>$ok ? 'ecb' : 'fallback','fetched'=>$ok ? (int)$c['fetched'] : null];
+}
+/** „Schöner“ Preis in der Hauptwährungseinheit (Regel: CH_PRICE_STEPS). Gleiche Rechenschritte wie niceLocal() in site/index.html. */
+function ch_price_nice(float $x): float {
+    if(!($x>0)) return 0.0;
+    foreach(CH_PRICE_STEPS as [$lim,$step,$minus]) if($x<$lim) return ceil(($x*(1-CH_PRICE_TOL)+$minus)/$step)*$step-$minus;
+    return ceil($x);
+}
+/** EUR-Cent → Landespreis in kleinster Einheit (Cent/Öre/Kuruş bzw. Yen bei dec 0). EUR und unbekannte Währungen: unverändert. */
+function ch_price_local(int $eurCents, string $cur, ?array $fx=null): int {
+    $c=ch_cur_norm($cur); if($c==='' || $c==='EUR' || $eurCents<=0) return $eurCents;
+    $rate=(float)(($fx ?? ch_fx_rates())['rates'][$c] ?? CH_CURRENCIES[$c]['rate']);
+    $p=ch_price_nice($eurCents/100*$rate);
+    return CH_CURRENCIES[$c]['dec']===0 ? (int)$p : (int)round($p*100);
+}
+/** Betrag (kleinste Einheit) formatiert in der Seitensprache: Ziffern/Trennzeichen nach CH_LANG_FMT, Symbol nach CH_CURRENCIES[pos]. */
+function ch_cur_format(int $minor, string $cur, string $lang='de'): string {
+    $c=ch_cur_norm($cur) ?: 'EUR'; $l=ch_lang_norm($lang) ?: 'de';
+    if($c==='EUR') return ch_fmt_money($minor,$l,'EUR',true);
+    $C=CH_CURRENCIES[$c]; $v=$C['dec']===0 ? (float)$minor : $minor/100; $n=ch_fmt_num(abs($v),($C['dec']>0 && $minor%100) ? 2 : 0,$l);
+    $s=match($C['pos']){ 'pre'=>$C['sym'].$n, 'pre_sp'=>$C['sym']."\u{00A0}".$n, default=>$n."\u{00A0}".$C['sym'] };
+    return ($minor<0 ? '−' : '').$s;
+}
+/** Beste unterstützte Sprache aus Accept-Language ('' = keine). */
+function ch_accept_lang(string $al): string {
+    $cand=[]; foreach(explode(',',$al) as $i=>$part){ $bits=explode(';',trim($part)); $qv=1.0; foreach(array_slice($bits,1) as $b) if(preg_match('/^\s*q=([0-9.]+)/',$b,$m)) $qv=(float)$m[1]; $l=ch_lang_norm($bits[0]); if($l!=='' && $qv>0) $cand[]=[$qv,-$i,$l]; }
+    rsort($cand); return $cand[0][2] ?? '';
+}
+/** Alle EUR-Preise des Katalogs (Cent): Pläne, Folge-Tarife, Token-Pakete, API-Pro/Enterprise – für die Preistabelle der Website. */
+function ch_catalog_eur_cents(): array {
+    $c=[4900,19900,20000,69000,24900,99000];   // Token-Pakete 10k/50k (Anzeige 199 €, Checkout 200 €)/200k, API-Pro, Enterprise ab
+    if(defined('CH_PLANS')) foreach(CH_PLANS as $v) $c[]=(int)$v[1];
+    if(defined('CH_RUN_TIERS')) foreach(CH_RUN_TIERS as $t){ $c[]=(int)$t['betrieb_cents']; $c[]=(int)$t['byok_cents']; }
+    $c=array_values(array_unique(array_filter($c,fn($x)=>$x>0))); sort($c); return $c;
+}
+/**
+ * Besucher-Locale für die Website. Sprache: ?lang= → Cookie ch_lang → Land (CH_COUNTRY_LANG) → Accept-Language → 'en' (Land bekannt, Sprache nicht) bzw. 'de'.
+ * Währung: ?cur= → Cookie ch_cur → Land (CH_COUNTRY_CUR) → EUR. Land: CF-IPCountry (Cloudflare); ?cc= nur zur Vorschau.
+ * Liefert auch Kurs, Rundungsregel und die Preistabelle EUR-Cent → Landespreis, damit Anzeige und Checkout denselben Betrag zeigen.
+ */
+function ch_visitor_locale(?array $srv=null, ?array $cookie=null, ?array $get=null): array {
+    $srv ??= $_SERVER; $cookie ??= $_COOKIE; $get ??= $_GET;
+    $str=fn($a,$k)=>is_string($a[$k] ?? null) ? $a[$k] : '';
+    $cc=ch_country_norm($str($get,'cc')); $ccSrc='param';
+    if($cc===''){ $cc=ch_country_norm($str($srv,'HTTP_CF_IPCOUNTRY')); $ccSrc=$cc!=='' ? 'cf' : 'none'; }
+    $lang=''; $lSrc='default';
+    foreach([['param',$str($get,'lang')],['cookie',$str($cookie,'ch_lang')]] as [$s,$v]){ $v=ch_lang_norm($v); if($v!==''){ $lang=$v; $lSrc=$s; break; } }
+    if($lang==='' && $cc!=='' && isset(CH_COUNTRY_LANG[$cc])){ $lang=CH_COUNTRY_LANG[$cc]; $lSrc='country'; }
+    if($lang===''){ $al=ch_accept_lang($str($srv,'HTTP_ACCEPT_LANGUAGE')); if($al!==''){ $lang=$al; $lSrc='accept'; } }
+    if($lang===''){ $lang=$cc!=='' ? 'en' : 'de'; $lSrc='default'; }
+    $want=''; $cSrc='default';
+    foreach([['param',$str($get,'cur')],['cookie',$str($cookie,'ch_cur')]] as [$s,$v]){ $v=ch_cur_norm($v); if($v!==''){ $want=$v; $cSrc=$s; break; } }
+    if($want===''){ $want=$cc!=='' ? ch_country_currency($cc) : 'EUR'; $cSrc=$cc!=='' && isset(CH_COUNTRY_CUR[$cc]) ? 'country' : 'default'; }
+    [$cur,$note]=ch_display_currency($want);
+    $fx=ch_fx_rates(); $C=CH_CURRENCIES[$cur]; $checkout=ch_cur_checkout($cur);
+    if(!$checkout && $note===null) $note='billing_eur';
+    $prices=[]; foreach(ch_catalog_eur_cents() as $ct) $prices[(string)$ct]=ch_price_local($ct,$cur,$fx);
+    $curs=[]; foreach(CH_CURRENCIES as $k=>$v) if($v['show']) $curs[]=['code'=>$k,'symbol'=>$v['sym'],'pos'=>$v['pos'],'decimals'=>$v['dec'],'rate'=>$fx['rates'][$k],'checkout'=>ch_cur_checkout($k)];
+    return ['country'=>$cc!=='' ? $cc : null,'country_source'=>$ccSrc,'lang'=>$lang,'lang_source'=>$lSrc,'tag'=>ch_lang_tag($lang),
+      'currency'=>$cur,'currency_source'=>$cSrc,'requested'=>$want!==$cur ? $want : null,'symbol'=>$C['sym'],'pos'=>$C['pos'],'rate'=>$fx['rates'][$cur],'decimals'=>$C['dec'],
+      'billing'=>$checkout ? $cur : 'EUR','checkout'=>$checkout,'note'=>$note,'rate_date'=>$fx['date'],'rate_source'=>$fx['source'],
+      'rounding'=>['tolerance'=>CH_PRICE_TOL,'steps'=>array_map(fn($s)=>[is_infinite((float)$s[0]) ? null : $s[0],$s[1],$s[2]],CH_PRICE_STEPS)],
+      'prices'=>$prices,'langs'=>array_map(fn($l)=>['code'=>$l,'native'=>CH_LANGS[$l]['native'],'tag'=>CH_LANGS[$l]['tag']],CH_LANG_CODES),'currencies'=>$curs];
+}
+
 /** Wörterbuch: Text in $lang, sonst Englisch, sonst Deutsch, sonst der Schlüssel. {name}-Platzhalter aus $vars. */
 function ch_t(string $key, string $lang='de', array $vars=[]) {
     $l=ch_lang_norm($lang) ?: 'de';
