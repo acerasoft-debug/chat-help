@@ -43,7 +43,7 @@ const CH_SPEECH_ABBR = [
   ['/\bz\.\s?B\./u','zum Beispiel',false], ['/\bZ\.\s?B\./u','Zum Beispiel',false], ['/\bd\.\s?h\./u','das heißt',false], ['/\bu\.\s?a\./u','unter anderem',false],
   ['/\bi\.\s?d\.\s?R\./u','in der Regel',false], ['/\bu\.\s?U\./u','unter Umständen',false], ['/\bo\.\s?ä\./u','oder Ähnliches',true], ['/\bi\.\s?V\.\s?m\./u','in Verbindung mit',false],
   ['/\bu\.\s?v\.\s?m\./u','und vieles mehr',true], ['/\bz\.\s?Zt\./u','zurzeit',false], ['/\bvgl\./u','vergleiche',false],
-  ['/\bca\./u','circa',false], ['/\bCa\./u','Circa',false], ['/\binkl\./iu','inklusive',false], ['/\bzzgl\./iu','zuzüglich',false], ['/\bexkl\./iu','exklusive',false],
+  ['/\bp\.\s?P\./u','pro Person',true], ['/\bNK\b/u','Nebenkosten',false], ['/\bca\./u','circa',false], ['/\bCa\./u','Circa',false], ['/\binkl\./iu','inklusive',false], ['/\bzzgl\./iu','zuzüglich',false], ['/\bexkl\./iu','exklusive',false],
   ['/\bggf\./iu','gegebenenfalls',false], ['/\bbzw\./iu','beziehungsweise',false], ['/\bevtl\./iu','eventuell',false], ['/\bmind\./iu','mindestens',false],
   ['/\bmax\./iu','maximal',false], ['/\bbzgl\./iu','bezüglich',false], ['/\bgem\./u','gemäß',false], ['/\blt\./u','laut',false], ['/\bsog\./u','sogenannte',false], ['/\bzzt\./u','zurzeit',false],
   ['/\bNr\./u','Nummer',false], ['/\bTel\./u','Telefon',false], ['/\bStr\./u','Straße',true], ['/\bDr\./u','Doktor',false], ['/\bProf\./u','Professor',false],
@@ -98,10 +98,10 @@ function ch_speech_time(int $h, int $m): string { return $h.' Uhr'.($m>0 ? ' '.$
 function ch_speech_sentences(string $text, string $lang='de', bool $du=false): array {
     $lang=strtolower(substr((string)preg_replace('/[^a-zA-Z]/','',$lang),0,2)) ?: 'de';
     if(!mb_check_encoding($text,'UTF-8')) $text=mb_scrub($text,'UTF-8');
-    if(strlen($text)>20000) $text=substr($text,0,20000);
+    if(strlen($text)>20000) $text=mb_strcut($text,0,20000,'UTF-8');   // nie mitten in einem Mehrbyte-Zeichen abschneiden
     $P=[];
     $s=ch_speech_blocks($text,$lang,$du,$P);
-    $s=ch_speech_symbols($s);
+    $s=ch_speech_symbols($s,$lang);
     $s=($lang==='de') ? ch_speech_de($s,$P) : ch_speech_generic($s,$lang,$P);
     $s=ch_speech_punct($s);
     return ch_speech_split($s,$P);
@@ -154,9 +154,14 @@ function ch_speech_blocks(string $text, string $lang, bool $du, array &$P): stri
         $ln=str_replace(['**','__','~~'],'',$ln);
         if(str_contains($ln,"\u{E000}")){
             $ln=ch_speech_R('/\x{E000}(?:\s*(?:,|oder|und|bzw\.|or|and|ou|et|o|y|veya|ve|или|и)\s*\x{E000})+/iu',"\u{E000}",$ln);   // „Link oder Link“ → ein Link
+            /* Satz besteht nur aus einer Hinweis-Floskel + Link („Mehr unter https://….“, „Infos hier: …“) → an dieser Stelle durch den Link-Satz ersetzen */
+            $ln=ch_speech_RC('/(^|[.!?…]\s+)((?:(?:mehr|weitere|alle|siehe|more|see|all|plus)\s+)?(?:mehr|infos?|informationen|details|siehe|link|more|information|plus)?\s*)(?:\b(?:unter|auf|über|via|hier|bei|at|on|here|sur|ici)\b\s*)?[:→]?\s*\x{E000}\s*[.!?…]*(?=\s|$)/iu',
+                function($m) use(&$linkDone,$lang,$du){ if($linkDone) return $m[1]; $linkDone=true; return $m[1].ch_speech_linkphrase($lang,$du); }, $ln);
+            if(str_contains($ln,"\u{E000}")){
             $ln=ch_speech_R('/\s*(?:\b(?:unter|auf|über|via|hier|bei|at|on|here|sur|ici)\b\s*)?[:→]?\s*\x{E000}/iu','',$ln);
             $ln=trim(ch_speech_R('/[\s:,;–—-]+$/u','',$ln));                                   // mehrbyte-sicher (kein rtrim mit „–“)
             if(!$linkDone){ $ln=($ln!=='' ? ch_speech_term($ln).' ' : '').ch_speech_linkphrase($lang,$du); $linkDone=true; }
+            }
         }
         if($ln==='') continue;
         $out[]=['t'=>$ln,'b'=>$b];
@@ -211,7 +216,15 @@ function ch_speech_email(string $local, string $domain, string $lang): string {
 }
 
 /** Emojis, Pfeile, Aufzählungszeichen. */
-function ch_speech_symbols(string $s): string {
+function ch_speech_symbols(string $s, string $lang='de'): string {
+    /* Pfeil zwischen zwei Zahlen = Änderung: „95 → 75 €“ → „von 95 auf 75 €“ (de) / „from 95 to 75“ (en) */
+    $arr='[\x{2190}-\x{21FF}\x{27F0}-\x{27FF}\x{2900}-\x{297F}\x{2B05}-\x{2B07}\x{2794}-\x{27BF}]';
+    $vw=['de'=>['von','auf'],'en'=>['from','to']][$lang] ?? null;
+    if($vw){
+        $num='(\d+(?:[.,]\d+)*(?:\s?(?:€|Euro|EUR|%|Prozent))?)';
+        $s=ch_speech_R('/(\b'.$vw[0].'\s+)'.$num.'\s*'.$arr.'\s*(?=(?:€\s?)?\d)/iu','$1$2 '.$vw[1].' ',$s);
+        $s=ch_speech_R('/(?<![\p{L}\p{N}.,])'.$num.'\s*'.$arr.'\s*(?=(?:€\s?)?\d)/u',$vw[0].' $1 '.$vw[1].' ',$s);
+    }
     $s=ch_speech_R('/\s*[\x{2190}-\x{21FF}\x{27F0}-\x{27FF}\x{2900}-\x{297F}\x{2B05}-\x{2B07}\x{2794}-\x{27BF}]\s*/u',', ',$s);   // → ⇒ ➜
     $s=ch_speech_R('/(?<!\S)[:;]-?[)(DPp](?!\S)/u','',$s);                                                                      // :) ;-)
     $s=ch_speech_R('/\s*[•·▪◦‣|]\s*/u',', ',$s);
@@ -237,19 +250,31 @@ function ch_speech_phone(string $s, array &$P, string $lang='de'): string {
     $unit='(?!\s?(?:€|Euro|EUR|Prozent|%|km|Kilometer|Meter|m\b|Stück|Tage|Minuten|Stunden|Kilo|Personen|Zimmer|Quadratmeter|Grad|Mal|Jahre))';
     $s=ch_speech_RC('/\b(Notruf(?:nummer)?|Notarzt|Rettungsdienst|Feuerwehr|Polizei|die|der|unter|sofort|bitte|direkt|emergency|call|dial)\s+(11[02])(?!\d|[,.]\d)'.$unit.'/u', function($m) use(&$P){ return $m[1].' '.ch_speech_p($P,ch_speech_spell($m[2])); }, $s);
     $s=ch_speech_RC('/(?<![\p{N},.\x{E100}-\x{F8FF}])(11[02])(?=\s+(?:an\b|anrufen|wählen|rufen|alarmieren))/u', function($m) use(&$P){ return ch_speech_p($P,ch_speech_spell($m[1])); }, $s);
-    $s=ch_speech_RC('/(?<![\p{L}\p{N}\x{E100}-\x{F8FF}.,:\/+-])(\+\d{1,3}(?:\s?\(0\))?|0\d{1,5})((?:[ \/-]\d{2,8}){1,4})(?![\p{N}])/u', function($m) use(&$P,$plus){
+    /* „+49 (0)221 …“ → „+49 221 …“ (die eingeklammerte 0 wählt man aus dem Ausland nicht) */
+    $s=ch_speech_R('/\+(\d{1,3})\s?\(0\)\s?(?=\d)/u','+$1 ',$s);
+    /* Gruppen nach der ersten dürfen einstellig sein („0800 00 22 8 33“); nach einem Block ab 5 Ziffern zählt noch EINE Durchwahl mit 2–4 Ziffern
+       („030 23125 800“), außer es folgt eine Einheit/Uhrzeit („0221 2000000 24 Stunden“) – nicht verbrauchte Gruppen bleiben unverändert. */
+    $after_unit='/^\s*(?:€|Euro\b|EUR\b|Prozent|%|km\b|Kilometer|Meter|m\b|Stück|Tage?\b|Minuten?|Min\b|Stunden?|Std\b|h\b|Uhr\b|Kilo|Personen|Zimmer|Quadratmeter|Grad|Mal\b|Jahre?\b|Monate?\b|Wochen?\b|Sekunden?)/u';
+    $s=ch_speech_rx($s,'/(?<![\p{L}\p{N}\x{E100}-\x{F8FF}.,:\/+-])(\+\d{1,3}|0\d{1,5})((?:[ \/-]\d{2,8})(?:[ \/-]\d{1,8}){0,4})(?![\p{N}])/u', function($m,$after) use(&$P,$plus,$after_unit){
         $groups=preg_split('/[ \/-]+/',trim($m[2],' /-')) ?: [];
-        $isPlus=$m[1][0]==='+'; $prefix=preg_replace('/\D/','',str_replace('(0)','',$m[1]));
-        $keep=[]; $digits=strlen($prefix); $rest=$groups; $cut=null;
+        $isPlus=$m[1][0]==='+'; $prefix=preg_replace('/\D/','',$m[1]);
+        $keep=[]; $digits=strlen($prefix); $cut=null; $n=count($groups);
         foreach($groups as $i=>$g){
             if($digits+strlen($g)>15) { $cut=$i; break; }
             $keep[]=$g; $digits+=strlen($g);
             $subscriber=$isPlus ? count($keep)>=2 : true;
-            if($subscriber && strlen($g)>=5){ $cut=$i+1; break; }
+            if($subscriber && strlen($g)>=5){
+                $cut=$i+1;
+                /* Durchwahl: genau eine weitere Gruppe mit 2–4 Ziffern, wenn danach keine Einheit/Uhrzeit kommt */
+                if($i+1<$n && strlen($groups[$i+1])>=2 && strlen($groups[$i+1])<=4 && $digits+strlen($groups[$i+1])<=15){
+                    if($i+2<$n || !preg_match($after_unit,$after)){ $keep[]=$groups[$i+1]; $digits+=strlen($groups[$i+1]); $cut=$i+2; }
+                }
+                break;
+            }
         }
         if($digits<7 || !$keep) return $m[0];
         $tailTxt='';
-        if($cut!==null && $cut<count($groups)){
+        if($cut!==null && $cut<$n){
             /* nicht verbrauchte Gruppen unverändert zurückgeben (z. B. "0221 2000000 24 Stunden") */
             $rx='/^'.preg_quote($m[1],'/'); foreach($keep as $g) $rx.='[ \/-]+'.preg_quote($g,'/'); $rx.='/u';
             if(preg_match($rx,$m[0],$mm)) $tailTxt=substr($m[0],strlen($mm[0]));
@@ -259,7 +284,7 @@ function ch_speech_phone(string $s, array &$P, string $lang='de'): string {
         /* Gruppierung des Schreibers beibehalten ("0800 123 45 67"), lange Blöcke in Zweiergruppen ("2000000" → "2, 0 0, 0 0, 0 0") */
         $sub=implode(', ',array_map('ch_speech_grp',array_values(array_filter($keep,fn($g)=>$g!==''))));
         return ch_speech_p($P, $head.($sub!=='' ? ', '.$sub : '')).$tailTxt;
-    }, $s);
+    });
     /* ohne Trennzeichen: 02212000000 */
     $s=ch_speech_RC('/(?<![\p{L}\p{N}\x{E100}-\x{F8FF}.,:\/+-])0\d{6,14}(?![\p{N}])/u', function($m) use(&$P){
         $n=$m[0]; $a=preg_match('/^0(?:30|40|69|89)/',$n) ? 3 : 4;
@@ -313,7 +338,7 @@ function ch_speech_de(string $s, array &$P): string {
         $d=(int)$m[3]; $mo=(int)$m[2]; if($d<1||$d>31||$mo<1||$mo>12) return $m[0];
         return ch_speech_p($P, $d.'. '.CH_SPEECH_MONTHS[$mo].' '.$m[1]);
     }, $s);
-    $s=ch_speech_RC('/(?<![\p{N}.,])(\d{1,2})\.(\d{1,2})\.((?:19|20)\d{2}|\d{2}(?![\p{N}.]))?(?![\p{N}])/u', function($m) use(&$P){
+    $s=ch_speech_RC('/(?<![\p{N}.,])(\d{1,2})\.(\d{1,2})\.((?:19|20)\d{2}|\d{2}(?![\p{N}]|\.\p{N}))?(?![\p{N}])/u', function($m) use(&$P){
         $d=(int)$m[1]; $mo=(int)$m[2]; if($d<1||$d>31||$mo<1||$mo>12) return $m[0];
         $y=$m[3] ?? ''; if(strlen($y)===2) $y='20'.$y;
         return ch_speech_p($P, $d.'. '.CH_SPEECH_MONTHS[$mo].($y!=='' ? ' '.$y : ''));

@@ -6,6 +6,7 @@
   var PANEL='panel-training', LS_PLAN='ch_train_plan', KB_LIMIT=60000, KB_PROMPT=40000;
   var PLAN='', OV=null, FAQ=[], TESTS=[], seq=0, inited=false, faqDirty=false, testDirty=false;
   var JOB={imp:null,tests:null}, POLL={imp:false,tests:false}, PREV=null, FILE=null, CORR=null, pendingCorr=null, tick=null, RULES_EX='';
+  var POLL_MS=15000;   // Studio-Regel: Live-Daten höchstens alle 15 s abfragen
   var EXT={pdf:'PDF',docx:'Word',txt:'Text',md:'Markdown',markdown:'Markdown',csv:'CSV'};
   var CH={phone:'Telefon',whatsapp:'WhatsApp',reported:'gemeldet'};
 
@@ -109,13 +110,14 @@
       setImportBusy(false);
       if(j.status==='done'){ msg(box,j.result && j.result.condensed ? 'Fertig ✓ – bitte die Vorschau prüfen und übernehmen.' : 'Text gelesen – bitte die Vorschau prüfen und kürzen.','ok'); renderPreview(j); balance(); refreshOverview(); return; }
       if(j.status==='cancelled'){ msg(box,j.error==='superseded' ? '' : 'Abgebrochen.','info'); return; }
+      if(j.status==='closed'){ if(PREV && PREV.job===j.job) hidePreview(); msg(box,'Dieser Import wurde bereits übernommen oder verworfen.','info'); refreshOverview(); return; }   // z. B. in einem zweiten Studio-Tab
       if(j.error==='insufficient_tokens') msg(box,buyHtml(j),'err'); else msg(box,h(j.message || 'Der Import ist fehlgeschlagen.'),'err');
       return;
     }
     var tb=el('trTestMsg');
     if(j.status==='running'){ busy(el('trTestRun'),true,'Prüfung läuft …'); msg(tb,progressHtml(kind,j)+(j.total_tests ? ' <span class="mute">('+j.done_tests+' von '+j.total_tests+' fertig)</span>' : ''),'info'); startTick(); return; }
     busy(el('trTestRun'),false);
-    if(j.status==='done'){
+    if(j.status==='done' || j.status==='closed'){   // 'closed' = fertig und danach geschlossen (z. B. „Abbrechen“ im letzten Moment) – Ergebnisse sind gespeichert
       var r=j.result || {};
       msg(tb,'<b>'+(r.passed || 0)+' von '+(r.ran || 0)+' bestanden</b>'+(r.ran ? ' ('+Math.round((r.passed || 0)*100/r.ran)+' %)' : '')+' · berechnet: '+n(r.cost || 0)+' Tokens'+(r.note ? '<br>'+h(r.note) : ''),r.ran && r.passed===r.ran ? 'ok' : 'info');
       reloadTests(); balance(); refreshOverview(); return;
@@ -133,7 +135,7 @@
       post('/train/job',{id:id},plan).then(function(r){
         if(plan!==PLAN || !JOB[kind] || JOB[kind].job!==id){ POLL[kind]=false; return; }
         onJob(kind,r);
-        if(r.status==='running') setTimeout(step,Math.max(600,2500-(Date.now()-t0))); else POLL[kind]=false;   // Server wartet selbst auf Fortschritt (Long-Poll); schnelle Antworten werden gedrosselt
+        if(r.status==='running') setTimeout(step,Math.max(600,POLL_MS-(Date.now()-t0))); else POLL[kind]=false;   // höchstens alle 15 s; der Server hält jede Abfrage bis zu 12 s (Long-Poll) und antwortet sofort, wenn der Auftrag fertig ist
       }).catch(function(e){
         POLL[kind]=false;
         if(e && e.status===404){ JOB[kind]=null; if(kind==='imp') setImportBusy(false); else busy(el('trTestRun'),false); return; }
@@ -148,7 +150,11 @@
   }
   function cancelJob(kind){
     var j=JOB[kind]; if(!j) return;
-    post('/train/job/cancel',{id:j.job}).then(function(r){ onJob(kind,r); }).catch(function(e){ showErr(kind==='imp' ? impBox(j) : el('trTestMsg'),e); });
+    post('/train/job/cancel',{id:j.job}).then(function(r){
+      /* Import war im selben Moment schon fertig und berechnet → Vorschau trotzdem zeigen statt sie zu verwerfen */
+      if(kind==='imp' && r && r.status==='closed' && r.result && r.result.preview && j.status==='running') r=Object.assign({},r,{status:'done'});
+      onJob(kind,r);
+    }).catch(function(e){ showErr(kind==='imp' ? impBox(j) : el('trTestMsg'),e); });
   }
 
   /* ---------------------------------------------------------------- 1 · Website */
@@ -163,7 +169,8 @@
 
   /* ---------------------------------------------------------------- 2 · Dokumente */
   function fileExt(name){ var m=/\.([a-z0-9]+)$/i.exec(name || ''); return m ? m[1].toLowerCase() : ''; }
-  function fileCost(f){ var e=fileExt(f.name); if(e==='pdf') return '≈ 40–140 Tokens (PDF liest die KI)'; if(e==='docx') return '≈ 20–120 Tokens'; var c=Math.min(120,20+Math.ceil(f.size/2000)); return '≈ '+c+' Tokens'; }
+  var RAW_MAX=120000;   // so viel Rohtext liest der Server höchstens → Import höchstens 80 Tokens (PDF 100)
+  function fileCost(f){ var e=fileExt(f.name); if(e==='pdf') return '≈ 40–100 Tokens (PDF liest die KI)'; if(e==='docx') return '≈ 20–80 Tokens'; var c=Math.min(80,20+Math.ceil(Math.min(f.size,RAW_MAX)/2000)); return '≈ '+c+' Tokens'; }
   function pickFile(f){
     var box=el('trFileMsg'); msg(box,''); FILE=null; el('trFileGo').disabled=true; el('trFileGo').textContent='Hochladen & aufbereiten';
     if(!f){ el('trFileName').textContent=''; return; }

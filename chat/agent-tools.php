@@ -25,7 +25,7 @@ function ch_modules(): array {
         'exec'=>fn(int $a,string $n,array $i,string $c,string $f)=>appt_exec($a,$n,$i,$c,$f),'hint'=>fn(int $a,string $c,string $l)=>appt_system_hint($a,$l)];
     $m['order']=['enabled'=>fn(int $a)=>ord_settings($a)['order_on']===1,'tools'=>fn()=>ord_tools(),
         'exec'=>fn(int $a,string $n,array $i,string $c,string $f)=>ord_exec($a,$n,$i,$c,$f),'hint'=>fn(int $a,string $c,string $l)=>ord_system_hint($a)];
-    foreach(['ride','hotel','callback'] as $key){ $p=CH_MODULE_LIBS[$key][1]; if(!function_exists($p.'_tools') || !function_exists($p.'_exec')) continue;
+    foreach(['ride','hotel','callback','train'] as $key){ $p=CH_MODULE_LIBS[$key][1]; if(!function_exists($p.'_tools') || !function_exists($p.'_exec')) continue;
         $m[$key]=['enabled'=>fn(int $a)=>function_exists($p.'_enabled') ? (bool)($p.'_enabled')($a) : true,'tools'=>fn()=>($p.'_tools')(),
             'exec'=>fn(int $a,string $n,array $i,string $c,string $f)=>($p.'_exec')($a,$n,$i,$c,$f),
             'hint'=>fn(int $a,string $c,string $l)=>function_exists($p.'_system_hint') ? (string)($p.'_system_hint')($a,$c) : ''];

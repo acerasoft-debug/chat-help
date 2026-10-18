@@ -181,7 +181,7 @@ function ch_agent_system(array $pl, array $cfg, string $lang='de'): string {
   $sys .= " Tonalität: ".($cfg['tone'] ?: 'freundlich-professionell').".";
   $sys .= " Antworte in der Sprache: ".strtoupper($cfg['lang'] ?: $lang).", außer der Nutzer schreibt erkennbar in einer anderen Sprache – dann in dessen Sprache.";
   if(!empty($cfg['kb'])) $sys .= "\n\n=== WISSENSBASIS (einzige verbindliche Quelle für Fakten) ===\n".mb_substr($cfg['kb'],0,40000)."\n=== ENDE WISSENSBASIS ===";
-  if(function_exists('train_prompt_addon') && !empty($cfg['account_id'])) $sys .= train_prompt_addon((int)$cfg['account_id'], (string)($cfg['plan'] ?? $pl['id']));   // FAQ + Verhaltensregeln (Agent-Training)
+  if(function_exists('train_prompt_addon')) $sys .= train_prompt_addon((int)($cfg['account_id'] ?? 0), (string)($cfg['plan'] ?? $pl['id']));   // FAQ + Verhaltensregeln (Agent-Training)
   $sys .= "\n\nGib nur das Ergebnis, ohne Vorrede. Erfinde keine Fakten, die nicht in der Wissensbasis stehen.";
   return $sys;
 }

@@ -10,8 +10,11 @@
  * • Verhaltensregeln (agent_configs.rules) · Prüfung (agent_tests): der echte Agent beantwortet Testfragen, ein KI-Prüfer bewertet
  * • Lücken finden: Telefon-Transkripte, WhatsApp-Verläufe und gemeldete Fragen (Werkzeug report_unanswered_question) → FAQ-Vorschläge
  * • Lange Arbeiten (Import, Testlauf) laufen als Auftrag (train_jobs) im Hintergrund (th_finish_response); das Studio fragt den
- *   Stand ab. Ohne Hintergrund-Fähigkeit des Servers wird der Auftrag in Etappen (≈ 15 s je Abfrage) weitergeführt.
- * • Tokens: Import 20 + 1 je 2 000 Zeichen (max. 120, PDF +20), Test 8 je Frage, Lücken-Gruppierung 10 – immer erst nach Erfolg.
+ *   Stand ab (höchstens alle 15 s). Ohne fastcgi_/litespeed_finish_request wird die Antwort per Content-Length + Connection: close
+ *   vorab gesendet (train_flush_response) und der Auftrag in Etappen weitergeführt – je Abfrage höchstens ein langer KI-Schritt.
+ *   Empfehlung für den Betrieb: PHP-FPM oder LiteSpeed.
+ * • Tokens: Import 20 + 1 je 2 000 Zeichen Rohtext (Rohtext max. 120 000 Zeichen → höchstens 80; PDF +20 → höchstens 100),
+ *   Test 8 je Frage, Lücken-Gruppierung 10 – immer erst nach Erfolg und nur für Aufträge, die nicht abgebrochen wurden.
  * • Konto 0 = Live-Demo „Nordlicht Outdoor“: Daten aus TRAIN_DEMO, keine Schreibzugriffe, keine Speicherung von Kundenfragen.
  * Prompt-Zusatz: train_prompt_addon() wird von ch_agent_system() (plans.php) aufgerufen (FAQ + Korrekturen + Verhaltensregeln).
  */
@@ -1201,7 +1204,7 @@ function train_job_work(array $job, int $budget, bool $sync): array {
     while($job['status']==='running'){
         try{ $r=train_job_step($job,$sync,$t0); }
         catch(Throwable $e){ error_log('CH train job '.$job['token'].': '.$e->getMessage()); train_job_fail($job,'server_error','Interner Fehler – bitte erneut versuchen.'); $r='done'; }
-        if(!train_job_save($job)){ $fresh=train_job_get((int)$job['account_id'],(string)$job['token']); return $fresh ?: $job; }
+        if($r==='gone' || ($r!=='saved' && !train_job_save($job))){ $fresh=train_job_get((int)$job['account_id'],(string)$job['token']); return $fresh ?: $job; }
         if($r==='yield' || $job['status']!=='running' || (microtime(true)-$t0)>=$budget) break;
     }
     return $job;
@@ -1209,13 +1212,35 @@ function train_job_work(array $job, int $budget, bool $sync): array {
 /** Auftrag (gesperrt) anstoßen: wenn möglich Antwort sofort senden und im Hintergrund weiterrechnen (beendet dann den Request), sonst eine Etappe synchron. */
 function train_job_kick(array $job): array {
     $lk='train:job:'.$job['token'];
-    $pub=train_job_public($job);
-    if(th_finish_response(json_encode($pub,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE),'application/json; charset=UTF-8',202)){
+    $body=json_encode(train_job_public($job),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE);
+    if(th_finish_response($body,'application/json; charset=UTF-8',202)){   // PHP-FPM / LiteSpeed: Antwort ist raus, voller Hintergrund-Lauf
         try{ train_job_work($job,TRAIN_BG_BUDGET,false); } finally { th_unlock($lk); }
         exit;
     }
-    try{ $job=train_job_work($job,TRAIN_SYNC_BUDGET,true); } finally { th_unlock($lk); }
+    if(train_flush_response($body,202)){
+        /* Andere Web-SAPIs (z. B. mod_php): Antwort per Content-Length + Connection: close bereits abgeschlossen. Weiter in Etappen –
+           ein langer Schritt startet immer in einer eigenen Abfrage, so bleibt auch ein Server, der doch puffert, bei höchstens einem KI-Aufruf. */
+        try{ train_job_work($job,TRAIN_SYNC_BUDGET,true); } finally { th_unlock($lk); }
+        exit;
+    }
+    try{ $job=train_job_work($job,TRAIN_SYNC_BUDGET,true); } finally { th_unlock($lk); }   // CLI / Header schon gesendet
     return [$job['status']==='running' ? 202 : 200,train_job_public($job)];
+}
+/**
+ * Ersatz für th_finish_response() ohne fastcgi_finish_request/litespeed_finish_request: JSON vollständig mit Content-Length und
+ * Connection: close senden, alle Puffer leeren, Komprimierung abschalten; das Skript rechnet danach weiter (ignore_user_abort).
+ * false = nicht möglich (CLI oder Header schon gesendet).
+ */
+function train_flush_response(string $body, int $code=202): bool {
+    if(PHP_SAPI==='cli' || headers_sent()) return false;
+    ignore_user_abort(true); @set_time_limit(180);
+    @ini_set('zlib.output_compression','0');
+    if(function_exists('apache_setenv')) @apache_setenv('no-gzip','1');
+    while(ob_get_level()>0) @ob_end_clean();   // nichts Fremdes vor dem JSON (Content-Length muss stimmen)
+    http_response_code($code); header('Content-Type: application/json; charset=UTF-8'); header('Content-Length: '.strlen($body)); header('Connection: close');
+    header('Cache-Control: no-store, private'); header('X-Accel-Buffering: no');
+    echo $body; @flush();
+    return true;
 }
 /** Neueren Import-Auftrag starten → ältere laufende/offene Import-Aufträge dieses Agenten schließen. */
 function train_jobs_close_imports(int $acc, string $plan): void {
