@@ -138,6 +138,8 @@ function vestra_email_is_junk(string $email): bool {
   // Role mailboxes that reach no human — a reply is impossible, so outreach is pointless.
   if(in_array($lp,['noreply','no-reply','donotreply','do-not-reply','postmaster','webmaster',
                    'abuse','privacy','gdpr','dpo','hostmaster','sentry','mailer-daemon'],true)) return true;
+  /* 18 Eki 2026: "dataprotectionrequests@tiso.co.uk" yeni müşteri mektubu aldı — veri koruma / hukuk kutusu kimseye satış yapmaz. */
+  if(preg_match('/^(data-?protection|dataprotectionrequests|privacy|gdpr|dsgvo|datenschutz|legal|compliance|rgpd|privacidad)[a-z._-]*$/',$lp)) return true;
   // "example" placeholder text in the site's own contact-form boilerplate ("your-email@example.com")
   // gets scraped as if it were a real address — cross-market fix, not just English: voorbeeld=NL,
   // beispiel=DE, exemple=FR, esempio=IT, ejemplo=ES all mean "example"; xxx@xxx/name@domain/
@@ -522,6 +524,10 @@ function vestra_discover_blocklist(): array {
     'le slip francais','leslipfrancais','les petites bombes','lespetitesbombes','liviana conti','livianaconti','pointcarré',
     'pointcarre','just brands','justbrands','pig&hen','pig & hen','pigandhen','dstrezzed','magazzini nico',
     'einwaller','helmestore','swann paris','swann-paris','urbanjunglestore',
+    /* 18 Eki 2026 denetimi (o sabah yeni müşteri ve indirim mektubu aldılar): İngiltere / İskandinav zincirleri, marka
+       mağazaları, büyük e-ticaret grupları. */
+    'pavers','tiso','tog24','outdoor xperten','outdoorxperten','fjellkompaniet','platou sport','platousport','portwest',
+    "levi's",'levis store','pepe jeans','foschini','terminal x','terminalx','epantofi','eobuwie','modivo','sportina',
     // department store / magaza zinciri
     'b&m bargains','b&m stores','bmstores','arnotts','mcelhinneys','shaws',
     'kastner & öhler','kastner & oehler','kastner und öhler','kastner-oehler','kastneroehler',
@@ -1235,6 +1241,8 @@ function vestra_blocklist_exact_only(): array {
              /* 6 harften uzun ama gunluk kelime: alan adinda alt dizi aranirsa
                 "dynamiteboutique.it" gibi gercek bir dukkani elerdi. */
              'dynamite','herschel',
+             /* 18 Eki 2026: kısa zincir adları — 'tiso' -> artisoul, 'pavers' -> paverstone, 'sportina' -> sportinator */
+             'tiso','pavers','sportina','modivo','tog24',
 
              /* 5 Eki 2026: 'sayitwith' -> "sayitwithstyle.com" gibi bir butigin
                 alan adinin icinde gecer; yalniz Say It With'in kendi alan adi. */

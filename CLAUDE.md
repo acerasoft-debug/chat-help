@@ -12952,3 +12952,8 @@ marka mağazası (Oleana), kuyumcu ve at malzemecisi.
   relove / pre-owned / preloved / exchange / once more / rewear / kringloop; kuyumcu ve binicilik hem indirimde hem yeni
   müşteri yolunda moda dışı; yukarıdaki zincirlerin alan adları `vestra_chain_domains()`'te.
 - Testler: finder_test "18 Eki 2026 indirim denetimi" (+37 iddia, 524 geçti).
+- **Yeni müşteri yolu (aynı sabah, 86 ilk mektup, diag-recent-sends):** Pavers (İngiliz ayakkabı zinciri), Tiso (üstelik
+  dataprotectionrequests@ adresine), Tog24 ve Levi's / Pepe Jeans bayisi (marka mağazası), Outdoor Xperten, Fjellkompaniet
+  (zincir), Admanage (.ai reklam yazılımı), Shooting Sports UK. Adlar blocklist'e (kısaları alan adında TAM eşleşir),
+  veri koruma / hukuk kutuları (`dataprotection*`, `datenschutz`, `legal`, `compliance`…) çöp, `.ai` alan adı ve
+  atıcılık / silah moda dışı. (+7 iddia, 531 geçti.)

@@ -1036,6 +1036,13 @@ foreach ([['Relove Stockmann', 'relove.fi'], ['Designer Exchange', 'designerexch
   $t('18 Eki: indirim takibi ikinci el / kuyumcu / binicilik dükkânına gitmez: '.$co, vestra_mailbox_deals_excluded(['company' => $co, 'email' => 'a@'.$ws, 'website' => $ws]));
 $t('18 Eki: kuyumcu ve binicilik yeni müşteri yolunda da moda dışı; moda butiği değil', vestra_lead_off_target(['company' => 'Juwelier Anadolu', 'email' => 'a@gmail.com', 'website' => 'juwelier-anadolu.nl'])
    && vestra_lead_off_target(['company' => 'Apple Saddlery', 'email' => 'a@applesaddlery.com']) && !vestra_lead_off_target(['company' => 'Tenue de Nîmes', 'email' => 'a@tenuedenimes.com', 'website' => 'tenuedenimes.com']));
+foreach ([['Pavers', 'helpdesk@pavers.co.uk', 'pavers.co.uk'], ['Tiso', 'shop@tiso.co.uk', 'tiso.com'], ['Tog24', 'customerservice@tog24.com', 'tog24.com'],
+          ["Levi's / Pepe Jeans", 'biuro@silesiajeans.pl', 'silesiajeans.pl'], ['Outdoor Xperten Holstebro', 'info@outdoorxperten.dk', 'outdoorxperten.dk'],
+          ['Fjellkompaniet', 'post@fjellkompaniet.no', 'fjellkompaniet.no']] as [$co, $em, $ws])
+  $t('18 Eki: yeni müşteri yolunda zincir / marka mağazası engellenir: '.$co, vestra_lead_is_blocked(['company' => $co, 'email' => $em, 'website' => $ws]));
+$t('18 Eki: veri koruma kutusu çöp, reklam yazılımı (.ai) ve atıcılık malzemecisi moda dışı', vestra_email_is_junk('dataprotectionrequests@tiso.co.uk') && vestra_email_is_junk('datenschutz@x.example')
+   && vestra_lead_off_target(['company' => 'Admanage', 'email' => 'support@admanage.ai', 'website' => 'admanage.ai']) && vestra_lead_off_target(['company' => 'Shooting Sports UK', 'email' => 'info@shootingsportsuk.co.uk'])
+   && !vestra_email_is_junk('info@legally-blonde-boutique.example'));
 foreach ([['Tenue de Nîmes', 'tenuedenimes.com'], ['Alan Bilzerian', 'alanbilzerian.com'], ['The Broken Arm', 'the-broken-arm.com'], ['Fuchs Fashion', 'fuchsfashion.ch']] as [$co, $ws])
   $t('18 Eki: bağımsız butik indirim takibinde kalır: '.$co, !vestra_mailbox_deals_excluded(['company' => $co, 'email' => 'a@'.$ws, 'website' => $ws]) && !vestra_lead_is_blocked(['company' => $co, 'email' => 'a@'.$ws, 'website' => $ws]));
 $t('eski OSM kaydında tek marka yetmez, iki marka gerekir', !isset($ftK['O1B']) && isset($ftK['O2B']));
