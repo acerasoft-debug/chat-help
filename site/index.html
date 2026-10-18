@@ -860,7 +860,7 @@ async function playDemo(opt){const d=cur,my=++playId;const tr=$('#dTr');if(tr)tr
   const aRows=script.filter(r=>r[1]==='a');let firstA=true;
   const items=script.map(r=>{if(r[1]!=='a')return null;let it=r[3]||null;if(!it&&firstA&&srvScript&&V.greet.length)it=V.greet;firstA=false;return it;});
   const allSigned=aRows.length>0&&items.every((it,i)=>script[i][1]!=='a'||(it&&it.length&&it.every(x=>x.t)));
-  const vst={srv:allSigned};
+  const vst={srv:allSigned};V.brw=false;ttsHintUI();
   const voiced=!!(opt&&opt.voice)&&V.on&&d.device==='phone'&&!liveOn,turn=V.turn;V.auto=voiced;const lv=$('#live');if(lv)lv.classList.toggle('aut',voiced);
   const wv=$('#dWave');if(wv){wv.classList.toggle('idle',voiced);wv.classList.remove('talk','lis');}liveState('');
   let sec=0;const timer=$('#dTimer');const tick=setInterval(()=>{if(my!==playId||liveOn){clearInterval(tick);return;}sec++;if(timer)timer.textContent=fmtT(sec);},1000);
@@ -890,7 +890,7 @@ const LIVE_WHO={phone:['Lea','Lea'],termine:['Mia','Mia'],bestellung:['Luca','Lu
 const LIVE_G={taxi:'m',bestellung:'m'},LIVE_PRESET={phone:'f_warm',termine:'f_frisch',bestellung:'m_freundlich',taxi:'m_souveraen',hotel:'f_klar',immo:'f_klar'};
 const LIVE_BASE={phone:'Echter Telefon-Agent (Beispiel-Praxis).',termine:'Echter Termin-Agent mit echtem Demo-Kalender (Salon Luna). Buche ruhig – Demo-Termine werden nach 2 Tagen gelöscht.',bestellung:'Echter Bestell-Agent (Pizzeria Napoli, Köln). Gib eine Demo-Bestellung auf – nichts wird geliefert, keine Nachricht verschickt.',taxi:'Echter Taxi-Agent (Taxi Rheinland, Köln). Bestell eine Demo-Fahrt – es kommt kein Taxi, keine SMS wird verschickt.',hotel:'Echte Hotel-Rezeption (Hotel Alster Residenz, Hamburg). Frag nach einem Zimmer oder äußere einen Wunsch – Demo, es wird nichts gebucht.',immo:'Echter Immobilien-Agent (Lindqvist Immobilien, Köln). Frag zur Wohnung LQ-2041 oder bitte um Rückruf – Demo, es ruft niemand an.'};
 /* sector: Branche des Telefon-Agenten (geht an tts.php mit), preset: Stimm-Voreinstellung der Persona, greet: Begrüßungssätze mit Token (Hörprobe), auto: Demo-Anruf wird gerade vorgelesen, ttsKnown/spoken: für den Hinweis zur Browser-Stimme */
-const V={on:false,turn:0,demo:'',sector:'',gender:'f',preset:'',rate:1,pitch:1,tts:false,ttsKnown:false,ttsDead:false,ttsPause:0,fillers:[],greet:[],lastF:-1,fcache:new Map(),audio:null,ac:window.AbortController?new AbortController():null,end:null,utter:null,busy:false,auto:false,spoken:false,unlocked:false,voices:[],vTried:false};
+const V={on:false,brw:false,turn:0,demo:'',sector:'',gender:'f',preset:'',rate:1,pitch:1,tts:false,ttsKnown:false,ttsDead:false,ttsPause:0,fillers:[],greet:[],lastF:-1,fcache:new Map(),audio:null,ac:window.AbortController?new AbortController():null,end:null,utter:null,busy:false,auto:false,spoken:false,unlocked:false,voices:[],vTried:false};
 /* 50 ms Stille (WAV) – entsperrt Audio auf iOS innerhalb der ersten Geste */
 const V_SILENT=(()=>{try{const n=400,u=(v,b)=>{let s='';for(let i=0;i<b;i++)s+=String.fromCharCode((v>>>(8*i))&255);return s;};return 'data:audio/wav;base64,'+btoa('RIFF'+u(36+n,4)+'WAVEfmt '+u(16,4)+u(1,2)+u(1,2)+u(8000,4)+u(8000,4)+u(1,2)+u(8,2)+'data'+u(n,4)+'\x80'.repeat(n));}catch(e){return '';}})();
 let liveWho=LIVE_WHO_DEF.slice(),liveChips=[],liveUser=0,liveSt='',liveSeq=0,liveTick=0,liveSec=0;
@@ -903,13 +903,13 @@ const vCls=d=>d&&d.device==='phone'?'phone':'chat';
 const V_RM=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
 /* ===== Telefon-Agent: Branchen (GET ?phone_sectors=1 – eingebaute Liste, falls der Server nicht antwortet) ===== */
 const SEC_API=DEMO_API+'?phone_sectors=1',SEC_DEF='zahnarzt',SEC_TTL=50*60*1000;
-const SECTORS_FALLBACK=[['zahnarzt','🦷','Zahnarztpraxis','Zahnarztpraxis Dr. Weber','Lea','f','Gesundheit','f_warm'],['arztpraxis','🩺','Hausarztpraxis','Hausarztpraxis Dr. Sommer & Kollegen · Berlin','Paula','f','Gesundheit','f_klar'],['tierarzt','🐾','Tierarztpraxis','Tierarztpraxis am Volkspark · Berlin','Emma','f','Gesundheit','f_sanft'],['apotheke','💊','Apotheke','Linden-Apotheke am Rotkreuzplatz · München','Julia','f','Gesundheit','f_klar'],
- ['taxi','🚕','Taxi-Zentrale','Taxi Rheinland · Köln','Kai','m','Mobilität','m_souveraen'],['bank','🏦','Bankfiliale','Rheinische Volksbank · Filiale Köln-Ehrenfeld','Daniel','m','Finanzen','m_souveraen'],['versicherung','🛡️','Versicherungsmakler','Hansen Versicherungsmakler','Maren','f','Finanzen','f_sanft'],
- ['hotel','🏨','Hotel-Rezeption','Hotel Alster Residenz · Hamburg','Sophie','f','Gastgewerbe','f_klar'],['restaurant','🍕','Pizzeria & Lieferdienst','Pizzeria Napoli · Köln','Luca','m','Gastgewerbe','m_freundlich'],
- ['autowerkstatt','🚗','Kfz-Werkstatt','Kfz-Meisterbetrieb Hofmann · München','Timo','m','Handwerk & Auto','m_tief'],['handwerk','🔧','Heizung & Sanitär','Haustechnik Krüger · Heizung & Sanitär · Hamburg','Sven','m','Handwerk & Auto','m_ruhig'],
- ['hausverwaltung','🏢','Hausverwaltung','Rheinland Hausverwaltung','Tobias','m','Immobilien','m_ruhig'],['immobilien','🏠','Immobilienmakler','Lindqvist Immobilien · Köln','Clara','f','Immobilien','f_klar'],
- ['kanzlei','⚖️','Anwaltskanzlei','Kanzlei Berger & Partner Rechtsanwälte','Johanna','f','Recht & Steuern','f_klar'],['steuerberater','📊','Steuerberatung','Steuerkanzlei Lindner & Kollegen','Nina','f','Recht & Steuern','f_warm'],
- ['friseur','✂️','Friseursalon','Salon Luna · Friseur & Kosmetik','Mia','f','Service','f_frisch'],['fitness','🏋️','Fitnessstudio','Kraftwerk Fitness · Frankfurt','Leon','m','Service','m_freundlich'],['stadtwerke','⚡','Stadtwerke','Stadtwerke Havelbogen · Berlin-Spandau','Ben','m','Service','m_tief']
+const SECTORS_FALLBACK=[
+ ['restaurant','🍕','Pizzeria & Lieferdienst','Pizzeria Napoli · Köln','Luca','m','Bestellung & Lieferung','m_freundlich'],['apotheke','💊','Apotheke','Linden-Apotheke am Rotkreuzplatz · München','Julia','f','Bestellung & Lieferung','f_klar'],['taxi','🚕','Taxi-Zentrale','Taxi Rheinland · Köln','Kai','m','Bestellung & Lieferung','m_souveraen'],
+ ['hotel','🏨','Hotel-Rezeption','Hotel Alster Residenz · Hamburg','Sophie','f','Gastronomie & Hotel','f_klar'],
+ ['friseur','✂️','Friseursalon','Salon Luna · Friseur & Kosmetik','Mia','f','Dienstleistung','f_frisch'],['fitness','🏋️','Fitnessstudio','Kraftwerk Fitness · Frankfurt','Leon','m','Dienstleistung','m_freundlich'],['autowerkstatt','🚗','Kfz-Werkstatt','Kfz-Meisterbetrieb Hofmann · München','Timo','m','Dienstleistung','m_tief'],['handwerk','🔧','Heizung & Sanitär','Haustechnik Krüger · Heizung & Sanitär · Hamburg','Sven','m','Dienstleistung','m_ruhig'],['stadtwerke','⚡','Stadtwerke','Stadtwerke Havelbogen · Berlin-Spandau','Ben','m','Dienstleistung','m_tief'],
+ ['zahnarzt','🦷','Zahnarztpraxis','Zahnarztpraxis Dr. Weber','Lea','f','Gesundheit','f_warm'],['arztpraxis','🩺','Hausarztpraxis','Hausarztpraxis Dr. Sommer & Kollegen · Berlin','Paula','f','Gesundheit','f_klar'],['tierarzt','🐾','Tierarztpraxis','Tierarztpraxis am Volkspark · Berlin','Emma','f','Gesundheit','f_sanft'],
+ ['bank','🏦','Bankfiliale','Rheinische Volksbank · Filiale Köln-Ehrenfeld','Daniel','m','Finanzen & Recht','m_souveraen'],['versicherung','🛡️','Versicherungsmakler','Hansen Versicherungsmakler','Maren','f','Finanzen & Recht','f_sanft'],['kanzlei','⚖️','Anwaltskanzlei','Kanzlei Berger & Partner Rechtsanwälte','Johanna','f','Finanzen & Recht','f_klar'],['steuerberater','📊','Steuerberatung','Steuerkanzlei Lindner & Kollegen','Nina','f','Finanzen & Recht','f_warm'],
+ ['hausverwaltung','🏢','Hausverwaltung','Rheinland Hausverwaltung','Tobias','m','Immobilien','m_ruhig'],['immobilien','🏠','Immobilienmakler','Lindqvist Immobilien · Köln','Clara','f','Immobilien','f_klar']
 ].map(x=>({key:x[0],icon:x[1],label:x[2],company:x[3],persona:x[4],gender:x[5],group:x[6],preset:x[7]}));
 let secList=SECTORS_FALLBACK.slice(),secCur=SEC_DEF,secLoaded=false,secBusy=false,secQ='';const secCache=new Map();
 const vpId=x=>typeof x==='string'&&/^[fm]_[a-z0-9_]{2,30}$/.test(x)?x:'';
@@ -921,9 +921,12 @@ let phoneSec=secInfo(SEC_DEF);
 async function secInit(){if(secLoaded||secBusy)return;secBusy=true;
   try{const r=await fetch(SEC_API,{cache:'no-store'});const j=await r.json();const l=secNorm(j&&j.sectors);if(l){secList=l;secLoaded=true;if(!secList.some(s=>s.key===secCur))secCur=SEC_DEF;phoneSec=secInfo(secCur);secRender();if(cur&&cur.sectors&&!liveOn)secHeader();}}catch(e){}
   secBusy=false;}
-const SEC_KW={zahnarzt:'zahn zähne zahnärztin zahnarzt dentist prophylaxe praxis gesundheit',arztpraxis:'arzt ärztin hausarzt hausärztin doktor praxis allgemeinmedizin rezept gesundheit',tierarzt:'tier tierärztin hund katze praxis gesundheit',apotheke:'medikament rezept arznei apothekerin gesundheit',taxi:'fahrt fahrer mietwagen flughafen mobilität bestellung',bank:'konto karte kredit geld finanzen',versicherung:'schaden police vertrag kfz finanzen',hotel:'zimmer übernachtung rezeption buchung gastronomie gastgewerbe',restaurant:'pizza pizzeria essen lieferung lieferdienst bestellung bestellen gastronomie gastgewerbe restaurant',autowerkstatt:'auto kfz reifen inspektion tüv werkstatt dienstleistung',handwerk:'heizung sanitär klempner notdienst installateur handwerker dienstleistung',hausverwaltung:'miete mieter wohnung verwaltung immobilien',immobilien:'wohnung haus makler maklerin besichtigung miete kauf',kanzlei:'anwalt anwältin rechtsanwalt rechtsanwältin recht',steuerberater:'steuer steuerberaterin finanzamt buchhaltung',friseur:'haare frisur friseurin kosmetik salon termin dienstleistung',fitness:'sport training gym studio mitgliedschaft dienstleistung',stadtwerke:'strom gas wasser energie zähler versorger dienstleistung'};
+const SEC_KW={zahnarzt:'zahn zähne zahnärztin zahnarzt dentist prophylaxe praxis gesundheit',arztpraxis:'arzt ärztin hausarzt hausärztin doktor praxis allgemeinmedizin rezept gesundheit',tierarzt:'tier tierärztin hund katze praxis gesundheit',apotheke:'medikament rezept arznei apothekerin vorbestellung vorbestellen abholen gesundheit',taxi:'fahrt fahrer mietwagen flughafen mobilität fahrt bestellen',bank:'konto karte kredit geld',versicherung:'schaden police vertrag kfz',hotel:'zimmer übernachtung rezeption buchung gastgewerbe hotellerie',restaurant:'pizza pizzeria essen lieferung lieferdienst bestellen gastronomie gastgewerbe restaurant',autowerkstatt:'auto kfz reifen inspektion tüv werkstatt service handwerk',handwerk:'heizung sanitär klempner notdienst installateur handwerker handwerk service',hausverwaltung:'miete mieter wohnung verwaltung',immobilien:'wohnung haus makler maklerin besichtigung miete kauf',kanzlei:'anwalt anwältin rechtsanwalt rechtsanwältin',steuerberater:'steuer steuerberaterin finanzamt buchhaltung',friseur:'haare frisur friseurin kosmetik salon termin service',fitness:'sport training gym studio mitgliedschaft service',stadtwerke:'strom gas wasser energie zähler versorger service'};
+/* Reihenfolge der Hauptkategorien (unbekannte Gruppen vom Server folgen dahinter in Server-Reihenfolge) */
+const SEC_GROUPS=['Bestellung & Lieferung','Gastronomie & Hotel','Dienstleistung','Gesundheit','Finanzen & Recht','Immobilien'];
 const secFold=s=>String(s).toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'');
 function secRender(){const w=$('#secGs');if(!w)return;w.textContent='';const groups=[];secList.forEach(s=>{let g=groups.find(x=>x.name===s.group);if(!g){g={name:s.group,items:[]};groups.push(g);}g.items.push(s);});
+  const gi=n=>{const i=SEC_GROUPS.indexOf(n);return i<0?SEC_GROUPS.length:i;};groups.forEach((g,i)=>g.i=i);groups.sort((a,b)=>gi(a.name)-gi(b.name)||a.i-b.i);
   groups.forEach(g=>{const d=document.createElement('div');d.className='secg';d.setAttribute('role','group');d.setAttribute('aria-label',g.name);const l=document.createElement('span');l.className='sgl';l.textContent=g.name;d.appendChild(l);
     g.items.forEach(s=>{const b=document.createElement('button');b.type='button';b.className='sec';b.dataset.k=s.key;b.setAttribute('aria-pressed',s.key===secCur?'true':'false');b.title=s.company+' · '+s.persona;b.innerHTML=`<i aria-hidden="true">${esc(s.icon)}</i><span>${esc(s.label)}</span>`;b.onclick=()=>{vUnlock();secSelect(s.key,true);};d.appendChild(b);});w.appendChild(d);});
   const n=$('#secSub');if(n)n.textContent=secList.length+' Beispiel-Betriebe – jede Branche mit eigener Persona, Wissensbasis und Stimme.';secFilter(secQ);}
@@ -942,12 +945,12 @@ function secHeader(){if(!cur||!cur.sectors)return;const s=phoneSec,co=$('#dCo'),
   $('#exTag').textContent='Telefon-Agent · '+s.label;$('#exText').textContent='Beispiel: '+s.company+'. '+s.persona+' nimmt ab, antwortet nur aus der Wissensbasis dieses Betriebs, nimmt Anliegen auf und bestätigt – in natürlicher Sprache. Wähle oben eine andere Branche, um denselben Agenten in einem anderen Betrieb zu hören.';}
 const ROLE_RE=/^(a|u|sys)$/;
 function secSpeech(x){if(!Array.isArray(x))return null;const it=x.map(y=>y&&typeof y==='object'?{text:vText(y.text).trim(),t:typeof y.t==='string'?y.t:''}:typeof y==='string'?{text:y.trim(),t:''}:null).filter(y=>y&&y.text);return it.length?it:null;}
-/* Skriptzeile → [schritt, rolle, text, sätze|null]; Formate [role,text], [role,text,speech] und [step,role,text]; sp = script_speech (parallel zum Skript) */
+/* Skriptzeile → [schritt, rolle, text, sätze|null]; Formate [role,text], [role,text,speech] und [step,role,text]; sp = script_speech: {Index der Zeile: [{text,t}]} oder Array parallel zum Skript */
 function secScript(sc,sp){if(!Array.isArray(sc))return [];const rows=[];
   sc.forEach((r,i)=>{if(!Array.isArray(r)||r.length<2)return;let role,text,speech;
     if(ROLE_RE.test(String(r[0]))){role=String(r[0]);text=r[1];speech=r[2];}else if(r.length>=3&&ROLE_RE.test(String(r[1]))){role=String(r[1]);text=r[2];speech=r[3];}else return;
     text=vText(text).trim();if(!text)return;if(role==='sys')text=toolRow(text);
-    rows.push([role,text,role==='a'?(secSpeech(speech)||secSpeech(Array.isArray(sp)?sp[i]:null)):null]);});
+    rows.push([role,text,role==='a'?(secSpeech(speech)||secSpeech(sp&&typeof sp==='object'?sp[i]:null)):null]);});
   const L=rows.slice(0,24),n=L.length;return L.map((r,i)=>[Math.min(3,Math.floor(i*4/n)),r[0],r[1],r[2]]);}
 /* Werkzeug-Aufrufe auf Deutsch (POST tools[] und Skriptzeilen „⚙ request callback ✓ …“): [erledigt, Tätigkeit] */
 const TOOL_DE={request_callback:['Rückruf eingetragen','Rückruf eintragen'],book_appointment:['Termin gebucht','Termin buchen'],get_available_slots:['Freie Termine geprüft','Freie Termine prüfen'],list_services:['Leistungen abgerufen','Leistungen abrufen'],
@@ -1003,7 +1006,7 @@ function vpReset(){VP.g='';VP.f='';VP.m='';vpSave();vpRender();vpLabel();}
 function vpSample(){vUnlock();vStop();if(!V.on){V.on=true;if(cur)vPrefSet(vCls(cur),true);liveVoiceUI();}
   const turn=V.turn;let items=V.greet.slice(0,2);if(!items.length)items=[{text:'Guten Tag, schön, dass Sie anrufen. Wie kann ich Ihnen helfen?',t:''}];vSay(items,turn);}
 /* Ehrlicher Hinweis, solange die Browser-Stimme spricht (keine Server-Stimme eingerichtet oder nicht erreichbar) */
-function ttsHintUI(){const h=$('#ttsHint');if(h)h.hidden=!(V.on&&V.ttsKnown&&(!V.tts||V.ttsDead)&&(liveOn||V.spoken));}
+function ttsHintUI(){const h=$('#ttsHint');if(h)h.hidden=!(V.on&&V.ttsKnown&&(!V.tts||V.ttsDead||(V.brw&&!liveOn))&&(liveOn||V.spoken));}
 function vPrefs(){let o=null;try{o=JSON.parse(localStorage.getItem(VKEY)||'{}');}catch(e){}return o&&typeof o==='object'?o:{};}
 function vPrefGet(cls){const o=vPrefs();return typeof o[cls]==='boolean'?o[cls]:cls==='phone';}
 function vPrefSet(cls,on){const o=vPrefs();o[cls]=!!on;try{localStorage.setItem(VKEY,JSON.stringify(o));}catch(e){}}
@@ -1070,11 +1073,11 @@ async function vBrowser(text,turn){const ss=window.speechSynthesis;if(!ss||!wind
     try{if(ss.paused)ss.resume();ss.speak(u);}catch(e){done('none');}});}
 /* Sätze nacheinander: Server-Stimme mit Prefetch des nächsten Satzes, bei Fehler Browser-Stimme für den Rest */
 async function vSay(items,turn,st){items=(items||[]).filter(x=>x&&x.text);if(!items.length||turn!==V.turn||!V.on)return false;
-  V.busy=true;if(!V.spoken){V.spoken=true;ttsHintUI();}liveState();let srv=vServer()&&!(st&&st.srv===false),ok=true;const pre=[];const get=i=>pre[i]||(pre[i]=vFetch(items[i]));
+  V.busy=true;if(!V.spoken){V.spoken=true;ttsHintUI();}liveState();let srv=vServer()&&!(st&&st.srv===false),ok=true;if(st&&!srv&&!V.brw){V.brw=true;ttsHintUI();}const pre=[];const get=i=>pre[i]||(pre[i]=vFetch(items[i]));
   try{for(let i=0;i<items.length;i++){if(turn!==V.turn||!V.on){ok=false;break;}let r='none';
       if(srv&&items[i].t){const url=await get(i);if(turn!==V.turn){ok=false;break;}
         if(url){if(i+1<items.length&&items[i+1].t)get(i+1);r=await vPlayUrl(url,turn);try{URL.revokeObjectURL(url);}catch(e){}if(r===false){ok=false;break;}}
-        if(r!==true){srv=false;if(st)st.srv=false;}}
+        if(r!==true){srv=false;if(st){st.srv=false;if(!V.brw){V.brw=true;ttsHintUI();}}}}
       if(r!==true){r=await vBrowser(items[i].text,turn);if(r===false){ok=false;break;}}
       if(i<items.length-1){await sleep(120+Math.random()*80);}}}
   finally{pre.forEach(p=>p&&p.then(u=>{if(u)try{URL.revokeObjectURL(u);}catch(e){}}));if(turn===V.turn){V.busy=false;liveState();}}
@@ -1087,7 +1090,9 @@ async function vFiller(f,turn,st){const url=await vFillerAudio(f);if(st.answered
 /* Ersatz, falls der Server kein speech[] liefert: einfache Satztrennung + Sprechnormalisierung */
 const V_MON=/^(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Jan|Feb|Mär|Apr|Jun|Jul|Aug|Sep|Sept|Okt|Nov|Dez)\b/;let V_EMO=null;try{V_EMO=new RegExp('[\\p{Extended_Pictographic}\\u{FE0F}\\u{200D}]','gu');}catch(e){}
 function vSplit(text){let s=String(text||'').replace(/\[(WEITERLEITEN|ENDE)\]/g,' ').replace(/https?:\/\/\S+/g,' ').replace(/[*_#`>|]/g,' ');if(V_EMO)s=s.replace(V_EMO,' ');
-  s=s.replace(/[✓✔✗⚙→←•]/g,' ').replace(/\s*·\s*/g,', ').replace(/\s*…\s*/g,', ').replace(/\bz\.\s?B\./g,'zum Beispiel').replace(/\bca\./g,'circa').replace(/\binkl\./g,'inklusive').replace(/\bzzgl\./g,'zuzüglich').replace(/\bbzw\./g,'beziehungsweise').replace(/\bNr\./g,'Nummer').replace(/\bggf\./g,'gegebenenfalls').replace(/\busw\./g,'und so weiter').replace(/\s&\s/g,' und ')
+  s=s.replace(/(^|[^\d+])(116)\s?(116|117)(?!\d)/g,(m,a,b,c)=>a+'1 1 6, '+c.split('').join(' ')).replace(/(^|[^\w+])((?:\+\d{2}|0\d{2,4})(?:[ \/-]\d{2,8}){1,3})(?!\d)/g,(m,a,n)=>a+n.replace(/^\+/,'plus ').split(/[ \/-]+/).map(g=>/^\d+$/.test(g)?g.split('').join(' '):g).join(', '))
+    .replace(/\bDr\.(?=\s)/g,'Doktor').replace(/\bProf\.(?=\s)/g,'Professor').replace(/\bp\.\s?a\./g,'pro Jahr').replace(/\bNK\b/g,'Nebenkosten').replace(/\bStr\.(?=\s+\d)/g,'Straße').replace(/(\p{Ll})str\.(?=\s+\d)/gu,'$1straße')
+    .replace(/[✓✔✗⚙→←•]/g,' ').replace(/\s*·\s*/g,', ').replace(/\s*…\s*/g,', ').replace(/\bz\.\s?B\./g,'zum Beispiel').replace(/\bca\./g,'circa').replace(/\binkl\./g,'inklusive').replace(/\bzzgl\./g,'zuzüglich').replace(/\bbzw\./g,'beziehungsweise').replace(/\bNr\./g,'Nummer').replace(/\bggf\./g,'gegebenenfalls').replace(/\busw\./g,'und so weiter').replace(/\s&\s/g,' und ')
     .replace(/\s+/g,' ').replace(/\s+([,.!?;:])/g,'$1').replace(/([,;:])(?:\s*[,;:])+/g,'$1').replace(/^[\s,;:]+/,'').trim();
   const out=[],re=/[.!?]+["“”»)]?(\s+|$)/g;let start=0,m;
   while((m=re.exec(s))){const end=m.index+m[0].length,w=(s.slice(start,m.index).match(/(\S+)$/)||['',''])[1];
@@ -1117,7 +1122,7 @@ function liveTimerStart(keep){liveTimerStop();const el=$('#dTimer');if(!el||!cur
 function liveTimerStop(){clearInterval(liveTick);liveTick=0;}
 function liveRecStop(){micWanted=false;if(rec){const r=rec;rec=null;try{r.onresult=r.onend=r.onerror=null;r.abort();}catch(e){}}const m=$('#liveMic');if(m)m.classList.remove('rec');if(liveSt==='listen')liveState('');}
 /* Live-Modus verlassen (Demo-Wechsel, „Demo abspielen“) */
-function liveLeave(){vStop();liveRecStop();liveTimerStop();liveOn=false;V.auto=false;liveSt='';liveSeq++;const l=$('#live');if(l)l.classList.remove('on','spk','lis','thk','aut');const b=$('#btnLive');if(b)b.textContent='Selbst testen – live';
+function liveLeave(){vStop();liveRecStop();liveTimerStop();liveOn=false;V.auto=false;V.brw=false;liveSt='';liveSeq++;const l=$('#live');if(l)l.classList.remove('on','spk','lis','thk','aut');const b=$('#btnLive');if(b)b.textContent='Selbst testen – live';
   const w=$('#dWave');if(w)w.classList.remove('idle','talk','lis');const c=$('#liveChips');if(c){c.textContent='';c.hidden=true;}vpClose(false);ttsHintUI();}
 async function goLive(voice){if(liveOn&&!voice)return;vUnlock();vStop();liveRecStop();
   liveOn=true;V.auto=false;playId++;liveSeq++;liveHist=[];liveUser=0;liveChips=[];liveSt='';const d=cur;$('#live').classList.add('on');$('#live').classList.remove('aut');$('#btnLive').textContent='Live-Modus aktiv';

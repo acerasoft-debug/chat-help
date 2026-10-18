@@ -29,7 +29,127 @@ const ASSISTANT_PHOTO_MAX = 358400;     // 350 KB (Binärgröße nach dem Verkle
 const ASSISTANT_SPEAK_MAX = 400;
 const ASSISTANT_TONES = ['warm','ruhig','energisch','sachlich'];
 const ASSISTANT_MOODS = ['herzlich','professionell','locker'];
-const ASSISTANT_LANGS = ['de','en','tr','fr','es','it','nl','pl','ru'];
+/**
+ * Die 13 Sprachen der Plattform (Deutsch + EN, FR, ES, TR, RU, IT, NL, SV, NO, FI, JA, AZ) – eine Tabelle für Profil, Agenten-Sprache (set_agent_tone),
+ * Systemprompt, Begrüßung, Hörprobe, Server-Stimme und das Panel (GET /v1/assistant/profile → langs). de = Name in der deutschen Oberfläche,
+ * en = englischer Name (Sprechanweisung der Server-Stimme), tag = BCP-47 (Browserstimme, Spracherkennung), formal = kennt du/Sie, az_f/az_m = native Azure-Stimmen.
+ */
+const ASSISTANT_LANG_TABLE = [
+    'de'=>['de'=>'Deutsch','native'=>'Deutsch','en'=>'German','tag'=>'de-DE','formal'=>true,'az_f'=>'de-DE-SeraphinaMultilingualNeural','az_m'=>'de-DE-FlorianMultilingualNeural'],
+    'en'=>['de'=>'Englisch','native'=>'English','en'=>'English','tag'=>'en-GB','formal'=>false,'az_f'=>'en-US-AvaMultilingualNeural','az_m'=>'en-US-AndrewMultilingualNeural'],
+    'fr'=>['de'=>'Französisch','native'=>'Français','en'=>'French','tag'=>'fr-FR','formal'=>true,'az_f'=>'fr-FR-DeniseNeural','az_m'=>'fr-FR-HenriNeural'],
+    'es'=>['de'=>'Spanisch','native'=>'Español','en'=>'Spanish','tag'=>'es-ES','formal'=>true,'az_f'=>'es-ES-ElviraNeural','az_m'=>'es-ES-AlvaroNeural'],
+    'tr'=>['de'=>'Türkisch','native'=>'Türkçe','en'=>'Turkish','tag'=>'tr-TR','formal'=>true,'az_f'=>'tr-TR-EmelNeural','az_m'=>'tr-TR-AhmetNeural'],
+    'ru'=>['de'=>'Russisch','native'=>'Русский','en'=>'Russian','tag'=>'ru-RU','formal'=>true,'az_f'=>'ru-RU-SvetlanaNeural','az_m'=>'ru-RU-DmitryNeural'],
+    'it'=>['de'=>'Italienisch','native'=>'Italiano','en'=>'Italian','tag'=>'it-IT','formal'=>true,'az_f'=>'it-IT-ElsaNeural','az_m'=>'it-IT-DiegoNeural'],
+    'nl'=>['de'=>'Niederländisch','native'=>'Nederlands','en'=>'Dutch','tag'=>'nl-NL','formal'=>true,'az_f'=>'nl-NL-FennaNeural','az_m'=>'nl-NL-MaartenNeural'],
+    'sv'=>['de'=>'Schwedisch','native'=>'Svenska','en'=>'Swedish','tag'=>'sv-SE','formal'=>false,'az_f'=>'sv-SE-SofieNeural','az_m'=>'sv-SE-MattiasNeural'],
+    'no'=>['de'=>'Norwegisch','native'=>'Norsk','en'=>'Norwegian (Bokmål)','tag'=>'nb-NO','formal'=>false,'az_f'=>'nb-NO-PernilleNeural','az_m'=>'nb-NO-FinnNeural'],
+    'fi'=>['de'=>'Finnisch','native'=>'Suomi','en'=>'Finnish','tag'=>'fi-FI','formal'=>true,'az_f'=>'fi-FI-NooraNeural','az_m'=>'fi-FI-HarriNeural'],
+    'ja'=>['de'=>'Japanisch','native'=>'日本語','en'=>'Japanese','tag'=>'ja-JP','formal'=>false,'az_f'=>'ja-JP-NanamiNeural','az_m'=>'ja-JP-KeitaNeural'],
+    'az'=>['de'=>'Aserbaidschanisch','native'=>'Azərbaycanca','en'=>'Azerbaijani','tag'=>'az-AZ','formal'=>true,'az_f'=>'az-AZ-BanuNeural','az_m'=>'az-AZ-BabekNeural'],
+];
+const ASSISTANT_LANGS = ['de','en','fr','es','tr','ru','it','nl','sv','no','fi','ja','az'];
+/**
+ * Begrüßung und Hörprobe je Sprache (Deutsch hat eine eigene, nach Art abgestufte Begrüßung in assistant_greeting).
+ * Wert = Text oder ['du'=>…,'sie'=>…] (vertraut/förmlich), darin ggf. ['f'=>…,'m'=>…] (Assistentin/Assistent). {name}, {company} werden ersetzt.
+ */
+const ASSISTANT_LANG_TEXT = [
+    'en'=>['hi'=>'Hello and welcome!','intro'=>'I\'m {name}, your personal assistant here in ChatHelp Studio.',
+        'mid'=>'Just tell me what needs doing – I\'ll ask whatever I still need to know and set up your agents with you, step by step.',
+        'co'=>'I can see “{company}” is already set up. What shall I take care of first?','new'=>'To start: what kind of business do you run?',
+        'preview'=>'Hello, I\'m {name}. This is how I sound – does that suit you?'],
+    'fr'=>['hi'=>'Bonjour et bienvenue !',
+        'intro'=>['du'=>['f'=>'Je suis {name}, ton assistante personnelle dans ChatHelp Studio.','m'=>'Je suis {name}, ton assistant personnel dans ChatHelp Studio.'],
+                  'sie'=>['f'=>'Je suis {name}, votre assistante personnelle dans ChatHelp Studio.','m'=>'Je suis {name}, votre assistant personnel dans ChatHelp Studio.']],
+        'mid'=>['du'=>'Dis-moi simplement ce qu\'il faut faire – je te pose les questions nécessaires et je configure tes agents avec toi, étape par étape.',
+                'sie'=>'Dites-moi simplement ce qu\'il faut faire – je vous pose les questions nécessaires et je configure vos agents avec vous, étape par étape.'],
+        'co'=>['du'=>'Je vois que « {company} » est déjà enregistré. Par quoi veux-tu que je commence ?','sie'=>'Je vois que « {company} » est déjà enregistré. Par quoi voulez-vous que je commence ?'],
+        'new'=>['du'=>'Pour commencer : quel type d\'entreprise diriges-tu ?','sie'=>'Pour commencer : quel type d\'entreprise dirigez-vous ?'],
+        'preview'=>['du'=>'Bonjour, je suis {name}. Voici ma voix – est-ce qu\'elle te convient ?','sie'=>'Bonjour, je suis {name}. Voici ma voix – est-ce qu\'elle vous convient ?']],
+    'es'=>['hi'=>'¡Hola!',
+        'intro'=>['du'=>'Soy {name}, tu asistente personal aquí en ChatHelp Studio.','sie'=>'Soy {name}, su asistente personal aquí en ChatHelp Studio.'],
+        'mid'=>['du'=>'Cuéntame qué hay que hacer: te preguntaré lo que aún necesito saber y configuraré tus agentes contigo, paso a paso.',
+                'sie'=>'Cuénteme qué hay que hacer: le preguntaré lo que aún necesito saber y configuraré sus agentes con usted, paso a paso.'],
+        'co'=>['du'=>'Veo que «{company}» ya está creado. ¿Por dónde quieres que empiece?','sie'=>'Veo que «{company}» ya está creado. ¿Por dónde quiere que empiece?'],
+        'new'=>['du'=>'Para empezar: ¿qué tipo de negocio tienes?','sie'=>'Para empezar: ¿qué tipo de negocio tiene?'],
+        'preview'=>['du'=>'Hola, soy {name}. Así suena mi voz. ¿Te gusta?','sie'=>'Hola, soy {name}. Así suena mi voz. ¿Le gusta?']],
+    'tr'=>['hi'=>['du'=>'Merhaba, hoş geldin!','sie'=>'Merhaba, hoş geldiniz!'],
+        'intro'=>['du'=>'Ben {name}, ChatHelp Studio\'daki kişisel asistanın.','sie'=>'Ben {name}, ChatHelp Studio\'daki kişisel asistanınız.'],
+        'mid'=>['du'=>'Bana yapılması gerekenleri anlatman yeterli – eksik bilgileri sana sorar ve ajanlarını adım adım seninle birlikte kurarım.',
+                'sie'=>'Bana yapılması gerekenleri anlatmanız yeterli – eksik bilgileri size sorar ve ajanlarınızı adım adım sizinle birlikte kurarım.'],
+        'co'=>['du'=>'“{company}” zaten kayıtlı görünüyor. İlk olarak ne yapmamı istersin?','sie'=>'“{company}” zaten kayıtlı görünüyor. İlk olarak ne yapmamı istersiniz?'],
+        'new'=>['du'=>'Başlamak için: Nasıl bir işletmen var?','sie'=>'Başlamak için: Nasıl bir işletmeniz var?'],
+        'preview'=>['du'=>'Merhaba, ben {name}. Sesim böyle – sana uygun mu?','sie'=>'Merhaba, ben {name}. Sesim böyle – size uygun mu?']],
+    'ru'=>['hi'=>['du'=>'Привет и добро пожаловать!','sie'=>'Здравствуйте и добро пожаловать!'],
+        'intro'=>['du'=>'Я {name}, твой личный ассистент в ChatHelp Studio.','sie'=>'Я {name}, ваш личный ассистент в ChatHelp Studio.'],
+        'mid'=>['du'=>'Просто расскажи, что нужно сделать, – я уточню всё, что мне ещё нужно знать, и шаг за шагом настрою вместе с тобой твоих агентов.',
+                'sie'=>'Просто расскажите, что нужно сделать, – я уточню всё, что мне ещё нужно знать, и шаг за шагом настрою вместе с вами ваших агентов.'],
+        'co'=>'Вижу, что «{company}» уже создан. С чего мне начать?',
+        'new'=>['du'=>'Для начала: какой у тебя бизнес?','sie'=>'Для начала: какой у вас бизнес?'],
+        'preview'=>['du'=>'Привет, я {name}. Вот так звучит мой голос – тебе подходит?','sie'=>'Здравствуйте, я {name}. Вот так звучит мой голос – вам подходит?']],
+    'it'=>['hi'=>['du'=>'Ciao e benvenuto!','sie'=>'Buongiorno e benvenuto!'],
+        'intro'=>['du'=>['f'=>'Sono {name}, la tua assistente personale qui in ChatHelp Studio.','m'=>'Sono {name}, il tuo assistente personale qui in ChatHelp Studio.'],
+                  'sie'=>['f'=>'Sono {name}, la Sua assistente personale qui in ChatHelp Studio.','m'=>'Sono {name}, il Suo assistente personale qui in ChatHelp Studio.']],
+        'mid'=>['du'=>'Dimmi semplicemente cosa c\'è da fare: ti chiederò ciò che mi serve ancora sapere e configurerò i tuoi agenti insieme a te, passo dopo passo.',
+                'sie'=>'Mi dica semplicemente cosa c\'è da fare: Le chiederò ciò che mi serve ancora sapere e configurerò i Suoi agenti insieme a Lei, passo dopo passo.'],
+        'co'=>['du'=>'Vedo che «{company}» è già configurato. Da cosa vuoi che inizi?','sie'=>'Vedo che «{company}» è già configurato. Da cosa vuole che inizi?'],
+        'new'=>['du'=>'Per cominciare: che tipo di attività hai?','sie'=>'Per cominciare: che tipo di attività ha?'],
+        'preview'=>['du'=>'Ciao, sono {name}. Ecco come suona la mia voce: ti piace?','sie'=>'Buongiorno, sono {name}. Ecco come suona la mia voce: Le piace?']],
+    'nl'=>['hi'=>'Hallo en welkom!',
+        'intro'=>['du'=>'Ik ben {name}, je persoonlijke assistent hier in ChatHelp Studio.','sie'=>'Ik ben {name}, uw persoonlijke assistent hier in ChatHelp Studio.'],
+        'mid'=>['du'=>'Vertel me gewoon wat er moet gebeuren – ik vraag wat ik nog moet weten en richt je agents stap voor stap samen met je in.',
+                'sie'=>'Vertelt u mij gewoon wat er moet gebeuren – ik vraag wat ik nog moet weten en richt uw agents stap voor stap samen met u in.'],
+        'co'=>'Ik zie dat ‘{company}’ al is aangemaakt. Waarmee zal ik beginnen?',
+        'new'=>['du'=>'Om te beginnen: wat voor bedrijf heb je?','sie'=>'Om te beginnen: wat voor bedrijf heeft u?'],
+        'preview'=>['du'=>'Hallo, ik ben {name}. Zo klinkt mijn stem – vind je dat prettig?','sie'=>'Hallo, ik ben {name}. Zo klinkt mijn stem – vindt u dat prettig?']],
+    'sv'=>['hi'=>'Hej och välkommen!','intro'=>'Jag heter {name} och är din personliga assistent här i ChatHelp Studio.',
+        'mid'=>'Berätta bara vad som behöver göras – jag frågar efter det jag fortfarande behöver veta och sätter upp dina agenter tillsammans med dig, steg för steg.',
+        'co'=>'Jag ser att ”{company}” redan finns. Vad ska jag ta hand om först?','new'=>'Till att börja med: vilken typ av verksamhet driver du?',
+        'preview'=>'Hej, jag heter {name}. Så här låter jag – passar det dig?'],
+    'no'=>['hi'=>'Hei og velkommen!','intro'=>'Jeg heter {name} og er din personlige assistent her i ChatHelp Studio.',
+        'mid'=>'Bare fortell meg hva som skal gjøres – jeg spør om det jeg fortsatt trenger å vite, og setter opp agentene dine sammen med deg, steg for steg.',
+        'co'=>'Jeg ser at «{company}» allerede er opprettet. Hva skal jeg ta meg av først?','new'=>'For å begynne: hva slags bedrift driver du?',
+        'preview'=>'Hei, jeg heter {name}. Slik høres jeg ut – passer det for deg?'],
+    'fi'=>['hi'=>['du'=>'Hei ja tervetuloa!','sie'=>'Hyvää päivää ja tervetuloa!'],
+        'intro'=>['du'=>'Olen {name}, henkilökohtainen assistenttisi täällä ChatHelp Studiossa.','sie'=>'Olen {name}, henkilökohtainen assistenttinne täällä ChatHelp Studiossa.'],
+        'mid'=>['du'=>'Kerro vain, mitä pitää tehdä – kysyn, mitä minun vielä tarvitsee tietää, ja otan agenttisi käyttöön yhdessä kanssasi vaihe vaiheelta.',
+                'sie'=>'Kertokaa vain, mitä pitää tehdä – kysyn, mitä minun vielä tarvitsee tietää, ja otan agenttinne käyttöön yhdessä kanssanne vaihe vaiheelta.'],
+        'co'=>'Näen, että ”{company}” on jo luotu. Mistä aloitan?',
+        'new'=>['du'=>'Aluksi: millainen yritys sinulla on?','sie'=>'Aluksi: millainen yritys Teillä on?'],
+        'preview'=>['du'=>'Hei, olen {name}. Tältä kuulostan – sopiiko se sinulle?','sie'=>'Hyvää päivää, olen {name}. Tältä kuulostan – sopiiko se Teille?']],
+    'ja'=>['hi'=>'こんにちは、ようこそ！','intro'=>'ChatHelp Studio のパーソナルアシスタント、{name}です。',
+        'mid'=>'やりたいことをお気軽にお話しください。必要なことをお尋ねしながら、エージェントの設定を一緒に一歩ずつ進めます。',
+        'co'=>'「{company}」はすでに登録されていますね。まず何から始めましょうか？','new'=>'まず、どのような事業をされていますか？',
+        'preview'=>'こんにちは、{name}です。私の声はこんな感じです。いかがでしょうか？'],
+    'az'=>['hi'=>['du'=>'Salam, xoş gəldin!','sie'=>'Salam, xoş gəlmisiniz!'],
+        'intro'=>['du'=>'Mən {name}, ChatHelp Studio-da sənin şəxsi assistentinəm.','sie'=>'Mən {name}, ChatHelp Studio-da sizin şəxsi assistentinizəm.'],
+        'mid'=>['du'=>'Sadəcə nə edilməli olduğunu de – hələ bilməli olduğum şeyləri soruşacağam və agentlərini səninlə birlikdə addım-addım quracağam.',
+                'sie'=>'Sadəcə nə edilməli olduğunu deyin – hələ bilməli olduğum şeyləri soruşacağam və agentlərinizi sizinlə birlikdə addım-addım quracağam.'],
+        'co'=>'Görürəm ki, “{company}” artıq yaradılıb. İlk olaraq nə ilə başlayım?',
+        'new'=>['du'=>'Başlamaq üçün: necə bir biznesin var?','sie'=>'Başlamaq üçün: necə bir biznesiniz var?'],
+        'preview'=>['du'=>'Salam, mən {name}. Səsim belədir – sənə uyğundurmu?','sie'=>'Salam, mən {name}. Səsim belədir – sizə uyğundurmu?']],
+];
+/**
+ * Bestätigungen „ja / passt / mach das“ in allen 13 Sprachen (Anfang der Nachricht, kleingeschrieben). Werkzeuge, die etwas ändern,
+ * laufen nur, wenn die letzte Assistenten-Nachricht eine Frage war UND der Inhaber kurz und klar zustimmt (assistant_confirmed).
+ */
+const ASSISTANT_YES = [
+    'ja','jawohl','jap','jep','jo','joa','jupp','passt','genau','gerne','gern','ok','okay','oki','okey','einverstanden','richtig','stimmt','klar','sicher','perfekt','super','top','prima','alles klar','in ordnung','mach das','mach es','mach ruhig','mach so','übernimm','übernehmen','bitte übernehmen','trag ein','trag es ein','speicher','speichern','los','leg los',
+    'yes','yeah','yep','yup','sure','go ahead','do it','please do','correct','right','fine','sounds good','perfect','absolutely','of course',
+    'oui','ouais','d\'accord','vas-y','allez-y','parfait','exactement','c\'est bon','bien sûr','volontiers',
+    'sí','si','vale','claro','perfecto','de acuerdo','hazlo','adelante','correcto','por supuesto',
+    'certo','va bene','perfetto','esatto','procedi','fallo','d\'accordo','certamente',
+    'evet','tamam','olur','tabii','tabi','aynen','doğru','kaydet','peki','tamamdır',
+    'да','конечно','хорошо','давай','давайте','верно','согласен','согласна','ок','отлично',
+    'graag','goed','oké','akkoord','doe maar','klopt','zeker',
+    'japp','okej','kör','gör det','absolut','stämmer','visst','gärna','jepp','greit','kjør','gjør det','stemmer','gjerne','absolutt',
+    'kyllä','joo','juu','selvä','sopii','tee se','käy','totta kai','hyvä',
+    'bəli','hə','oldu','yaxşı','razıyam','düzdür','əlbəttə','olar',
+];
+const ASSISTANT_YES_JA = ['はい','ええ','うん','お願いします','お願い','大丈夫','いいです','いいよ','それで','オッケー','了解','承知'];
+/** Werkzeuge, die Einstellungen ändern – nur nach Bestätigung (Rest: remember, get_overview, recommend_agent, open_studio_tab). */
+const ASSISTANT_CHANGING_TOOLS = ['save_business_profile','update_agent_knowledge','add_faq','set_agent_tone','configure_appointments','configure_menu','configure_taxi','configure_hotel','configure_callbacks'];
 const ASSISTANT_AGENT_TONES = ['freundlich-professionell','seriös-zugewandt','sachlich-respektvoll','locker-modern','einfühlsam-präzise','kompetent-ehrlich'];
 const ASSISTANT_TABS = ['home'=>'Übersicht','agents'=>'Agenten','training'=>'Training','phone'=>'Telefon','rueckruf'=>'Rückrufe','termine'=>'Termine','bestellungen'=>'Bestellungen','taxi'=>'Taxi','hotel'=>'Hotel','benachrichtigungen'=>'Benachrichtigungen','tokens'=>'Tokens & API','assistant'=>'Assistent'];
 /** Eingebaute Porträts, solange site/media/avatars/avatars.json fehlt: dezente SVG-Platzhalter (Initiale + weicher Verlauf). */
@@ -109,6 +229,59 @@ function assistant_now_text(): string {
     return $w.', '.$d->format('d.m.Y, H:i').' Uhr';
 }
 function assistant_plan_name(string $id): string { $p=ch_plan($id); return $p ? $p['name'] : $id; }
+/* ---- Sprachen */
+function assistant_lang(string $l): string { $l=strtolower(trim($l)); if(in_array($l,['nb','nn'],true)) $l='no'; return isset(ASSISTANT_LANG_TABLE[$l]) ? $l : 'de'; }
+function assistant_lang_name(string $l): string { return ASSISTANT_LANG_TABLE[assistant_lang($l)]['de']; }
+function assistant_lang_tag(string $l): string { return ASSISTANT_LANG_TABLE[assistant_lang($l)]['tag']; }
+/** Text aus ASSISTANT_LANG_TEXT (fehlt die Sprache: Englisch). */
+function assistant_lt(string $lang, string $key, bool $sie, bool $fem, array $vars=[]): string {
+    $v=ASSISTANT_LANG_TEXT[$lang][$key] ?? ASSISTANT_LANG_TEXT['en'][$key] ?? '';
+    if(is_array($v) && isset($v['du'])) $v=$sie ? $v['sie'] : $v['du'];
+    if(is_array($v)) $v=$fem ? ($v['f'] ?? reset($v)) : ($v['m'] ?? reset($v));
+    return strtr((string)$v,array_combine(array_map(fn($k)=>'{'.$k.'}',array_keys($vars)),array_values($vars)) ?: []);
+}
+/** Hörprobe (immer vom Server gebaut – /speak liest keine beliebigen Texte vor). */
+function assistant_preview_text(string $lang, string $name, bool $sie, bool $fem): string {
+    $lang=assistant_lang($lang);
+    if($lang==='de') return 'Hallo, ich bin '.$name.'. So klinge ich – passt das für '.($sie ? 'Sie' : 'dich').'?';
+    return assistant_lt($lang,'preview',$sie,$fem,['name'=>$name]);
+}
+/** Sprachliste fürs Panel. */
+function assistant_langs_public(): array {
+    $o=[]; foreach(ASSISTANT_LANGS as $c){ $t=ASSISTANT_LANG_TABLE[$c]; $o[]=['code'=>$c,'name'=>$t['de'],'native'=>$t['native'],'tag'=>$t['tag'],'formal'=>$t['formal']]; }
+    return $o;
+}
+/**
+ * Sprache eines Textes grob erkennen (für Stimme und Spracheingabe; die KI antwortet in der Sprache des Inhabers). Schrift zuerst (ja, ru),
+ * dann typische Wörter und Sonderzeichen. Unsicher (kurzer Text, knappes Ergebnis) → $fallback.
+ */
+function assistant_detect_lang(string $t, string $fallback='de'): string {
+    $fallback=assistant_lang($fallback);
+    if(preg_match_all('/[\p{Hiragana}\p{Katakana}]/u',$t)>=2 || (preg_match_all('/\p{Han}/u',$t)>=4 && !preg_match('/\p{Cyrillic}/u',$t))) return 'ja';
+    $cyr=preg_match_all('/\p{Cyrillic}/u',$t); $lat=preg_match_all('/[a-zA-Z\x{00C0}-\x{024F}\x{0259}]/u',$t);
+    if($cyr>=3 && $cyr>=$lat) return 'ru';
+    $l=' '.mb_strtolower((string)preg_replace('/[^\p{L}\s\']+/u',' ',$t)).' '; $l=(string)preg_replace('/\s+/u',' ',$l);
+    $W=['de'=>['der','die','das','und','ist','ich','nicht','mit','eine','für','wir','auf','zu','den','dem','haben','kann','noch','oder','uhr','bitte','gerne','soll','dein','deine','ihre','sind','wie','was','schon','auch'],
+        'en'=>['the','and','is','you','your','we','are','with','to','of','can','please','will','this','that','have','our','it','what','how','should','shall','first','business'],
+        'fr'=>['le','la','les','et','est','vous','nous','pour','avec','une','des','pas','merci','votre','je','que','qui','dans','sur','ce','tu','ton','quel','quelle'],
+        'es'=>['el','los','las','y','usted','para','con','una','por','gracias','su','que','qué','del','tu','tus','muy','está','cómo','tienes','tiene','hay'],
+        'it'=>['il','gli','e','è','per','con','una','che','di','non','sono','ti','tuo','tua','grazie','come','della','vuoi','hai','cosa'],
+        'nl'=>['de','het','een','en','niet','ik','je','wat','voor','met','van','op','zijn','we','dat','er','uw','heb','bent','graag'],
+        'sv'=>['och','att','är','jag','inte','vad','till','ett','för','dig','mig','hur','vill','din','dina','vi','har','det','som'],
+        'no'=>['og','er','jeg','ikke','hva','til','et','for','deg','meg','hvordan','vil','din','dine','vi','har','det','som'],
+        'fi'=>['ja','on','ei','se','että','mitä','minä','sinä','olen','kun','tai','mutta','voit','sinun','haluat','kanssa','myös','mikä','millainen'],
+        'tr'=>['ve','bir','bu','için','ile','mı','mi','değil','evet','lütfen','size','sizin','çok','var','yok','ne','nasıl','ben','sen','misiniz','musun'],
+        'az'=>['və','bir','bu','üçün','ilə','deyil','bəli','zəhmət','sizə','sizin','çox','var','yox','nə','necə','mən','sən','olaraq']];
+    $sc=[]; foreach($W as $k=>$ws){ $n=0; foreach($ws as $w) $n+=substr_count($l,' '.$w.' '); $sc[$k]=$n; }
+    $sc['az']+=3*preg_match_all('/ə/u',$l); $sc['tr']+=preg_match_all('/[ğış]/u',$l)-2*preg_match_all('/ə/u',$l);
+    $sc['de']+=preg_match_all('/ß/u',$l)+preg_match_all('/ü/u',$l); $sc['sv']+=preg_match_all('/å/u',$l); $sc['no']+=2*preg_match_all('/[æø]/u',$l);
+    $sc['fi']+=preg_match_all('/(aa|ee|ii|uu|yy|ää|öö)/u',$l)>2 ? 2 : 0;
+    $sc['es']+=2*preg_match_all('/[¿¡ñ]/u',$t); $sc['fr']+=preg_match_all('/[çœ]|\b(c|d|j|l|qu)\'/u',$l);
+    arsort($sc); $keys=array_keys($sc); $best=$keys[0]; $top=$sc[$best]; $second=$sc[$keys[1]] ?? 0;
+    if($top<2 || $top-$second<1) return $fallback;
+    if(($sc[$fallback] ?? 0)>=$top) return $fallback;
+    return $best;
+}
 /** Studio-Bereiche, die es in dieser Installation gibt (Modul-Panels nur, wenn ihre Dateien vorhanden sind). */
 function assistant_tabs_available(): array { return array_values(array_filter(array_keys(ASSISTANT_TABS),fn($k)=>$k!=='assistant' && assistant_has_tab($k))); }
 function assistant_has_tab(string $tab): bool {
@@ -257,7 +430,8 @@ function assistant_profile_public(array $pr): array {
     $pre=assistant_voice_presets()[$pr['voice']['preset']] ?? null;
     return ['name'=>$pr['name'],'gender'=>$pr['gender'],'portrait'=>$pr['portrait'],'portrait_url'=>assistant_portrait_url($pr),'has_photo'=>!empty($pr['portrait_data']),
         'photo_url'=>!empty($pr['portrait_data']) && $pr['portrait']!=='custom' ? (string)$pr['portrait_data'] : null,'voice_label'=>$pre ? $pre['title'] : '',
-        'voice'=>$pr['voice'],'personality'=>$pr['personality'],'lang'=>$pr['lang'],'role'=>assistant_role_label($pr),'saved'=>$pr['saved']];
+        'voice'=>$pr['voice'],'personality'=>$pr['personality'],'lang'=>$pr['lang'],'lang_tag'=>assistant_lang_tag($pr['lang']),'lang_name'=>assistant_lang_name($pr['lang']),
+        'role'=>assistant_role_label($pr),'saved'=>$pr['saved']];
 }
 /**
  * Profil speichern (nur übergebene Felder ändern sich). Felder: name, gender, portrait, photo (data-URL), remove_photo,
@@ -288,7 +462,10 @@ function assistant_profile_save(int $acc, array $d, ?array &$err=null): array {
         foreach(['rate','pitch'] as $k) if(isset($vo[$k])){ if(!is_numeric($vo[$k])) return $bad('voice.'.$k,'Ungültiger Wert für '.($k==='rate' ? 'das Tempo' : 'die Tonhöhe').'.'); $v['voice'][$k]=max(0.7,min(1.3,round((float)$vo[$k],2))); }
         if(isset($vo['preset']) && $vo['preset']!==''){ $pre=assistant_voice_presets(); $pid=assistant_str($vo['preset'],40);
             if(!isset($pre[$pid])) return $bad('voice.preset','Diese Stimme gibt es nicht.');
-            if($pre[$pid]['gender']!==$v['gender']) return $bad('voice.preset','Die Stimme passt nicht zum gewählten Geschlecht.');
+            if($pre[$pid]['gender']!==$v['gender']){
+                /* Geschlecht wird gerade gewechselt und die alte Stimme mitgeschickt → passende Stimme zum Ton wählen statt abzulehnen */
+                if($v['gender']===$c['gender']) return $bad('voice.preset','Die Stimme passt nicht zum gewählten Geschlecht.');
+                $pid=assistant_preset_for($v['gender'],$v['voice']['tone']); }
             $v['voice']['preset']=$pid; }
     }
     $pre=assistant_voice_presets(); $pid=(string)($v['voice']['preset'] ?? '');
@@ -300,7 +477,7 @@ function assistant_profile_save(int $acc, array $d, ?array &$err=null): array {
         if(isset($pe['humor'])){ if(!is_numeric($pe['humor']) || (int)$pe['humor']<0 || (int)$pe['humor']>2) return $bad('personality.humor','Humor: 0, 1 oder 2.'); $v['personality']['humor']=(int)$pe['humor']; }
         if(isset($pe['detail'])){ if(!in_array($pe['detail'],['kurz','ausführlich'],true)) return $bad('personality.detail','Antwortlänge: kurz oder ausführlich.'); $v['personality']['detail']=$pe['detail']; }
     }
-    if(array_key_exists('lang',$d)){ $l=assistant_str($d['lang'],8); if(!in_array($l,ASSISTANT_LANGS,true)) return $bad('lang','Diese Sprache wird nicht unterstützt.'); $v['lang']=$l; }
+    if(array_key_exists('lang',$d)){ $l=strtolower(assistant_str($d['lang'],8)); if($l==='nb') $l='no'; if(!in_array($l,ASSISTANT_LANGS,true)) return $bad('lang','Diese Sprache wird nicht unterstützt.'); $v['lang']=$l; }
     th_db()->prepare("INSERT INTO assistant_profiles(account_id,name,gender,portrait,portrait_data,voice,personality,lang) VALUES(?,?,?,?,?,?,?,?)
         ON DUPLICATE KEY UPDATE name=VALUES(name),gender=VALUES(gender),portrait=VALUES(portrait),portrait_data=VALUES(portrait_data),voice=VALUES(voice),personality=VALUES(personality),lang=VALUES(lang),updated_at=NOW()")
       ->execute([$acc,$v['name'],$v['gender'],$v['portrait'],$v['portrait_data'],json_encode($v['voice']),json_encode($v['personality'],JSON_UNESCAPED_UNICODE),$v['lang']]);
@@ -315,12 +492,25 @@ function assistant_enabled(int $acc): bool { return false; }
 function assistant_system_hint(int $acc, string $channel='chat'): string { return ''; }
 
 /* ======================================================================= Stimme */
-function assistant_tts_ready(): bool {
-    if(!function_exists('ch_tts_synth') || !function_exists('ch_tts_provider')) return false;
-    try{ return ch_tts_provider()!==null; }catch(Throwable $e){ return false; }
+function assistant_tts_provider(): ?string {
+    if(!function_exists('ch_tts_synth') || !function_exists('ch_tts_provider')) return null;
+    try{ return ch_tts_provider(); }catch(Throwable $e){ return null; }
 }
-/** Stimmparameter für ch_tts_synth aus Geschlecht, Ton und Persönlichkeit. $over = ungespeicherte Vorschau (Hörprobe). */
-function assistant_voice(array $pr, array $over=[]): array {
+/**
+ * Sprachen, die die Server-Stimme beim aktuellen Anbieter wirklich sprechen kann. OpenAI und Azure (native Stimmen je Sprache): alle 13;
+ * ElevenLabs multilingual_v2: ohne Norwegisch und Aserbaidschanisch; Google: speech-lib lässt nur de-DE-Stimmen zu → nur Deutsch.
+ * Für die übrigen Sprachen spricht die Browserstimme der jeweiligen Sprache.
+ */
+function assistant_tts_langs(): array {
+    $p=assistant_tts_provider(); if($p===null) return [];
+    if($p==='google') return ['de'];
+    if($p==='elevenlabs') return array_values(array_diff(ASSISTANT_LANGS,['no','az']));
+    return ASSISTANT_LANGS;
+}
+function assistant_tts_ready(string $lang=''): bool { $l=assistant_tts_langs(); return $lang==='' ? (bool)$l : in_array(assistant_lang($lang),$l,true); }
+/** Stimmparameter für ch_tts_synth aus Geschlecht, Ton, Persönlichkeit und Sprache des Satzes. $over = ungespeicherte Vorschau (Hörprobe). */
+function assistant_voice(array $pr, array $over=[], string $lang=''): array {
+    $lang=assistant_lang($lang!=='' ? $lang : $pr['lang']); $L=ASSISTANT_LANG_TABLE[$lang];
     $g=in_array($over['gender'] ?? '',['f','m'],true) ? $over['gender'] : $pr['gender'];
     $tone=in_array($over['tone'] ?? '',ASSISTANT_TONES,true) ? $over['tone'] : $pr['voice']['tone'];
     $rate=isset($over['rate']) && is_numeric($over['rate']) ? max(0.7,min(1.3,(float)$over['rate'])) : (float)$pr['voice']['rate'];
@@ -328,14 +518,18 @@ function assistant_voice(array $pr, array $over=[]): array {
     $pre=assistant_voice_presets(); $pid=(string)($over['preset'] ?? ($g===$pr['gender'] ? ($pr['voice']['preset'] ?? '') : ''));
     if(!isset($pre[$pid]) || $pre[$pid]['gender']!==$g) $pid=assistant_preset_for($g,$tone);
     $vm=$pre[$pid];
-    $who=$g==='m' ? 'a friendly German man in his thirties' : 'a friendly German woman in her thirties';
+    $who=$g==='m' ? 'a friendly man in his thirties and a native '.$L['en'].' speaker' : 'a friendly woman in her thirties and a native '.$L['en'].' speaker';
     $toneTxt=['warm'=>'warm, kind and reassuring, with a gentle smile in the voice','ruhig'=>'calm, soft and unhurried, with natural pauses','energisch'=>'bright, upbeat and energetic, but never rushed','sachlich'=>'clear, composed and matter-of-fact, precise articulation'][$tone];
     $mood=['herzlich'=>'Sound heartfelt and personal.','professionell'=>'Sound polished and professional.','locker'=>'Sound relaxed and casual, like talking to a colleague.'][$pr['personality']['mood']] ?? '';
     $humor=(int)$pr['personality']['humor']>=2 ? ' A light, playful undertone is welcome.' : '';
     $base=trim((string)($vm['instructions'] ?? ''));
-    $ins=($base!=='' ? $base.' ' : 'Speak natural, native German. Never sound robotic; vary intonation like a real conversation. ')
+    /* Preset-Anweisungen von speech-lib sind auf Deutsch zugeschnitten („native German“) – für andere Sprachen die Sprache ausdrücklich ersetzen */
+    if($lang!=='de' && $base!=='') $base=trim((string)preg_replace('/\b(native |natural, )*(casual )?(native )?German( from Germany)?\b/u','native '.$L['en'],$base));
+    $ins=($base!=='' ? $base.' ' : 'Speak natural, native '.$L['en'].'. Never sound robotic; vary intonation like a real conversation. ')
+        .($lang!=='de' ? 'The text is '.$L['en'].' – pronounce it like a native '.$L['en'].' speaker, with no foreign accent. ' : '')
         .'Role: you are '.$pr['name'].', '.$who.' and the owner\'s personal business assistant, talking one-to-one with the owner. Delivery: '.$toneTxt.'. '.$mood.$humor;
-    $v=['gender'=>$g,'preset'=>$pid,'openai'=>$vm['openai'],'google'=>$vm['google'],'azure'=>$vm['azure'],'lang'=>'de-DE','instructions'=>mb_substr($ins,0,1500),
+    $azure=$lang==='de' ? $vm['azure'] : $L[$g==='m' ? 'az_m' : 'az_f'];
+    $v=['gender'=>$g,'preset'=>$pid,'openai'=>$vm['openai'],'google'=>$vm['google'],'azure'=>$azure,'lang'=>$L['tag'],'instructions'=>mb_substr($ins,0,1500),
         'rate'=>round(max(0.7,min(1.3,$rate*(float)$vm['rate'])),2),'pitch'=>round(max(0.7,min(1.3,$pitch*(float)$vm['pitch'])),2)];
     if(!empty($vm['elevenlabs'])) $v['elevenlabs']=$vm['elevenlabs']; if(!empty($vm['eleven'])) $v['eleven']=$vm['eleven'];
     return $v;

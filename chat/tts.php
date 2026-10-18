@@ -6,7 +6,7 @@
  *   200 audio/mpeg (Binärdaten, Cache-Control: no-store, Content-Length, X-TTS-Voice, X-TTS-Cache: hit|miss)
  *   400 {error}                 ungültige Eingabe (JSON, Demo, Text leer/> 400 Zeichen, Token fehlt)
  *   403 {error:'bad_token'}     Token falsch/abgelaufen – nur Sätze, die der Demo-Agent selbst erzeugt hat (demo|sector|exp|text), werden vertont
- *   429 {error:'rate_limited'}  pro IP 120/Stunde, insgesamt 6000 neue Vertonungen/Tag (CH_TTS_RATE_IP / CH_TTS_RATE_DAY)
+ *   429 {error:'rate_limited'}  pro IP (ch_rate_ip: Proxy-Header nur von Cloudflare/lokalen Proxys) 120/Stunde, insgesamt 6000 neue Vertonungen/Tag (CH_TTS_RATE_IP / CH_TTS_RATE_DAY)
  *   501 {error:'tts_unavailable'} kein Anbieter in db.php → Startseite nutzt die Browser-Stimme
  *   503 {error:'tts_failed'|'busy'} Anbieter/DB gestört → Browser-Stimme
  *   GET/andere → 405
@@ -36,7 +36,7 @@ if(ch_tts_provider()===null) th_json(501,['error'=>'tts_unavailable']);
 $vid=(is_string($in['voice'] ?? null) && ch_tts_preset($in['voice'])) ? $in['voice'] : null;   // unbekannte Stimme → Standard der Demo/Branche
 $voice=ch_tts_voice_for(ch_demo_conf($demo,$sector)['voice'] ?? [],$vid);
 try{
-    if(!th_rate('tts:ip:'.th_client_ip(), tts_limit('CH_TTS_RATE_IP',120), 3600)){ header('Retry-After: 900'); th_json(429,['error'=>'rate_limited']); }
+    if(!th_rate('tts:ip:'.ch_rate_ip(), tts_limit('CH_TTS_RATE_IP',120), 3600)){ header('Retry-After: 900'); th_json(429,['error'=>'rate_limited']); }
     /* Tageslimit zählt nur neue Vertonungen (Cache-Treffer kosten beim Anbieter nichts) */
     $cached=ch_tts_cache_path($text,$voice);
     if(!($cached && is_file($cached)) && !th_rate('tts:day', tts_limit('CH_TTS_RATE_DAY',6000), 86400)){ header('Retry-After: 3600'); th_json(429,['error'=>'rate_limited']); }
