@@ -226,10 +226,22 @@ function vr_oxapay_apply(array $order, array $d): string
         } elseif ($new === 'expired' || $new === 'failed') {
             if ($cur !== 'paid') vr_order_mark_failed($orderId, 'oxapay_' . $new);
         } elseif ($new === 'refunded') {
-            if ($cur === 'paid') {
-                vr_order_update($orderId, ['status' => 'refunded', 'refunded_at' => time()]);
-                vr_stock_restore((array)($order['lines'] ?? []));
-            }
+            // Karşılaştır-ve-yaz tek kilit altında: aynı olay iki kez gelse ya da
+            // admin aynı anda "iade" işaretlese stok yalnız BİR kez geri açılır.
+            $did = false;
+            vr_store_mutate(VR_ORDERS_FILE, static function ($rows) use ($orderId, &$did) {
+                if (!is_array($rows)) return null;
+                foreach ($rows as $i => $r) {
+                    if ((string)($r['id'] ?? '') !== $orderId) continue;
+                    if ((string)($r['status'] ?? '') !== 'paid') return null;   // geçiş bu çağrıda değil
+                    $rows[$i]['status']      = 'refunded';
+                    $rows[$i]['refunded_at'] = time();
+                    $did = true;
+                    return $rows;
+                }
+                return null;
+            });
+            if ($did) vr_stock_restore((array)($order['lines'] ?? []));
         } elseif ($new === '' && !in_array(strtolower($status), ['', 'new', 'waiting', 'paying', 'confirming', 'refunding'], true)) {
             // Tanımadığımız bir durum (ör. under_paid, manual_accept): sipariş
             // pending kalır ama panelde görünsün diye iz bırak.
@@ -294,13 +306,25 @@ function vr_oxapay_sweep(int $minEvery = 300, int $minAge = 120, int $max = 10, 
         });
         if (!$run) return 0;
     }
-    $changed = 0;
-    $asked   = 0;
+    // Adaylar: en uzun süredir SORULMAMIŞ olandan başla. Sırayla gidilseydi
+    // (en eski önce) sorgusu hep başarısız olan ya da OxaPay'de kalıcı ara
+    // durumda kalan eski siparişler $max kotasını her turda tüketir, yeni
+    // siparişlere hiç sıra gelmezdi. $minEvery içinde zaten sorulmuş olanlar
+    // (müşterinin sayfası az önce sormuş) kotayı boşa harcamasın diye atlanır.
+    $cands = [];
     foreach (vr_orders() as $o) {
         if (!is_array($o)) continue;
         if ((string)($o['payment_method'] ?? '') !== 'crypto' || (string)($o['status'] ?? '') !== 'pending') continue;
         if ((string)($o['oxapay']['track_id'] ?? '') === '') continue;
         if ($now - (int)($o['created_at'] ?? 0) < $minAge) continue;
+        if ($minEvery > 0 && $now - (int)($o['oxapay']['synced_at'] ?? 0) < $minEvery) continue;
+        $cands[] = $o;
+    }
+    usort($cands, static fn ($a, $b) => (int)($a['oxapay']['synced_at'] ?? 0) <=> (int)($b['oxapay']['synced_at'] ?? 0));
+
+    $changed = 0;
+    $asked   = 0;
+    foreach ($cands as $o) {
         if ($asked++ >= $max) break;
         if (microtime(true) - $t0 > $budgetSec) break;  // kalanlar bir sonraki turda
         $u = vr_oxapay_sync($o, 0);
