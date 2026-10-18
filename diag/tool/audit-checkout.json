@@ -1,0 +1,101 @@
+{
+    "at": "2026-10-18T08:52:25+00:00",
+    "root": "/home/hhdwis4qiijc/maxsales_de",
+    "php": "8.3.33",
+    "cli_user": "hhdwis4qiijc",
+    "data_dir": "/home/hhdwis4qiijc/data",
+    "stripe": {
+        "configured": true,
+        "mode": "test",
+        "webhook_ready": true,
+        "env_secret_set": false,
+        "file": {
+            "exists": true,
+            "readable": true,
+            "perms": "0600",
+            "owner": "hhdwis4qiijc",
+            "size": 242,
+            "mtime": "2026-10-16T06:41:39+00:00",
+            "valid_json": true,
+            "fields": {
+                "secret_key": {
+                    "set": true,
+                    "len": 107
+                },
+                "webhook_secret": {
+                    "set": true,
+                    "len": 38
+                },
+                "updated_at": {
+                    "set": true,
+                    "len": 25
+                }
+            }
+        },
+        "alt_file_in_root_data": {
+            "exists": false
+        }
+    },
+    "oxapay": {
+        "configured": true,
+        "sandbox": false,
+        "file": {
+            "exists": true,
+            "readable": true,
+            "perms": "0600",
+            "owner": "hhdwis4qiijc",
+            "size": 142,
+            "mtime": "2026-10-17T17:06:59+00:00",
+            "valid_json": true,
+            "fields": {
+                "merchant_key": {
+                    "set": true,
+                    "len": 27
+                },
+                "sandbox": {
+                    "set": true,
+                    "type": "boolean"
+                },
+                "lifetime": {
+                    "set": true,
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "set": true,
+                    "len": 25
+                }
+            }
+        }
+    },
+    "web_flow": {
+        "shop": {
+            "code": 200,
+            "err": ""
+        },
+        "pid": "blc-662853tjw90",
+        "product": {
+            "code": 200
+        },
+        "form": {
+            "csrf": true,
+            "size": "S",
+            "colour": false
+        },
+        "add": {
+            "code": 303,
+            "redirect": "https://sarvesto.com/cart.php?lang=de"
+        },
+        "checkout": {
+            "code": 200,
+            "redirect": "",
+            "bytes": 34794,
+            "radio_card": true,
+            "radio_crypto": true,
+            "hidden_pay_method": "",
+            "crypto_fields": true,
+            "pay_unavailable_box": false,
+            "stripe_lock_note": true,
+            "csp": "content-security-policy: default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src https://js.stripe.com https://hooks.stripe.com; connect-src 'self' https://api.stripe.com; form-action 'self' https://checkout.stripe.com https://pay.oxa"
+        }
+    }
+}
