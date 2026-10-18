@@ -11,6 +11,9 @@
  *   POST {agent, sector?, channel:'phone'|'chat', messages, lang} → {reply, tools, forward, end, …, speech:[{text,t}], tts}
  *   script_speech = {Index der Agenten-Zeile in script: [{text,t}]} – Autoplay spricht damit jede Agenten-Zeile mit der Server-Stimme.
  *   speech/fillers = sprechbare Sätze mit Token (demo|sector|exp|text) für /chat/tts.php (speech-lib.php); tts=true, wenn eine Server-Stimme eingerichtet ist.
+ *   Sprache (13, i18n.php): ?lang= bzw. JSON lang → Begrüßung, Schnellwahl, Überbrückungssätze und Stimme der Demo in dieser Sprache (eigene Übersetzung aus
+ *   CH_DEMO greetings, sonst die allgemeine Vorlage demo.greet); die Antwort folgt der erkannten Sprache jeder Nachricht (unsicher → gewählte Sprache).
+ *   GET ?phone_sectors=1 liefert zusätzlich langs:[{code,name,tag}] für die Sprachauswahl des Telefon-Demo-Agenten.
  *   Tests: CH_TEST_AI_HOOK (Funktionsname, nur in einer Test-Umgebung definiert und nur für Anfragen von 127.0.0.1/::1) ersetzt den KI-Aufruf.
  * Platform anahtarıyla (CLAUDE_KEY / DEEPSEEK_KEY, db.php) çalışır; ziyaretçiden token istemez.
  * Koruma: IP başına 20 mesaj/saat, toplam 400 mesaj/saat (tablo: concierge_log). Yalnız ChatHelp konuları.
@@ -40,6 +43,17 @@ function concierge_persona_prompt(array $d, bool $phone): string {
        ."\n• Ehrlich bleiben: Was du nicht weißt, sagst du offen und bietest den nächsten Schritt an (Rückruf, Weiterleitung, E-Mail)."
        ."\n• Zum Schluss freundlich und persönlich verabschieden – ein Satz genügt.";
     return $o;
+}
+/** Demo in einer anderen Sprache ohne eigene Übersetzung (CH_DEMO greetings): allgemeine Begrüßung, Schnellwahl und Überbrückung in $lang, Beispielgespräch nur mit der Begrüßung. */
+function concierge_localize(array $d, string $lang): array {
+    $req=ch_demo_req_lang(); if($req==='nb' || $req==='nn') $req='no';   // ?lang= → JSON lang → Accept-Language (wie ch_demo_cfg)
+    if($req!=='' && $req===(string)($d['lang'] ?? '')) return $d;          // eigene Übersetzung (greetings) schon angewendet, auch außerhalb der 13 (z. B. ar)
+    if(!in_array($req,CH_LANG_CODES,true)) return $d;                       // unbekannte Sprache: Original
+    $lang=$req; if($lang==='de' || $lang===(string)($d['lang'] ?? 'de')) return $d;
+    $p=trim((string)($d['persona'] ?? '')); $co=trim((string)($d['company'] ?? ''));
+    $d['greeting']=$p!=='' ? t('demo.greet',$lang,['persona'=>$p,'company'=>$co]) : t('demo.greet0',$lang,['company'=>$co]);
+    $d['chips']=(array)t('demo.chips',$lang); $d['fillers']=(array)t('demo.fill',$lang); $d['script']=[['a',$d['greeting']]]; $d['lang']=$lang;
+    return $d;
 }
 /** Demo-Werkzeuge (Konto 0): Taxi → ride, Hotel → hotel, … ; beim Telefon-Agenten je Branche (CH_PHONE_SECTORS tools). */
 const CONCIERGE_DEMO_MODS=['agent-termine'=>['appt'],'agent-bestellung'=>['order'],'agent-taxi'=>['ride'],'agent-hotel'=>['hotel','callback'],'immo-agent'=>['callback'],'agent-phone'=>['callback'],'agent-beauty'=>['callback'],'agent-aesthetic'=>['callback'],'agent-hair-tr'=>['callback'],'agent-dental-tr'=>['callback'],'agent-bank'=>['callback'],'agent-behoerde'=>['callback'],'agent-hausverwaltung'=>['callback'],'agent-versicherung'=>['callback'],'agent-autohaus'=>['callback'],'praxis-agent'=>['callback']];
@@ -113,7 +127,7 @@ if($_SERVER['REQUEST_METHOD']==='OPTIONS'){ http_response_code(204); exit; }
 
 $in=json_decode(file_get_contents('php://input'),true); if(!is_array($in)) $in=[];
 $lr=$in['lang'] ?? ($_GET['lang'] ?? 'de'); $lr=is_string($lr) ? $lr : 'de';   // Array/Zahl aus JSON oder ?lang[]= → Standard
-$lang=substr((string)preg_replace('/[^a-z]/','',strtolower($lr)),0,2) ?: 'de';
+$lang=ch_lang_norm((string)preg_replace('/[^a-zA-Z_-]/','',$lr)) ?: 'de';   // 13 Sprachen (nb/nn → no)
 $G=[
  'de'=>['hi'=>'Hallo! Ich bin der ChatHelp-Assistent. Frag mich, was du erledigen willst – ein Rechtsschreiben, einen KI-Agenten für dein Unternehmen, Social-Media-Content oder die API.',
         'chips'=>['Ich will einen Widerspruch schreiben','Welcher Agent passt zu meinem Shop?','Was kosten Tokens?','Ich brauche Instagram-Posts jede Woche','Wie binde ich den Support-Agenten auf meiner Website ein?']],
@@ -128,7 +142,7 @@ $G=[
  'es'=>['hi'=>'¡Hola! Soy el asistente de ChatHelp. Dime qué necesitas: una carta legal, un agente de IA, contenido para redes o la API.',
         'chips'=>['Quiero redactar una reclamación','¿Qué agente encaja con mi tienda?','¿Cuánto cuestan los tokens?']],
 ];
-$g=$G[$lang] ?? $G['de'];
+$g=$G[$lang] ?? $G['en'];
 /* Live-Demo eines Agenten (Startseite): ?agent=agent-phone[&sector=bank] → Beispiel-Firma + Wissensbasis, echter Agent */
 $ar=$in['agent'] ?? ($_GET['agent'] ?? ''); $demo=is_string($ar) ? (string)preg_replace('/[^a-z0-9-]/','',$ar) : '';
 if($demo!=='' && !ch_plan($demo)) $demo='';
@@ -139,14 +153,15 @@ if($_SERVER['REQUEST_METHOD']==='GET'){
     if(isset($_GET['phone_sectors'])){
         $o=[]; foreach(array_keys(CH_PHONE_SECTORS) as $k){ $c=ch_phone_sector_cfg($k);
             $o[]=['key'=>$k,'label'=>$c['label'],'icon'=>$c['icon'],'company'=>$c['company'],'persona'=>$c['persona'],'gender'=>$c['voice']['gender'],'group'=>$c['group'],'preset'=>$c['voice']['preset']]; }
-        th_json(200,['sectors'=>$o]);
+        th_json(200,['sectors'=>$o,'langs'=>array_map(fn($l)=>['code'=>$l,'name'=>CH_LANGS[$l]['native'],'tag'=>CH_LANGS[$l]['tag']],CH_LANG_CODES)]);
     }
     if($demo!==''){
-        $d=ch_demo_conf($demo,$sector); $pl=ch_plan($demo); $du=!empty($d['du']);
-        $fill=[]; foreach($d['fillers'] as $f){ $x=implode(' ',ch_speech_sentences($f,'de',$du)); if($x!=='') $fill[]=['text'=>$x,'t'=>ch_tts_sign($demo,$x,$sector)]; }
+        $d=concierge_localize(ch_demo_conf($demo,$sector),$lang); $pl=ch_plan($demo); $du=!empty($d['du']); $dl=(string)($d['lang'] ?? 'de');
+        $fill=[]; foreach($d['fillers'] as $f){ $x=implode(' ',ch_speech_sentences($f,$dl,$du)); if($x!=='') $fill[]=['text'=>$x,'t'=>ch_tts_sign($demo,$x,$sector)]; }
         $out=['demo'=>$demo,'sector'=>$sector!=='' ? $sector : null,'agent'=>$pl['name'],'company'=>$d['company'],'persona'=>$d['persona'],'greeting'=>$d['greeting'],'chips'=>$d['chips'],
             'voice'=>['gender'=>$d['voice']['gender'],'rate'=>$d['voice']['rate'],'pitch'=>$d['voice']['pitch'],'preset'=>$d['voice']['preset']],'voices'=>ch_tts_voices_public(),
-            'speech'=>ch_speech_payload($demo,$d['greeting'],$sector,$du),'fillers'=>$fill,'script'=>$d['script'],'script_speech'=>(object)concierge_script_speech($demo,$d['script'],$sector,$du),'tts'=>$ttsOn,'lang'=>'de'];
+            'speech'=>ch_speech_payload($demo,$d['greeting'],$sector,$du),'fillers'=>$fill,'script'=>$d['script'],'script_speech'=>(object)concierge_script_speech($demo,$d['script'],$sector,$du),'tts'=>$ttsOn,'lang'=>$dl,
+            'langs'=>array_map(fn($l)=>['code'=>$l,'name'=>CH_LANGS[$l]['native']],CH_LANG_CODES)];
         if($sector!=='') $out+=['label'=>$d['label'],'icon'=>$d['icon'],'group'=>$d['group']];
         th_json(200,$out);
     }
@@ -172,32 +187,36 @@ if(!$msgs || end($msgs)['role']!=='user') th_json(400,['error'=>'messages_requir
 
 /* ---- Agent-Live-Demo: echter Agent mit Beispiel-Wissensbasis (Plattform-Schlüssel, kein Token-Verbrauch des Besuchers) ---- */
 if($demo!==''){
-    $pl=ch_plan($demo); $d=ch_demo_conf($demo,$sector); $phone=(($in['channel']??'')==='phone') || $demo==='agent-phone'; $du=!empty($d['du']);
+    $pl=ch_plan($demo); $d=concierge_localize(ch_demo_conf($demo,$sector),$lang); $phone=(($in['channel']??'')==='phone') || $demo==='agent-phone'; $du=!empty($d['du']);
     if($sector!==''){   // Telefon-Agent einer Branche: Grundrolle + Fachablauf der Branche zusätzlich zu den Telefon-Regeln
         if(!empty($d['sector_sys']) && isset(CH_SECTORS[$d['sector_sys']])) $pl['sector']=$d['sector_sys'];
         $rf=array_values(array_filter((array)($d['rules_from'] ?? []),fn($k)=>is_string($k) && isset(CH_AGENT_RULES[$k])));   // ein Schlüssel oder mehrere (z. B. Werkstatt: agent-autohaus + agent-termine)
         if($rf) $pl['rules'].="\n\nFACHABLAUF ".mb_strtoupper((string)$d['label']).":\n".implode("\n",array_map(fn($k)=>CH_AGENT_RULES[$k],$rf))."\nStehen dafür Werkzeuge bereit, buchst bzw. trägst du verbindlich über die Werkzeuge ein, statt nur zu notieren.";
     }
-    $sys=ch_agent_system($pl,$d,'de').concierge_persona_prompt($d,$phone).($phone?CH_PHONE_RULES:'')
+    /* Antwortsprache: diese Nachricht (sicher erkannt) → frühere Nachrichten des Besuchers → gewählte Sprache (?lang=) → Deutsch */
+    $prevL=''; foreach(array_slice($msgs,0,-1) as $m){ if($m['role']!=='user') continue; $ps=false; $pd=ch_detect_lang($m['content'],'',$ps); if($ps) $prevL=$pd; }
+    $replyLang=ch_reply_lang(['lang'=>'de','langs'=>''],end($msgs)['content'],$prevL,(string)($d['lang'] ?? $lang));
+    $sys=ch_agent_system($pl,array_merge($d,['lang'=>'de','langs'=>'']),$replyLang,true).concierge_persona_prompt($d,$phone).($phone?CH_PHONE_RULES:'')
         ."\n\nDEMO-HINWEIS (nur intern): Dies ist eine öffentliche Live-Demo auf chat-help.com mit der Beispiel-Firma „".$d['company']."“".($sector!=='' ? ' (Branche: '.$d['label'].')' : '').". Bleibe vollständig in der Rolle. Wenn jemand fragt, wie er so einen Agenten bekommt oder etwas über ChatHelp wissen will: Ein Satz – Studio auf chat-help.com, eigene Wissensbasis einfügen, in 10 Minuten startklar – dann zurück in die Rolle.";
     /* Demos arbeiten mit ECHTEN Werkzeugen auf Konto 0 (Termine, Bestellungen, Taxi, Hotel, Rückruf): echte Slot- und Adressprüfung, echte Buchung – keine Benachrichtigungen */
     concierge_load_tools(); ch_heartbeat();
     $tk=concierge_toolkit($demo,$d);
     if($tk) $sys.=$tk['hint']."\nDEMO-MODUS: Kundendaten dürfen Platzhalter sein (z. B. Name „Demo“, Telefon „0170 0000000“), Bestellungen auch außerhalb der Öffnungszeiten annehmen; es wird keine echte Nachricht verschickt – sage, dass im echten Betrieb Bestätigung per E-Mail/WhatsApp/SMS kommt.";
     $answer=concierge_ai($sys,$msgs,$tk,$phone);
-    if($answer===null){ $r='Die Demo ist gerade nicht erreichbar – bitte gleich noch einmal versuchen.';
+    if($answer===null){ $r=t('demo.down',$replyLang);
         th_json(200,['error'=>'ai_unavailable','reply'=>$r,'demo'=>$demo,'sector'=>$sector!=='' ? $sector : null,'detail'=>in_array($_SERVER['REMOTE_ADDR'] ?? '',['127.0.0.1','::1'],true) ? (th_ai_info()['errors'] ?? []) : [],'speech'=>ch_speech_payload($demo,$r,$sector,$du),'tts'=>$ttsOn]); }   // 200: Cloudflare würde 502 durch eigene Fehlerseite ersetzen
     $forward=str_contains($answer,'[WEITERLEITEN]'); $end=str_contains($answer,'[ENDE]');
     $answer=trim(str_replace(['[WEITERLEITEN]','[ENDE]'],'',$answer));
     $p->prepare("INSERT INTO concierge_log(ip_hash) VALUES(?)")->execute([$h]);
     th_json(200,['reply'=>$answer,'source'=>th_ai_info()['provider'] ?? 'ai','demo'=>$demo,'sector'=>$sector!=='' ? $sector : null,'forward'=>$forward,'end'=>$end,'tools'=>array_map(fn($c)=>['name'=>$c['name'],'ok'=>$c['ok'] ?? true],th_ai_info()['tool_calls'] ?? []),
-        'speech'=>ch_speech_payload($demo,$answer,$sector,$du),'tts'=>$ttsOn]);
+        'speech'=>ch_speech_payload($demo,$answer,$sector,$du),'tts'=>$ttsOn,'lang'=>$replyLang]);
 }
 
 /* ---- sistem promptu: ürün bilgisi ---- */
+$G_LANGNAME=ch_lang_name($lang,'en').' ('.ch_lang_name($lang,'native').')';
 $cat=''; foreach(CH_PLANS as $id=>$v){ $cat.="- {$v[0]} ({$v[4]}, {$v[3]}): ".number_format($v[1]/100,2,',','.')." € ".($v[4]==='buy'?'einmalig':'/ Monat').", inkl. ".number_format($v[2],0,',','.')." Tokens; Kauf: https://chat-help.com/chat/tokens-checkout.php?plan=$id\n"; }
 $system = <<<SYS
-Du bist der freundliche Assistent von ChatHelp (chat-help.com), einer europäischen KI-Plattform. Antworte in der Sprache des Nutzers (Standard: $lang). Kurz (max. 6 Sätze oder eine kompakte Liste), konkret, ohne Marketing-Floskeln. Nenne passende Links.
+Du bist der freundliche Assistent von ChatHelp (chat-help.com), einer europäischen KI-Plattform. Antworte in der Sprache des Nutzers (Standard: {$G_LANGNAME}). Kurz (max. 6 Sätze oder eine kompakte Liste), konkret, ohne Marketing-Floskeln. Nenne passende Links.
 
 PRODUKTE
 1) ChatHelp Recht (https://chat-help.com/chat/): geprüfte Rechtsschreiben für DE/AT/CH/FR/TR – Widerspruch, Kündigung, Mieterhöhung, Mahnung, Behördenanträge, Visum-Unterlagen (TR). Besonderheit: jedes Dokument wird von zwei unabhängigen KI-Prüfungen gegengelesen, zitiert nur echte Rechtsgrundlagen (§§ mit Quelle), keine erfundenen Paragrafen, aktuelle Fristen, Versand per Post/Einschreiben/Fax direkt aus der App. Einzeldokumente ab 1,99 €, Abos Basic 13,99 €/Monat, Pro 29,99 €/Monat. Keine Rechtsberatung im Einzelfall – bei komplexen Fällen Anwalt empfehlen.

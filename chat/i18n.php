@@ -172,31 +172,31 @@ const CH_LANG_STYLE = [
 /* ======================================================================= Formate (ohne intl) */
 const CH_LANG_FMT = [
   // Monate (Datumsform), Wochentage kurz/lang (So=0), Muster: {W} {w} {d} {M} {m} {Y}; num = [Dezimal, Tausender]; cur = Muster Betrag {n}
-  'de'=>['M'=>['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],'w'=>['So','Mo','Di','Mi','Do','Fr','Sa'],'W'=>['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'],
+  'de'=>['dmy'=>'{d}. {M} {Y}','M'=>['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],'w'=>['So','Mo','Di','Mi','Do','Fr','Sa'],'W'=>['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'],
          'long'=>'{W}, {d}. {M} {Y}','day'=>'{W}, {d}. {M}','short'=>'{w}, {d}.{m}.','dm'=>'{d}.{m}.','num'=>[',','.'],'cur'=>'{n} €'],
-  'en'=>['M'=>['January','February','March','April','May','June','July','August','September','October','November','December'],'w'=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],'W'=>['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+  'en'=>['dmy'=>'{d} {M} {Y}','M'=>['January','February','March','April','May','June','July','August','September','October','November','December'],'w'=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],'W'=>['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
          'long'=>'{W}, {d} {M} {Y}','day'=>'{W}, {d} {M}','short'=>'{w} {d} {Ms}','dm'=>'{d} {Ms}','num'=>['.',','],'cur'=>'€{n}'],
-  'fr'=>['M'=>['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'],'w'=>['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'],'W'=>['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'],
+  'fr'=>['dmy'=>'{d} {M} {Y}','M'=>['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'],'w'=>['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'],'W'=>['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'],
          'long'=>'{W} {d} {M} {Y}','day'=>'{W} {d} {M}','short'=>'{w} {d}/{m}','dm'=>'{d}/{m}','num'=>[',',' '],'cur'=>'{n} €'],
-  'es'=>['M'=>['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'],'w'=>['dom','lun','mar','mié','jue','vie','sáb'],'W'=>['domingo','lunes','martes','miércoles','jueves','viernes','sábado'],
+  'es'=>['dmy'=>'{d} de {M} de {Y}','M'=>['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'],'w'=>['dom','lun','mar','mié','jue','vie','sáb'],'W'=>['domingo','lunes','martes','miércoles','jueves','viernes','sábado'],
          'long'=>'{W}, {d} de {M} de {Y}','day'=>'{W}, {d} de {M}','short'=>'{w} {d}/{m}','dm'=>'{d}/{m}','num'=>[',','.'],'cur'=>'{n} €'],
-  'tr'=>['M'=>['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],'w'=>['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'],'W'=>['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'],
+  'tr'=>['dmy'=>'{d} {M} {Y}','M'=>['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],'w'=>['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'],'W'=>['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'],
          'long'=>'{d} {M} {Y} {W}','day'=>'{d} {M} {W}','short'=>'{d}.{m} {w}','dm'=>'{d}.{m}','num'=>[',','.'],'cur'=>'{n} €'],
-  'ru'=>['M'=>['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],'w'=>['вс','пн','вт','ср','чт','пт','сб'],'W'=>['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'],
+  'ru'=>['dmy'=>'{d} {M} {Y} г.','M'=>['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],'w'=>['вс','пн','вт','ср','чт','пт','сб'],'W'=>['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'],
          'long'=>'{W}, {d} {M} {Y} г.','day'=>'{W}, {d} {M}','short'=>'{w}, {d}.{m}','dm'=>'{d}.{m}','num'=>[',',' '],'cur'=>'{n} €'],
-  'it'=>['M'=>['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'],'w'=>['dom','lun','mar','mer','gio','ven','sab'],'W'=>['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'],
+  'it'=>['dmy'=>'{d} {M} {Y}','M'=>['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'],'w'=>['dom','lun','mar','mer','gio','ven','sab'],'W'=>['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'],
          'long'=>'{W} {d} {M} {Y}','day'=>'{W} {d} {M}','short'=>'{w} {d}/{m}','dm'=>'{d}/{m}','num'=>[',','.'],'cur'=>'{n} €'],
-  'nl'=>['M'=>['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'],'w'=>['zo','ma','di','wo','do','vr','za'],'W'=>['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'],
+  'nl'=>['dmy'=>'{d} {M} {Y}','M'=>['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'],'w'=>['zo','ma','di','wo','do','vr','za'],'W'=>['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'],
          'long'=>'{W} {d} {M} {Y}','day'=>'{W} {d} {M}','short'=>'{w} {d}-{m}','dm'=>'{d}-{m}','num'=>[',','.'],'cur'=>'€ {n}'],
-  'sv'=>['M'=>['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december'],'w'=>['sön','mån','tis','ons','tors','fre','lör'],'W'=>['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag'],
+  'sv'=>['dmy'=>'{d} {M} {Y}','M'=>['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december'],'w'=>['sön','mån','tis','ons','tors','fre','lör'],'W'=>['söndag','måndag','tisdag','onsdag','torsdag','fredag','lördag'],
          'long'=>'{W} {d} {M} {Y}','day'=>'{W} {d} {M}','short'=>'{w} {d}/{m}','dm'=>'{d}/{m}','num'=>[',',' '],'cur'=>'{n} €'],
-  'no'=>['M'=>['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'],'w'=>['søn','man','tir','ons','tor','fre','lør'],'W'=>['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'],
+  'no'=>['dmy'=>'{d}. {M} {Y}','M'=>['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'],'w'=>['søn','man','tir','ons','tor','fre','lør'],'W'=>['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'],
          'long'=>'{W} {d}. {M} {Y}','day'=>'{W} {d}. {M}','short'=>'{w} {d}.{m}.','dm'=>'{d}.{m}.','num'=>[',',' '],'cur'=>'{n} €'],
-  'fi'=>['M'=>['tammikuuta','helmikuuta','maaliskuuta','huhtikuuta','toukokuuta','kesäkuuta','heinäkuuta','elokuuta','syyskuuta','lokakuuta','marraskuuta','joulukuuta'],'w'=>['su','ma','ti','ke','to','pe','la'],'W'=>['sunnuntai','maanantai','tiistai','keskiviikko','torstai','perjantai','lauantai'],
+  'fi'=>['dmy'=>'{d}. {M} {Y}','M'=>['tammikuuta','helmikuuta','maaliskuuta','huhtikuuta','toukokuuta','kesäkuuta','heinäkuuta','elokuuta','syyskuuta','lokakuuta','marraskuuta','joulukuuta'],'w'=>['su','ma','ti','ke','to','pe','la'],'W'=>['sunnuntai','maanantai','tiistai','keskiviikko','torstai','perjantai','lauantai'],
          'long'=>'{W} {d}. {M} {Y}','day'=>'{W} {d}. {M}','short'=>'{w} {d}.{m}.','dm'=>'{d}.{m}.','num'=>[',',' '],'cur'=>'{n} €'],
-  'ja'=>['M'=>['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],'w'=>['日','月','火','水','木','金','土'],'W'=>['日曜日','月曜日','火曜日','水曜日','木曜日','金曜日','土曜日'],
+  'ja'=>['dmy'=>'{Y}年{M}{d}日','M'=>['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],'w'=>['日','月','火','水','木','金','土'],'W'=>['日曜日','月曜日','火曜日','水曜日','木曜日','金曜日','土曜日'],
          'long'=>'{Y}年{M}{d}日（{w}）','day'=>'{M}{d}日（{w}）','short'=>'{n}/{d}（{w}）','dm'=>'{n}/{d}','num'=>['.',','],'cur'=>'€{n}'],
-  'az'=>['M'=>['yanvar','fevral','mart','aprel','may','iyun','iyul','avqust','sentyabr','oktyabr','noyabr','dekabr'],'w'=>['B.','B.e.','Ç.a.','Ç.','C.a.','C.','Ş.'],'W'=>['bazar','bazar ertəsi','çərşənbə axşamı','çərşənbə','cümə axşamı','cümə','şənbə'],
+  'az'=>['dmy'=>'{d} {M} {Y}','M'=>['yanvar','fevral','mart','aprel','may','iyun','iyul','avqust','sentyabr','oktyabr','noyabr','dekabr'],'w'=>['B.','B.e.','Ç.a.','Ç.','C.a.','C.','Ş.'],'W'=>['bazar','bazar ertəsi','çərşənbə axşamı','çərşənbə','cümə axşamı','cümə','şənbə'],
          'long'=>'{d} {M} {Y}, {W}','day'=>'{d} {M}, {W}','short'=>'{d}.{m} ({w})','dm'=>'{d}.{m}','num'=>[',',' '],'cur'=>'{n} €'],
 ];
 function ch_fmt_num(float $v, int $dec, string $lang): string { $f=CH_LANG_FMT[ch_lang_norm($lang) ?: 'de']['num']; return number_format($v,$dec,$f[0],$f[1]==' ' ? "\u{202F}" : $f[1]); }
@@ -320,14 +320,14 @@ function ch_lang_switcher(string $cur, array $allowed=[]): string {
     $cur=ch_lang_norm($cur) ?: 'de'; $langs=$allowed ? array_values(array_filter(array_map('ch_lang_norm',$allowed))) : CH_LANG_CODES; if(count($langs)<2) return '';
     $q=$_GET; unset($q['lang'],$q['_'],$q['x'],$q['e'],$q['v']); $path=strtok((string)($_SERVER['REQUEST_URI'] ?? ''),'?') ?: '';
     $h=fn($s)=>htmlspecialchars((string)$s,ENT_QUOTES,'UTF-8');
-    $o='<style>.chls{position:absolute;top:10px;right:12px;z-index:30;font:600 13px/1 Inter,system-ui,sans-serif}.chls summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;background:#fff;border:1px solid #d6d9e4;color:#0f1222;box-shadow:0 2px 8px rgba(15,18,34,.06)}'
+    $o='<style>.chlsbar{display:flex;justify-content:flex-end;max-width:680px;margin:0 auto;padding:10px 16px 0}.chlsbar+.w{margin-top:8px !important}.chls{position:relative;z-index:30;font:600 13px/1 Inter,system-ui,sans-serif}.chls summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;background:#fff;border:1px solid #d6d9e4;color:#0f1222;box-shadow:0 2px 8px rgba(15,18,34,.06)}'
       .'.chls summary::-webkit-details-marker{display:none}.chls summary:focus-visible,.chls a:focus-visible{outline:3px solid #b8862b;outline-offset:2px}.chls ul{position:absolute;right:0;top:50px;margin:0;padding:6px;list-style:none;background:#fff;border:1px solid #d6d9e4;border-radius:14px;box-shadow:0 12px 30px rgba(15,18,34,.14);width:max-content;max-width:calc(100vw - 24px);max-height:min(70vh,560px);overflow:auto}'
       .'.chls a{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;padding:0 12px;border-radius:10px;color:#0f1222;text-decoration:none;font-weight:500}.chls a:hover{background:#f6f7fb}.chls a[aria-current]{background:#f6ecd3;font-weight:700}.chls small{color:#6b7083;font-weight:600;letter-spacing:.04em}'
-      .'body{position:relative}</style>';
-    $o.='<details class="chls"><summary aria-label="'.$h(t('lang',$cur)).': '.$h(CH_LANGS[$cur]['native']).'"><span aria-hidden="true">🌐</span> '.$h(strtoupper($cur==='no' ? 'no' : $cur)).' <span aria-hidden="true">▾</span></summary><ul role="list">';
+      .'</style>';
+    $o.='<nav class="chlsbar" aria-label="'.$h(t('lang',$cur)).'"><details class="chls"><summary aria-label="'.$h(t('lang',$cur)).': '.$h(CH_LANGS[$cur]['native']).'"><span aria-hidden="true">🌐</span> '.$h(strtoupper($cur==='no' ? 'no' : $cur)).' <span aria-hidden="true">▾</span></summary><ul role="list">';
     foreach($langs as $l){ $qq=$q; $qq['lang']=$l;
         $o.='<li><a href="'.$h($path.'?'.http_build_query($qq)).'" lang="'.$h(CH_LANGS[$l]['tag']).'" hreflang="'.$h(CH_LANGS[$l]['tag']).'"'.($l===$cur ? ' aria-current="true"' : '').'>'.$h(CH_LANGS[$l]['native']).'<small>'.$h(strtoupper($l)).'</small></a></li>'; }
-    return $o.'</ul></details>';
+    return $o.'</ul></details></nav>';
 }
 
 /** Wörterbuch: Text in $lang, sonst Englisch, sonst Deutsch, sonst der Schlüssel. {name}-Platzhalter aus $vars. */

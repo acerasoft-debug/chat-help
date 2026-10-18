@@ -116,3 +116,5 @@ chat/privat-lib.php          chat/privat-lib.php
 chat/contacts-lib.php        chat/contacts-lib.php
 chat/studio-panels/kunden.html chat/studio-panels/kunden.html
 chat/studio-panels/kunden.js chat/studio-panels/kunden.js
+# 13 Sprachen: Erkennung, Anweisung, Formatierung, Kundenseiten-Texte
+chat/i18n.php                chat/i18n.php

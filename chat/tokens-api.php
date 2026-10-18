@@ -274,6 +274,7 @@ switch(true){
     $phoneNote=null;   // Kanalbündel: reine Website-Bots bekommen kein Telefon (außer ein anderes aktives Paket bündelt es)
     if(!empty($b['phone_on']) && !ch_plan_has_channel($planId,'phone') && !ch_bundled_plan($aid,'phone')){ $b['phone_on']=0; $phoneNote='Telefon und WhatsApp sind in reinen Website-Bots nicht enthalten – dafür einen Kunden-Agenten (z. B. Telefon-, Termin- oder Bestell-Agent) wählen.'; }
     th_agent_cfg_save($aid,$planId,$b,$active);          // ohne aktiven Plan: speichern ja, Widget/Telefon einschalten nein
+    if(isset($b['langs']) && is_array($b['langs']) && function_exists('ch_agent_langs_save')) ch_agent_langs_save($aid,$planId,(string)($b['lang'] ?? 'de'),array_slice(array_map('strval',$b['langs']),0,20));   // erlaubte Kundensprachen
     $c=th_agent_cfg($aid,$planId); unset($c['id'],$c['account_id']);
     th_json(200,['ok'=>true,'config'=>$c,'plan_active'=>$active,'channels'=>ch_plan_channels($planId),'note'=>$phoneNote ?? ($active?null:'Wissensbasis gespeichert. Website-Widget und Telefon werden mit aktivem Plan freigeschaltet.'),
       'widget_snippet'=>'<script src="https://chat-help.com/chat/widget.js" data-key="'.$c['widget_key'].'" async></script>',

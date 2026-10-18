@@ -735,9 +735,22 @@ function ch_tts_base(string $default): string {
     }
     return $default;
 }
-/** Stimme für einen Anbieter auflösen (Modell, Stimmname, Tempo, Tonhöhe, Stil) – fehlende Angaben aus der Voreinstellung bzw. dem Geschlecht. */
+/** Native Azure-Stimmen je Sprache [weiblich, männlich] – dieselben wie ASSISTANT_LANG_TABLE (assistant-lib). */
+const CH_TTS_AZURE_NATIVE = ['de'=>['de-DE-SeraphinaMultilingualNeural','de-DE-FlorianMultilingualNeural'],'en'=>['en-US-AvaMultilingualNeural','en-US-AndrewMultilingualNeural'],
+  'fr'=>['fr-FR-DeniseNeural','fr-FR-HenriNeural'],'es'=>['es-ES-ElviraNeural','es-ES-AlvaroNeural'],'tr'=>['tr-TR-EmelNeural','tr-TR-AhmetNeural'],'ru'=>['ru-RU-SvetlanaNeural','ru-RU-DmitryNeural'],
+  'it'=>['it-IT-ElsaNeural','it-IT-DiegoNeural'],'nl'=>['nl-NL-FennaNeural','nl-NL-MaartenNeural'],'sv'=>['sv-SE-SofieNeural','sv-SE-MattiasNeural'],'no'=>['nb-NO-PernilleNeural','nb-NO-FinnNeural'],
+  'fi'=>['fi-FI-NooraNeural','fi-FI-HarriNeural'],'ja'=>['ja-JP-NanamiNeural','ja-JP-KeitaNeural'],'az'=>['az-AZ-BanuNeural','az-AZ-BabekNeural']];
+/** Sprache der Stimme festlegen: voice['lang'] (BCP-47) – bei lang_auto oder ohne gültige Angabe aus dem Text erkannt (unsicher → bisherige bzw. de-DE). */
+function ch_tts_lang_fix(string $text, array $voice): array {
+    $tag=(string)($voice['lang'] ?? ''); $ok=preg_match('/^[a-z]{2,3}-[A-Z]{2}$/',$tag)===1;
+    if(!empty($voice['lang_auto']) || !$ok){ $sure=false; $l=function_exists('ch_detect_lang') ? ch_detect_lang($text,'',$sure) : ''; $tag=$sure ? ch_lang_tag($l) : ($ok ? $tag : 'de-DE'); }
+    unset($voice['lang_auto']); $voice['lang']=$tag;
+    return $voice;
+}
+/** Stimme für einen Anbieter auflösen (Modell, Stimmname, Tempo, Tonhöhe, Stil, Sprache) – fehlende Angaben aus der Voreinstellung bzw. dem Geschlecht. */
 function ch_tts_resolve(string $provider, array $voice): array {
     $m=($voice['gender'] ?? 'f')==='m';
+    $tag=preg_match('/^[a-z]{2,3}-[A-Z]{2}$/',(string)($voice['lang'] ?? '')) ? (string)$voice['lang'] : 'de-DE'; $lc=ch_lang_norm($tag) ?: 'de'; $en=CH_LANGS[$lc]['en'] ?? 'German';
     $pre=ch_tts_preset((string)($voice['preset'] ?? '')) ?? ch_tts_preset(CH_TTS_PRESET_DEFAULT[$m ? 'm' : 'f']);
     $rate=max(0.85,min(1.15,(float)($voice['rate'] ?? 1.0)));
     $pitch=max(0.8,min(1.2,(float)($voice['pitch'] ?? 1.0)));
@@ -749,6 +762,10 @@ function ch_tts_resolve(string $provider, array $voice): array {
             $legacy=str_starts_with($model,'tts-1');
             if($legacy && !in_array($v,['alloy','ash','coral','echo','fable','nova','onyx','sage','shimmer'],true)) $v=$m ? 'onyx' : 'nova';
             $ins=trim((string)($voice['instructions'] ?? '')); if($ins==='') $ins=$pre['instructions'];
+            if($lc!=='de'){   // Voreinstellungen sind auf Deutsch zugeschnitten („native German from Germany“) → Zielsprache ausdrücklich nennen
+                $ins=trim((string)preg_replace('/\b(native |natural, )*(casual )?(native )?German( from Germany)?\b/u','native '.$en,$ins));
+                if(!str_contains($ins,'The text is ')) $ins.=' The text is '.$en.' – speak it as a native '.$en.' speaker, with natural '.$en.' pronunciation and intonation and no foreign accent.';
+            }
             return ['model'=>$model,'voice'=>$v,'instructions'=>$legacy ? '' : mb_substr($ins,0,1500),'speed'=>$legacy ? round($rate,2) : null];
         case 'elevenlabs':
             $id=(string)($voice['elevenlabs'] ?? '');
@@ -758,17 +775,21 @@ function ch_tts_resolve(string $provider, array $voice): array {
             return ['model'=>ch_tts_const('TTS_ELEVENLABS_MODEL') ?: 'eleven_multilingual_v2','voice'=>$id,
                 'settings'=>['stability'=>$num('stability',0.5),'similarity_boost'=>$num('similarity_boost',0.8),'style'=>$num('style',0.25),'use_speaker_boost'=>true,'speed'=>round(max(0.7,min(1.2,$rate)),2)]];
         case 'google':
-            $n=(string)($voice['google'] ?? ''); if(!preg_match('/^de-DE-[A-Za-z0-9-]{2,40}$/',$n)) $n=$pre['google'];
-            return ['voice'=>$n,'rate'=>round($rate,2)];
+            /* Chirp3-HD-Stimmen tragen in jeder Sprache denselben Namen: de-DE-Chirp3-HD-Aoede → ja-JP-Chirp3-HD-Aoede. az: keine Google-Stimme → tr-TR. */
+            $loc=$lc==='az' ? 'tr-TR' : $tag;
+            $n=(string)($voice['google'] ?? ''); if(!preg_match('/^[a-z]{2,3}-[A-Z]{2}-[A-Za-z0-9-]{2,40}$/',$n)) $n=$pre['google'];
+            if(!str_starts_with($n,$loc.'-')) $n=preg_match('/^[a-z]{2,3}-[A-Z]{2}-(Chirp3-HD-[A-Za-z]+)$/',$n,$cm) ? $loc.'-'.$cm[1] : $loc.'-Chirp3-HD-'.($m ? 'Charon' : 'Aoede');
+            return ['voice'=>$n,'rate'=>round($rate,2),'lang'=>$loc];
         case 'azure':
             $n=(string)($voice['azure'] ?? ''); if(!preg_match('/^[a-z]{2}-[A-Z]{2}-[A-Za-z]{2,60}Neural$/',$n)) $n=$pre['azure'];
-            return ['voice'=>$n,'rate'=>round($rate,2),'pitch'=>round($pitch,2)];
+            if(!str_starts_with($n,$tag.'-') && !($lc==='en' && str_starts_with($n,'en-'))) $n=CH_TTS_AZURE_NATIVE[$lc][$m ? 1 : 0] ?? $n;   // native Stimme der Sprache
+            return ['voice'=>$n,'rate'=>round($rate,2),'pitch'=>round($pitch,2),'lang'=>substr($n,0,5)];
     }
     return [];
 }
 /** HTTP-Anfrage für den Anbieter bauen: ['url','headers','body','mode'=>'binary'|'google_b64']. */
 function ch_tts_request(string $provider, string $text, array $voice, array $cred): ?array {
-    $r=ch_tts_resolve($provider,$voice); $J=JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES;
+    $voice=ch_tts_lang_fix($text,$voice); $r=ch_tts_resolve($provider,$voice); $J=JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES;
     switch($provider){
         case 'openai':
             $body=['model'=>$r['model'],'voice'=>$r['voice'],'input'=>$text];
@@ -782,13 +803,13 @@ function ch_tts_request(string $provider, string $text, array $voice, array $cre
             return ['url'=>ch_tts_base('https://api.elevenlabs.io').'/v1/text-to-speech/'.rawurlencode($r['voice']).'?output_format=mp3_44100_128','mode'=>'binary','body'=>json_encode($body,$J),
                     'headers'=>['xi-api-key: '.$cred['key'],'Content-Type: application/json','Accept: audio/mpeg']];
         case 'google':
-            $body=['input'=>['text'=>$text],'voice'=>['languageCode'=>'de-DE','name'=>$r['voice']],'audioConfig'=>['audioEncoding'=>'MP3','speakingRate'=>$r['rate']]];
+            $body=['input'=>['text'=>$text],'voice'=>['languageCode'=>$r['lang'],'name'=>$r['voice']],'audioConfig'=>['audioEncoding'=>'MP3','speakingRate'=>$r['rate']]];
             return ['url'=>ch_tts_base('https://texttospeech.googleapis.com').'/v1/text:synthesize?key='.rawurlencode($cred['key']),'mode'=>'google_b64','body'=>json_encode($body,$J),
                     'headers'=>['Content-Type: application/json; charset=utf-8']];
         case 'azure':
             $pct=fn(float $f): string => (($p=(int)round(($f-1)*100))>=0 ? '+' : '').$p.'%';
             $x=fn(string $v): string => htmlspecialchars($v,ENT_XML1|ENT_QUOTES,'UTF-8');
-            $ssml="<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='de-DE'><voice name='".$x($r['voice'])."'><prosody rate='".$x($pct($r['rate']))."' pitch='".$x($pct($r['pitch']))."'>".$x($text)."</prosody></voice></speak>";
+            $ssml="<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='".$x($r['lang'])."'><voice name='".$x($r['voice'])."'><prosody rate='".$x($pct($r['rate']))."' pitch='".$x($pct($r['pitch']))."'>".$x($text)."</prosody></voice></speak>";
             return ['url'=>ch_tts_base('https://'.$cred['region'].'.tts.speech.microsoft.com').'/cognitiveservices/v1','mode'=>'binary','body'=>$ssml,
                     'headers'=>['Ocp-Apim-Subscription-Key: '.$cred['key'],'Content-Type: application/ssml+xml','X-Microsoft-OutputFormat: audio-24khz-48kbitrate-mono-mp3','User-Agent: ChatHelp-TTS']];
     }
@@ -802,7 +823,7 @@ function ch_tts_cache_dir(): ?string {
 /** Cache-Datei für Text + aufgelöste Stimme beim aktuellen Anbieter (null = kein Anbieter / kein Cache-Ordner). */
 function ch_tts_cache_path(string $text, array $voice, ?string $provider=null): ?string {
     $provider=$provider ?? ch_tts_provider(); if(!$provider) return null;
-    $d=ch_tts_cache_dir(); if(!$d) return null;
+    $d=ch_tts_cache_dir(); if(!$d) return null; $voice=ch_tts_lang_fix($text,$voice);
     return $d.'/'.hash('sha256','v2|'.$provider.'|'.json_encode(ch_tts_resolve($provider,$voice),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).'|'.trim($text)).'.mp3';
 }
 function ch_tts_is_mp3(string $b): bool {
@@ -823,6 +844,7 @@ function ch_tts_synth(string $text, array $voice, ?array &$info=null): ?string {
     $text=trim($text); if($text==='' || mb_strlen($text)>CH_TTS_MAXLEN) return null;
     $prov=ch_tts_provider(); if(!$prov) return null;
     $cred=ch_tts_creds($prov); if(!$cred) return null;
+    $voice=ch_tts_lang_fix($text,$voice);
     $info['provider']=$prov;
     $file=ch_tts_cache_path($text,$voice,$prov);
     if($file && is_file($file) && filesize($file)>0){

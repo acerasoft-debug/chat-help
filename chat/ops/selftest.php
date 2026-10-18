@@ -337,6 +337,18 @@ try {
     $r=$api('GET','assistant/profile'); ok($r['code']===200 && isset($r['json']['profile']),'Studio-Assistent: Profil abrufbar',"HTTP {$r['code']} · Sprachen ".count($r['json']['langs'] ?? []));
     $r=$api('GET','train/overview?plan=agent-support'); ok(in_array($r['code'],[200,402,404],true),'Agent-Training: Übersicht erreichbar',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/chat/studio.php?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'id="lPaste"') && str_contains($r['body'],'/impressum.html'),'Studio: Einfügen-Knopf für den Login-Code + Impressum-Link',"HTTP {$r['code']}");
+    sec('Phase 2: Kategorien, Preise, Kanäle, Kunden, Sprachen');
+    $r=http('GET',"$BASE/chat/tokens-api.php/v1/categories?_=".rnd(4)); $cats=$r['json']['categories'] ?? [];
+    ok($r['code']===200 && count($cats)>=15,'Kategorien-API',count($cats).' Kategorien: '.implode(', ',array_slice(array_map(fn($c)=>$c['id'] ?? '?',$cats),0,6)).' …');
+    $r=http('GET',"$BASE/chat/tokens-api.php/v1/pricing?_=".rnd(4)); ok($r['code']===200 && is_array($r['json']),'Preis-API (Lizenz → Betrieb / eigener Schlüssel)',"HTTP {$r['code']}");
+    foreach(['agent-beauty'=>'Glow','agent-aesthetic'=>'Aesthetica','agent-hair-tr'=>'Istanbul','agent-dental-tr'=>'Antalya','agent-bank'=>'Bank','agent-behoerde'=>''] as $pl=>$co){
+        $r=http('GET',"$BASE/chat/concierge.php?agent=$pl&_=".rnd(4)); ok($r['code']===200 && ($co==='' || str_contains((string)json_encode($r['json'],JSON_UNESCAPED_UNICODE),$co)) && !str_contains((string)$r['body'],'Muster GmbH'),"Live-Demo $pl","HTTP {$r['code']}");
+    }
+    $r=$api('GET','contacts/list'); ok($r['code']===200,'Kunden-Verlauf: Liste erreichbar',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/chat/book.php?k=demo&lang=tr&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && preg_match('/<html[^>]+lang="tr"/i',$r['body']),'Buchungsseite auf Türkisch (lang=tr)',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/chat/concierge.php?agent=agent-hair-tr&lang=en&_=".rnd(4)); ok($r['code']===200,'Türkiye-Demo auf Englisch',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/chat/studio.php?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'data-v="whatsapp"') && str_contains($r['body'],'id="cLangs"') && str_contains($r['body'],'data-v="kunden"'),'Studio: WhatsApp-Tab, Kunden-Tab, 13-Sprachen-Auswahl',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/?_=".rnd(4)); ok($r['code']===200 && str_contains($r['body'],'id="beauty"') && str_contains($r['body'],'id="tuerkei"') && !preg_match('/id="recht"/',$r['body']),'Startseite: Beauty, Türkiye, ohne Recht-Abschnitt',"HTTP {$r['code']}");
 } catch(Throwable $e){ ok(false,'Neue Bausteine: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
 
 /* ---------- Twilio-Doku (vom Server geladen) ---------- */
