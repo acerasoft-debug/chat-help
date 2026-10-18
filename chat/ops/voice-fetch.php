@@ -49,11 +49,23 @@ if (!empty($_GET['lib'])) {
 $keys = array_values(array_filter(array_map('trim', explode(',', (string)($_GET['models'] ?? ''))), fn($k) => preg_match('/^[a-z]{2}_[A-Z]{2}-[a-z0-9_]+-(x_low|low|medium|high)$/', $k)));
 if ($keys) {
     $HF = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/';
+    $DS = 'https://huggingface.co/diffusionstudio/piper-voices/resolve/main/tr/tr_TR/';
+    $MIRROR = [
+        'tr_TR-fahrettin-medium' => [$DS . 'fahrettin/medium/', '39081c47270180e8a0dfac69b07bf329fb6d039fcc1279dbe26c2daf2848b190', '93741b234acc5f123430a0e343f619e01cfda6b1dc0970ee80bce7da22b1a09b', 'Datensatz https://github.com/NabuCasa/voice-datasets – Lizenz CC0'],
+        'tr_TR-fettah-medium' => [$DS . 'fettah/medium/', '5d14d5222f36aea2b8fc8dba097fcb18dcf8f5b33e5b2aa76b5e0b44602aa8d7', '0738ecd770d4102fa967a784ae89f64d846b1b5f104076e410c978fefa70b3e7', 'Datensatz https://github.com/NabuCasa/voice-datasets – Lizenz CC0'],
+    ];
     $vj = @file_get_contents($HF . 'voices.json');
     $voices = $vj ? json_decode($vj, true) : null;
     if (!is_array($voices)) { echo "FEHLER: voices.json nicht lesbar\n"; exit(1); }
     echo "\nStimmen:\n";
     foreach ($keys as $k) {
+        if (isset($MIRROR[$k])) {   // nicht (mehr) bei rhasspy: Spiegel von diffusionstudio, Prüfsumme SHA-256 (auf dem Runner gemessen)
+            [$base, $so, $sj, $lic] = $MIRROR[$k];
+            vf_get($base . "$k.onnx", "$dst/models/$k.bin", 'sha256', $so);
+            vf_get($base . "$k.onnx.json", "$dst/models/$k.json", 'sha256', $sj);
+            file_put_contents("$dst/models/$k.card.txt", "$k – $lic\n");
+            continue;
+        }
         $m = $voices[$k] ?? null; if (!$m) { echo "  unbekannt $k\n"; continue; }
         foreach ($m['files'] as $path => $f) {
             if (str_ends_with($path, '.onnx')) vf_get($HF . $path, "$dst/models/$k.bin", 'md5', $f['md5_digest']);
@@ -61,6 +73,16 @@ if ($keys) {
             elseif (str_ends_with($path, 'MODEL_CARD')) vf_get($HF . $path, "$dst/models/$k.card.txt", 'md5', $f['md5_digest']);
         }
     }
+}
+
+if (is_file("$dst/LICENSES.txt") || $keys) {   // Stimmen-Lizenzen anhängen (Namensnennung für CC-BY/CC-BY-SA)
+    $txt = is_file("$dst/LICENSES.txt") ? preg_replace('/\n== Stimmen ==.*$/s', '', (string)file_get_contents("$dst/LICENSES.txt")) : '';
+    $txt .= "\n== Stimmen ==\n";
+    foreach (glob("$dst/models/*.card.txt") ?: [] as $c) {
+        $card = (string)file_get_contents($c); $lines = array_filter(array_map('trim', explode("\n", $card)), fn($l) => stripos($l, 'licen') !== false || stripos($l, 'url') !== false || str_starts_with($l, '# '));
+        $txt .= basename($c, '.card.txt') . ': ' . implode(' · ', array_slice($lines, 0, 4)) . "\n";
+    }
+    file_put_contents("$dst/LICENSES.txt", $txt);
 }
 
 echo "\nBestand chat/vendor/voice:\n";

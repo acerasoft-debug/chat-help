@@ -2116,13 +2116,27 @@ async function vBrowser(text,turn){const ss=window.speechSynthesis;if(!ss||!wind
     u.onstart=()=>{if(!fin)vTalk(true);};u.onend=()=>done(true);u.onerror=e=>done(e&&/interrupted|canceled/.test(e.error||'')?false:'err');
     to=setTimeout(()=>done(true),3500+text.length*95/(V.rate||1));
     try{if(ss.paused)ss.resume();ss.speak(u);}catch(e){done('none');}});}
-/* Sätze nacheinander: Server-Stimme mit Prefetch des nächsten Satzes, bei Fehler Browser-Stimme für den Rest */
+/* Echte Stimme im Browser (Piper, /chat/voice/voice.js – ohne Cloud): jede Persona-Voreinstellung hat ein eigenes Stimmmodell.
+   Lädt einmalig (21–77 MB) beim ersten Vorlesen, sofern kein Datensparmodus/Mobilfunk; bis dahin spricht die Browserstimme. */
+const PV={st:{},pct:{},js:null};
+function pvLib(){if(window.CHVoice||PV.js)return;PV.js=document.createElement('script');PV.js.src='/chat/voice/voice.js?v=1';PV.js.async=true;PV.js.onload=()=>pvCheck();document.head.appendChild(PV.js);}
+function pvVoice(){try{return window.CHVoice&&CHVoice.ok()?CHVoice.pick('de',vGender(),vPresetId()):null;}catch(e){return null;}}
+function pvHint(t){const h=$('#ttsHint');if(h&&t)h.textContent=t;}
+function pvCheck(){const v=pvVoice();if(!v||PV.st[v.key])return;CHVoice.stored(v).then(ok=>{if(ok&&!PV.st[v.key])PV.st[v.key]='ready';});}
+function pvLoad(v){if(!v||PV.st[v.key]||!CHVoice.auto())return;PV.st[v.key]='loading';pvHint('Echte Stimme wird geladen (einmalig '+v.mb+' MB) – bis dahin hörst du die Systemstimme deines Browsers');
+  CHVoice.load(v,(l,t)=>{const p=t?Math.min(99,Math.floor(l*100/t)):0;if(p>=(PV.pct[v.key]||0)+5){PV.pct[v.key]=p;pvHint('Echte Stimme wird geladen … '+p+' % (einmalig '+v.mb+' MB) – bis dahin die Systemstimme');}})
+    .then(()=>{PV.st[v.key]='ready';pvHint('Echte Stimme bereit – ab dem nächsten Satz');},()=>{PV.st[v.key]='fail';pvHint('Natürliche KI-Stimme wird gerade vorbereitet – du hörst die Systemstimme deines Browsers');});}
+function pvGet(text){const v=pvVoice();if(!v||PV.st[v.key]!=='ready')return null;const w={};for(const k in v)w[k]=v[k];w.length=(v.length||1)/vClamp(V.rate,.75,1.3,1);
+  return CHVoice.say(text,w).catch(()=>{PV.st[v.key]='fail';return null;});}
+async function vPiper(p,turn){if(!p)return 'none';const b=await p;if(turn!==V.turn)return false;if(!b)return 'none';const u=URL.createObjectURL(b);const r=await vPlayUrl(u,turn);try{URL.revokeObjectURL(u);}catch(e){}return r;}
+/* Sätze nacheinander: Server-Stimme mit Prefetch des nächsten Satzes, sonst echte Browser-Stimme (Piper), bei Fehler Browser-Stimme für den Rest */
 async function vSay(items,turn,st){items=(items||[]).filter(x=>x&&x.text);if(!items.length||turn!==V.turn||!V.on)return false;
-  V.busy=true;if(!V.spoken){V.spoken=true;ttsHintUI();}liveState();let srv=vServer()&&!(st&&st.srv===false),ok=true;if(st&&!srv&&!V.brw){V.brw=true;ttsHintUI();}const pre=[];const get=i=>pre[i]||(pre[i]=vFetch(items[i]));
+  V.busy=true;pvLib();if(!V.spoken){V.spoken=true;ttsHintUI();}liveState();let srv=vServer()&&!(st&&st.srv===false),ok=true;if(st&&!srv&&!V.brw){V.brw=true;ttsHintUI();}const pre=[],ppre=[];const get=i=>pre[i]||(pre[i]=vFetch(items[i]));const pget=i=>ppre[i]!==undefined?ppre[i]:(ppre[i]=pvGet(items[i].text));
   try{for(let i=0;i<items.length;i++){if(turn!==V.turn||!V.on){ok=false;break;}let r='none';
       if(srv&&items[i].t){const url=await get(i);if(turn!==V.turn){ok=false;break;}
         if(url){if(i+1<items.length&&items[i+1].t)get(i+1);r=await vPlayUrl(url,turn);try{URL.revokeObjectURL(url);}catch(e){}if(r===false){ok=false;break;}}
         if(r!==true){srv=false;if(st){st.srv=false;if(!V.brw){V.brw=true;ttsHintUI();}}}}
+      if(r!==true){const pp=pget(i);if(pp){if(i+1<items.length)pget(i+1);r=await vPiper(pp,turn);if(r===false){ok=false;break;}}else if(window.CHVoice)pvLoad(pvVoice());}
       if(r!==true){r=await vBrowser(items[i].text,turn);if(r===false){ok=false;break;}}
       if(i<items.length-1){await sleep(120+Math.random()*80);}}}
   finally{pre.forEach(p=>p&&p.then(u=>{if(u)try{URL.revokeObjectURL(u);}catch(e){}}));if(turn===V.turn){V.busy=false;liveState();}}

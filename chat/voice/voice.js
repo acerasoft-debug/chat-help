@@ -2,7 +2,7 @@
    CHVoice.pick(lang, gender, preset) → Stimme der Voreinstellung (jede Voreinstellung eine eigene Stimme bzw. ein eigener Sprecher)
    CHVoice.say(text, voice, onProg) → Promise<Blob> (WAV)  ·  CHVoice.load(voice, onProg) lädt nur  ·  CHVoice.stored(voice) → Promise<bool>
    CHVoice.ok() = Browser kann es (Worker, WebAssembly, Cache Storage)  ·  CHVoice.auto() = darf ohne Nachfrage laden (kein Datensparmodus/Mobilfunk)
-   Modelle: selbst gehostet unter /chat/vendor/voice/models/<key>.bin (Lizenzen siehe VOICE_LICENSES), einmalig im Browser zwischengespeichert. */
+   Modelle: selbst gehostet unter /chat/vendor/voice/models/<key>.bin (Lizenzen: /chat/vendor/voice/LICENSES.txt + models/<key>.card.txt), einmalig im Browser zwischengespeichert. */
 (function () {
   'use strict';
   /* Voreinstellungen (speech-lib): f_warm Lea, f_klar Sophie, f_frisch Mia, f_sanft Hanna · m_freundlich Max, m_ruhig Jonas, m_souveraen Thomas, m_tief Paul.
@@ -39,8 +39,13 @@
       m_freundlich: ['nl_BE-rdh-medium', null, 1.0, 'Rdh', 63], m_ruhig: ['nl_NL-mls-medium', '2450', 1.04, 'MLS 2450', 77],
       m_souveraen: ['nl_NL-mls-medium', '4429', 1.0, 'MLS 4429', 77], m_tief: ['nl_NL-mls-medium', '11290', 1.04, 'MLS 11290', 77]
     },
-    tr: { m_freundlich: ['tr_TR-fahrettin-medium', null, 1.0, 'Fahrettin', 63], m_ruhig: ['tr_TR-fettah-medium', null, 1.04, 'Fettah', 63] },
-    it: { f_warm: ['it_IT-paola-medium', null, 1.0, 'Paola', 64], m_freundlich: ['it_IT-riccardo-x_low', null, 1.0, 'Riccardo', 28] },
+    tr: {   /* zwei freie türkische Stimmen (CC0): Fettah (Frau), Fahrettin (Mann) – die Voreinstellungen unterscheiden sich im Tempo */
+      f_warm: ['tr_TR-fettah-medium', null, 1.0, 'Fettah', 63], f_klar: ['tr_TR-fettah-medium', null, 0.96, 'Fettah', 63],
+      f_frisch: ['tr_TR-fettah-medium', null, 0.9, 'Fettah', 63], f_sanft: ['tr_TR-fettah-medium', null, 1.1, 'Fettah', 63],
+      m_freundlich: ['tr_TR-fahrettin-medium', null, 1.0, 'Fahrettin', 63], m_ruhig: ['tr_TR-fahrettin-medium', null, 1.06, 'Fahrettin', 63],
+      m_souveraen: ['tr_TR-fahrettin-medium', null, 0.97, 'Fahrettin', 63], m_tief: ['tr_TR-fahrettin-medium', null, 1.1, 'Fahrettin', 63]
+    },
+    it: { m_freundlich: ['it_IT-riccardo-x_low', null, 1.0, 'Riccardo', 28] },
     ru: { m_freundlich: ['ru_RU-denis-medium', null, 1.0, 'Denis', 63] },
     sv: { m_freundlich: ['sv_SE-nst-medium', null, 1.0, 'NST', 63] },
     no: { m_freundlich: ['no_NO-talesyntese-medium', null, 1.0, 'Talesyntese', 63] },
