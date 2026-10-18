@@ -24,22 +24,13 @@ TEXT = {
 }
 # (Stimme, Sprecher – None = alle bzw. einzelner Sprecher, Liste = genau diese, Zahl = so viele gleichmäßig verteilt)
 CANDIDATES = [
-    ('de_DE-kerstin-low', None), ('de_DE-ramona-low', None), ('de_DE-eva_k-x_low', None), ('de_DE-karlsson-low', None),
-    ('de_DE-pavoque-low', None), ('de_DE-thorsten-medium', None), ('de_DE-thorsten_emotional-medium', ['neutral', 'amused', 'sleepy']),
-    ('de_DE-mls-medium', 80),
-    ('en_GB-alba-medium', None), ('en_GB-jenny_dioco-medium', None), ('en_GB-cori-medium', None), ('en_GB-southern_english_female-low', None),
-    ('en_GB-alan-medium', None), ('en_GB-northern_english_male-medium', None), ('en_US-amy-medium', None), ('en_US-kristin-medium', None),
-    ('en_US-hfc_female-medium', None), ('en_US-ryan-medium', None), ('en_US-joe-medium', None), ('en_US-john-medium', None),
-    ('en_US-hfc_male-medium', None), ('en_US-norman-medium', None), ('en_US-bryce-medium', None), ('en_GB-semaine-medium', ['prudence', 'spike', 'obadiah', 'poppy']),
-    ('fr_FR-siwis-medium', None), ('fr_FR-tom-medium', None), ('fr_FR-gilles-low', None), ('fr_FR-upmc-medium', ['jessica', 'pierre']),
-    ('fr_FR-mls_1840-low', None), ('fr_FR-mls-medium', 30),
+    # gewählte Stimmen (Hörproben bleiben) + offene Fragen: Türkisch fahrettin/fettah (fehlen in voices.json), Spanisch mls langsam?, es_MX
+    ('de_DE-kerstin-low', None), ('de_DE-ramona-low', None), ('de_DE-eva_k-x_low', None), ('de_DE-mls-medium', ['589', '11480', '5675']),
+    ('de_DE-thorsten-medium', None), ('de_DE-karlsson-low', None),
+    ('fr_FR-siwis-medium', None), ('fr_FR-upmc-medium', ['jessica', 'pierre']), ('fr_FR-mls-medium', ['12899', '13634', '5525', '66', '3182']),
     ('es_ES-sharvard-medium', ['M', 'F']), ('es_ES-davefx-medium', None), ('es_ES-carlfm-x_low', None), ('es_ES-mls_10246-low', None),
-    ('es_ES-mls_9972-low', None),
-    ('tr_TR-dfki-medium', None), ('tr_TR-fahrettin-medium', None), ('tr_TR-fettah-medium', None),
-    ('ru_RU-irina-medium', None), ('ru_RU-denis-medium', None), ('ru_RU-dmitri-medium', None), ('ru_RU-ruslan-medium', None),
-    ('it_IT-paola-medium', None), ('it_IT-riccardo-x_low', None),
-    ('nl_BE-nathalie-medium', None), ('nl_BE-rdh-medium', None), ('nl_NL-mls_5809-low', None), ('nl_NL-mls_7432-low', None), ('nl_NL-mls-medium', 30),
-    ('sv_SE-nst-medium', None), ('no_NO-talesyntese-medium', None), ('fi_FI-harri-medium', None),
+    ('es_ES-mls_9972-low', None), ('es_MX-ald-medium', None), ('es_MX-claude-high', None),
+    ('tr_TR-fahrettin-medium', None), ('tr_TR-fettah-medium', None), ('tr_TR-dfki-medium', None),
 ]
 
 def get(url, path):
@@ -47,19 +38,25 @@ def get(url, path):
         urllib.request.urlretrieve(url, path)
     return path
 
+def smap_known(meta):
+    return bool(meta.get('speaker_id_map')) or bool(meta['files'][next(iter(meta['files']))])
+
 def f0_and_rate(wav_path, text):
     snd = parselmouth.Sound(wav_path)
     pitch = snd.to_pitch(time_step=0.01, pitch_floor=60, pitch_ceiling=420)
     vals = [v for v in pitch.selected_array['frequency'] if v > 0]
     f0 = statistics.median(vals) if vals else 0
-    return round(f0), round(len(text) / snd.duration, 1)
+    voiced = len(vals) * 0.01
+    return round(f0), '%.1f/%.1f s' % (snd.duration, voiced)
 
 voices = json.load(urllib.request.urlopen(HF + 'voices.json'))
 rows = []
 for key, spk in CANDIDATES:
     meta = voices.get(key)
     if not meta:
-        print('FEHLT', key); continue
+        fam = key[:2]; loc, name, q = key.split('-')[0], key.split('-')[1], key.split('-')[2]
+        meta = {'files': {'%s/%s/%s/%s/%s.onnx' % (fam, loc, name, q, key): {}}, 'language': {'family': fam}, 'speaker_id_map': {}}
+        print('nicht in voices.json, versuche Pfad:', key, flush=True)
     onnx = next(p for p in meta['files'] if p.endswith('.onnx'))
     base = os.path.dirname(onnx)
     lang = meta['language']['family']
@@ -71,8 +68,13 @@ for key, spk in CANDIDATES:
     lic = ' | '.join(l.strip() for l in card.splitlines() if 'icen' in l.lower() or 'http' in l.lower())[:300]
     mdir = os.path.join('/tmp/models')
     os.makedirs(mdir, exist_ok=True)
-    mp = get(HF + onnx, os.path.join(mdir, key + '.onnx'))
-    cp = get(HF + onnx + '.json', mp + '.json')
+    try:
+        mp = get(HF + onnx, os.path.join(mdir, key + '.onnx'))
+        cp = get(HF + onnx + '.json', mp + '.json')
+    except Exception as e:  # noqa: BLE001
+        print('FEHLT', key, e, flush=True); continue
+    if not smap_known(meta):
+        meta['speaker_id_map'] = json.load(open(cp)).get('speaker_id_map') or {}
     v = PiperVoice.load(mp, config_path=cp)
     smap = meta.get('speaker_id_map') or {}
     if not smap:
@@ -91,7 +93,7 @@ for key, spk in CANDIDATES:
             v.synthesize_wav(TEXT[lang], wf, syn_config=SynthesisConfig(speaker_id=sid))
         f0, rate = f0_and_rate(wp, TEXT[lang])
         rows.append({'voice': key, 'speaker': sname, 'sid': sid, 'lang': lang, 'f0': f0, 'cps': rate, 'size': os.path.getsize(mp), 'license': lic})
-        print('%-48s f0=%3d Hz  %4.1f Zeichen/s' % (tag, f0, rate), flush=True)
+        print('%-48s f0=%3d Hz  Dauer/stimmhaft %s' % (tag, f0, rate), flush=True)
         if sname is not None and isinstance(spk, int):
             os.remove(wp)  # viele Sprecher: nur die Tabelle behalten
     print('  Lizenz:', lic or '(keine Angabe)', flush=True)
