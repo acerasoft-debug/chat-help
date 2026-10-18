@@ -92,10 +92,11 @@ $r=cb_create($acc,['name'=>$name,'phone'=>$pick('phone'),'email'=>$pick('email')
 if(isset($r['error'])) cbl_out(422,['ok'=>false,'error'=>$r['error'],'message'=>CBL_ERR[$r['error']] ?? ($r['hint'] ?? 'Die Anfrage konnte nicht gespeichert werden.')]);
 
 $first=explode(' ',$name)[0] ?? '';
-$resp=['ok'=>true,'code'=>$r['code'],'message'=>!empty($r['duplicate']) ? $r['message'] : 'Vielen Dank'.($first!=='' ? ', '.$first : '').'! '.$r['message'],'callback'=>$r['callback']];
+/* Duplikat ohne verifizierte Nummer: cb_create liefert bewusst keinen Code und keine Einzelheiten (Datenschutz) */
+$resp=['ok'=>true,'code'=>$r['code'] ?? null,'message'=>!empty($r['duplicate']) ? $r['message'] : 'Vielen Dank'.($first!=='' ? ', '.$first : '').'! '.$r['message'],'callback'=>$r['callback'] ?? null];
 if($acc===0) $resp['demo']='Live-Demo: Im echten Betrieb ruft jetzt der digitale Assistent an – in der Demo wird niemand angerufen.';
 /* Lead-Sofortrückruf: Antwort sofort senden, dann im Hintergrund anrufen. Ohne Hintergrund-Modus (CLI/Entwicklung) übernimmt der Planer innerhalb einer Minute. */
-$instant=$acc>0 && empty($r['duplicate']) && $r['callback']['mode']==='ai' && $r['callback']['status']==='open' && $s['lead_instant']===1 && cb_in_window($s,cb_now($s));
+$instant=$acc>0 && empty($r['duplicate']) && !empty($r['id']) && is_array($r['callback'] ?? null) && $r['callback']['mode']==='ai' && $r['callback']['status']==='open' && $s['lead_instant']===1 && cb_in_window($s,cb_now($s));
 if($instant){
     $bg=PHP_SAPI!=='cli' && !headers_sent() && (function_exists('fastcgi_finish_request') || function_exists('litespeed_finish_request'));
     if($bg){

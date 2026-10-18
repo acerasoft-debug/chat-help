@@ -129,10 +129,11 @@
     (function step(){
       var cur=JOB[kind];
       if(plan!==PLAN || !cur || cur.job!==id || cur.status!=='running' || !visible()){ POLL[kind]=false; return; }   // unsichtbar → show() setzt fort
+      var t0=Date.now();
       post('/train/job',{id:id},plan).then(function(r){
         if(plan!==PLAN || !JOB[kind] || JOB[kind].job!==id){ POLL[kind]=false; return; }
         onJob(kind,r);
-        if(r.status==='running') setTimeout(step,600); else POLL[kind]=false;
+        if(r.status==='running') setTimeout(step,Math.max(600,2500-(Date.now()-t0))); else POLL[kind]=false;   // Server wartet selbst auf Fortschritt (Long-Poll); schnelle Antworten werden gedrosselt
       }).catch(function(e){
         POLL[kind]=false;
         if(e && e.status===404){ JOB[kind]=null; if(kind==='imp') setImportBusy(false); else busy(el('trTestRun'),false); return; }
@@ -164,14 +165,15 @@
   function fileExt(name){ var m=/\.([a-z0-9]+)$/i.exec(name || ''); return m ? m[1].toLowerCase() : ''; }
   function fileCost(f){ var e=fileExt(f.name); if(e==='pdf') return '≈ 40–140 Tokens (PDF liest die KI)'; if(e==='docx') return '≈ 20–120 Tokens'; var c=Math.min(120,20+Math.ceil(f.size/2000)); return '≈ '+c+' Tokens'; }
   function pickFile(f){
-    var box=el('trFileMsg'); msg(box,''); FILE=null; el('trFileGo').disabled=true;
+    var box=el('trFileMsg'); msg(box,''); FILE=null; el('trFileGo').disabled=true; el('trFileGo').textContent='Hochladen & aufbereiten';
     if(!f){ el('trFileName').textContent=''; return; }
     var e=fileExt(f.name), lim=(OV && OV.upload_limit) || 10485760;
     if(!EXT[e]){ el('trFileName').textContent=''; msg(box,e==='doc' ? 'Alte Word-Dateien (.doc) bitte als .docx oder PDF speichern.' : (e==='xlsx' || e==='xls' ? 'Tabellen bitte als CSV speichern (Datei → Speichern unter → CSV).' : 'Erlaubt sind PDF, Word (.docx), TXT, Markdown (.md) und CSV.'),'err'); return; }
     if(f.size>lim){ el('trFileName').textContent=''; msg(box,'Die Datei ist zu groß ('+(f.size/1048576).toFixed(1).replace('.',',')+' MB) – höchstens '+(lim/1048576).toFixed(1).replace('.',',')+' MB.','err'); return; }
     if(e==='pdf' && OV && OV.pdf===false){ el('trFileName').textContent=''; msg(box,'PDF-Dateien liest unsere KI – sie ist gerade nicht verfügbar. Bitte als Word- (.docx) oder Textdatei hochladen.','err'); return; }
     FILE=f; el('trFileName').innerHTML='<span class="tag indigo">'+h(EXT[e])+'</span> <b>'+h(clip(f.name,70))+'</b> · '+(f.size<1048576 ? Math.max(1,Math.round(f.size/1024))+' KB' : (f.size/1048576).toFixed(1).replace('.',',')+' MB');
-    el('trFileCost').textContent=fileCost(f); el('trFileGo').disabled=!!(JOB.imp && JOB.imp.status==='running');
+    el('trFileCost').textContent=e==='pdf' ? 'PDF-Dateien liest die KI (+20 Tokens).' : 'Berechnet erst, wenn die Vorschau fertig ist.';
+    el('trFileGo').textContent='Hochladen & aufbereiten · '+fileCost(f); el('trFileGo').disabled=!!(JOB.imp && JOB.imp.status==='running');
   }
   function uploadFile(){
     if(!FILE) return; var box=el('trFileMsg'), btn=el('trFileGo');
@@ -217,7 +219,7 @@
     post('/train/apply',{text:t,mode:mode,job:PREV ? PREV.job : '',title:PREV ? PREV.title : ''}).then(function(r){
       busy(b1,false); busy(b2,false); var kind=PREV ? PREV.kind : 'url'; hidePreview(); JOB.imp=null;
       msg(el(kind==='url' ? 'trUrlMsg' : 'trFileMsg'),(mode==='replace' ? 'Ersetzt ✓' : 'Angehängt ✓')+' – die Wissensbasis hat jetzt '+n(r.kb_chars)+' Zeichen. Dein Agent nutzt sie ab sofort. <a href="#" data-tropen="1">Jetzt testen →</a>','ok');
-      if(kind==='file'){ FILE=null; el('trFile').value=''; el('trFileName').textContent=''; el('trFileGo').disabled=true; }
+      if(kind==='file'){ FILE=null; el('trFile').value=''; el('trFileName').textContent=''; el('trFileGo').disabled=true; el('trFileGo').textContent='Hochladen & aufbereiten'; }
       refreshOverview();
     }).catch(function(e){ busy(b1,false); busy(b2,false); showErr(box,e); });
   }

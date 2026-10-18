@@ -120,13 +120,14 @@ function train_clean_text(string $s): string {
     $s=preg_replace("/\n{3,}/","\n\n",$s) ?? $s;
     return trim($s);
 }
-/** Auf $max Zeichen kürzen – möglichst an Zeilen- bzw. Satzgrenze. */
 function train_one_line(string $s): string { return trim(preg_replace('/\s+/u',' ',train_clean_text($s)) ?? ''); }
+/** Auf höchstens $max Zeichen kürzen (inkl. Auslassungszeichen $more) – möglichst an Zeilen- bzw. Satzgrenze. Passt damit sicher in VARCHAR($max). */
 function train_cut(string $s, int $max, string $more='…'): string {
     if(mb_strlen($s)<=$max) return $s;
-    $c=mb_substr($s,0,$max); $p=mb_strrpos($c,"\n");
-    if($p===false || $p<$max*0.7){ $q=max((int)mb_strrpos($c,'. '),(int)mb_strrpos($c,' ')); if($q>$max*0.6) $p=$q; }
-    return rtrim(mb_substr($c,0,$p!==false && $p>0 ? $p : $max)).$more;
+    $more=mb_substr($more,0,max(0,$max)); $lim=max(0,$max-mb_strlen($more));
+    $c=mb_substr($s,0,$lim); $p=mb_strrpos($c,"\n");
+    if($p===false || $p<$lim*0.7){ $q=max((int)mb_strrpos($c,'. '),(int)mb_strrpos($c,' ')); if($q>$lim*0.6) $p=$q; }
+    return rtrim(mb_substr($c,0,$p!==false && $p>0 ? $p : $lim)).$more;
 }
 function train_tz(array $s): DateTimeZone { try{ return new DateTimeZone((string)($s['tz'] ?? '') ?: 'Europe/Berlin'); }catch(Throwable $e){ return new DateTimeZone('Europe/Berlin'); } }
 function train_iso(?string $db): ?string { return $db ? (function_exists('th_dbiso') ? th_dbiso($db) : $db) : null; }
@@ -394,7 +395,11 @@ function train_tests_save(int $acc, string $plan, array $items, ?array $known=nu
 /** System-Prompt exakt wie im Betrieb (Rolle, Firma, Ton, Wissensbasis, FAQ, Regeln) – ohne Live-Werkzeuge (Tests buchen nichts). */
 function train_agent_sys(int $acc, string $plan): string {
     $pl=ch_plan($plan); if(!$pl) return '';
-    if($acc===0){ return ch_agent_system($pl,ch_demo_cfg($plan)+['account_id'=>0,'plan'=>$plan],'de').train_prompt_addon(0,$plan); }
+    if($acc===0){
+        /* Demo: ch_agent_system() hängt den Zusatz bisher nur für Konten > 0 an – hier ergänzen, aber nie doppelt (falls plans.php ihn schon einfügt) */
+        $sys=ch_agent_system($pl,ch_demo_cfg($plan)+['account_id'=>0,'plan'=>$plan],'de'); $add=train_prompt_addon(0,$plan);
+        return $add!=='' && strpos($sys,$add)===false ? $sys.$add : $sys;
+    }
     return ch_agent_system($pl,th_agent_cfg($acc,$plan),'de');
 }
 const TRAIN_GRADER_SYS = "Du bist ein strenger, fairer Prüfer für Antworten eines KI-Kundenservice-Agenten. Du erhältst eine Kundenfrage, die vom Betreiber erwarteten Fakten und die tatsächliche Antwort des Agenten.\nBestanden (pass=true) nur, wenn die Antwort ALLE erwarteten Fakten inhaltlich korrekt enthält – die Formulierung ist egal, Zahlen, Preise, Zeiten, Fristen und Namen müssen exakt stimmen – und nichts behauptet, was den erwarteten Fakten widerspricht. Fehlt ein erwarteter Fakt oder ist er falsch: pass=false. Zusätzliche, nicht widersprechende Informationen sind erlaubt. Ausweichende Antworten („weiß ich nicht“) bestehen nur, wenn genau das erwartet wird.\nAntworte ausschließlich mit JSON in einer Zeile, ohne weiteren Text: {\"pass\":true|false,\"reason\":\"kurze Begründung auf Deutsch, höchstens 200 Zeichen\"}";
@@ -931,6 +936,7 @@ const TRAIN_UNSURE = [
     '/kann ich (?:\w+ ){0,3}(nicht|nichts|keine auskunft) (?:\w+ ){0,2}(sagen|beantworten|mitteilen|bestätigen)/iu',
     '/(steht|finde ich) (?:\w+ ){0,2}nicht in (meinen|den|unseren) (unterlagen|informationen|daten)/iu','/nicht in (meiner|der) wissensbasis/iu','/(dazu|darüber|hierzu) (habe|liegen|kann) (ich|mir) (?:\w+ ){0,2}(keine|nichts)/iu',
     '/\[WEITERLEITEN\]/u','/leite (?:\w+ ){0,6}weiter\b/iu',
+    '/\bleider\b.{0,160}(rückruf|zurückruf)/isu',   // „leider … gerne veranlasse ich einen Rückruf“ (Ersatz für eine fehlende Antwort)
     '/\bi (don\'t|do not) (know|have (any )?information)|\bno information (about|on)/iu',
 ];
 const TRAIN_HUMAN_REQ = '/(rückruf|zurückrufen|ruf(en sie)? mich|mitarbeiter|mensch(en)?\b|chef|jemand(en)? sprechen|persönlich sprechen|verbinden|beschwer|reklamation|storn|kündig|termin (buchen|vereinbaren|absagen)|bestell(en|ung) (aufgeben|stornieren))/iu';
@@ -1033,9 +1039,11 @@ function train_exec(int $acc, string $name, array $in, string $channel, string $
     if(mb_strlen($q)<5) return ['error'=>'question_required','hint'=>'Bitte die offene Frage des Kunden als kurzen Satz übergeben.'];
     $say='Sag dem Kunden ehrlich, dass du dazu gerade keine gesicherte Information hast, und biete eine Alternative an (Rückruf, Kontakt oder Weiterleitung). Das Werkzeug nicht erwähnen.';
     if($acc===0 || $channel==='demo') return ['ok'=>true,'noted'=>false,'demo'=>true,'hint'=>'Demo: Die Frage wird nicht gespeichert. '.$say];
-    if(!train_enabled($acc)) return ['error'=>'disabled','hint'=>'Das Melden offener Fragen ist für diesen Betrieb ausgeschaltet. '.$say];
-    if(!th_rate('train:gaplog:'.$acc,150,86400)) return ['ok'=>true,'noted'=>false,'hint'=>'Tageslimit für Meldungen erreicht. '.$say];
-    $ok=train_gap_log($acc,'',$q,$channel,train_str($in['topic'] ?? '',60));
+    try{
+        if(!train_enabled($acc)) return ['error'=>'disabled','hint'=>'Das Melden offener Fragen ist für diesen Betrieb ausgeschaltet. '.$say];
+        if(!th_rate('train:gaplog:'.$acc,150,86400)) return ['ok'=>true,'noted'=>false,'hint'=>'Tageslimit für Meldungen erreicht. '.$say];
+        $ok=train_gap_log($acc,'',$q,$channel,train_str($in['topic'] ?? '',60));
+    }catch(Throwable $e){ error_log('CH train_exec: '.$e->getMessage()); return ['error'=>'server_error','hint'=>'Die Frage konnte gerade nicht notiert werden. '.$say]; }
     return ['ok'=>true,'noted'=>$ok,'hint'=>'Notiert – der Betrieb ergänzt die Antwort. '.$say];
 }
 function train_system_hint(int $acc, string $channel='chat'): string {
@@ -1089,10 +1097,32 @@ function train_job_public(array $job): array {
     if($job['kind']==='tests' && $job['status']==='running'){ $o['done_tests']=count($job['state']['results'] ?? []); $o['total_tests']=count($job['state']['ids'] ?? []); }
     return $o;
 }
-/** Ein Arbeitsschritt. → 'more' | 'yield' (langer Schritt soll in einer frischen Abfrage starten) | 'done' */
+/** Läuft der Auftrag laut DB noch? (Abbruch über train/job/cancel oder ersetzt durch einen neueren Import) */
+function train_job_running(array $job): bool {
+    $s=th_db()->prepare("SELECT status FROM train_jobs WHERE id=? AND account_id=?"); $s->execute([$job['id'],$job['account_id']]);
+    return $s->fetchColumn()==='running';
+}
+/**
+ * Ergebnis zuerst sichern (nur solange der Auftrag in der DB noch 'running' ist), erst dann abrechnen und den Betrag nachtragen.
+ * So kostet ein abgebrochener oder ersetzter Auftrag nichts, und berechnete Arbeit ist immer gespeichert. false = nicht mehr aktiv.
+ */
+function train_job_commit_charged(array &$job, int $cost, string $reason, string $sector, float $t1): bool {
+    if(!train_job_save($job)) return false;
+    $charged=$cost>0 ? th_charge((int)$job['account_id'],$cost,$reason,'job:'.$job['token']) : 0;
+    $job['cost']=$charged; if(is_array($job['result'])) $job['result']['cost']=$charged;
+    if($charged>0) th_log_usage((int)$job['account_id'],$reason,$sector,$charged,(int)((microtime(true)-$t1)*1000));
+    th_db()->prepare("UPDATE train_jobs SET cost=?, result=? WHERE id=? AND account_id=?")
+        ->execute([$charged,json_encode($job['result'],JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE),$job['id'],$job['account_id']]);
+    return true;
+}
+/**
+ * Ein Arbeitsschritt. → 'more' | 'yield' (langer Schritt soll in einer frischen Abfrage starten) | 'done'
+ * | 'saved' (Schritt hat den Auftrag selbst gespeichert) | 'gone' (inzwischen abgebrochen/ersetzt – nichts mehr speichern oder berechnen)
+ */
 function train_job_step(array &$job, bool $sync, float $t0): string {
     $acc=(int)$job['account_id']; $plan=(string)$job['plan']; $st=&$job['state'];
     $long=fn()=>$sync && (microtime(true)-$t0)>1.5;
+    $sector=(string)(ch_plan($plan)['sector'] ?? 'training');
     if($job['stage']==='crawl'){
         train_crawl_step($st['crawl']);
         $c=$st['crawl'];
@@ -1108,6 +1138,7 @@ function train_job_step(array &$job, bool $sync, float $t0): string {
     }
     if($job['stage']==='extract'){
         if($long()) return 'yield';
+        if(!train_job_running($job)){ if(!empty($st['path'])) @unlink((string)$st['path']); return 'gone'; }
         $x=train_extract_file((string)$st['path'],(string)$st['name']); @unlink((string)$st['path']); unset($st['path']);
         if(isset($x['error'])){ train_job_fail($job,$x['error'],$x['hint'] ?? 'Die Datei konnte nicht gelesen werden.'); return 'done'; }
         $raw=trim($x['text']); if(mb_strlen($raw)<20){ train_job_fail($job,'file_empty','In der Datei wurde kein lesbarer Text gefunden (z. B. nur eingescannte Bilder ohne Text).'); return 'done'; }
@@ -1121,21 +1152,21 @@ function train_job_step(array &$job, bool $sync, float $t0): string {
         $pdf=($st['kind'] ?? '')==='pdf'; $cost=train_cost_import((int)($st['raw_chars'] ?? mb_strlen($raw)),$pdf); $bal=th_balance($acc);
         $base=['kind'=>$job['kind']==='url' ? 'url' : 'file','file_kind'=>$st['kind'] ?? null,'title'=>$st['title'] ?? '','ref'=>$st['ref'] ?? '','pages'=>$st['pages'] ?? [],'errors'=>$st['errors'] ?? [],'raw_chars'=>(int)($st['raw_chars'] ?? mb_strlen($raw)),'truncated'=>!empty($st['truncated'])];
         if($bal<$cost){ train_job_fail($job,'insufficient_tokens','Für die KI-Aufbereitung werden '.$cost.' Tokens benötigt, verfügbar sind '.$bal.'.',['need'=>$cost,'balance'=>$bal,'buy'=>'/#preise']); return 'done'; }
+        if(!train_job_running($job)) return 'gone';   // vor dem teuren KI-Aufruf: inzwischen abgebrochen/ersetzt?
         $t1=microtime(true); $kb=train_condense($acc,$plan,$raw,(string)($st['label'] ?? 'Import'));
+        unset($st['raw']); $job['status']='done'; $job['stage']='done'; $job['progress']='Vorschau ist fertig.'; $job['cost']=0;
         if($kb===null){
             $job['result']=$base+['preview'=>train_raw_preview($raw),'condensed'=>false,'cost'=>0,'note'=>'Die KI-Aufbereitung war gerade nicht möglich – hier der gelesene Text zum Prüfen und Kürzen. Es wurden keine Tokens berechnet.'];
-        } else {
-            $charged=th_charge($acc,$cost,'train:import','job:'.$job['token']); $job['cost']=$charged;
-            if($charged>0) th_log_usage($acc,'train:import',(string)(ch_plan($plan)['sector'] ?? 'training'),$charged,(int)((microtime(true)-$t1)*1000));
-            $job['result']=$base+['preview'=>$kb,'condensed'=>true,'cost'=>$charged];
+            return 'done';
         }
-        unset($st['raw']); $job['status']='done'; $job['stage']='done'; $job['progress']='Vorschau ist fertig.'; return 'done';
+        $job['result']=$base+['preview'=>$kb,'condensed'=>true,'cost'=>0];
+        return train_job_commit_charged($job,$cost,'train:import',$sector,$t1) ? 'saved' : 'gone';   // nur berechnen, wenn das Ergebnis gespeichert wurde
     }
     if($job['stage']==='run'){
         $ids=$st['ids'] ?? []; $i=(int)($st['i'] ?? 0); $n=count($ids);
-        $finish=function(string $note='') use(&$job,&$st,$acc,$plan,$n){
+        $finish=function(string $note='') use(&$job,&$st,$acc,$plan,$n,$sector){
             $tests=train_tests($acc,$plan); $sum=train_tests_summary($acc,$plan,$tests); $res=$st['results'] ?? []; $ran=count(array_filter($res,fn($r)=>$r['pass']!==null));
-            if(($st['charged'] ?? 0)>0) th_log_usage($acc,'train:test',(string)(ch_plan($plan)['sector'] ?? 'training'),(int)$st['charged'],(int)($st['ms'] ?? 0));
+            if(($st['charged'] ?? 0)>0) th_log_usage($acc,'train:test',$sector,(int)$st['charged'],(int)($st['ms'] ?? 0));
             $job['cost']=(int)($st['charged'] ?? 0); $job['status']='done'; $job['stage']='done';
             $job['result']=['summary'=>$sum,'results'=>$res,'ran'=>$ran,'passed'=>count(array_filter($res,fn($r)=>$r['pass']===true)),'requested'=>$n,'cost'=>$job['cost'],'note'=>$note];
             $job['progress']=$note!=='' ? $note : 'Prüfung abgeschlossen.';
@@ -1146,13 +1177,18 @@ function train_job_step(array &$job, bool $sync, float $t0): string {
         if(!$test){ $st['i']=$i+1; return 'more'; }
         if(th_balance($acc)<TRAIN_COST_TEST){ $finish('Guthaben aufgebraucht – '.$i.' von '.$n.' Fragen geprüft.'); return 'done'; }
         if(!th_rate('train:test:'.$acc,200,86400)){ $finish('Tageslimit von 200 Testfragen erreicht – '.$i.' von '.$n.' geprüft. Morgen geht es weiter.'); return 'done'; }
+        $gone=function() use(&$st,$acc,$sector){ if(($st['charged'] ?? 0)>0) th_log_usage($acc,'train:test',$sector,(int)$st['charged'],(int)($st['ms'] ?? 0)); return 'gone'; };
+        if(!train_job_running($job)) return $gone();   // abgebrochen → keine weitere Frage prüfen
         $t1=microtime(true); $r=train_test_one($acc,$plan,$test);
         if($r['error']==='ai_unavailable'){
             if(!array_filter($st['results'] ?? [],fn($x)=>$x['pass']!==null)){ train_job_fail($job,'ai_unavailable',TRAIN_JOB_MSG['ai_unavailable']); return 'done'; }
             $st['results'][]=$r; $finish('KI nicht mehr erreichbar – '.$i.' von '.$n.' Fragen geprüft (nur geprüfte Fragen berechnet).'); return 'done';
         }
-        if($r['pass']!==null){ $st['charged']=(int)($st['charged'] ?? 0)+th_charge($acc,TRAIN_COST_TEST,'train:test','job:'.$job['token'].':'.$test['id']); }
         $st['ms']=(int)($st['ms'] ?? 0)+(int)((microtime(true)-$t1)*1000);
+        if($r['pass']!==null){
+            if(!train_job_running($job)) return $gone();   // während der Prüfung abgebrochen → diese Frage nicht berechnen
+            $st['charged']=(int)($st['charged'] ?? 0)+th_charge($acc,TRAIN_COST_TEST,'train:test','job:'.$job['token'].':'.$test['id']); $job['cost']=(int)$st['charged'];
+        }
         $st['results'][]=$r; $st['i']=$i+1;
         if($i+1>=$n){ $finish(); return 'done'; }
         $job['progress']='Testfrage '.($i+2).' von '.$n.' wird geprüft …'; return 'more';

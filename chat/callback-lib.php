@@ -495,6 +495,15 @@ function cb_create(int $acc, array $d, string $source, string $from=''): array {
     $ver=null;
     /* Demo (Konto 0): Besucher teilen sich Platzhalter-Nummern → dort nie Einträge verschiedener Besucher zusammenführen */
     if($channel!=='' && $acc>0){ $vp=function_exists('ch_verified_phone') ? ch_verified_phone($acc,$channel,$from,$phone) : (in_array($channel,['phone','whatsapp'],true) && $from!=='' ? $from : null); if($vp!==null){ $vv=cb_phone(preg_match('/^\d+$/',(string)$vp) ? '+'.$vp : (string)$vp); if($vv!==null && th_same_phone($vv,$phone)) $ver=$vv; } }
+    /* Läuft gerade ein KI-Rückruf an diese (verifizierte) Nummer, kommt die Bitte aus genau diesem Gespräch („passt gerade nicht, morgen 10 Uhr“,
+       „lieber ein Mitarbeiter“): sie ist ein NEUER Auftrag – nie als Duplikat des laufenden Anrufs verwerfen (der wird danach als geführt abgeschlossen). */
+    $calling=null;
+    if($ver!==null){ $st=$p->prepare("SELECT id, code, call_sid FROM callbacks WHERE account_id=? AND phone=? AND status='calling' ORDER BY id DESC LIMIT 1"); $st->execute([$acc,$phone]); $calling=$st->fetch(PDO::FETCH_ASSOC) ?: null; }
+    if($calling) $details=array_slice(['Vereinbart im KI-Rückruf'=>(string)$calling['code']]+$details,0,10,true);
+    $followup=function(array $row) use($acc,$calling,$s): void {
+        if(!$calling || (int)$row['id']===(int)$calling['id']) return;
+        cb_log_append($acc,(int)$calling['id'],['event'=>'followup','sid'=>(string)$calling['call_sid'],'status'=>'','note'=>'Im Gespräch vereinbart: '.($row['mode']==='ai' ? 'KI-Rückruf' : 'Rückruf durch das Team').' '.(cb_public($row,$s)['preferred']).' ('.$row['code'].')']);
+    };
     if($ver!==null){
         $st=$p->prepare("SELECT * FROM callbacks WHERE account_id=? AND phone=? AND status IN ('open','scheduled') AND created_at > (NOW() - INTERVAL 7 DAY) ORDER BY id DESC LIMIT 1"); $st->execute([$acc,$phone]);
         if($old=$st->fetch(PDO::FETCH_ASSOC)){
@@ -505,12 +514,18 @@ function cb_create(int $acc, array $d, string $source, string $from=''): array {
             $nm=$by==='team' ? 'human' : ($by==='assistant' ? $mode : ($old['mode']==='ai' && $s['ai_callback']===1 && max($consent,(int)$old['consent'])===1 ? 'ai' : 'human'));
             $p->prepare("UPDATE callbacks SET name=?, topic=?, details=?, preferred_at=?, status=?, mode=?, urgency=IF(?='dringend','dringend',urgency), consent=GREATEST(consent,?), email=IF(?<>'',?,email), updated_at=NOW() WHERE id=? AND account_id=?")
               ->execute([$name,$nt,$nd ? json_encode($nd,JSON_UNESCAPED_UNICODE) : null,$npa,$nst,$nm,$urg,$consent,$email,$email,(int)$old['id'],$acc]);
-            $row=cb_get($acc,(int)$old['id']);
+            $row=cb_get($acc,(int)$old['id']); $followup($row);
             return ['ok'=>true,'updated'=>true,'id'=>(int)$row['id'],'code'=>$row['code'],'callback'=>cb_public($row,$s),'message'=>'Ihr Rückrufwunsch war bereits notiert und ist jetzt aktualisiert. '.cb_promise($row,$s),'hint'=>implode(' ',array_merge(['Bestehende Rückrufbitte aktualisiert (kein Duplikat).'],$notes))];
         }
     }
-    $st=$p->prepare("SELECT * FROM callbacks WHERE account_id=? AND phone=? AND LOWER(name)=LOWER(?) AND status IN ('open','scheduled','calling') AND created_at > (NOW() - INTERVAL 15 MINUTE) ORDER BY id DESC LIMIT 1"); $st->execute([$acc,$phone,$name]);
-    if($dup=$st->fetch(PDO::FETCH_ASSOC)) return ['ok'=>true,'duplicate'=>true,'id'=>(int)$dup['id'],'code'=>$dup['code'],'callback'=>cb_public($dup,$s),'message'=>'Ihre Rückrufbitte liegt uns bereits vor. '.cb_promise($dup,$s),'hint'=>'Diese Rückrufbitte war schon eingetragen – nichts doppelt anlegen.'];
+    /* Exakte Wiederholung (gleiche Nummer + gleicher Name, 15 Min) nicht doppelt anlegen. Ein laufender Anruf zählt nur bei unverifizierten Kanälen
+       (Formular erneut abgeschickt), nicht für Bitten von der angerufenen Nummer selbst (siehe oben). */
+    $st=$p->prepare("SELECT * FROM callbacks WHERE account_id=? AND phone=? AND LOWER(name)=LOWER(?) AND status IN ('open','scheduled'".($ver===null ? ",'calling'" : '').") AND created_at > (NOW() - INTERVAL 15 MINUTE) ORDER BY id DESC LIMIT 1"); $st->execute([$acc,$phone,$name]);
+    if($dup=$st->fetch(PDO::FETCH_ASSOC)){
+        /* Datenschutz: Einzelheiten (Code, Wunschzeit, Modus) nur über eine verifizierte Nummer, im Studio oder in der Demo – nie für eine bloß eingetippte Nummer */
+        if($ver!==null || $source==='studio' || $acc===0) return ['ok'=>true,'duplicate'=>true,'id'=>(int)$dup['id'],'code'=>$dup['code'],'callback'=>cb_public($dup,$s),'message'=>'Ihre Rückrufbitte liegt uns bereits vor. '.cb_promise($dup,$s),'hint'=>'Diese Rückrufbitte war schon eingetragen – nichts doppelt anlegen.'];
+        return ['ok'=>true,'duplicate'=>true,'code'=>null,'callback'=>null,'message'=>'Ihre Rückrufbitte liegt uns bereits vor – wir melden uns wie vereinbart.','hint'=>'Diese Rückrufbitte war schon eingetragen – nichts doppelt anlegen. Keine Einzelheiten (Code, Zeit) nennen.'];
+    }
     /* Schutz vor Missbrauch (fremde Nummern anrufen lassen): höchstens 4 Rückrufbitten je Nummer und Tag aus öffentlichen Kanälen.
        Nicht in der Demo (Konto 0): dort wird nie angerufen, und Besucher nutzen Platzhalter-Nummern wie 0170 0000000. */
     if($acc>0 && !in_array($source,['studio','phone','whatsapp'],true) && !th_rate('cbp:'.$acc.':'.$phone,4,86400)) return ['error'=>'too_many_requests','hint'=>'Für diese Telefonnummer liegen heute bereits mehrere Rückrufbitten vor – das Team meldet sich. Keine weitere anlegen.'];
@@ -527,7 +542,7 @@ function cb_create(int $acc, array $d, string $source, string $from=''): array {
             $id=(int)$p->lastInsertId();
         }catch(PDOException $e){ if($e->getCode()!=='23000' || $try>=5) throw $e; }   // Code-Kollision → neuer Code
     }
-    $row=cb_get($acc,$id);
+    $row=cb_get($acc,$id); $followup($row);
     if($acc>0){ try{ cb_notify_new($row,$s); }catch(Throwable $e){ error_log('CH cb_notify_new: '.$e->getMessage()); } }
     $out=['ok'=>true,'id'=>$id,'code'=>$row['code'],'callback'=>cb_public($row,$s),'message'=>cb_promise($row,$s)];
     if($notes) $out['hint']=implode(' ',$notes);
@@ -691,10 +706,36 @@ function cb_call_now(int $acc, int $id, bool $force=false): array {
 }
 
 /* ======================================================================= Planer */
+const CB_CALL_TIMEOUT_MIN=15;    // so lange ohne Status-Rückmeldung und ohne Gesprächsdaten → „nicht erreicht“
+const CB_CALL_MAX_MIN=60;        // laufendes Gespräch (phone_calls ohne Ende) gilt spätestens danach als hängend
+const CB_ENDED_STATES=['completed','busy','failed','no-answer','canceled'];
+/**
+ * Hängende Anrufe (calling ohne Status-Rückmeldung) auflösen: mit Gesprächsdaten (phone_calls) und Ende → das echte Ergebnis übernehmen
+ * (cb_on_call_status); Gespräch läuft noch → bis CB_CALL_MAX_MIN warten; ohne jede Gesprächsspur nach CB_CALL_TIMEOUT_MIN → „nicht erreicht“.
+ */
+function cb_resolve_stale_calls(): void {
+    $p=th_db();
+    $rows=$p->query("SELECT id, account_id, attempts, call_sid, TIMESTAMPDIFF(MINUTE,last_attempt_at,NOW()) AS age FROM callbacks WHERE status='calling' AND account_id>0 AND (last_attempt_at IS NULL OR last_attempt_at < (NOW() - INTERVAL ".CB_CALL_TIMEOUT_MIN." MINUTE)) ORDER BY id LIMIT 50")->fetchAll(PDO::FETCH_ASSOC);
+    foreach($rows as $r){
+        $acc=(int)$r['account_id']; $id=(int)$r['id']; $sid=(string)$r['call_sid']; $age=$r['age']===null ? PHP_INT_MAX : (int)$r['age']; $call=null;
+        if($sid!==''){ $c=$p->prepare("SELECT status, turns, ended_at FROM phone_calls WHERE account_id=? AND call_sid=?"); $c->execute([$acc,$sid]); $call=$c->fetch(PDO::FETCH_ASSOC) ?: null; }
+        if($call){
+            $ended=$call['ended_at']!==null || in_array((string)$call['status'],CB_ENDED_STATES,true);
+            if($ended){ cb_on_call_status($id,in_array((string)$call['status'],CB_ENDED_STATES,true) ? (string)$call['status'] : 'completed','',(int)$call['turns'],$sid,$acc); continue; }   // Status-Rückmeldung verloren: echtes Ergebnis
+            if($age<CB_CALL_MAX_MIN) continue;   // Gespräch läuft noch (z. B. ausführliche Qualifizierung)
+        }
+        $s=cb_settings($acc); $note='Versuch '.(int)$r['attempts'].': keine Rückmeldung vom Anruf (Zeitüberschreitung)';
+        $u=$p->prepare("UPDATE callbacks SET status='failed', result=?, updated_at=NOW() WHERE id=? AND account_id=? AND status='calling' AND call_sid=?"); $u->execute([$note,$id,$acc,$sid]);
+        if($u->rowCount()>0){ cb_log_append($acc,$id,['event'=>'timeout','sid'=>$sid,'status'=>'timeout','note'=>$note]);
+            if((int)$r['attempts']>=$s['max_attempts']){ try{ cb_notify_result(cb_get($acc,$id),$s,'failed'); }catch(Throwable $e){ error_log('CH cb_notify_result: '.$e->getMessage()); } } }
+    }
+}
 /**
  * Fällige KI-Rückrufe starten (höchstens 1× je Minute, eine Instanz zugleich über th_lock): bis zu 5 Anrufe kontoübergreifend –
  * Modus ai, Einwilligung, KI-Rückruf an, offen/geplant (oder nicht erreicht mit freien Versuchen und Abstand ≥ retry_min), Wunschzeit erreicht, innerhalb der Anrufzeiten.
- * Hängende Anrufe (calling > 15 Min ohne Status-Rückmeldung) werden als „nicht erreicht“ markiert.
+ * Fälligkeit wird je Zeitzone exakt in SQL geprüft (preferred_at = Wanduhr der Konto-Zeitzone), Konten nach Dringlichkeit und ältester Fälligkeit
+ * abgearbeitet; Konten außerhalb der Anrufzeiten bzw. mit Einrichtungsproblem werden für diesen Lauf als Ganzes übersprungen – so verdrängen
+ * nicht fällige oder blockierte Einträge nie fällige Rückrufe anderer Betriebe. Hängende Anrufe: cb_resolve_stale_calls().
  */
 function cb_scheduler_lazy(): void {
     if(!th_lock('cb_scheduler',0)) return;
@@ -703,34 +744,50 @@ function cb_scheduler_lazy(): void {
         $g=$p->query("SELECT TIMESTAMPDIFF(SECOND,last_run,NOW()) FROM callback_jobs WHERE name='scheduler'")->fetchColumn();
         if($g!==false && $g!==null && (int)$g>=0 && (int)$g<60) return;
         $p->exec("INSERT INTO callback_jobs(name,last_run) VALUES('scheduler',NOW()) ON DUPLICATE KEY UPDATE last_run=NOW()");
-        foreach($p->query("SELECT * FROM callbacks WHERE status='calling' AND account_id>0 AND (last_attempt_at IS NULL OR last_attempt_at < (NOW() - INTERVAL 15 MINUTE)) LIMIT 50")->fetchAll(PDO::FETCH_ASSOC) as $r){
-            $acc=(int)$r['account_id']; $s=cb_settings($acc); $note='Versuch '.(int)$r['attempts'].': keine Rückmeldung vom Anruf (Zeitüberschreitung)';
-            $u=$p->prepare("UPDATE callbacks SET status='failed', result=?, updated_at=NOW() WHERE id=? AND account_id=? AND status='calling'"); $u->execute([$note,(int)$r['id'],$acc]);
-            if($u->rowCount()>0){ cb_log_append($acc,(int)$r['id'],['event'=>'timeout','sid'=>(string)$r['call_sid'],'status'=>'timeout','note'=>$note]);
-                if((int)$r['attempts']>=$s['max_attempts']){ try{ cb_notify_result(cb_get($acc,(int)$r['id']),$s,'failed'); }catch(Throwable $e){ error_log('CH cb_notify_result: '.$e->getMessage()); } } }
-        }
-        /* preferred_at ist Wanduhr der Konto-Zeitzone (bis UTC+14): großzügig vorfiltern, exakt je Konto in PHP prüfen */
-        $q=$p->prepare("SELECT c.* FROM callbacks c JOIN callback_settings s ON s.account_id=c.account_id
-            WHERE c.account_id>0 AND c.mode='ai' AND c.consent=1 AND s.ai_callback=1 AND s.cb_on=1 AND c.attempts < s.max_attempts
+        cb_resolve_stale_calls();
+        $utc=new DateTimeZone('UTC'); $utcNow=new DateTimeImmutable('now',$utc);
+        /* Gemeinsame Bedingung: fällig (Wunschzeit erreicht, höchstens 3 Tage überfällig; ohne Wunschzeit höchstens 3 Tage alt) */
+        $due="c.account_id>0 AND c.mode='ai' AND c.consent=1 AND s.ai_callback=1 AND s.cb_on=1 AND c.attempts < s.max_attempts
               AND (c.status IN ('open','scheduled') OR (c.status='failed' AND (c.last_attempt_at IS NULL OR c.last_attempt_at < (NOW() - INTERVAL s.retry_min MINUTE))))
-              AND (c.preferred_at IS NULL OR c.preferred_at <= ?) AND c.created_at > (NOW() - INTERVAL 14 DAY)
-            ORDER BY (c.urgency='dringend') DESC, c.id LIMIT 60");
-        $q->execute([(new DateTimeImmutable('now',new DateTimeZone('UTC')))->modify('+15 hours')->format('Y-m-d H:i:s')]);
-        $calls=0; $busy=[];
-        foreach($q->fetchAll(PDO::FETCH_ASSOC) as $r){
+              AND ((c.preferred_at IS NOT NULL AND c.preferred_at <= ? AND c.preferred_at >= ?) OR (c.preferred_at IS NULL AND c.created_at > (NOW() - INTERVAL 3 DAY)))";
+        $accs=[];
+        foreach($p->query("SELECT DISTINCT tz FROM callback_settings WHERE ai_callback=1 AND cb_on=1 AND account_id>0")->fetchAll(PDO::FETCH_COLUMN) as $tzRaw){
+            $tzRaw=(string)$tzRaw; try{ $tz=new DateTimeZone(in_array($tzRaw,timezone_identifiers_list(),true) ? $tzRaw : 'Europe/Berlin'); }catch(Throwable $e){ $tz=new DateTimeZone('Europe/Berlin'); }
+            $local=$utcNow->setTimezone($tz);
+            $q=$p->prepare("SELECT c.account_id, MAX(c.urgency='dringend') AS urg, MIN(c.preferred_at) AS min_pa, MIN(CASE WHEN c.preferred_at IS NULL THEN c.created_at END) AS min_ct
+                FROM callbacks c JOIN callback_settings s ON s.account_id=c.account_id WHERE s.tz=? AND $due GROUP BY c.account_id");
+            $q->execute([$tzRaw,$local->format('Y-m-d H:i:s'),$local->modify('-3 days')->format('Y-m-d H:i:s')]);
+            foreach($q->fetchAll(PDO::FETCH_ASSOC) as $a){
+                $k=PHP_INT_MAX;
+                if($a['min_pa']!==null) $k=min($k,(new DateTimeImmutable((string)$a['min_pa'],$tz))->getTimestamp());
+                if($a['min_ct']!==null) $k=min($k,(new DateTimeImmutable((string)$a['min_ct'],$utc))->getTimestamp());
+                $accs[]=['acc'=>(int)$a['account_id'],'tz'=>$tzRaw,'urg'=>(int)$a['urg'],'key'=>$k];
+            }
+        }
+        usort($accs,fn($x,$y)=>[$y['urg'],$x['key'],$x['acc']] <=> [$x['urg'],$y['key'],$y['acc']]);
+        $calls=0; $setup=['phone_agent_missing','twilio_not_configured','outside_window','demo'];
+        foreach($accs as $a){
             if($calls>=5) break;
-            $acc=(int)$r['account_id']; $s=cb_settings($acc); $tz=cb_tz($s); $now=cb_now($s);
-            if($r['preferred_at']!==null){ $pa=new DateTimeImmutable((string)$r['preferred_at'],$tz); if($pa>$now || $pa<$now->modify('-3 days')) continue; }   // zu früh bzw. veraltet: nicht mehr automatisch anrufen
-            elseif(($ct=th_dbtime($r['created_at'],$tz)) && $ct<$now->modify('-3 days')) continue;
-            if(!cb_in_window($s,$now)) continue;
-            if(!isset($busy[$acc])){ $c=$p->prepare("SELECT COUNT(*) FROM callbacks WHERE account_id=? AND status='calling'"); $c->execute([$acc]); $busy[$acc]=(int)$c->fetchColumn(); }
-            if($busy[$acc]>=2) continue;   // höchstens zwei gleichzeitige KI-Rückrufe je Betrieb
-            $res=cb_call_now($acc,(int)$r['id']);
-            if(!empty($res['ok'])){ $busy[$acc]++; $calls++; continue; }
-            if(($res['error'] ?? '')==='twilio_error'){ $calls++; continue; }
-            /* Einrichtungsproblem: sichtbar machen statt jede Minute still zu scheitern */
-            $note='KI-Rückruf wartet: '.($res['hint'] ?? $res['error'] ?? 'nicht möglich');
-            if((string)$r['result']!==$note) $p->prepare("UPDATE callbacks SET result=? WHERE id=? AND account_id=? AND status IN ('open','scheduled','failed')")->execute([mb_substr($note,0,500),(int)$r['id'],$acc]);
+            $acc=$a['acc']; $s=cb_settings($acc); $now=cb_now($s);
+            if(!cb_in_window($s,$now)) continue;   // ganzes Konto außerhalb der Anrufzeiten
+            $c=$p->prepare("SELECT COUNT(*) FROM callbacks WHERE account_id=? AND status='calling'"); $c->execute([$acc]); $busy=(int)$c->fetchColumn();
+            if($busy>=2) continue;   // höchstens zwei gleichzeitige KI-Rückrufe je Betrieb
+            $local=$now;   // Wanduhr der Konto-Zeitzone (wie preferred_at)
+            $q=$p->prepare("SELECT c.* FROM callbacks c JOIN callback_settings s ON s.account_id=c.account_id WHERE c.account_id=? AND $due
+                ORDER BY (c.urgency='dringend') DESC, (c.preferred_at IS NULL) DESC, COALESCE(c.preferred_at, c.created_at), c.id LIMIT 10");
+            $q->execute([$acc,$local->format('Y-m-d H:i:s'),$local->modify('-3 days')->format('Y-m-d H:i:s')]);
+            foreach($q->fetchAll(PDO::FETCH_ASSOC) as $r){
+                if($calls>=5 || $busy>=2) break;
+                $res=cb_call_now($acc,(int)$r['id']);
+                if(!empty($res['ok'])){ $busy++; $calls++; continue; }
+                $err=(string)($res['error'] ?? '');
+                if($err==='twilio_error'){ $calls++; continue; }
+                if(in_array($err,['busy','already_calling','already_closed','max_attempts','no_consent','not_found'],true)) continue;   // Zeile hat sich gerade geändert
+                /* Einrichtungsproblem: sichtbar machen statt jede Minute still zu scheitern */
+                $note='KI-Rückruf wartet: '.($res['hint'] ?? ($err!=='' ? $err : 'nicht möglich'));
+                if((string)$r['result']!==$note) $p->prepare("UPDATE callbacks SET result=? WHERE id=? AND account_id=? AND status IN ('open','scheduled','failed')")->execute([mb_substr($note,0,500),(int)$r['id'],$acc]);
+                if(in_array($err,$setup,true)) break;   // betrifft das ganze Konto → übrige Einträge dieses Kontos in diesem Lauf überspringen
+            }
         }
     }catch(Throwable $e){ error_log('CH cb_scheduler: '.$e->getMessage()); }
     finally{ th_unlock('cb_scheduler'); }
@@ -781,35 +838,46 @@ function cb_call_context(int $cbId, string $widgetKey): ?array {
 /**
  * Status-Rückmeldung des Anrufs (Telefon-Webhook): completed mit ≥ 1 Gesprächsschritt → done („KI-Gespräch geführt“);
  * Anrufbeantworter, nicht abgenommen, besetzt, fehlgeschlagen oder 0 Schritte → neuer Versuch nach retry_min (in den Anrufzeiten), sonst failed + Mail.
- * Nur Rückrufe im Status calling werden verarbeitet (doppelte Status-Rückmeldungen sind wirkungslos).
+ * Gebunden an den echten Anruf: verarbeitet wird nur, wenn die CallSid (Parameter $callSid, sonst $_POST['CallSid']) dem zuletzt gestarteten Anruf
+ * dieses Rückrufs entspricht – fremde Konten bzw. verspätete Rückmeldungen älterer Versuche ändern nichts. Optional $acc > 0 = Konto muss passen.
+ * Verarbeitet werden Rückrufe im Status calling (doppelte Rückmeldungen sind wirkungslos) sowie – nur für ein geführtes Gespräch – ein Anruf, den der
+ * Planer wegen Zeitüberschreitung schon als „nicht erreicht“ markiert hatte.
  */
-function cb_on_call_status(int $cbId, string $callStatus, string $answeredBy, int $turns): void {
+function cb_on_call_status(int $cbId, string $callStatus, string $answeredBy, int $turns, ?string $callSid=null, int $acc=0): void {
     try{
         cb_bootstrap(); $p=th_db();
-        $st=$p->prepare("SELECT * FROM callbacks WHERE id=? AND account_id>0"); $st->execute([$cbId]); $r=$st->fetch(PDO::FETCH_ASSOC);
-        if(!$r || $r['status']!=='calling') return;
-        $acc=(int)$r['account_id']; $s=cb_settings($acc); $now=cb_now($s); $att=(int)$r['attempts'];
-        $call=null; if((string)$r['call_sid']!==''){ $c=$p->prepare("SELECT outcome, turns FROM phone_calls WHERE account_id=? AND call_sid=?"); $c->execute([$acc,(string)$r['call_sid']]); $call=$c->fetch(PDO::FETCH_ASSOC) ?: null; }
+        $sid=preg_replace('/[^A-Za-z0-9]/','',(string)($callSid ?? ($_POST['CallSid'] ?? ''))) ?? ''; if($sid==='' || $cbId<=0) return;
+        $st=$p->prepare("SELECT * FROM callbacks WHERE id=? AND account_id>0".($acc>0 ? ' AND account_id=?' : '')); $st->execute($acc>0 ? [$cbId,$acc] : [$cbId]); $r=$st->fetch(PDO::FETCH_ASSOC);
+        if(!$r || (string)$r['call_sid']==='' || !hash_equals((string)$r['call_sid'],$sid)) return;
+        $acc=(int)$r['account_id']; $from=(string)$r['status'];
+        $log=json_decode((string)$r['call_log'],true); $lastEv=is_array($log) && $log ? (array)end($log) : [];
+        $late=$from==='failed' && ($lastEv['event'] ?? '')==='timeout' && (string)($lastEv['sid'] ?? '')===$sid;   // Zeitüberschreitung, dann doch noch Rückmeldung
+        if($from!=='calling' && !$late) return;
+        $s=cb_settings($acc); $now=cb_now($s); $att=(int)$r['attempts'];
+        $c=$p->prepare("SELECT outcome, turns FROM phone_calls WHERE account_id=? AND call_sid=?"); $c->execute([$acc,$sid]); $call=$c->fetch(PDO::FETCH_ASSOC) ?: null;
         $machine=str_starts_with($answeredBy,'machine') || $answeredBy==='fax' || (($call['outcome'] ?? '')==='voicemail');
-        $log=['event'=>'status','sid'=>(string)$r['call_sid'],'status'=>mb_substr($callStatus,0,20),'answered_by'=>mb_substr($answeredBy,0,30)];
+        $ev=['event'=>'status','sid'=>$sid,'status'=>mb_substr($callStatus,0,20),'answered_by'=>mb_substr($answeredBy,0,30)];
         if($callStatus==='completed' && $turns>=1 && !$machine){
-            $oc=(string)($call['outcome'] ?? '');
-            $res='KI-Gespräch geführt ('.$turns.' '.($turns===1 ? 'Antwort' : 'Antworten').')'.($oc==='forwarded' ? ' · an das Team weitergeleitet' : ($oc==='callback' ? ' · Rückruf durch das Team gewünscht' : ''));
-            $u=$p->prepare("UPDATE callbacks SET status='done', result=?, updated_at=NOW() WHERE id=? AND account_id=? AND status='calling'"); $u->execute([$res,$cbId,$acc]);
-            if($u->rowCount()>0){ cb_log_append($acc,$cbId,$log+['note'=>$res]); try{ cb_notify_result(cb_get($acc,$cbId),$s,'done'); }catch(Throwable $e){ error_log('CH cb_notify_result: '.$e->getMessage()); } }
+            $oc=(string)($call['outcome'] ?? ''); $fu=0;
+            foreach(is_array($log) ? $log : [] as $e) if(is_array($e) && ($e['event'] ?? '')==='followup' && (string)($e['sid'] ?? '')===$sid) $fu++;
+            $res='KI-Gespräch geführt ('.$turns.' '.($turns===1 ? 'Antwort' : 'Antworten').')'.($oc==='forwarded' ? ' · an das Team weitergeleitet' : ($oc==='callback' ? ' · Rückruf durch das Team gewünscht' : ''))
+                .($fu ? ' · neuer Rückruf vereinbart (siehe Liste)' : '');
+            $u=$p->prepare("UPDATE callbacks SET status='done', result=?, updated_at=NOW() WHERE id=? AND account_id=? AND status=? AND call_sid=?"); $u->execute([$res,$cbId,$acc,$from,$sid]);
+            if($u->rowCount()>0){ cb_log_append($acc,$cbId,$ev+['note'=>$res]); try{ cb_notify_result(cb_get($acc,$cbId),$s,'done'); }catch(Throwable $e){ error_log('CH cb_notify_result: '.$e->getMessage()); } }
             return;
         }
+        if($late){ cb_log_append($acc,$cbId,$ev+['note'=>'Verspätete Rückmeldung nach Zeitüberschreitung – bleibt „nicht erreicht“.']); return; }   // Planer versucht es nach retry_min erneut
         $reason=$machine ? (($call['outcome'] ?? '')==='voicemail' ? 'Anrufbeantworter – Nachricht hinterlassen' : 'Anrufbeantworter') : match($callStatus){
             'busy'=>'Besetzt','no-answer'=>'Nicht abgenommen','failed'=>'Anruf fehlgeschlagen','canceled'=>'Anruf abgebrochen','completed'=>'Gespräch ohne Antwort beendet', default=>'Nicht erreicht ('.mb_substr($callStatus,0,20).')'};
         if($att<$s['max_attempts']){
             $next=cb_next_window($s,$now->modify('+'.$s['retry_min'].' minutes')) ?? $now->modify('+'.$s['retry_min'].' minutes');
             $res='Versuch '.$att.': '.$reason.' – nächster Versuch '.cb_when_label($next,$now);
-            $u=$p->prepare("UPDATE callbacks SET status='scheduled', preferred_at=?, result=?, updated_at=NOW() WHERE id=? AND account_id=? AND status='calling'"); $u->execute([$next->format('Y-m-d H:i:00'),$res,$cbId,$acc]);
-            if($u->rowCount()>0) cb_log_append($acc,$cbId,$log+['note'=>$res]);
+            $u=$p->prepare("UPDATE callbacks SET status='scheduled', preferred_at=?, result=?, updated_at=NOW() WHERE id=? AND account_id=? AND status='calling' AND call_sid=?"); $u->execute([$next->format('Y-m-d H:i:00'),$res,$cbId,$acc,$sid]);
+            if($u->rowCount()>0) cb_log_append($acc,$cbId,$ev+['note'=>$res]);
         } else {
             $res='Versuch '.$att.': '.$reason.' – keine weiteren Versuche (höchstens '.$s['max_attempts'].'). Bitte persönlich zurückrufen.';
-            $u=$p->prepare("UPDATE callbacks SET status='failed', result=?, updated_at=NOW() WHERE id=? AND account_id=? AND status='calling'"); $u->execute([$res,$cbId,$acc]);
-            if($u->rowCount()>0){ cb_log_append($acc,$cbId,$log+['note'=>$res]); try{ cb_notify_result(cb_get($acc,$cbId),$s,'failed'); }catch(Throwable $e){ error_log('CH cb_notify_result: '.$e->getMessage()); } }
+            $u=$p->prepare("UPDATE callbacks SET status='failed', result=?, updated_at=NOW() WHERE id=? AND account_id=? AND status='calling' AND call_sid=?"); $u->execute([$res,$cbId,$acc,$sid]);
+            if($u->rowCount()>0){ cb_log_append($acc,$cbId,$ev+['note'=>$res]); try{ cb_notify_result(cb_get($acc,$cbId),$s,'failed'); }catch(Throwable $e){ error_log('CH cb_notify_result: '.$e->getMessage()); } }
         }
     }catch(Throwable $e){ error_log('CH cb_on_call_status: '.$e->getMessage()); }
 }
