@@ -53,6 +53,8 @@ $cleanup=function() use(&$ACCS,$KEEP){
         foreach(['orders','menu_items','drivers','order_settings','wa_sessions','appt_bookings','appt_services','appt_settings','appt_blocks','phone_calls','agent_configs','api_keys','token_ledger','api_usage','token_plans','acct_secrets','rides','taxi_drivers','ride_settings','hotel_bookings','hotel_rooms','hotel_requests','hotel_settings','callbacks','callback_settings'] as $t){
             try{ $s=$p->prepare("DELETE FROM $t WHERE account_id=?"); $s->execute([$aid]); $n+=$s->rowCount(); }catch(Throwable $e){ echo "  cleanup $t: ".$e->getMessage()."\n"; }
         }
+        /* alle übrigen Tabellen mit account_id (neue Module: Rückruf, Training, Assistent, Push …) */
+        try{ foreach($p->query("SELECT TABLE_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND COLUMN_NAME='account_id' AND TABLE_NAME<>'token_accounts'")->fetchAll(PDO::FETCH_COLUMN) as $t){ $s=$p->prepare("DELETE FROM `$t` WHERE account_id=?"); $s->execute([$aid]); $n+=$s->rowCount(); } }catch(Throwable $e){ echo "  cleanup (generisch): ".$e->getMessage()."\n"; }
         $p->prepare("DELETE FROM token_accounts WHERE id=?")->execute([$aid]); $n++;
     }
     echo "\nAufgeräumt: ".count($ACCS)." Testkonten, $n Datensätze gelöscht.\n"; $ACCS=[];
@@ -316,6 +318,26 @@ if(function_exists('hotel_api')) try {
         ok($r['code']===200 && in_array('check_room_availability✓',$tools,true),'Hotel-Agent prüft Verfügbarkeit'.(in_array('book_room✓',$tools,true)?' und bucht':''),implode(', ',$tools).' · „'.short($r['json']['result'] ?? $r['body'],200).'“');
     }
 } catch(Throwable $e){ ok(false,'Hotel: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
+
+/* ---------- Neue Bausteine: Impressum, Rückruf, Live-Demos, Assistent, Training ---------- */
+try {
+    sec('Neu: Impressum, Rückruf, Live-Demos, Studio-Assistent, Training');
+    $r=http('GET',"$BASE/impressum.html?_=".rnd(4)); $nm=base64_decode('U2VyZGFy');
+    ok($r['code']===200 && str_contains($r['body'],'Acerasoft LLC') && str_contains($r['body'],'Management') && stripos($r['body'],$nm)===false,'Impressum-Seite (Acerasoft LLC, Management, kein Personenname)',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/?_=".rnd(4)); ok($r['code']===200 && str_contains($r['body'],'href="/impressum.html"') && str_contains($r['body'],"key\":\"hausverwaltung\""),'Startseite: Impressum-Link + eigene Hausverwaltungs-Demo',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/chat/callback.php?k=demo&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && stripos($r['body'],'Rückruf')!==false,'Rückruf-Seite (Demo)',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/chat/lead-api.php?k=demo&_=".rnd(4)); ok($r['code']===200 && is_array($r['json']),'Lead-API beschreibt Felder (Demo)',"HTTP {$r['code']}");
+    $r=$api('GET','callbacks/settings'); ok($r['code']===200 && isset($r['json']['settings']),'Studio-API Rückruf-Einstellungen',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/chat/concierge.php?phone_sectors=1&_=".rnd(4)); $ns=count($r['json']['sectors'] ?? $r['json'] ?? []);
+    ok($r['code']===200 && $ns>=18,'Telefon-Demo: Branchenliste',"$ns Branchen");
+    foreach(['agent-hausverwaltung'=>'Rheinland Hausverwaltung','praxis-agent'=>'Hausarztpraxis','agent-autohaus'=>'Autohaus Brandt','agent-versicherung'=>'Hansen'] as $pl=>$co){
+        $r=http('GET',"$BASE/chat/concierge.php?agent=$pl&_=".rnd(4)); ok($r['code']===200 && str_contains((string)json_encode($r['json'],JSON_UNESCAPED_UNICODE),$co),"Live-Demo $pl ($co)","HTTP {$r['code']}");
+    }
+    $r=http('GET',"$BASE/chat/tts.php?_=".rnd(4)); ok(in_array($r['code'],[400,403,405,501],true),'tts.php antwortet sauber ohne Parameter',"HTTP {$r['code']}");
+    $r=$api('GET','assistant/profile'); ok($r['code']===200 && isset($r['json']['profile']),'Studio-Assistent: Profil abrufbar',"HTTP {$r['code']} · Sprachen ".count($r['json']['langs'] ?? []));
+    $r=$api('GET','train/overview?plan=agent-support'); ok(in_array($r['code'],[200,402,404],true),'Agent-Training: Übersicht erreichbar',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/chat/studio.php?_=".rnd(4)); ok($r['code']===200 && str_contains($r['body'],'id="lPaste"') && str_contains($r['body'],'/impressum.html'),'Studio: Einfügen-Knopf für den Login-Code + Impressum-Link',"HTTP {$r['code']}");
+} catch(Throwable $e){ ok(false,'Neue Bausteine: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
 
 /* ---------- Twilio-Doku (vom Server geladen) ---------- */
 if($DOCS){
