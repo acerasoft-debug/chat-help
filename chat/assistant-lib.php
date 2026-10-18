@@ -371,8 +371,9 @@ function assistant_profile_defaults(int $acc): array {
         'voice'=>['tone'=>'warm','rate'=>1.0,'pitch'=>1.0,'preset'=>assistant_preset_for('f','warm')],'personality'=>['address'=>'du','mood'=>'herzlich','humor'=>1,'detail'=>'kurz'],'lang'=>'de','saved'=>false];
 }
 /**
- * Stimm-Voreinstellungen: id → {gender,label,title,desc,rate,pitch,openai,google,azure,instructions,elevenlabs,eleven,browser[]}.
- * speech-lib (ch_tts_voices) hat Vorrang – deren browser kann {names,rate,pitch} oder eine Namensliste sein.
+ * Stimm-Voreinstellungen: id → {gender,label,title,desc,rate,pitch,brate,bpitch,openai,google,azure,instructions,elevenlabs,eleven,browser[]}.
+ * speech-lib (ch_tts_voices) hat Vorrang – deren browser kann {names,rate,pitch} oder eine Namensliste sein; browser bleibt hier die Namensliste,
+ * brate/bpitch = Tempo/Tonhöhe nur für die Browserstimme (sonst rate/pitch).
  */
 function assistant_voice_presets(): array {
     static $out=null; if($out!==null) return $out; $out=ASSISTANT_VOICE_PRESETS;
@@ -382,17 +383,25 @@ function assistant_voice_presets(): array {
             if(!is_array($v)) continue; $id=(string)($v['id'] ?? (is_string($k) ? $k : ''));
             if(!preg_match('/^[a-z]_[a-z0-9_]{2,30}$/',$id) || !in_array($v['gender'] ?? '',['f','m'],true)) continue;
             $base=$out[$id] ?? ASSISTANT_VOICE_PRESETS[$v['gender']==='m' ? 'm_freundlich' : 'f_warm'];
-            $br=$v['browser'] ?? null; if(is_array($br) && isset($br['names'])) $br=$br['names'];
+            $br=$v['browser'] ?? null; $bRate=null; $bPitch=null;
+            if(is_array($br) && isset($br['names'])){ $bRate=is_numeric($br['rate'] ?? null) ? (float)$br['rate'] : null; $bPitch=is_numeric($br['pitch'] ?? null) ? (float)$br['pitch'] : null; $br=$br['names']; }
             if(is_string($br) && $br!=='') $br=preg_split('/\s*[,|]\s*/',$br);
             if(!is_array($br) || !$br || !array_filter($br,fn($x)=>is_string($x) && !is_numeric($x))) $br=$base['browser'];
-            $out[$id]=['gender'=>$v['gender'],'label'=>assistant_line($v['label'] ?? $base['label'],40),'desc'=>assistant_line($v['desc'] ?? $base['desc'],140),
-                'rate'=>is_numeric($v['rate'] ?? null) ? (float)$v['rate'] : $base['rate'],'pitch'=>is_numeric($v['pitch'] ?? null) ? (float)$v['pitch'] : $base['pitch'],
+            $rate=is_numeric($v['rate'] ?? null) ? (float)$v['rate'] : $base['rate']; $pitch=is_numeric($v['pitch'] ?? null) ? (float)$v['pitch'] : $base['pitch'];
+            $lab=assistant_line($v['label'] ?? $base['label'],40);
+            $out[$id]=['gender'=>$v['gender'],'label'=>$lab,'desc'=>assistant_line($v['desc'] ?? $base['desc'],140),
+                /* persona = Vorname der Stimme („Lea · warm & herzlich“ → Lea) – fürs Panel: „Lea, Sophie, Mia und Hanna haben eigene Stimmen“ */
+                'persona'=>str_contains($lab,' · ') ? trim(explode(' · ',$lab,2)[0]) : '',
+                'rate'=>$rate,'pitch'=>$pitch,
+                /* Browserstimme: eigenes Tempo/Tonhöhe (weiter gespreizt als beim Sprachdienst), begrenzt auf 0,7–1,3 */
+                'brate'=>max(0.7,min(1.3,$bRate ?? $rate)),'bpitch'=>max(0.7,min(1.3,$bPitch ?? $pitch)),
                 'openai'=>(string)($v['openai'] ?? $base['openai']),'google'=>(string)($v['google'] ?? $base['google']),'azure'=>(string)($v['azure'] ?? $base['azure']),
                 'instructions'=>assistant_str($v['instructions'] ?? '',800),'elevenlabs'=>(string)($v['elevenlabs'] ?? ''),'eleven'=>is_array($v['eleven'] ?? null) ? $v['eleven'] : null,
                 'browser'=>array_values(array_filter(array_map(fn($x)=>is_string($x) ? assistant_line($x,40) : '',$br),fn($x)=>$x!==''))];
         }
     }
-    foreach($out as $id=>&$v){ $t=$v['label']; if(str_contains($t,' · ')) $t=trim(explode(' · ',$t,2)[1]); $v['title']=mb_strtoupper(mb_substr($t,0,1)).mb_substr($t,1); } unset($v);
+    foreach($out as $id=>&$v){ $t=$v['label']; if(str_contains($t,' · ')) $t=trim(explode(' · ',$t,2)[1]); $v['title']=mb_strtoupper(mb_substr($t,0,1)).mb_substr($t,1);
+        $v['brate']=$v['brate'] ?? $v['rate']; $v['bpitch']=$v['bpitch'] ?? $v['pitch']; $v['persona']=$v['persona'] ?? ''; } unset($v);
     return $out;
 }
 function assistant_preset_for(string $gender, string $tone): string {
@@ -407,7 +416,7 @@ function assistant_preset_tone(string $id): ?string {
 }
 /** Liste fürs Panel (ohne Anbieter-Stimmnamen). tone = passende Sprechweise, damit Stimmkarte und Server-Sprechanweisung zusammenpassen. */
 function assistant_voice_presets_public(): array {
-    $o=[]; foreach(assistant_voice_presets() as $id=>$v) $o[]=['id'=>$id,'gender'=>$v['gender'],'label'=>$v['title'],'desc'=>$v['desc'],'rate'=>$v['rate'],'pitch'=>$v['pitch'],'browser'=>$v['browser'],'tone'=>assistant_preset_tone($id)];
+    $o=[]; foreach(assistant_voice_presets() as $id=>$v) $o[]=['id'=>$id,'gender'=>$v['gender'],'label'=>$v['title'],'desc'=>$v['desc'],'rate'=>$v['rate'],'pitch'=>$v['pitch'],'browser'=>$v['browser'],'brate'=>$v['brate'],'bpitch'=>$v['bpitch'],'persona'=>$v['persona'],'tone'=>assistant_preset_tone($id)];
     return $o;
 }
 function assistant_profile(int $acc): array {

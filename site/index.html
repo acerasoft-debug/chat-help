@@ -149,7 +149,7 @@ section{padding:100px 0;scroll-margin-top:84px}@media(max-width:720px){section{p
 .vo{text-align:left;border:1px solid var(--line2);background:#fff;border-radius:14px;padding:10px 12px;display:grid;gap:3px;min-width:0;transition:border-color .18s,background .18s,box-shadow .18s}
 .vo:hover{border-color:var(--gold2)}.vo:focus-visible{outline:2px solid var(--gold);outline-offset:2px}.vo[aria-checked="true"]{border-color:var(--gold);background:#fffaf0;box-shadow:0 0 0 3px rgba(184,134,43,.12)}
 .vo .von{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;font:600 13.5px var(--sans);color:var(--ink)}.vo .von span{color:var(--ink2);font-weight:500}.vo .von em{font:600 10px var(--sans);font-style:normal;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);background:var(--goldl);border-radius:999px;padding:3px 7px}
-.live .vo small{display:block;color:var(--mute);font-size:12px;line-height:1.4;margin:0}
+.live .vo small{display:block;color:var(--mute);font-size:12px;line-height:1.4;margin:0}.live .vo small.vbn{color:var(--ink2);font-weight:600;font-size:11.5px}
 .vpop .vpf{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}.vpop .vreset{border:0;background:transparent;color:var(--gold);font:600 12.5px var(--sans);padding:6px 4px}.vpop .vreset[hidden]{display:none}
 /* Branchen-Wahl des Telefon-Agenten: gruppierte Chips, Suche, mobil als Band zum Wischen */
 .secpick{display:none;margin-top:14px;padding:14px 16px 12px;background:var(--sur);border:1px solid var(--line);border-radius:var(--r2);box-shadow:var(--sh1)}.secpick.on{display:block}
@@ -293,6 +293,7 @@ section{padding:100px 0;scroll-margin-top:84px}@media(max-width:720px){section{p
 .fnone button{margin-top:12px}
 .pro .ccat{display:block;margin-top:14px;font:700 11px/1.3 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
 .pro .ccat+h3{margin-top:4px}
+.pro .tbuy{margin-top:12px;padding:12px;border-radius:12px;background:#fff;border:1px dashed #b9dedb;font-size:13px;color:var(--ink2);line-height:1.5}
 .chn{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
 .chn span{display:inline-flex;align-items:center;gap:5px;font:600 12px/1.2 var(--sans);padding:6px 10px;border-radius:999px;background:var(--okl);color:#137a46;border:1px solid #cdebd9}
 .chn.web span{background:var(--sur2);color:var(--ink2);border-color:var(--line)}
@@ -417,37 +418,38 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 
 <header class="hero"><div class="wrap">
   <div class="hlead">
-    <div class="hsw" id="hsw" role="tablist" aria-label="Für wen ist ChatHelp?"><button type="button" role="tab" id="hswB" data-v="b" aria-selected="true" aria-controls="hvB">🏢 Für Unternehmen</button><button type="button" role="tab" id="hswP" data-v="p" aria-selected="false" aria-controls="hvP" tabindex="-1">🙂 Für dich privat</button></div>
+    <div class="hsw" id="hsw" role="tablist" aria-label="Für wen ist ChatHelp?" data-i18n-attr="aria-label:h.sw"><button type="button" role="tab" id="hswB" data-v="b" aria-selected="true" aria-controls="hvB" data-i18n="h.tabB">🏢 Für Unternehmen</button><button type="button" role="tab" id="hswP" data-v="p" aria-selected="false" aria-controls="hvP" tabindex="-1" data-i18n="h.tabP">🙂 Für dich privat</button></div>
     <div class="hswap">
       <div class="hv" id="hvB" role="tabpanel" aria-labelledby="hswB">
-        <span class="tag gold">KI-Agenten für Unternehmen · Made in Europe · DSGVO</span>
-        <h1>Dein Team arbeitet 8 Stunden.<br>Dein <span class="g">Agent 24.</span></h1>
-        <p class="sub">Fertige KI-Agenten, die <b style="color:var(--ink)">Anrufe annehmen, WhatsApp beantworten, Termine buchen, Bestellungen und Fahrten aufnehmen und Akten vorbereiten</b> – für Praxen, Salons, Restaurants, Taxi-Zentralen, Hotels, Banken, Behörden &amp; Stadtwerke, Immobilienmakler, Inkasso, Kanzleien, Steuerberater, Hausverwaltungen und Shops. Telefon, WhatsApp und Chat in einem Agenten. Nur mit deinen Fakten. In 10 Minuten startklar.</p>
-        <div class="cta"><a class="btn gold" href="/chat/studio.php">Studio starten – 300 Tokens gratis</a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('phone',true),300)">▶ Telefon-Agent live hören</a></div>
-        <div class="trust"><span><i>✓</i> Antwortet nur aus deiner Wissensbasis</span><span><i>✓</i> Übergabe an Menschen</span><span><i>✓</i> Transkripte &amp; Audit-Log</span><span><i>✓</i> Monatlich kündbar</span></div>
+        <span class="tag gold" data-i18n="h.tagB">KI-Agenten für Unternehmen · Made in Europe · DSGVO</span>
+        <h1 data-i18n-html="h.h1B">Dein Team arbeitet 8 Stunden.<br>Dein <span class="g">Agent 24.</span></h1>
+        <p class="sub" data-i18n-html="h.subB">Fertige KI-Agenten, die <b style="color:var(--ink)">Anrufe annehmen, WhatsApp beantworten, Termine buchen, Bestellungen und Fahrten aufnehmen und Akten vorbereiten</b> – für Praxen, Salons, Restaurants, Taxi-Zentralen, Hotels, Banken, Behörden &amp; Stadtwerke, Immobilienmakler, Inkasso, Kanzleien, Steuerberater, Hausverwaltungen und Shops. Telefon, WhatsApp und Chat in einem Agenten. Nur mit deinen Fakten. In 10 Minuten startklar.</p>
+        <div class="cta"><a class="btn gold" href="/chat/studio.php" data-i18n="h.ctaB1">Studio starten – 300 Tokens gratis</a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('phone',true),300)" data-i18n="h.ctaB2">▶ Telefon-Agent live hören</a></div>
+        <div class="trust"><span data-i18n-tail="h.t1"><i>✓</i> Antwortet nur aus deiner Wissensbasis</span><span data-i18n-tail="h.t2"><i>✓</i> Übergabe an Menschen</span><span data-i18n-tail="h.t3"><i>✓</i> Transkripte &amp; Audit-Log</span><span data-i18n-tail="h.t4"><i>✓</i> Monatlich kündbar</span></div>
       </div>
       <div class="hv off" id="hvP" role="tabpanel" aria-labelledby="hswP" aria-hidden="true" inert>
-        <span class="tag gold">Für dich privat · einfach erklärt · DSGVO</span>
-        <h1>Amt, Bank, Hotel –<br>dein Agent <span class="g">erledigt’s.</span></h1>
-        <p class="sub">Dein persönlicher KI-Assistent <b style="color:var(--ink)">sagt dir, welches Amt zuständig ist und welche Unterlagen du brauchst, erklärt Kontoauszug, Gebühren und Stornobedingungen</b>, schreibt Kündigungen, Briefe und Hotelanfragen – und ruft auf Wunsch für dich beim Arzt, Friseur oder Hotel an. Im Chat am Handy oder Rechner, in einfacher Sprache. Ab 7 €/Monat, monatlich kündbar.</p>
-        <div class="cta"><a class="btn gold" href="#privat">Privat-Assistenten ansehen – ab 7 €</a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('p-amt',true),300)">▶ Beispiel: Behördengang</a></div>
-        <div class="trust"><span><i>✓</i> Du bestätigst jeden Schritt</span><span><i>✓</i> Erklärt – handelt nicht heimlich</span><span><i>✓</i> Mit Mensch sprechen jederzeit</span><span><i>✓</i> Monatlich kündbar</span></div>
+        <span class="tag gold" data-i18n="h.tagP">Für dich privat · einfach erklärt · DSGVO</span>
+        <h1 data-i18n-html="h.h1P">Amt, Bank, Hotel –<br>dein Agent <span class="g">erledigt’s.</span></h1>
+        <p class="sub" data-i18n-html="h.subP">Dein persönlicher KI-Assistent <b style="color:var(--ink)">sagt dir, welches Amt zuständig ist und welche Unterlagen du brauchst, erklärt Kontoauszug, Gebühren und Stornobedingungen</b>, schreibt Kündigungen, Briefe und Hotelanfragen – und ruft auf Wunsch für dich beim Arzt, Friseur oder Hotel an. Im Chat am Handy oder Rechner, in einfacher Sprache. Ab <span data-eur="7">7 €</span>/Monat, monatlich kündbar.</p>
+        <div class="cta"><a class="btn gold" href="#privat" data-i18n-html="h.ctaP1">Privat-Assistenten ansehen – ab <span data-eur="7">7 €</span></a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('p-amt',true),300)" data-i18n="h.ctaP2">▶ Beispiel: Behördengang</a></div>
+        <div class="trust"><span data-i18n-tail="h.p1"><i>✓</i> Du bestätigst jeden Schritt</span><span data-i18n-tail="h.p2"><i>✓</i> Erklärt – handelt nicht heimlich</span><span data-i18n-tail="h.p3"><i>✓</i> Mit Mensch sprechen jederzeit</span><span data-i18n-tail="h.t4"><i>✓</i> Monatlich kündbar</span></div>
       </div>
     </div>
   </div>
   <div class="vid reveal in" id="heroVid">
     <video autoplay muted loop playsinline poster="/media/hero-poster.jpg" preload="metadata"><source src="/media/hero.webm" type="video/webm"><source src="/media/hero.mp4" type="video/mp4"></video>
-    <span class="live"><span class="dot"></span> So arbeiten Agenten – Telefon · Chat · Akte</span>
-    <div class="cap"><span>Praxis · Shop · Kanzlei · Inkasso – ein Agent pro Beruf</span></div>
+    <span class="live" data-i18n-tail="h.live"><span class="dot"></span> So arbeiten Agenten – Telefon · Chat · Akte</span>
+    <div class="cap"><span data-i18n="h.cap">Praxis · Shop · Kanzlei · Inkasso – ein Agent pro Beruf</span></div>
   </div>
 </div>
-<div class="wrap"><div class="stats reveal"><div class="stat"><b>&lt; 2 s</b><span>Antwortzeit, rund um die Uhr</span></div><div class="stat"><b>24/7</b><span>Telefon · Website · WhatsApp · E-Mail</span></div><div class="stat"><b>15+</b><span>Berufsgruppen mit eigenen Regeln</span></div><div class="stat"><b>0</b><span>erfundene Fakten – nur deine Wissensbasis</span></div></div></div>
+<div class="wrap"><div class="stats reveal"><div class="stat"><b>&lt; 2 s</b><span data-i18n="st.1">Antwortzeit, rund um die Uhr</span></div><div class="stat"><b>24/7</b><span data-i18n="st.2">Telefon · Website · WhatsApp · E-Mail</span></div><div class="stat"><b>15+</b><span data-i18n="st.3">Berufsgruppen mit eigenen Regeln</span></div><div class="stat"><b>0</b><span data-i18n="st.4">erfundene Fakten – nur deine Wissensbasis</span></div></div></div>
 </header>
 
 <section id="demo"><div class="wrap">
-  <span class="eyebrow">Live-Demo</span>
-  <h2 style="margin-top:12px">Sieh zu – <span class="g">oder sprich selbst</span> mit dem Agenten.</h2>
+  <span class="eyebrow" data-i18n="e.demo">Live-Demo</span>
+  <h2 style="margin-top:12px" data-i18n-html="h2.demo">Sieh zu – <span class="g">oder sprich selbst</span> mit dem Agenten.</h2>
   <p class="sub">Jede Demo ist ein echter ChatHelp-Agent mit einer Beispiel-Wissensbasis. Erst läuft ein typisches Gespräch ab, dann schreibst oder sprichst du selbst – und jeder Agent antwortet auf Wunsch mit Stimme.</p>
+  <p class="dnote" id="demoNote" data-i18n="d.note" hidden>Demo auf Deutsch – dein Agent spricht 13 Sprachen</p>
   <div class="dtabs" id="dtabs"></div>
   <div class="secpick" id="secpick" aria-label="Branche des Telefon-Agenten"><div class="sph"><div class="spt"><b>Branche wählen</b><span id="secSub">18 Beispiel-Betriebe – jede Branche mit eigener Persona, Wissensbasis und Stimme.</span></div><label class="sps" id="secSrch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg><input id="secSearch" type="text" inputmode="search" enterkeyhint="search" placeholder="Branche suchen…" aria-label="Branche suchen" autocomplete="off" aria-controls="secGs"><button type="button" class="spx" id="secClear" aria-label="Suche löschen">✕</button></label></div><div class="secgs" id="secGs" role="group" aria-label="Branchen"></div><p class="spn" id="secNone">Keine Branche gefunden – probier „Praxis“, „Taxi“ oder „Kanzlei“.</p></div>
   <div class="theater">
@@ -456,30 +458,31 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
       <div class="hd"><span class="tag indigo" id="exTag">Telefon-Agent</span><h3 id="exTitle" style="margin-top:12px">Nimmt jeden Anruf an – auch um 23 Uhr.</h3><p id="exText"></p></div>
       <div class="stepl" id="exSteps"></div>
       <div class="cmf" id="cmf"><div class="cmp"><b id="cmfStep" aria-live="polite">Schritt 1 von 4</b><i class="cbar" aria-hidden="true"><i id="cmfBar"></i></i><span id="cmfName"></span></div><div class="qrs" id="cmfQr" role="group" aria-label="Schnellwahl – startet den Live-Test"></div><small>Ein Schritt pro Nachricht, Zusammenfassung vor jeder verbindlichen Aktion – und jederzeit „Mit Mensch sprechen“.</small></div>
-      <div class="dctl"><button class="btn" id="btnReplay">↻ Demo abspielen</button><button class="btn p" id="btnLive">Selbst testen – live</button><a class="btn ghost" id="btnRent" href="/chat/tokens-checkout.php?plan=agent-phone">Agent mieten →</a></div>
+      <div class="dctl"><button class="btn" id="btnReplay" data-i18n="d.replay">↻ Demo abspielen</button><button class="btn p" id="btnLive">Selbst testen – live</button><a class="btn ghost" id="btnRent" href="/chat/tokens-checkout.php?plan=agent-phone" data-i18n="d.rent">Agent mieten →</a></div>
       <div class="live" id="live"><div class="lhd"><span class="lst"><i class="eq" aria-hidden="true"><b></b><b></b><b></b></i><span id="liveWho" aria-live="polite">Live</span></span><div class="vbar"><button type="button" class="vtg" id="liveVoice" aria-pressed="false" title="Antworten vorlesen">🔇 Stimme aus</button><button type="button" class="vpb" id="vpBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="vpop" title="Stimme wählen"><span aria-hidden="true">🎙</span><span id="vpLbl">Stimme</span><span class="vpc" aria-hidden="true">▾</span></button></div></div><small class="tth" id="ttsHint" hidden>Natürliche KI-Stimme wird gerade vorbereitet – du hörst die Systemstimme deines Browsers</small><small class="tth" id="liveSoon" role="status" hidden></small><div class="vpop" id="vpop" role="dialog" aria-label="Stimme wählen" hidden><div class="vph"><div><b>Stimme wählen</b><small>Gilt für alle Demos auf dieser Seite – je eine Frauen- und eine Männerstimme; Frau/Mann gilt nur für diese Persona. Im Studio stellst du Stimme und Sprache für deinen Agenten ein.</small></div><button type="button" class="vpx" id="vpClose" aria-label="Schließen">✕</button></div><div class="vseg" role="radiogroup" aria-label="Geschlecht" id="vpGender"><button type="button" role="radio" aria-checked="true" data-g="f">Frau</button><button type="button" role="radio" aria-checked="false" data-g="m" tabindex="-1">Mann</button></div><div class="vlist" role="radiogroup" aria-label="Stimmen" id="vpList"></div><div class="vpf"><button type="button" class="btn s" id="vpPlay">▶ Hörprobe</button><button type="button" class="vreset" id="vpReset" hidden>↺ Stimme der Persona</button></div></div><form id="liveForm"><input id="liveIn" placeholder="Schreib dem Agenten …" maxlength="800" autocomplete="off" aria-label="Nachricht an den Agenten"><button type="button" class="mic" id="liveMic" title="Sprechen" aria-label="Sprechen" style="display:none">🎙️</button><button class="send" type="submit">Senden</button></form><div class="lchips" id="liveChips" role="group" aria-label="Vorschläge" hidden></div><small id="liveNote">Echter Agent, Beispiel-Firma. Deine eigene Wissensbasis fügst du im Studio ein.</small></div>
     </div>
   </div>
 </div></section>
 
 <section id="agenten" class="alt"><div class="wrap"><span id="berufe" style="display:block;scroll-margin-top:84px" aria-hidden="true"></span>
-  <span class="eyebrow">Agenten finden</span>
-  <h2 style="margin-top:12px">Finde deinen Agenten – <span class="g">nach Branche.</span></h2>
+  <span class="eyebrow" data-i18n="e.ag">Agenten finden</span>
+  <h2 style="margin-top:12px" data-i18n-html="h2.ag">Finde deinen Agenten – <span class="g">nach Branche.</span></h2>
   <p class="sub">Wähle eine Kategorie oder such nach deinem Beruf. Jeder Agent mit Kundenkontakt kommt mit <b style="color:var(--ink)">Telefon, WhatsApp und Website-Chat</b> – Kunden schreiben oder rufen an, du antwortest aus dem Studio. Jeder Agent kennt die Regeln seines Berufs, arbeitet nur mit deiner Wissensbasis und übergibt an Menschen, wenn es darauf ankommt.</p>
   <div class="fbar">
-    <label class="fsrch" id="fSrch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg><input id="fSearch" type="text" inputmode="search" enterkeyhint="search" placeholder="Beruf oder Aufgabe suchen – z. B. Pizzeria, Sparkasse, Rathaus …" aria-label="Agenten suchen" autocomplete="off" aria-controls="pgrid"><button type="button" class="fx" id="fClear" aria-label="Suche löschen">✕</button></label>
+    <label class="fsrch" id="fSrch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg><input id="fSearch" type="text" inputmode="search" enterkeyhint="search" placeholder="Beruf oder Aufgabe suchen – z. B. Pizzeria, Sparkasse, Rathaus …" aria-label="Agenten suchen" data-i18n-attr="placeholder:f.ph;aria-label:f.aria" autocomplete="off" aria-controls="pgrid"><button type="button" class="fx" id="fClear" aria-label="Suche löschen">✕</button></label>
     <div class="fchips" id="fChips" role="group" aria-label="Kategorien"></div>
     <div class="fmeta"><span id="fCount" aria-live="polite"></span><button type="button" class="fall" id="fAll" hidden>Alle Kategorien durchsuchen →</button></div>
   </div>
   <div class="pgrid" id="pgrid"></div>
+  <p class="curnote" data-curnote hidden></p>
   <p style="color:var(--mute);font-size:13.5px;margin-top:22px">Content-Pakete (Social Media, SEO, Exposés, Stellenanzeigen …) findest du unter <a href="#preise" onclick="setTimeout(()=>renderPrice('abo'),60)" style="color:var(--gold);font-weight:600">Preise</a>. Dein Beruf fehlt? <a href="mailto:support@chat-help.com?subject=Individueller%20Agent" style="color:var(--gold);font-weight:600">Wir bauen ihn</a> – meist in 48 Stunden.</p>
 </div></section>
 
 <section id="privat"><div class="wrap">
   <div class="pvhd">
     <div>
-      <span class="eyebrow">Für dich privat</span>
-      <h2 style="margin-top:12px">Nicht nur für Firmen: <span class="g">dein Alltags-Agent.</span></h2>
+      <span class="eyebrow" data-i18n="e.pv">Für dich privat</span>
+      <h2 style="margin-top:12px" data-i18n-html="h2.pv">Nicht nur für Firmen: <span class="g">dein Alltags-Agent.</span></h2>
       <p class="sub">Behördengang, Bankbrief, Hotelbuchung, Kündigung oder der Anruf, den du seit Tagen aufschiebst: Dein Agent erklärt in einfacher Sprache, bereitet alles vor und erledigt es – <b style="color:var(--ink)">immer erst nach deinem Okay</b>. Im Chat am Handy oder Rechner – und der Anruf-Assistent telefoniert für dich.</p>
     </div>
     <ol class="pvsteps" aria-label="So läuft es">
@@ -489,6 +492,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
     </ol>
   </div>
   <div class="pvgrid" id="pvgrid"></div>
+  <p class="curnote" data-curnote hidden></p>
   <p class="pvnote">Ehrliche Grenzen: keine Rechts-, Steuer- oder Finanzberatung im Einzelfall, keine Bankgeschäfte und keine Behördenanträge in deinem Namen ohne deine Freigabe. Bei komplexen Fällen sagt dir der Agent, wer weiterhilft – Beratungsstelle, Anwalt oder Verbraucherzentrale. Privat-Tarife sind monatlich kündbar; den genauen Endpreis siehst du vor dem Abschluss.</p>
 </div></section>
 
@@ -496,8 +500,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
   <div class="tel">
     <div class="reveal" style="display:flex;justify-content:center"><div class="phone" id="telPhone"><div class="scr"><div class="notch"></div><div class="callhd"><b>Kanzlei Berger &amp; Partner</b><small>Telefon-Agent · <span id="telTimer">00:00</span></small></div><div class="wave" id="telWave"></div><div class="tr" id="telTr"></div><div class="ctl"><i>🔇</i><i class="red">📞</i><i>⌨️</i></div></div></div></div>
     <div>
-      <span class="eyebrow">Telefon-Agent</span>
-      <h2 style="margin-top:12px">Kein Anruf geht mehr <span class="g">verloren.</span></h2>
+      <span class="eyebrow" data-i18n="e.tel">Telefon-Agent</span>
+      <h2 style="margin-top:12px" data-i18n-html="h2.tel">Kein Anruf geht mehr <span class="g">verloren.</span></h2>
       <p class="sub">Der Telefon-Agent nimmt ab, versteht das Anliegen, beantwortet Fragen aus deiner Wissensbasis, nimmt Termine und Rückrufe auf – und verbindet zu einem Menschen, wenn es wichtig ist. Jedes Gespräch landet als Transkript im Studio.</p>
       <div class="feat2">
         <div class="it"><b>Eigene Rufnummer oder Umleitung</b><span>Neue Nummer in 24 h oder Rufumleitung bei Besetzt/außerhalb der Zeiten – ohne neue Hardware.</span></div>
@@ -506,8 +510,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <div class="it"><b>Weiterleitung an Mensch</b><span>Auf Wunsch, bei Notfällen oder Unklarheit: direkte Durchstellung an deine Nummer.</span></div>
       </div>
       <div class="flow"><span>Anruf</span><i>→</i><span>Agent begrüßt</span><i>→</i><span>Anliegen &amp; Antwort</span><i>→</i><span>Termin · Rückruf · Weiterleitung</span><i>→</i><span>Transkript im Studio</span></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-phone">Telefon-Agent mieten · 149 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('phone');goLive(true);},300)">🎙️ Jetzt im Browser sprechen</a></div>
-      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 40.000 Tokens/Monat (≈ 5.000 Gesprächsantworten) · Einmalkauf 1.490 € inkl. 200.000 Tokens + 90 Tage Betrieb · Telefonie über unseren Partner, Nummern für DE/AT/CH/TR/EU.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-phone" data-i18n-html="tel.rent">Telefon-Agent mieten · <span data-eur="149">149 €</span>/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('phone');goLive(true);},300)" data-i18n="tel.try">🎙️ Jetzt im Browser sprechen</a></div>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 40.000 Tokens/Monat (≈ 5.000 Gesprächsantworten) · Einmalkauf <span data-eur="1490">1.490 €</span> inkl. 200.000 Tokens + 90 Tage Betrieb · Telefonie über unseren Partner, Nummern für DE/AT/CH/TR/EU.</p>
     </div>
   </div>
 </div></section>
@@ -515,8 +519,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 <section id="termine" class="alt"><div class="wrap">
   <div class="tel tel2">
     <div>
-      <span class="eyebrow">Termin-Agent · Praxis, Salon, Studio, Werkstatt</span>
-      <h2 style="margin-top:12px">Termine, die sich <span class="g">selbst buchen.</span></h2>
+      <span class="eyebrow" data-i18n="e.term">Termin-Agent · Praxis, Salon, Studio, Werkstatt</span>
+      <h2 style="margin-top:12px" data-i18n-html="h2.term">Termine, die sich <span class="g">selbst buchen.</span></h2>
       <p class="sub">Kein „wir melden uns“: Der Termin-Agent kennt deinen Kalender, prüft echte freie Zeiten, bucht verbindlich, bestätigt per E-Mail und erinnert einen Tag vorher – im Website-Chat, am Telefon, per WhatsApp und auf deiner eigenen Buchungsseite. Doppelbuchungen sind technisch ausgeschlossen.</p>
       <div class="feat2">
         <div class="it"><b>Leistungen, Dauer, Preise</b><span>Jede Leistung bestimmt die Slot-Länge – Taktung, Puffer, Vorlauf und Horizont stellst du im Studio ein.</span></div>
@@ -525,8 +529,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <div class="it"><b>Alle Kanäle, ein Kalender</b><span>Chat, Telefon-Agent, WhatsApp und Buchungsseite schreiben in denselben Kalender – live im Studio.</span></div>
       </div>
       <div class="inds"><span>Zahnarzt &amp; Arztpraxis</span><span>Physiotherapie</span><span>Friseur</span><span>Kosmetik &amp; Nagelstudio</span><span>Massage &amp; Spa</span><span>Tattoo</span><span>Kfz-Werkstatt</span><span>Beratung &amp; Coaching</span><span>Fitness &amp; Personal Training</span><span>Fotostudio</span></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-termine">Termin-Agent mieten · 99 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('termine');goLive(true);},300)">💬 Im Chat einen Termin buchen</a></div>
-      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 25.000 Tokens/Monat · Einmalkauf 990 € inkl. 150.000 Tokens + 90 Tage Betrieb · mit Telefon-Agent kombinierbar: Anrufer buchen direkt im Gespräch.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-termine" data-i18n-html="term.rent">Termin-Agent mieten · <span data-eur="99">99 €</span>/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('termine');goLive(true);},300)" data-i18n="term.try">💬 Im Chat einen Termin buchen</a></div>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 25.000 Tokens/Monat · Einmalkauf <span data-eur="990">990 €</span> inkl. 150.000 Tokens + 90 Tage Betrieb · mit Telefon-Agent kombinierbar: Anrufer buchen direkt im Gespräch.</p>
     </div>
     <div class="reveal"><div class="browser bookframe" style="max-width:none"><div class="bar"><i></i><i></i><i></i><span>chat-help.com/chat/book.php?k=demo · Salon Luna</span></div><iframe src="/chat/book.php?k=demo" loading="lazy" title="Buchungsseite Demo – Salon Luna"></iframe></div><p style="color:var(--mute);font-size:12.5px;margin-top:10px;text-align:center">Echte Demo-Buchungsseite (Salon Luna). Probier es aus – Demo-Termine werden nach 2 Tagen gelöscht.</p></div>
   </div>
@@ -535,8 +539,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 <section id="beauty"><div class="wrap">
   <div class="bty">
     <div>
-      <span class="eyebrow">Beauty &amp; Ästhetik</span>
-      <h2 style="margin-top:12px">Schönheit braucht Zeit – <span class="g">dein Agent schenkt sie dir.</span></h2>
+      <span class="eyebrow" data-i18n="e.bty">Beauty &amp; Ästhetik</span>
+      <h2 style="margin-top:12px" data-i18n-html="h2.bty">Schönheit braucht Zeit – <span class="g">dein Agent schenkt sie dir.</span></h2>
       <p class="sub">Für Kosmetikstudios, Beauty-Lounges und ästhetische Kliniken: Termine mit deiner echten Preisliste, Gutscheine, Vor- und Nachsorge, Erstberatung und sichere Foto-Uploads – per WhatsApp, Telefon und Website-Chat. Ohne Heilversprechen: In der Klinik entscheidet die Ärztin.</p>
       <div class="inds"><span>Kosmetik &amp; Gesicht</span><span>Nägel &amp; Wimpern</span><span>Day-Spa &amp; Massage</span><span>Hyaluron &amp; Botulinum</span><span>Laser</span><span>Lidstraffung</span></div>
     </div>
@@ -555,8 +559,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 </div></section>
 
 <section id="bestellen"><div class="wrap">
-  <span class="eyebrow">Bestell-Agent · Pizzeria, Restaurant, Lieferdienst</span>
-  <h2 style="margin-top:12px">Bestellungen per WhatsApp – <span class="g">wie ein guter Mitarbeiter.</span></h2>
+  <span class="eyebrow" data-i18n="e.best">Bestell-Agent · Pizzeria, Restaurant, Lieferdienst</span>
+  <h2 style="margin-top:12px" data-i18n-html="h2.best">Bestellungen per WhatsApp – <span class="g">wie ein guter Mitarbeiter.</span></h2>
   <p class="sub">Der Bestell-Agent kennt deine Karte mit Größen und Extras, prüft die Lieferadresse gegen dein Liefergebiet, nennt Gebühr und Zeit, fasst zusammen und legt die Bestellung an. Die Küche sieht sie sofort auf dem Board, der Fahrer bekommt Route und Kundendaten aufs Handy, der Kunde die Bestätigung – kein Telefonstress zur Stoßzeit, keine Lieferportal-Provision.</p>
   <div class="ordgrid" style="margin-top:34px">
     <div class="ordstage reveal">
@@ -574,15 +578,15 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <div class="it"><b>Küche, Fahrer, Kunde</b><span>Board fürs Tablet mit Ton, Fahrer-Link mit Navigation und „Zugestellt“, Statusnachricht an den Kunden per WhatsApp.</span></div>
       </div>
       <div class="flow"><span>„2 Salami groß, bitte liefern“</span><i>→</i><span>Größe · Extras · Adresse</span><i>→</i><span>Zone geprüft · 2,50 € · 35 Min</span><i>→</i><span>Bestätigung · Code</span><i>→</i><span>Küche · Fahrer · Kunde</span></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-bestellung">Bestell-Agent mieten · 129 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('bestellung');goLive(true);},300)">🍕 Demo-Bestellung aufgeben</a></div>
-      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 35.000 Tokens/Monat (≈ 5.000 Bestell-Nachrichten) · Einmalkauf 1.290 € inkl. 180.000 Tokens + 90 Tage Betrieb · 0 % Provision pro Bestellung.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-bestellung" data-i18n-html="best.rent">Bestell-Agent mieten · <span data-eur="129">129 €</span>/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('bestellung');goLive(true);},300)" data-i18n="best.try">🍕 Demo-Bestellung aufgeben</a></div>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 35.000 Tokens/Monat (≈ 5.000 Bestell-Nachrichten) · Einmalkauf <span data-eur="1290">1.290 €</span> inkl. 180.000 Tokens + 90 Tage Betrieb · 0 % Provision pro Bestellung.</p>
     </div>
   </div>
 </div></section>
 
 <section id="taxi" class="alt"><div class="wrap">
-  <span class="eyebrow">Taxi-Zentrale-Agent · Taxi, Mietwagen, Shuttle, Taxistände</span>
-  <h2 style="margin-top:12px">Jeder Anruf wird zur Fahrt – <span class="g">auch um 3 Uhr nachts.</span></h2>
+  <span class="eyebrow" data-i18n="e.taxi">Taxi-Zentrale-Agent · Taxi, Mietwagen, Shuttle, Taxistände</span>
+  <h2 style="margin-top:12px" data-i18n-html="h2.taxi">Jeder Anruf wird zur Fahrt – <span class="g">auch um 3 Uhr nachts.</span></h2>
   <p class="sub">Der Taxi-Agent nimmt Fahrten am Telefon, per WhatsApp und im Chat an: Er prüft die Abholadresse, fragt nach Personen und Gepäck, nennt Richtpreis oder Festpreis und bucht mit Fahrcode. Die Zentrale sieht die Fahrt sofort auf dem Live-Board, der Fahrer bekommt Auftrag und Navigation aufs Handy, der Kunde eine SMS – auch wenn nachts niemand am Funk sitzt.</p>
   <div class="ordgrid" style="margin-top:34px">
     <div class="ordstage reveal">
@@ -605,8 +609,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <div class="it"><b>Fahrer-App</b><span>Auftrag aufs Handy, Navigation per Tipp, „Bin da“ – der Kunde bekommt sofort eine SMS mit Wagen und Kennzeichen.</span></div>
       </div>
       <div class="flow"><span>Anruf</span><i>→</i><span>Abholort &amp; Zeit</span><i>→</i><span>Richtpreis</span><i>→</i><span>Code</span><i>→</i><span>Fahrer zugeteilt</span><i>→</i><span>„Ihr Taxi ist da“</span></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-taxi">Taxi-Agent mieten · 129 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('taxi');goLive(true);},300)">🚕 Demo-Taxi bestellen</a></div>
-      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 35.000 Tokens/Monat · Einmalkauf 1.290 € inkl. 180.000 Tokens + 90 Tage Betrieb · Preise sind Richtpreise, es gilt der Taxameter (außer Festpreise).</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-taxi" data-i18n-html="taxi.rent">Taxi-Agent mieten · <span data-eur="129">129 €</span>/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('taxi');goLive(true);},300)" data-i18n="taxi.try">🚕 Demo-Taxi bestellen</a></div>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 35.000 Tokens/Monat · Einmalkauf <span data-eur="1290">1.290 €</span> inkl. 180.000 Tokens + 90 Tage Betrieb · Preise sind Richtpreise, es gilt der Taxameter (außer Festpreise).</p>
     </div>
   </div>
 </div></section>
@@ -614,8 +618,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 <section id="hotel"><div class="wrap">
   <div class="ordgrid">
     <div>
-      <span class="eyebrow">Hotel-Rezeptions-Agent · Hotel, Pension, Apartments</span>
-      <h2 style="margin-top:12px">Die Rezeption, <span class="g">die nie schließt.</span></h2>
+      <span class="eyebrow" data-i18n="e.hotel">Hotel-Rezeptions-Agent · Hotel, Pension, Apartments</span>
+      <h2 style="margin-top:12px" data-i18n-html="h2.hotel">Die Rezeption, <span class="g">die nie schließt.</span></h2>
       <p class="sub">Der Rezeptions-Agent beantwortet Anfragen per WhatsApp, Telefon und Website-Chat, prüft freie Zimmer, nennt den Gesamtpreis und bucht direkt – ohne Portal-Provision. Während des Aufenthalts nimmt er Gästewünsche auf und legt sie aufs Rezeptions-Board. Dein Team kümmert sich um die Gäste, nicht ums Telefon.</p>
       <div class="feat2">
         <div class="it"><b>Verfügbarkeit &amp; Buchung in Sekunden</b><span>Zimmerkategorien, Preise je Nacht, Frühstück und Storno aus deinen Daten – gebucht wird erst nach dem „Ja“ des Gastes, mit E-Mail-Bestätigung.</span></div>
@@ -624,8 +628,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
         <div class="it"><b>Mehrsprachig</b><span>Der Gast schreibt Englisch, Türkisch oder Arabisch – der Agent antwortet passend, dein Team liest alles auf Deutsch.</span></div>
       </div>
       <div class="inds"><span>Stadthotel</span><span>Boutique-Hotel</span><span>Pension &amp; Gasthof</span><span>Ferienwohnungen</span><span>Serviced Apartments</span><span>Hostel</span><span>Landhotel &amp; Wellness</span></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-hotel">Hotel-Agent mieten · 149 €/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('hotel');goLive(true);},300)">🛎 Demo-Rezeption testen</a></div>
-      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 40.000 Tokens/Monat · Einmalkauf 1.490 € inkl. 200.000 Tokens + 90 Tage Betrieb</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px;align-items:center"><a class="btn gold" href="/chat/tokens-checkout.php?plan=agent-hotel" data-i18n-html="hotel.rent">Hotel-Agent mieten · <span data-eur="149">149 €</span>/Monat</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('hotel');goLive(true);},300)" data-i18n="hotel.try">🛎 Demo-Rezeption testen</a></div>
+      <p style="color:var(--mute);font-size:13px;margin-top:12px">inkl. 40.000 Tokens/Monat · Einmalkauf <span data-eur="1490">1.490 €</span> inkl. 200.000 Tokens + 90 Tage Betrieb</p>
     </div>
     <div class="ordstage reveal">
       <div class="phone wa"><div class="scr"><div class="wahd"><div class="av">🛎</div><div><b>Hotel Alster Residenz</b><small>Rezeption · online</small></div></div><div class="tr" id="hotelTr"></div><div class="wain"><span>Nachricht</span><i>➤</i></div></div></div>
@@ -640,8 +644,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 <section id="tuerkei"><div class="wrap">
   <div class="bty">
     <div>
-      <span class="eyebrow">Türkiye · Saç &amp; Diş – Gesundheitstourismus</span>
-      <h2 style="margin-top:12px">Patienten aus aller Welt – <span class="g">rund um die Uhr betreut.</span></h2>
+      <span class="eyebrow" data-i18n="e.tr">Türkiye · Saç &amp; Diş – Gesundheitstourismus</span>
+      <h2 style="margin-top:12px" data-i18n-html="h2.tr">Patienten aus aller Welt – <span class="g">rund um die Uhr betreut.</span></h2>
       <p class="trs" lang="tr">Saç ekimi ve diş kliniğiniz için 7/24 yapay zekâ asistanı</p>
       <p class="sub">Für Haar- und Zahnkliniken in Istanbul, Antalya und Izmir: Erstbewertung per Foto oder Röntgenbild, Pakete aus Behandlung, Hotel, VIP-Transfer und Dolmetscher, ehrliche Preise „ab“ nach Befund und 12 Monate Nachsorge – auf WhatsApp, in der Sprache des Patienten.</p>
       <div class="langs" aria-label="Sprachen"><span><b>TR</b>Türkçe</span><span><b>DE</b>Deutsch</span><span><b>EN</b>English</span><span><b>AR</b><bdi lang="ar">العربية</bdi></span><span><b>RU</b><span lang="ru">Русский</span></span></div>
@@ -664,8 +668,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 
 <section id="rueckruf" class="alt"><div class="wrap">
   <div class="center">
-    <span class="eyebrow">Rückruf &amp; Agent-Training · für Immobilien, Handwerk, Praxen, Autohäuser – jedes Geschäft</span>
-    <h2 style="margin-top:12px">Wer zuerst zurückruft, <span class="g">bekommt den Termin.</span></h2>
+    <span class="eyebrow" data-i18n="e.rr">Rückruf &amp; Agent-Training · für Immobilien, Handwerk, Praxen, Autohäuser – jedes Geschäft</span>
+    <h2 style="margin-top:12px" data-i18n-html="h2.rr">Wer zuerst zurückruft, <span class="g">bekommt den Termin.</span></h2>
     <p class="sub">Zwei Dinge, die jeder gute Agent braucht: Er meldet sich bei neuen Anfragen, solange das Interesse frisch ist – und er wird mit jedem Gespräch besser, weil du ihn ohne Technik trainierst.</p>
   </div>
   <div class="rrgrid">
@@ -698,13 +702,13 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
       <div class="qs"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="30" fill="none" stroke="#eef0f6" stroke-width="8"/><circle class="rg" cx="40" cy="40" r="30" fill="none" stroke="url(#qsg)" stroke-width="8" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90 40 40)"/><defs><linearGradient id="qsg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#d4a84a"/><stop offset="1" stop-color="#1a9e5a"/></linearGradient></defs><text x="40" y="45" text-anchor="middle" font-family="Inter,sans-serif" font-size="16" font-weight="800" fill="#0f1222">94</text></svg><div style="flex:1;min-width:0"><b>Qualität 94 %</b><span>48 Testfragen · 45 bestanden · 3 nachgeschärft</span><div class="qbar"><i></i></div></div></div>
     </div>
   </div>
-  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px"><a class="btn gold" href="/chat/studio.php">Studio starten – 300 Tokens gratis</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('immo');goLive(true);},300)">🏠 Immobilien-Demo testen</a></div>
-  <p style="color:var(--mute);font-size:13px;margin-top:12px;text-align:center">Lead-Sofortrückruf ist im Immobilien-Agenten enthalten (119 €/Monat inkl. 30.000 Tokens) · Training und Rückrufliste gibt es im Studio für jeden Agenten.</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px"><a class="btn gold" href="/chat/studio.php" data-i18n="h.ctaB1">Studio starten – 300 Tokens gratis</a><a class="btn" href="#demo" onclick="setTimeout(()=>{demoSelect('immo');goLive(true);},300)" data-i18n="rr.try">🏠 Immobilien-Demo testen</a></div>
+  <p style="color:var(--mute);font-size:13px;margin-top:12px;text-align:center">Lead-Sofortrückruf ist im Immobilien-Agenten enthalten (<span data-eur="119">119 €</span>/Monat inkl. 30.000 Tokens) · Training und Rückrufliste gibt es im Studio für jeden Agenten.</p>
 </div></section>
 
 <section id="how"><div class="wrap center">
-  <span class="eyebrow">So funktioniert's</span>
-  <h2 style="margin-top:12px">In 10 Minuten <span class="g">startklar.</span></h2>
+  <span class="eyebrow" data-i18n="e.how">So funktioniert's</span>
+  <h2 style="margin-top:12px" data-i18n-html="h2.how">In 10 Minuten <span class="g">startklar.</span></h2>
   <p class="sub">Keine Programmierung, kein Projekt. Du gibst dem Agenten dein Wissen, verbindest die Kanäle – und behältst jederzeit die Kontrolle.</p>
   <div class="how" style="text-align:left">
     <div class="card st reveal"><span class="n">SCHRITT 01</span><h3>Wissensbasis einfügen</h3><p>Öffnungszeiten, Preise, Abläufe, FAQ, Textbausteine – einfach als Text einfügen. Der Agent nutzt <b>nur</b> diese Fakten und sagt ehrlich, wenn er etwas nicht weiß.</p>
@@ -714,13 +718,13 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
     <div class="card st reveal"><span class="n">SCHRITT 03</span><h3>Agent arbeitet, du behältst Kontrolle</h3><p>Transkripte, Übergaben und Verbrauch siehst du live im Studio. Du änderst die Wissensbasis – der Agent weiß es sofort. Monatlich kündbar.</p>
       <div class="ill"><svg viewBox="0 0 400 150"><g fill="#fff" stroke="#e6e8ef"><rect x="30" y="25" width="340" height="100" rx="12"/></g><g fill="#eceafe"><rect x="50" y="95" width="18" height="15" rx="4"><animate attributeName="height" values="10;40;10" dur="2.4s" repeatCount="indefinite"/><animate attributeName="y" values="100;70;100" dur="2.4s" repeatCount="indefinite"/></rect><rect x="78" y="80" width="18" height="30" rx="4"><animate attributeName="height" values="30;55;30" dur="2.4s" begin=".3s" repeatCount="indefinite"/><animate attributeName="y" values="80;55;80" dur="2.4s" begin=".3s" repeatCount="indefinite"/></rect><rect x="106" y="70" width="18" height="40" rx="4"><animate attributeName="height" values="40;20;40" dur="2.4s" begin=".6s" repeatCount="indefinite"/><animate attributeName="y" values="70;90;70" dur="2.4s" begin=".6s" repeatCount="indefinite"/></rect><rect x="134" y="60" width="18" height="50" rx="4" fill="#d4a84a"><animate attributeName="height" values="50;70;50" dur="2.4s" begin=".9s" repeatCount="indefinite"/><animate attributeName="y" values="60;40;60" dur="2.4s" begin=".9s" repeatCount="indefinite"/></rect></g><text x="190" y="52" font-size="11" fill="#6b7083" font-family="Inter,sans-serif">Gespräche heute</text><text x="190" y="80" font-size="24" font-weight="800" fill="#0f1222" font-family="Inter,sans-serif">148</text><text x="290" y="52" font-size="11" fill="#6b7083" font-family="Inter,sans-serif">Übergaben</text><text x="290" y="80" font-size="24" font-weight="800" fill="#0f1222" font-family="Inter,sans-serif">6</text><rect x="190" y="95" width="160" height="16" rx="8" fill="#e4f5ea"/><text x="270" y="107" font-size="10.5" text-anchor="middle" fill="#1a9e5a" font-weight="700" font-family="Inter,sans-serif">Alle Transkripte gespeichert ✓</text></svg></div></div>
   </div>
-  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px"><a class="btn gold" href="/chat/studio.php">Studio starten – kostenlos testen</a><a class="btn" href="mailto:support@chat-help.com?subject=Einrichtung%20durch%20ChatHelp">Einrichtung durch uns anfragen</a></div>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px"><a class="btn gold" href="/chat/studio.php" data-i18n="how.c1">Studio starten – kostenlos testen</a><a class="btn" href="mailto:support@chat-help.com?subject=Einrichtung%20durch%20ChatHelp" data-i18n="how.c2">Einrichtung durch uns anfragen</a></div>
 </div></section>
 
 <section id="preise"><div class="wrap center">
-  <span class="eyebrow">Preise</span>
-  <h2 style="margin-top:12px">Mieten, kaufen oder <span class="g">nach Verbrauch.</span></h2>
-  <p class="sub">Jeder Agent enthält Studio, Wissensbasis, Website-Widget und ein monatliches Token-Guthaben. Mieten: monatlich kündbar. Kaufen: einmal zahlen – Einrichtung, Lizenz, Startguthaben und 90 Tage Betrieb –, danach Betrieb ab 19 €/Monat oder dein eigener KI-Schlüssel ab 9 €/Monat. Tokens: ein Guthaben für alles, verfällt nicht.</p>
+  <span class="eyebrow" data-i18n="e.pr">Preise</span>
+  <h2 style="margin-top:12px" data-i18n-html="h2.pr">Mieten, kaufen oder <span class="g">nach Verbrauch.</span></h2>
+  <p class="sub">Jeder Agent enthält Studio, Wissensbasis, Website-Widget und ein monatliches Token-Guthaben. Mieten: monatlich kündbar. Kaufen: einmal zahlen – Einrichtung, Lizenz, Startguthaben und 90 Tage Betrieb –, danach Betrieb ab <span data-eur="19">19 €</span>/Monat oder dein eigener KI-Schlüssel ab <span data-eur="9">9 €</span>/Monat. Tokens: ein Guthaben für alles, verfällt nicht.</p>
   <div class="bund" id="bundle">
     <div class="bh"><div class="bic" aria-hidden="true"><i>☎</i><i>💬</i><i>🗨</i></div><h3>Telefon + WhatsApp immer zusammen – ein Verlauf pro Kunde, in beide Richtungen</h3></div>
     <ul>
@@ -732,11 +736,12 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
   </div>
   <div class="ptabs" id="ptabs"></div>
   <div id="pbody" style="text-align:left"></div>
+  <p class="curnote" data-curnote hidden></p>
 </div></section>
 
 <section id="trust" class="alt"><div class="wrap center">
-  <span class="eyebrow">Sicherheit &amp; Vertrauen</span>
-  <h2 style="margin-top:12px">Gebaut für Berufe mit <span class="g">Verantwortung.</span></h2>
+  <span class="eyebrow" data-i18n="e.trust">Sicherheit &amp; Vertrauen</span>
+  <h2 style="margin-top:12px" data-i18n-html="h2.trust">Gebaut für Berufe mit <span class="g">Verantwortung.</span></h2>
   <div class="tgrid" style="text-align:left">
     <div class="card"><div class="ic">🇪🇺</div><h3>EU-Hosting, DSGVO, AVV</h3><p>Daten in der EU, Auftragsverarbeitungsvertrag für Geschäftskunden, keine Nutzung deiner Daten für Training.</p></div>
     <div class="card"><div class="ic">🧭</div><h3>Nur deine Fakten</h3><p>Der Agent antwortet ausschließlich aus der Wissensbasis. Fehlt etwas, sagt er es – und übergibt an dein Team statt zu raten.</p></div>
@@ -748,13 +753,13 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 </div></section>
 
 <section id="faq"><div class="wrap">
-  <span class="eyebrow">Fragen</span>
-  <h2 style="margin-top:12px">Kurz erklärt.</h2>
+  <span class="eyebrow" data-i18n="e.faq">Fragen</span>
+  <h2 style="margin-top:12px" data-i18n="h2.faq">Kurz erklärt.</h2>
   <div class="faq">
     <details><summary>Wie bekommt der Telefon-Agent eine Nummer?</summary><p>Nach der Buchung richten wir innerhalb von 24 Stunden eine Rufnummer (DE/AT/CH/TR/EU) über unseren Telefonie-Partner ein oder du leitest deine bestehende Nummer bei Besetzt/außerhalb der Zeiten um. Begrüßung, Stimme und Weiterleitungsnummer stellst du im Studio ein.</p></details>
     <details><summary>Was passiert, wenn der Agent etwas nicht weiß?</summary><p>Er sagt es ehrlich, bietet Rückruf oder Weiterleitung an und übergibt an dein Team. Er erfindet keine Preise, Fristen oder Zusagen – das ist in jeder Rolle fest verankert.</p></details>
     <details><summary>Darf eine KI für Inkasso, Kanzlei oder Steuerberatung arbeiten?</summary><p>Ja, als Assistenz: Der Agent nimmt auf, bereitet vor, erklärt Abläufe und erstellt Entwürfe. Entscheidungen, Rechtsrat, Steuerberatung und Zusagen bleiben beim Berufsträger – genau so sind die Rollen definiert.</p></details>
-    <details><summary>Mieten oder kaufen – was ist der Unterschied?</summary><p>Mieten: monatliche Gebühr, monatlich kündbar, jeden Monat frisches Token-Guthaben. Kaufen: einmal zahlen – Einrichtung, Lizenz, großes Startguthaben (verfällt nicht) und 90 Tage Betrieb inklusive. Danach wählst du: Betrieb für 19, 29 oder 39 €/Monat inklusive Tokens (je nach Stufe des Agenten) oder dein eigener Claude- bzw. DeepSeek-Schlüssel für 9, 14 oder 19 €/Monat Plattformgebühr – dann zahlst du die KI direkt beim Anbieter.</p></details>
+    <details><summary>Mieten oder kaufen – was ist der Unterschied?</summary><p>Mieten: monatliche Gebühr, monatlich kündbar, jeden Monat frisches Token-Guthaben. Kaufen: einmal zahlen – Einrichtung, Lizenz, großes Startguthaben (verfällt nicht) und 90 Tage Betrieb inklusive. Danach wählst du: Betrieb für <span data-eur-list="19,29,39">19, 29 oder 39 €</span>/Monat inklusive Tokens (je nach Stufe des Agenten) oder dein eigener Claude- bzw. DeepSeek-Schlüssel für <span data-eur-list="9,14,19">9, 14 oder 19 €</span>/Monat Plattformgebühr – dann zahlst du die KI direkt beim Anbieter.</p></details>
     <details><summary>Was bedeutet „eigener KI-Schlüssel“?</summary><p>Du hinterlegst im Studio unter Verbindungen deinen Claude- oder DeepSeek-Schlüssel (verschlüsselt gespeichert, angezeigt werden nur die letzten Zeichen). Der Agent rechnet dann direkt über deinen Anbieter ab, ChatHelp bucht keine Tokens ab und berechnet nur die kleine Plattformgebühr. Ist der Schlüssel ungültig, siehst du es sofort im Studio.</p></details>
     <details><summary>Was ist ein Token?</summary><p>Die Abrechnungseinheit für alle Dienste. Richtwerte: eine Chat-Antwort 6 Tokens, eine Telefon-Antwort 8, ein Social-Post 5, ein YouTube-Skript 50. Tokens verfallen nicht und gelten für Studio, Widget, Telefon und API.</p></details>
     <details><summary>Wie binde ich den Agenten auf meiner Website ein?</summary><p>Im Studio das Widget aktivieren und eine Zeile Code vor das schließende body-Tag deiner Seite kopieren. Besucher chatten mit deinem Agenten, der nur auf deine Wissensbasis zugreift.</p></details>
@@ -771,10 +776,10 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 
 <section id="start"><div class="wrap">
   <div class="ctab">
-    <span class="eyebrow" style="color:#e9cc83">Loslegen</span>
-    <h2 style="margin-top:12px">Dein erster Agent arbeitet heute noch.</h2>
+    <span class="eyebrow" style="color:#e9cc83" data-i18n="e.start">Loslegen</span>
+    <h2 style="margin-top:12px" data-i18n="h2.start">Dein erster Agent arbeitet heute noch.</h2>
     <p class="sub" style="margin:14px auto 0">Studio öffnen, E-Mail bestätigen, Wissensbasis einfügen – fertig. 300 Tokens geschenkt, keine Zahlungsdaten.</p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px"><a class="btn gold" href="/chat/studio.php">Studio starten</a><a class="btn" style="background:#fff;color:var(--ink)" href="#agenten">Agenten finden</a><a class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.3)" href="#privat">Für dich privat</a></div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px"><a class="btn gold" href="/chat/studio.php" data-i18n="b.studio">Studio starten</a><a class="btn" style="background:#fff;color:var(--ink)" href="#agenten" data-i18n="e.ag">Agenten finden</a><a class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.3)" href="#privat" data-i18n="e.pv">Für dich privat</a></div>
   </div>
 </div></section>
 
@@ -787,7 +792,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 <div class="modal" id="modal" role="dialog" aria-modal="true"><div class="mbox" id="mbox"></div></div>
 
 <!-- Assistent -->
-<button class="fab" id="fab"><span class="av"></span> Fragen? Assistent</button>
+<button class="fab" id="fab" data-i18n-tail="ai.fab"><span class="av"></span> Fragen? Assistent</button>
 <div class="ai" id="ai"><div class="hd"><div class="av"></div><div><b>ChatHelp Assistent</b><small><span class="dot"></span> online · antwortet in deiner Sprache</small></div><button class="btn s" id="aiClose" style="margin-left:auto">✕</button></div><div class="ms" id="aiMs"></div><div class="chips" id="aiChips"></div><form id="aiForm"><input id="aiIn" placeholder="Frag mich – z. B. „Welcher Agent passt zu meiner Kanzlei?“" autocomplete="off" maxlength="1500"><button class="send" type="submit" id="aiSend">Senden</button></form></div>
 
 <script>
@@ -993,7 +998,10 @@ const PRO=[
 const COL={teal:['var(--teall)','var(--teal)'],gold:['var(--goldl)','var(--gold)'],indigo:['var(--indigol)','var(--indigo)'],rose:['var(--rosel)','var(--rose)']};
 /* ===== Hauptkategorien – eine Reihenfolge für Finder, Demo-Reiter und Preise (GET /v1/categories, sonst eingebaute Liste) ===== */
 const CAT_API='/chat/tokens-api.php/v1/categories';
-const CATS_FALLBACK=[
+/* Türkiye-Agenten (Saç & Diş) erscheinen NUR im Abschnitt #tuerkei: nicht im Finder, nicht in den Demo-Reitern, nicht in den allgemeinen Preislisten */
+const TR_ONLY=new Set(['agent-hair-tr','agent-dental-tr','buy-hair-tr','buy-dental-tr']),TR_CAT='medtour';
+const catsGeneral=l=>l.filter(c=>c.id!==TR_CAT).map(c=>Object.assign({},c,{plans:c.plans.filter(p=>!TR_ONLY.has(p.id))})).filter(c=>c.plans.length);
+const CATS_FALLBACK=catsGeneral([
  ['bestellung','Bestellung & Lieferung','🍕','Bestellungen per Telefon, WhatsApp und Chat – Küche, Fahrer und Kunde immer im Bild.',['agent-bestellung','log-support']],
  ['gastro','Gastronomie & Hotel','🛎','Reservierungen, Rezeption, Gästewünsche und Bewertungen – mehrsprachig, rund um die Uhr.',['agent-hotel','gastro-agent']],
  ['dienstleistung','Dienstleistung & Termine','📅','Termine buchen, Anrufe annehmen, Angebote und Rückrufe – für Salon, Studio, Werkstatt und Handwerk.',['agent-termine','agent-phone','agent-autohaus']],
@@ -1009,7 +1017,7 @@ const CATS_FALLBACK=[
  ['marketing','Marketing & Inhalte','✍️','Website-Texte, Social Media, YouTube und SEO – in deiner Tonalität.',['agent-website','agent-content']],
  ['team','Personal & Bildung','🎓','Stellenanzeigen, Bewerber-Vorauswahl, Onboarding, Kurse und Lernmaterial.',['hr-screening']],
  ['privat','Für dich privat','🙋','Briefe und Kündigungen, Behördengänge, Bank & Geld, Hotel & Reise – und Anrufe, die der Assistent nach deiner Bestätigung für dich erledigt.',['privat-assistent','privat-behoerde','privat-bank','privat-reise','privat-anruf']]
-].map(c=>({id:c[0],name:c[1],icon:c[2],sub:c[3],plans:c[4].map(id=>({id}))}));
+].map(c=>({id:c[0],name:c[1],icon:c[2],sub:c[3],plans:c[4].map(id=>({id}))})));
 let CATS=CATS_FALLBACK,catSrc='builtin';
 const API_PLAN=new Map();
 /* Reine Website-Bots: nur Widget/Chat – alle anderen Agenten haben Telefon + WhatsApp + Chat im Bündel */
@@ -1090,7 +1098,7 @@ function cardEl(i,mode){const c=document.createElement('div');c.className='card 
 function tryPlan(id,text){const dm=demoFor(id);closePro();vUnlock();const s=$('#demo');if(s)try{s.scrollIntoView({behavior:V_RM?'auto':'smooth',block:'start'});}catch(e){s.scrollIntoView();}
   demoSelect(dm.key,true);const d=cur;goLive(!text).then(()=>{if(text&&liveOn&&cur===d)liveSend(text);});}
 let fCat='all',fQ='';
-const fItems=()=>{const out=[];CATS.forEach(c=>c.plans.forEach(p=>{const s=API_PLAN.get(p.id);if(s&&(s.kind==='buy'||s.kind==='tokens'||(s.kind==='abo'&&c.id!=='privat')))return;const i=pInfo(p.id);if(i&&!out.some(x=>x.id===i.id))out.push(i);}));return out;};
+const fItems=()=>{const out=[];CATS.forEach(c=>c.plans.forEach(p=>{if(TR_ONLY.has(p.id))return;const s=API_PLAN.get(p.id);if(s&&(s.kind==='buy'||s.kind==='tokens'||(s.kind==='abo'&&c.id!=='privat')))return;const i=pInfo(p.id);if(i&&!out.some(x=>x.id===i.id))out.push(i);}));return out;};
 const fText=i=>fFold([i.n,i.who,i.tag,i.does.join(' '),i.cat?i.cat.name:'',KW[i.id]||'',chanText(i.id)].join(' ').replace(/<[^>]+>/g,' '));
 function fMatch(i,q){if(!q)return true;const t=fText(i);return q.split(/\s+/).filter(Boolean).every(w=>t.includes(w));}
 function finderChips(){const w=$('#fChips');if(!w)return;const all=fItems();w.textContent='';
@@ -1111,7 +1119,7 @@ function catNorm(j){const a=Array.isArray(j)?j:j&&Array.isArray(j.categories)?j.
     const plans=(Array.isArray(c.plans)?c.plans:[]).map(p=>typeof p==='string'?{id:p}:p&&typeof p==='object'?p:null).filter(p=>p&&/^[a-z0-9-]{2,40}$/.test(String(p.id||'')));
     plans.forEach(p=>{p.id=String(p.id);API_PLAN.set(p.id,{name:vText(p.name),price:isFinite(p.price_cents)&&p.price_cents>0?p.price_cents/100:p.price,kind:typeof p.kind==='string'?p.kind:'',channels:p.channels,demo:p.demo,desc:vText(p.desc||p.description||'')});});
     out.push({id,name:vText(c.name||c.label).trim()||(fb&&fb.name)||id,icon:vText(c.icon).trim()||(fb&&fb.icon)||'✦',sub:vText(c.short||c.text||c.desc).trim()||(fb&&fb.sub)||'',plans:plans.map(p=>({id:p.id}))});});
-  if(out.length<4)return null;return catMerge(out);}
+  if(out.length<4)return null;return catsGeneral(catMerge(out));}
 /* Server-Liste führt; Pläne/Kategorien, die der Server (noch) nicht kennt, kommen an ihrer eingebauten Stelle dazu */
 function catMerge(out){const has=id=>out.some(c=>c.plans.some(p=>p.id===id));
   CATS_FALLBACK.forEach((fc,fi)=>{const miss=fc.plans.filter(p=>!has(p.id));if(!miss.length)return;let c=out.find(x=>x.id===fc.id);
@@ -1124,7 +1132,9 @@ async function catsLoad(){try{const ac=window.AbortController?new AbortControlle
     CATS=l;catSrc='api';}catch(e){API_PLAN.clear();CATS=CATS_FALLBACK;catSrc='builtin';}
   finderChips();finderRender();privatRender();showRender();dtabsRender();{const pt=$('.ptab.on');if(pt&&/^(agents|privat)$/.test(pt.dataset.k))renderPrice(pt.dataset.k);}}
 /* Eigene Bereiche: Beauty & Ästhetik, Türkiye · Saç & Diş */
-function showRender(){[['#beautyGrid',['agent-beauty','agent-aesthetic']],['#trGrid',['agent-hair-tr','agent-dental-tr']]].forEach(([sel,ids])=>{const g=$(sel);if(!g)return;g.textContent='';ids.forEach(id=>{const i=pInfo(id);if(i)g.appendChild(cardEl(i,'pv'));});});}
+function showRender(){[['#beautyGrid',['agent-beauty','agent-aesthetic']],['#trGrid',['agent-hair-tr','agent-dental-tr']]].forEach(([sel,ids])=>{const g=$(sel);if(!g)return;g.textContent='';ids.forEach(id=>{const i=pInfo(id);if(!i)return;const c=cardEl(i,'pv');
+    /* Türkiye: Einmalkauf + Betrieb / eigener Schlüssel nur hier (nicht in den allgemeinen Preislisten) */
+    if(sel==='#trGrid'&&buyLine(id)){const b=document.createElement('div');b.className='tbuy';b.innerHTML=buyLine(id);c.appendChild(b);}g.appendChild(c);});});}
 function finderInit(){finderChips();finderRender();privatRender();showRender();
   const i=$('#fSearch');i.addEventListener('input',e=>{fQ=e.target.value;finderRender();});
   i.addEventListener('keydown',e=>{if(e.key==='Escape'&&i.value){i.value='';fQ='';finderRender();}});
@@ -1238,7 +1248,7 @@ const DEMOS=[
 let cur=null,playId=0,liveHist=[],liveOn=false;
 /* Demo-Reiter nach Hauptkategorie gruppiert – gleiche Reihenfolge wie Finder und Preise (innerhalb einer Kategorie: Reihenfolge von DEMOS) */
 function dtabsRender(){const w=$('#dtabs');if(!w)return;w.textContent='';const gs=[];
-  DEMOS.forEach(d=>{const c=catOf(d.plan),id=c?c.id:'_';let g=gs.find(x=>x.id===id);if(!g){g={id,c,i:c?CATS.indexOf(c):CATS.length,items:[]};gs.push(g);}g.items.push(d);});
+  DEMOS.filter(d=>!TR_ONLY.has(d.plan)).forEach(d=>{const c=catOf(d.plan),id=c?c.id:'_';let g=gs.find(x=>x.id===id);if(!g){g={id,c,i:c?CATS.indexOf(c):CATS.length,items:[]};gs.push(g);}g.items.push(d);});
   gs.sort((a,b)=>a.i-b.i).forEach(g=>{const e=document.createElement('div');e.className='dgrp';e.setAttribute('role','group');e.setAttribute('aria-label',g.c?g.c.name:'Weitere');e.innerHTML=`<span class="dgl" aria-hidden="true">${esc(g.c?g.c.name:'Weitere')}</span>`;
     g.items.forEach(d=>{const b=document.createElement('button');b.type='button';b.className='dtab'+(cur&&cur.key===d.key?' on':'');b.dataset.k=d.key;b.textContent=d.tab;b.onclick=()=>{vUnlock();demoSelect(d.key,true);};e.appendChild(b);});w.appendChild(e);});}
 /* mobil: gewählten Reiter im Band sichtbar rollen (nur horizontal) */
@@ -1432,12 +1442,12 @@ const vpName=p=>p?(p.label.split(/\s·\s/)[0]||p.label).trim():'',vpTone=p=>p?p.
 function vGender(){return VP.g==='m'||VP.g==='f'?VP.g:(V.gender==='m'?'m':'f');}
 function vPreset(){const g=vGender(),list=voices.filter(v=>v.gender===g);if(!list.length)return null;return (VP[g]&&list.find(v=>v.id===VP[g]))||(V.preset&&list.find(v=>v.id===V.preset))||list[0];}
 function vPresetId(){const p=vPreset();return p?p.id:'';}
-function vpLabel(){const p=vPreset(),e=$('#vpLbl');if(e)e.textContent=p?vpName(p)+' · '+vpTone(p):'Stimme';}
+function vpLabel(){const p=vPreset(),e=$('#vpLbl');if(!e)return;const bv=p&&vBrowserUsed()?vVoiceName(pickVoice(vGender(),p)):'';e.textContent=p?vpName(p)+' · '+vpTone(p)+(bv?' · 🖥 '+bv:''):'Stimme';e.title=bv?'Browser-Stimme: '+bv:'';}
 function vpOpen(){const pop=$('#vpop'),b=$('#vpBtn');if(!pop)return;pop.hidden=false;if(b)b.setAttribute('aria-expanded','true');vpRender();const f=pop.querySelector('#vpList [aria-checked="true"]')||pop.querySelector('#vpGender [aria-checked="true"]');if(f)try{f.focus();}catch(e){}}
 function vpClose(focus){const pop=$('#vpop'),b=$('#vpBtn');if(!pop||pop.hidden)return;pop.hidden=true;if(b)b.setAttribute('aria-expanded','false');if(focus&&b)try{b.focus();}catch(e){}}
 function vpRender(){const pop=$('#vpop');if(!pop||pop.hidden)return;const g=vGender(),p=vPreset();pop.querySelectorAll('#vpGender [role="radio"]').forEach(x=>{const on=x.dataset.g===g;x.setAttribute('aria-checked',on?'true':'false');x.tabIndex=on?0:-1;});
   const l=$('#vpList');l.textContent='';voices.filter(v=>v.gender===g).forEach(v=>{const b=document.createElement('button');b.type='button';b.className='vo';b.setAttribute('role','radio');const on=!!p&&v.id===p.id;b.setAttribute('aria-checked',on?'true':'false');b.tabIndex=on?0:-1;b.dataset.id=v.id;
-    b.innerHTML=`<span class="von"><b>${esc(vpName(v))}</b><span>${esc(vpTone(v))}</span>${v.id===V.preset?'<em>Standard</em>':''}</span>${v.desc?`<small>${esc(v.desc)}</small>`:''}`;b.onclick=()=>vpPick(v.id);l.appendChild(b);});
+    b.innerHTML=`<span class="von"><b>${esc(vpName(v))}</b><span>${esc(vpTone(v))}</span>${v.id===V.preset?'<em>Standard</em>':''}</span>${v.desc?`<small>${esc(v.desc)}</small>`:''}${vBrowserUsed()&&pickVoice(g,v)?`<small class="vbn">🖥 Browser-Stimme: ${esc(vVoiceName(pickVoice(g,v)))}</small>`:''}`;b.onclick=()=>vpPick(v.id);l.appendChild(b);});
   const r=$('#vpReset');if(r)r.hidden=!(VP.g||VP.f||VP.m);}
 function vpPick(id){const p=voices.find(v=>v.id===id);if(!p)return;const pop=$('#vpop'),had=!!(pop&&(pop.contains(document.activeElement)||document.activeElement===document.body));VP[p.gender]=id;vpSave();vpRender();vpLabel();
   if(had){const f=pop.querySelector('#vpList [aria-checked="true"]');if(f)try{f.focus({preventScroll:true});}catch(e){}}}
@@ -1493,20 +1503,28 @@ const VQ=/natural|online|neural|premium|enhanced|google|wavenet|network/i,
   VFEM=/katja|seraphina|amala|\banna\b|petra|helena|vicki|marlene|hedda|elke|louisa|ingrid|leni|klara|gisela|tanja|sabine|google deutsch|\bfemale|\bfrau\b|weiblich/i,
   VMAL=/conrad|florian|killian|markus|yannick|stefan|\bhans\b|ralf|bernd|christoph|kasper|klaus|jonas|viktor|martin|\bmale\b|\bmann\b|männlich/i,
   VNOV=/\b(eddy|flo|reed|rocko|sandy|shelley|grandma|grandpa|oma|opa|großmutter|großvater)\b/i;
-/* p = Stimm-Voreinstellung: ihre bevorzugten Browser-Stimmnamen (Reihenfolge = Rang) zählen zusätzlich, damit sich die Stimmen auch ohne Server-Stimme unterscheiden */
-function pickVoice(g,p){let vs=[];try{vs=(window.speechSynthesis&&speechSynthesis.getVoices())||[];}catch(e){}if(!vs.length)vs=V.voices||[];
-  const de=vs.filter(v=>v&&/^de([-_]|$)/i.test(v.lang||''));if(!de.length)return null;const want=g==='m'?VMAL:VFEM,other=g==='m'?VFEM:VMAL;
-  const names=(p&&p.browser&&Array.isArray(p.browser.names)?p.browser.names:[]).map(n=>{try{return new RegExp('(^|[^a-zäöüß])'+String(n).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^a-zäöüß]|$)','i');}catch(e){return null;}});
-  const sc=v=>{const n=v.name||'';let s=0;if(VQ.test(n))s+=6;s+=/^de[-_]de/i.test(v.lang)?3:1;if(want.test(n))s+=3;else if(other.test(n))s-=2;if(v.localService===false)s+=1;if(VNOV.test(n))s-=20;
-    for(let k=0;k<names.length;k++)if(names[k]&&names[k].test(n)){s+=10-Math.min(k,8);break;}return s;};
-  return de.slice().sort((a,b)=>sc(b)-sc(a))[0]||null;}
-try{if(window.speechSynthesis){const f=()=>{try{V.voices=speechSynthesis.getVoices()||[];}catch(e){}};if(speechSynthesis.addEventListener)speechSynthesis.addEventListener('voiceschanged',f);f();}}catch(e){}
+/* Browser-Fallback (keine Server-Stimme): deutsche Stimmen je Geschlecht deterministisch ranken (Qualität, de-DE, online – dann Name; Spaßstimmen nie);
+   eigenes Geschlecht zuerst, dann neutrale Namen, nie das andere Geschlecht (außer es gibt nur solche). Voreinstellung i des Geschlechts → i-te verschiedene Stimme. */
+function vRank(g){let vs=[];try{vs=(window.speechSynthesis&&speechSynthesis.getVoices())||[];}catch(e){}if(!vs.length)vs=V.voices||[];
+  const seen=new Set(),de=vs.filter(v=>{if(!v||!/^de([-_]|$)/i.test(v.lang||'')||VNOV.test(v.name||''))return false;const k=(v.name||'')+'|'+v.lang;if(seen.has(k))return false;seen.add(k);return true;});if(!de.length)return [];
+  const want=g==='m'?VMAL:VFEM,other=g==='m'?VFEM:VMAL,sc=v=>{const n=v.name||'';let s=0;if(VQ.test(n))s+=6;s+=/^de[-_]de/i.test(v.lang)?3:1;if(v.localService===false)s+=1;return s;};
+  const cmp=(a,b)=>sc(b)-sc(a)||String(a.name).localeCompare(String(b.name)),mine=de.filter(v=>want.test(v.name||'')&&!other.test(v.name||'')).sort(cmp),neutral=de.filter(v=>!want.test(v.name||'')&&!other.test(v.name||'')).sort(cmp);
+  const r=mine.concat(neutral);return r.length?r:de.slice().sort(cmp);}
+function vSlot(g,p){const i=p?voices.filter(v=>v.gender===g).findIndex(v=>v.id===p.id):0;return i<0?0:i;}
+function pickVoice(g,p){const r=vRank(g);return r.length?r[vSlot(g,p)%r.length]:null;}
+/* Tempo/Tonhöhe der Browser-Stimme: Abweichung der Voreinstellung ×2,5 verstärkt; teilen sich Voreinstellungen eine Stimme (weniger Stimmen als Voreinstellungen), je Runde zusätzlich −0,08 / +0,08 / −0,16 … Tonhöhe */
+function vProso(g,p){const n=vRank(g).length,i=vSlot(g,p),lap=n?Math.floor(i/n):0,b=p&&p.browser?p.browser:{rate:1,pitch:1},off=lap?(lap%2?-1:1)*.08*Math.ceil(lap/2):0;
+  return {rate:vClamp(1+(b.rate-1)*2.5,.8,1.25,1),pitch:vClamp(1+(b.pitch-1)*2.5+off,.75,1.3,1)};}
+/* Spricht gerade (bzw. sicher demnächst) die Browser-Stimme? Dann zeigt die Auswahl ihren Namen neben der Voreinstellung. */
+function vBrowserUsed(){return !!(V.ttsKnown&&(!V.tts||V.ttsDead||V.brw));}
+function vVoiceName(v){return v?String(v.name||'').replace(/^(Microsoft|Apple)\s+/i,'').replace(/\s+-\s+.*$/,'').replace(/\s*\((Natural|Enhanced|Premium)\)\s*/i,' ').replace(/\s+Online\b/i,'').trim():'';}
+try{if(window.speechSynthesis){const f=()=>{try{V.voices=speechSynthesis.getVoices()||[];}catch(e){}try{vpLabel();vpRender();}catch(e){}};if(speechSynthesis.addEventListener)speechSynthesis.addEventListener('voiceschanged',f);f();}}catch(e){}
 /* Browser-Stimme, Satz für Satz (kurze Äußerungen umgehen Chromes 15-Sekunden-Abbruch) */
 async function vBrowser(text,turn){const ss=window.speechSynthesis;if(!ss||!window.SpeechSynthesisUtterance||!text)return 'none';
   if(!V.vTried){V.vTried=true;await vVoicesReady();}if(turn!==V.turn)return false;
   return new Promise(res=>{let u;try{u=new SpeechSynthesisUtterance(text);}catch(e){return res('none');}
     u.lang='de-DE';const p=vPreset(),v=pickVoice(vGender(),p);if(v){try{u.voice=v;u.lang=v.lang||'de-DE';}catch(e){}}
-    const own=!p||!V.preset||p.id===V.preset;u.rate=own?V.rate:vClamp(p.browser.rate,.7,1.3,V.rate);u.pitch=own?V.pitch:vClamp(p.browser.pitch,.7,1.3,V.pitch);   /* eigene Stimme der Persona: ihr Tempo/Tonhöhe; andere Voreinstellung: deren Werte */
+    const own=!p||!V.preset||p.id===V.preset,pr=vProso(vGender(),p);u.rate=vClamp(pr.rate*(own?V.rate:1),.7,1.3,1);u.pitch=vClamp(pr.pitch*(own?V.pitch:1),.7,1.3,1);   /* Voreinstellung (verstärkt) × Tempo/Tonhöhe der Persona, wenn es ihre eigene Stimme ist */
     let fin=false,to=0;const done=r=>{if(fin)return;fin=true;clearTimeout(to);if(V.end===stop)V.end=null;if(V.utter===u)V.utter=null;vTalk(false);res(r);};
     const stop=()=>done(false);V.end=stop;V.utter=u;
     u.onstart=()=>{if(!fin)vTalk(true);};u.onend=()=>done(true);u.onerror=e=>done(e&&/interrupted|canceled/.test(e.error||'')?false:'err');
@@ -1550,7 +1568,7 @@ function speak(text,done){vSay(vItems(null,text),V.turn).then(ok=>{done&&done(ok
 function livePersona(p){const s=vText(p&&typeof p==='object'?p.name:p).trim().split(/[,;:·–—(|]/)[0].trim().split(/\s+/)[0]||'';return /^[A-ZÄÖÜ][a-zäöüß]{1,13}$/.test(s)&&!/^(Der|Die|Das|Ein|Eine|Ihr|Ihre|Hier|Hallo)$/.test(s)?s:'';}
 function liveApply(j){if(!j||typeof j!=='object')return;const vo=j.voice&&typeof j.voice==='object'?j.voice:{};
   if(vo.gender==='m'||vo.gender==='f')V.gender=vo.gender;V.rate=vClamp(vo.rate,.85,1.15,1);V.pitch=vClamp(vo.pitch,.8,1.2,1);V.preset=vpId(vo.preset);
-  if(typeof j.demo==='string'&&/^[a-z0-9-]{2,40}$/.test(j.demo))V.demo=j.demo;V.sector=typeof j.sector==='string'&&/^[a-z0-9_-]{2,40}$/.test(j.sector)?j.sector:(cur&&cur.sectors?secCur:'');V.tts=j.tts===true;V.ttsKnown=true;
+  if(typeof j.demo==='string'&&/^[a-z0-9-]{2,40}$/.test(j.demo))V.demo=j.demo;V.sector=typeof j.sector==='string'&&/^[a-z0-9_-]{2,40}$/.test(j.sector)?j.sector:(cur&&cur.sectors?secCur:'');V.tts=j.tts===true;V.ttsKnown=true;try{vpLabel();}catch(e){}
   const vl=vVoicesNorm(j.voices);if(vl)voices=vl;V.greet=vItems(j.speech,vText(j.greeting));
   V.fillers=(Array.isArray(j.fillers)?j.fillers:[]).map(f=>typeof f==='string'?{text:f.trim(),t:''}:f&&typeof f==='object'?{text:vText(f.text).trim(),t:typeof f.t==='string'?f.t:''}:null).filter(f=>f&&f.text).slice(0,4);
   liveChips=(Array.isArray(j.chips)?j.chips:[]).map(c=>vText(c).trim()).filter(Boolean).slice(0,4);const n=livePersona(j.persona);if(n)liveWho=[n,n];vpRender();vpLabel();ttsHintUI();}
@@ -1764,19 +1782,19 @@ const prcMin=()=>{const v=Object.values(PRC.tiers);return {b:Math.min(...v.map(t
 /* Kurztext für Detail-Fenster und Karten */
 function buyLine(plan){const o=prcFor(plan);if(!o)return '';const f=prcFollow(o);
   return `Einmal kaufen: <b>${fmtEur(o.price)}</b> – Einrichtung, Lizenz, ${de(o.start)} Tokens Startguthaben und ${o.days} Tage Betrieb. Danach ${fmtEur(f.betrieb.price)}/Monat Betrieb (inkl. ${de(f.betrieb.tokens)} Tokens) oder ${fmtEur(f.byok.price)}/Monat mit eigenem KI-Schlüssel · <a href="${CHECKOUT}?plan=${encodeURIComponent(o.id)}" style="color:var(--indigo);font-weight:700">Kaufen →</a>`;}
-function buyRender(el){const T=PRC.tiers,mn=prcMin(),list=PRC.one.slice().sort((a,b)=>catIdx(a.base)-catIdx(b.base));
+function buyRender(el){const T=PRC.tiers,mn=prcMin(),list=PRC.one.filter(o=>!TR_ONLY.has(o.id)&&!TR_ONLY.has(o.base)).sort((a,b)=>catIdx(a.base)-catIdx(b.base));
   const rows=Object.keys(T).map(k=>`<tr><th scope="row"><b>${esc(k)}</b> ${esc(T[k].label)}</th><td><b>${fmtEur(T[k].betrieb)}</b> / Monat<small>inkl. ${de(T[k].tokens)} Tokens</small></td><td><b>${fmtEur(T[k].byok)}</b> / Monat<small>KI zahlst du direkt beim Anbieter</small></td></tr>`).join('');
   el.innerHTML=`<div class="buyx"><ol class="bsteps"><li><i>1</i><div><b>Einmal zahlen</b><span>Einrichtung, Lizenz und Startguthaben – die Tokens verfallen nicht.</span></div></li><li><i>2</i><div><b>${PRC.days} Tage Betrieb inklusive</b><span>Telefon, WhatsApp, Chat und Studio laufen ohne Monatsgebühr.</span></div></li><li><i>3</i><div><b>Danach wählst du</b><span>Betrieb ab ${fmtEur(mn.b)}/Monat inkl. Tokens – oder dein eigener KI-Schlüssel (${PRC.providers.map(esc).join(' oder ')}) ab ${fmtEur(mn.y)}/Monat. Monatlich kündbar.</span></div></li></ol>
     <div class="tiers"><table><caption>Nach ${PRC.days} Tagen – je nach Stufe des Agenten</caption><thead><tr><th scope="col">Stufe</th><th scope="col">Betrieb (inkl. Tokens)</th><th scope="col">Eigener KI-Schlüssel</th></tr></thead><tbody>${rows}</tbody></table><small>${esc(PRC.byokNote)} Alle Preise zzgl. USt.</small></div></div>
    <div class="pgrid2">${list.map(o=>{const a=AG.find(x=>x.id===o.base),i=pInfo(o.base),f=prcFollow(o),n=o.name||(a?a.n:i?i.n.replace(/<[^>]+>/g,''):o.base),mo=o.monthly||(a?{id:a.id,price:priceOf(a.id,a.p)}:null);
      return `<div class="card pk feat" data-buy="${esc(o.id)}"><span class="tag gold">Einmalkauf · Stufe ${esc(o.tier||'–')}</span><h3>${esc(n)}</h3><p class="d">${a?a.d:i?i.tag:''}</p><ul><li>${chanText(o.base)}</li><li>${de(o.start)} Tokens Startguthaben</li><li>${o.days} Tage Betrieb inklusive, Einrichtung durch uns</li><li>Danach ${fmtEur(f.betrieb.price)}/Monat Betrieb oder ${fmtEur(f.byok.price)}/Monat mit eigenem Schlüssel</li></ul><div class="pr"><b>${fmtEur(o.price)}</b><small>einmalig</small></div><div class="inc">zzgl. USt. · Rechnung</div><div class="acts"><a class="btn gold" href="${CHECKOUT}?plan=${encodeURIComponent(o.id)}">Kaufen</a>${mo?`<a class="btn" href="${CHECKOUT}?plan=${encodeURIComponent(mo.id)}">lieber mieten · ${fmtEur(mo.price)}/M</a>`:''}</div></div>`;}).join('')}</div>`;}
 async function prcLoad(){try{const ac=window.AbortController?new AbortController():null,to=setTimeout(()=>ac&&ac.abort(),5000);const r=await fetch(PRICING_API,{cache:'no-store',signal:ac?ac.signal:undefined});clearTimeout(to);if(!r.ok)throw 0;const n=prcNorm(await r.json());if(!n)throw 0;PRC=n;}catch(e){PRC=PRC_FALLBACK;}
-  const pt=$('.ptab.on');if(pt&&/^(agents|buy)$/.test(pt.dataset.k))renderPrice(pt.dataset.k);}
+  showRender();const pt=$('.ptab.on');if(pt&&/^(agents|buy)$/.test(pt.dataset.k))renderPrice(pt.dataset.k);}
 const PT=[['agents','Agenten mieten'],['privat','Für dich privat'],['buy','Einmal kaufen'],['tokens','Tokens'],['abo','Content-Pakete']];
 (function(){const w=$('#ptabs');PT.forEach(([k,l])=>{const b=document.createElement('button');b.type='button';b.className='ptab';b.dataset.k=k;b.textContent=l;b.onclick=()=>renderPrice(k);w.appendChild(b);});renderPrice('agents');})();
 finderInit();
 function renderPrice(k){document.querySelectorAll('.ptab').forEach(b=>b.classList.toggle('on',b.dataset.k===k));const el=$('#pbody');
-  if(k==='agents'){el.innerHTML=`<div class="pgrid2">${AG.slice().sort((x,y)=>catIdx(x.id)-catIdx(y.id)).map(a=>{const c=catOf(a.id),pr=priceOf(a.id,a.p);return `<div class="card pk"><span class="tag indigo">${esc(c?c.name:'Agent')}</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Studio · Wissensbasis · ${chanText(a.id)}</li><li>${de(a.tk)} Tokens / Monat inklusive</li><li>Monatlich kündbar</li></ul><div class="pr"><b>${fmtEur(pr)}</b><small>/ Monat</small></div><div class="inc">zzgl. MwSt.${prcFor(a.id)?' · Einmalkauf '+fmtEur(prcFor(a.id).price)+' inkl. '+prcFor(a.id).days+' Tage Betrieb':''}</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Mieten</a>${PRO.find(p=>p.id===a.id)?`<button class="btn" type="button" onclick="openPro('${a.id}')">Details</button>`:`<button class="btn" type="button" onclick="tryPlan('${a.id}')">Live testen</button>`}</div></div>`;}).join('')}</div>`;}
+  if(k==='agents'){el.innerHTML=`<div class="pgrid2">${AG.filter(a=>!TR_ONLY.has(a.id)).sort((x,y)=>catIdx(x.id)-catIdx(y.id)).map(a=>{const c=catOf(a.id),pr=priceOf(a.id,a.p);return `<div class="card pk"><span class="tag indigo">${esc(c?c.name:'Agent')}</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Studio · Wissensbasis · ${chanText(a.id)}</li><li>${de(a.tk)} Tokens / Monat inklusive</li><li>Monatlich kündbar</li></ul><div class="pr"><b>${fmtEur(pr)}</b><small>/ Monat</small></div><div class="inc">zzgl. MwSt.${prcFor(a.id)?' · Einmalkauf '+fmtEur(prcFor(a.id).price)+' inkl. '+prcFor(a.id).days+' Tage Betrieb':''}</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Mieten</a>${PRO.find(p=>p.id===a.id)?`<button class="btn" type="button" onclick="openPro('${a.id}')">Details</button>`:`<button class="btn" type="button" onclick="tryPlan('${a.id}')">Live testen</button>`}</div></div>`;}).join('')}</div>`;}
   else if(k==='privat'){const c=CATS.find(x=>x.id==='privat');el.innerHTML=`<p class="sub center" style="margin:26px auto 0">Für dich privat: günstige Assistenten für Behördengänge, Bank, Reise, Briefe und Anrufe – im Chat am Handy oder Rechner. Monatlich kündbar, du bestätigst jeden Schritt.</p><div class="pgrid2">${(c?c.plans:[]).map(x=>pInfo(x.id)).filter(Boolean).map(i=>`<div class="card pk${i.feat?' feat':''}"><span class="tag gold">Privat</span><h3>${i.n}</h3><p class="d">${i.tag}</p><ul><li>${chanText(i.id)}</li>${i.tk?`<li>${de(i.tk)} Tokens / Monat inklusive</li>`:''}<li>${i.lim||'Monatlich kündbar'}</li></ul><div class="pr"><b>${i.p?'ab '+fmtEur(i.p):'–'}</b><small>/ Monat</small></div><div class="inc">monatlich kündbar</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${encodeURIComponent(i.id)}">Mieten</a><button class="btn" type="button" onclick="tryPlan('${i.id}')">Live testen</button></div></div>`).join('')}</div>`;}
   else if(k==='buy'){buyRender(el);}
   else if(k==='tokens'){el.innerHTML=`<div class="pgrid2">

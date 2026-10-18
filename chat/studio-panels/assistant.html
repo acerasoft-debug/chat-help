@@ -54,6 +54,12 @@
 #panel-assistant .as-vstat[data-k="ok"]::before{background:var(--ok);box-shadow:0 0 0 3px rgba(26,158,90,.16)}
 #panel-assistant .as-vstat[data-k="warn"]{color:#8a5a00}
 #panel-assistant .as-vstat[data-k="warn"]::before{background:var(--gold2)}
+#panel-assistant .as-vname-l{margin:4px 0 0 16px;font-size:12px;color:var(--mute);line-height:1.45;overflow-wrap:anywhere}
+#panel-assistant .as-vname-l:empty{display:none}
+#panel-assistant .as-vname-l .as-vname b{font-weight:600;color:var(--ink2)}
+#panel-assistant .as-vname-l .as-vlang{color:var(--mute2)}
+#panel-assistant .as-vname-l .as-vshare{display:block;margin-top:2px;color:#8a5a00}
+#panel-assistant .as-vhint{margin-top:8px;padding:8px 12px;border-radius:12px;background:var(--goldl);color:#5c4411;font-size:12.5px;border:1px solid #eadbb0;line-height:1.45}
 #panel-assistant .as-tip{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--goldl);color:#5c4411;font-size:12.5px;border:1px solid #eadbb0;line-height:1.45}
 #panel-assistant .as-chat{display:flex;flex-direction:column;height:calc(100vh - 252px);min-height:520px;max-height:880px;padding:0;overflow:hidden}
 #panel-assistant .as-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
@@ -324,6 +330,8 @@
         <h3 class="as-cho-h" id="asCTonesL"><span class="n" aria-hidden="true">3</span>Stimme &amp; Art</h3>
         <div class="as-tc" id="asCTones" role="group" aria-labelledby="asCTonesL"></div>
         <div class="as-vstat" id="asCVoiceStat" role="status" aria-live="polite"></div>
+        <div class="as-vname-l" id="asCVoiceName"></div>
+        <div class="as-vhint hidden" id="asCVoiceHint"></div>
       </div>
 
       <div class="as-cho-step">
@@ -368,6 +376,7 @@
         <div class="as-tchips" id="asTones" role="group" aria-labelledby="asTonesL"></div>
       </div>
       <div class="as-vstat as-vinfo" id="asVoiceInfo" role="status" aria-live="polite"></div>
+      <div class="as-vname-l" id="asVoiceName"></div>
       <button class="btn gold as-change" type="button" id="asCustomize" aria-haspopup="dialog">✦ Person &amp; Stimme ändern</button>
       <div class="as-tip hidden" id="asTip">Tipp: Unter <b>Person &amp; Stimme ändern</b> legst du Aussehen, Stimme, Sprache und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.</div>
     </div>
@@ -423,6 +432,8 @@
       <h4 id="asFVoicesL">Stimme &amp; Art</h4>
       <div class="as-tc as-tc1" id="asFVoices" role="group" aria-labelledby="asFVoicesL"></div>
       <div class="as-vstat" id="asFPrevInfo" role="status" aria-live="polite"></div>
+      <div class="as-vname-l" id="asFVoiceName"></div>
+      <div class="as-vhint hidden" id="asFVoiceHint"></div>
       <label>Sprechweise</label>
       <div class="as-seg" id="asFTone" role="group" aria-label="Sprechweise"><button type="button" data-v="warm">Warm</button><button type="button" data-v="ruhig">Ruhig</button><button type="button" data-v="energisch">Energisch</button><button type="button" data-v="sachlich">Sachlich</button></div>
       <label for="asFRate">Tempo</label>

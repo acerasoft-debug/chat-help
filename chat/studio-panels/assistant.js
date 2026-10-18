@@ -1,7 +1,8 @@
 /* ChatHelp Studio — Panel „✦ Assistent“: persönliche Assistentin bzw. persönlicher Assistent des Inhabers (assistant-lib.php).
    Links das Porträt (atmet, goldener Ring + Stimmbalken beim Sprechen, Status „hört zu…/denkt…/spricht…“), in der Mitte das Gespräch
    mit Aktions-Chips (was geändert wurde + Link zum Bereich), rechts Checkliste mit Fortschrittsring und „Was ich über dich weiß“.
-   Stimme: Server-Stimme über /v1/assistant/speak (speech-lib), sonst die beste Browserstimme passend zum Geschlecht – Satz für Satz.
+   Stimme: Server-Stimme über /v1/assistant/speak (speech-lib), sonst Browserstimmen (speechSynthesis) – je Voreinstellung eine andere Stimme
+   (feste Zuordnung je Geschlecht, siehe buildVoiceMap), ehrlich angezeigt als „Browserstimme: <Name>“ – Satz für Satz.
    Spracheingabe: SpeechRecognition (Antippen oder gedrückt halten), im Sprachmodus hört der Assistent nach dem Sprechen wieder zu.
    Barge-in: Tippen, Mikrofon oder Senden beenden die laufende Ausgabe sofort.
    Nutzt die Studio-Globals api, msg, esc, de, go, ME, KEY. Jeder Text von Nutzer oder KI läuft vor innerHTML durch esc(). */
@@ -149,58 +150,143 @@
     return { f_warm: 'warm', f_sanft: 'ruhig', f_frisch: 'energisch', f_klar: 'sachlich', m_freundlich: 'warm', m_ruhig: 'ruhig', m_tief: 'ruhig', m_souveraen: 'sachlich' }[id] || null;
   }
   function shortLabel(v) { return String((v && v.label) || '').split(/\s*&\s*/)[0]; }
+  /** Persona der Voreinstellung („Lea“, „Sophie“ …) – vom Server (speech-lib-Label vor „·“), sonst der Klang-Name („Warm“). */
+  function personaOf(v) { return String((v && v.persona) || '').trim() || shortLabel(v); }
+  function joinNames(a) { a = a.slice(); if (a.length < 2) return a.join(''); var last = a.pop(); return a.join(', ') + ' und ' + last; }
+  var DEFAULT_PRESET = { f: 'f_warm', m: 'm_freundlich' };
   var NAMES_F = ['katja', 'seraphina', 'amala', 'anna', 'petra', 'helena', 'hedda', 'marlene', 'vicki', 'louisa', 'elke', 'gisela', 'klarissa', 'maja', 'tanja', 'ingrid', 'sabine', 'female', 'frau', 'aria', 'jenny', 'samantha', 'ava', 'emma', 'libby', 'sonia', 'zira', 'hazel', 'susan', 'karen', 'moira', 'tessa', 'fiona', 'serena', 'denise', 'elsa', 'isabella', 'paulina', 'milena', 'zosia', 'yelda', 'filiz', 'emel', 'amelie', 'audrey', 'marie', 'alice', 'federica', 'fenna', 'colette', 'dariya', 'svetlana', 'kyoko', 'nanami', 'alva', 'nora', 'satu', 'sara', 'ellen', 'carmit', 'monica', 'luciana', 'joana', 'mariska', 'laura', 'kate', 'victoria', 'allison', 'nicky', 'catherine', 'veena', 'lekha'];
   var NAMES_M = ['conrad', 'florian', 'killian', 'markus', 'yannick', 'stefan', 'martin', 'hans', 'bernd', 'christoph', 'kasper', 'ralf', 'klaus', 'jonas', 'viktor', 'male', 'mann', 'guy', 'davis', 'andrew', 'brian', 'ryan', 'thomas', 'george', 'daniel', 'alex', 'fred', 'david', 'mark', 'oliver', 'henri', 'remy', 'diego', 'alvaro', 'cosimo', 'maarten', 'marek', 'dmitry', 'ahmet', 'xander', 'giuseppe', 'pavel', 'otoya', 'keita', 'jorge', 'juan', 'luca', 'reed', 'aaron', 'arthur', 'gordon', 'rishi', 'tom', 'lee', 'jacques', 'yuri', 'magnus', 'onni', 'cem', 'tolga'];
+  /* Stimmen ohne Vornamen im Namen – bekannte Kennungen je Plattform (Android/Google TTS „de-de-x-…“, Samsung „SMTf/SMTm“, Google-Chrome-Stimmen).
+     Unbekannte Kennungen gelten als neutral und kommen nach den eindeutig zugeordneten Stimmen an die Reihe. */
+  var KNOWN_GENDER = [
+    [/\bde-de-x-(dea|deb|deg|nfh)\b/, 'f'], [/\bde-de-x-(dec|ded)\b/, 'm'],
+    [/\bsmtf\d*\b/, 'f'], [/\bsmtm\d*\b/, 'm'],
+    [/google (deutsch|us english|uk english female|français|español|italiano|nederlands|русский|日本語|polski|português)/, 'f'], [/google uk english male/, 'm'],
+    [/\b(female|weiblich|frauenstimme)\b/, 'f'], [/\b(male|männlich|männerstimme)\b/, 'm']
+  ];
   function voiceGender(name) {
-    var n = name.toLowerCase(), f = false, m = false;
+    var n = String(name || '').toLowerCase(), f = false, m = false;
+    for (var i = 0; i < KNOWN_GENDER.length; i++) { if (KNOWN_GENDER[i][0].test(n)) return KNOWN_GENDER[i][1]; }
     NAMES_F.forEach(function (x) { if (new RegExp('\\b' + x + '\\b').test(n)) f = true; });
     NAMES_M.forEach(function (x) { if (new RegExp('\\b' + x + '\\b').test(n)) m = true; });
-    if (/google deutsch|google us english|google uk english female|google français|google español|google italiano|google nederlands|google русский|google 日本語/.test(n)) f = true;
-    if (/google uk english male/.test(n)) { m = true; f = false; }
     return f && !m ? 'f' : (m && !f ? 'm' : '');
   }
   function voicesNow() { try { return (window.speechSynthesis && speechSynthesis.getVoices()) || []; } catch (e) { return []; } }
   /** Chrome lädt die Stimmen asynchron: kurz nach dem Laden höchstens ~1 s auf „voiceschanged“ warten, danach nie wieder. */
   function voicesReady() { if (SPK.voicesReady) return; SPK.voicesReady = true; var w = SPK.voicesWait; SPK.voicesWait = []; w.forEach(function (f) { try { f(); } catch (e) { /* egal */ } }); }
   function whenVoices(cb) { if (SPK.voicesReady || voicesNow().length) { SPK.voicesReady = true; cb(); } else SPK.voicesWait.push(cb); }
-  function scoreVoice(v, gender, want, tag, anyLang) {
-    var vl = String(v.lang || '').toLowerCase().replace('_', '-'), n = String(v.name || ''), s = 0, vg = voiceGender(n);
+  /* Spaß-, Roboter- und Kompaktstimmen (macOS/iOS/eSpeak) – nur, wenn sonst nichts da ist */
+  var NOVELTY = /\b(espeak|eloquence|compact|eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley|junior|kathy|ralph|fred|albert|bahh|bells|boing|bubbles|cellos|jester|organ|superstar|trinoids|whisper|wobble|zarvox|hysterical|deranged|bad news|good news|pipe organ)\b/i;
+  /** Qualität einer Stimme unabhängig von Voreinstellung und Geschlecht: Natural/Neural/Premium/Google/Siri hoch, Spaßstimmen tief. */
+  function voiceQuality(v, tag, anyLang) {
+    var vl = String(v.lang || '').toLowerCase().replace('_', '-'), n = String(v.name || ''), s = 0;
     if (vl === String(tag).toLowerCase()) s += 6;
-    if (vg === gender) s += 40; else if (vg) s -= 120;
-    want.forEach(function (w, i) { if (n.toLowerCase().indexOf(String(w).toLowerCase()) >= 0) s += 30 - i * 3; });
     if (/natural/i.test(n)) s += 34; if (/online/i.test(n)) s += 12; if (/neural/i.test(n)) s += 26;
     if (/premium/i.test(n)) s += 30; if (/enhanced|erweitert/i.test(n)) s += 22; if (/google/i.test(n)) s += 16; if (/siri/i.test(n)) s += 18;
-    if (/espeak|compact|eloquence|grandpa|grandma|bad news|bells|bubbles|jester|organ|superstar|whisper|wobble|zarvox|trinoids|albert|bahh|boing|cellos|good news/i.test(n)) s -= 80;
+    if (/-network\b/i.test(n)) s += 2;   // Android: Netzstimme klingt natürlicher als die lokale Variante
+    if (NOVELTY.test(n)) s -= 80;
+    if (/compact/i.test(String(v.voiceURI || ''))) s -= 20;
     if (anyLang) { if (v['default']) s += 12; if (/^en/.test(vl)) s += 4; }   // fremde Sprache: Standardstimme, sonst Englisch bevorzugen
     return s;
   }
+  /** Gleiche Stimme in zwei Ausgaben (Android „-local“/„-network“, doppelte Einträge) zählt nur einmal. */
+  function voiceKey(v) { return String(v.name || '').toLowerCase().replace(/-(local|network)$/, '').replace(/\s+/g, ' ').trim() + '|' + String(v.lang || '').toLowerCase().replace('_', '-'); }
+  function voiceSig() { return voicesNow().map(function (v) { return v.name + '|' + v.lang; }).join(';'); }
+  /* Zuordnung je Geschlecht + Sprache, gültig für diese Stimmenliste (voiceschanged → neue Liste → neue Zuordnung) */
+  var VMAP = { sig: null, maps: {} };
+  function voiceMap(gender, tag) {
+    tag = tag || lang(); gender = gender === 'm' ? 'm' : 'f';
+    var sig = voiceSig(), k = gender + '|' + tag + '|' + VOICES.map(function (v) { return v.id; }).join(',');
+    if (VMAP.sig !== sig) { VMAP.sig = sig; VMAP.maps = {}; }
+    if (!VMAP.maps[k]) VMAP.maps[k] = buildVoiceMap(gender, tag);
+    return VMAP.maps[k];
+  }
   /**
-   * Beste Browserstimme in drei Stufen – Hauptsache, es klingt:
-   * lang = Stimme der Sprache (Geschlecht, Wunschnamen der Voreinstellung, Natural/Neural/Premium bevorzugt),
-   * any  = keine Stimme der Sprache → irgendeine Stimme (Standardstimme bevorzugt),
-   * none = Browser meldet keine Stimmen → Standardstimme über utterance.lang.
-   * adj = Tonhöhen-Ausgleich, wenn nur eine Stimme des anderen Geschlechts da ist.
+   * Feste Zuordnung Voreinstellung → Browserstimme, damit vier Assistentinnen vier verschiedene Stimmen bekommen:
+   * 1. Stimmen der Sprache (de-DE zuerst, dann anderes de-*), sonst alle Stimmen (level any), nach Qualität sortiert, Doppel entfernt;
+   * 2. nach Geschlecht geteilt (Namenstabellen + Plattform-Kennungen; unbekannt = neutral, kommt nach den eigenen);
+   * 3. Voreinstellungen (Standardstimme zuerst) bekommen nacheinander: den ersten freien Wunschnamen, sonst die nächste freie Stimme nach Rang;
+   *    gibt es nur eine eigene Stimme, folgen freie Stimmen des anderen Geschlechts mit Tonhöhen-Ausgleich (adj);
+   *    sind alle vergeben, teilen sich Voreinstellungen eine Stimme (shared) – zyklisch über die eigenen, mit anderem Tempo/Tonhöhe.
+   * level: lang = Stimme der Sprache, any = irgendeine Stimme, none = keine Stimmenliste (Standardstimme über utterance.lang).
    */
-  function pickVoiceEx(gender, presetId, tag) {
-    var out = { v: null, level: 'none', adj: 1 };
+  function buildVoiceMap(gender, tag) {
+    var out = { level: 'none', by: {}, shares: [], n: 0 };
     if (!window.speechSynthesis) return out;
-    tag = tag || lang();
-    var all = voicesNow(), l2 = normLang(tag), pre = presetOf(presetId, gender), want = l2 === 'de' ? ((pre && pre.browser) || []) : [];   // Wunschnamen sind deutsche Stimmen
+    var all = voicesNow(), l2 = normLang(tag);
     var inLang = all.filter(function (v) { return normLang(String(v.lang || '').replace('_', '-')) === l2; });
-    var pool = inLang.length ? inLang : all, bestS = -1e9;
+    var pool = inLang.length ? inLang : all, anyLang = !inLang.length;
     out.level = inLang.length ? 'lang' : (all.length ? 'any' : 'none');
-    pool.forEach(function (v) { var s = scoreVoice(v, gender, want, tag, !inLang.length); if (s > bestS) { bestS = s; out.v = v; } });
-    if (out.v) { var vg = voiceGender(String(out.v.name || '')); if (vg && vg !== gender) out.adj = gender === 'm' ? 0.72 : 1.3; }
+    if (!pool.length) return out;
+    var idx = {}, ranked = [];
+    pool.forEach(function (v) {
+      var key = voiceKey(v), e = { v: v, q: voiceQuality(v, tag, anyLang), g: voiceGender(v.name), key: key };
+      if (idx[key] === undefined) { idx[key] = ranked.length; ranked.push(e); } else if (e.q > ranked[idx[key]].q) ranked[idx[key]] = e;
+    });
+    ranked.sort(function (a, b) { return b.q - a.q; });
+    var usable = ranked.filter(function (e) { return e.q > -50; }); if (!usable.length) usable = ranked;   // Spaßstimmen nur, wenn es sonst gar keine gibt
+    var own = usable.filter(function (e) { return e.g === gender; }), neutral = usable.filter(function (e) { return !e.g; }), other = usable.filter(function (e) { return e.g && e.g !== gender; });
+    var queue = own.concat(neutral).map(function (e) { return { v: e.v, key: e.key, adj: 1 }; }), ownN = queue.length;
+    if (ownN <= 1) queue = queue.concat(other.map(function (e) { return { v: e.v, key: e.key, adj: gender === 'm' ? 0.72 : 1.3 }; }));
+    out.n = queue.length;
+    var presets = VOICES.filter(function (v) { return v.gender === gender; });
+    if (!presets.length) presets = [{ id: '_', browser: [] }];
+    presets = presets.filter(function (p) { return p.id === DEFAULT_PRESET[gender]; }).concat(presets.filter(function (p) { return p.id !== DEFAULT_PRESET[gender]; }));
+    var taken = {}, used = {}, wantOf = function (p) { return l2 === 'de' ? (p.browser || []) : []; };   // Wunschnamen sind deutsche Stimmen
+    var matches = function (q, w) { return String(q.v.name || '').toLowerCase().indexOf(String(w).toLowerCase()) >= 0; };
+    presets.forEach(function (p) {
+      var pick = null, shared = false;
+      wantOf(p).some(function (w) { queue.some(function (q) { if (!taken[q.key] && matches(q, w)) { pick = q; return true; } return false; }); return !!pick; });
+      if (!pick) queue.some(function (q) { if (!taken[q.key]) { pick = q; return true; } return false; });
+      if (!pick) {   // alle vergeben → teilen: am seltensten genutzte eigene Stimme, bei Gleichstand Wunschname, sonst Rang
+        shared = true;
+        var cyc = queue.slice(0, ownN); if (!cyc.length) cyc = queue;
+        var min = Infinity; cyc.forEach(function (q) { min = Math.min(min, used[q.key] || 0); });
+        var cand = cyc.filter(function (q) { return (used[q.key] || 0) === min; });
+        wantOf(p).some(function (w) { return cand.some(function (q) { if (matches(q, w)) { pick = q; return true; } return false; }); });
+        if (!pick) pick = cand[0];
+      }
+      taken[pick.key] = p.id; used[pick.key] = (used[pick.key] || 0) + 1;
+      out.by[p.id] = { v: pick.v, adj: pick.adj, shared: shared, key: pick.key };
+    });
+    /* geteilte Stimmen: Gruppen mit mehr als einer Voreinstellung, in der Reihenfolge der Stimmkarten */
+    var groups = {}, order = VOICES.map(function (v) { return v.id; });
+    presets.forEach(function (p) { var e = out.by[p.id]; (groups[e.key] = groups[e.key] || { v: e.v, ids: [] }).ids.push(p.id); });
+    Object.keys(groups).forEach(function (key) {
+      var gp = groups[key]; if (gp.ids.length < 2) return;
+      gp.ids.sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); });
+      gp.ids.forEach(function (id) { out.by[id].shared = true; });
+      out.shares.push({ v: gp.v, ids: gp.ids });
+    });
+    return out;
+  }
+  /** Browserstimme zur Voreinstellung: {v, level, adj, shared}. adj = Tonhöhen-Ausgleich bei einer Stimme des anderen Geschlechts. */
+  function pickVoiceEx(gender, presetId, tag) {
+    var out = { v: null, level: 'none', adj: 1, shared: false };
+    if (!window.speechSynthesis) return out;
+    gender = gender === 'm' ? 'm' : 'f';
+    var m = voiceMap(gender, tag || lang()), pre = presetOf(presetId, gender), e = (pre && m.by[pre.id]) || m.by._ || null;
+    if (!e) for (var k in m.by) { if (Object.prototype.hasOwnProperty.call(m.by, k)) { e = m.by[k]; break; } }
+    out.level = m.level;
+    if (e) { out.v = e.v; out.adj = e.adj; out.shared = e.shared; }
     return out;
   }
   function pickVoice(gender, presetId, tag) { return pickVoiceEx(gender, presetId, tag).v; }
-  /** Tempo/Tonhöhe für die Browserstimme. Die Voreinstellungen unterscheiden sich nur fein – im Browser verstärkt (×2,5), damit man die Sprechweise hört. */
+  /** Anzeigename der Browserstimme: „Microsoft Katja Online (Natural) - German (Germany)“ → „Katja (Natural)“. */
+  function voiceLabel(v) {
+    return String((v && v.name) || '').replace(/^Microsoft\s+/i, '').replace(/\s+-\s+[^-]*$/, '').replace(/\s+Online\b/i, '').replace(/\s{2,}/g, ' ').trim();
+  }
+  /**
+   * Tempo/Tonhöhe für die Browserstimme: brate/bpitch der Voreinstellung (weiter gespreizt als beim Sprachdienst), im Browser verstärkt (×2,5),
+   * damit man die Sprechweise hört – begrenzt auf 0,7–1,4 (Tempo) und 0,6–1,4 (Tonhöhe).
+   */
   function browserParams(over, tag) {
     var gender = (over && over.gender) || PROF.gender, pid = (over && over.preset) || (PROF.voice && PROF.voice.preset), pre = presetOf(pid, gender) || {};
     var pk = pickVoiceEx(gender, pid, tag), k = 2.5;
-    var rate = Number((over && over.rate) || (PROF.voice && PROF.voice.rate) || 1) * (1 + (Number(pre.rate || 1) - 1) * k);
-    var pitch = Number((over && over.pitch) || (PROF.voice && PROF.voice.pitch) || 1) * (1 + (Number(pre.pitch || 1) - 1) * k) * pk.adj;
-    return { voice: pk.v, level: pk.level, rate: Math.max(0.6, Math.min(1.5, rate)), pitch: Math.max(0.5, Math.min(1.6, pitch)) };
+    var pr = Number(pre.brate || pre.rate || 1), pp = Number(pre.bpitch || pre.pitch || 1);
+    var rate = Number((over && over.rate) || (PROF.voice && PROF.voice.rate) || 1) * (1 + (pr - 1) * k);
+    var pitch = Number((over && over.pitch) || (PROF.voice && PROF.voice.pitch) || 1) * (1 + (pp - 1) * k) * pk.adj;
+    return { voice: pk.v, level: pk.level, rate: Math.max(0.7, Math.min(1.4, rate)), pitch: Math.max(0.6, Math.min(1.4, pitch)) };
   }
   /** Browser gibt keinen Ton aus → ehrlich sagen (Statuszeilen + einmal als Hinweis), nie still scheitern. */
   function voiceTrouble() {
@@ -323,15 +409,60 @@
     if (TTS && SPK.why === 'limit') return { k: 'info', t: 'Systemstimme des Browsers – das Tageslimit der KI-Stimme ist erreicht' };
     return { k: 'info', t: 'Systemstimme des Browsers – natürliche Stimmen schaltet der Betreiber frei' };
   }
-  function paintStatus(el, gender, preset, lng) {
-    if (!el) return;
-    var st = voiceStatus(lng), v = st.k === 'info' ? pickVoice(gender, preset, tagOf(lng)) : null;
-    el.textContent = st.t; el.setAttribute('data-k', st.k);
-    if (v) el.title = 'Browserstimme: ' + String(v.name || '').replace(/^Microsoft\s+/, ''); else el.removeAttribute('title');
+  /** Wird gerade die Browserstimme benutzt (kein Sprachdienst, aber Ton möglich)? Dann zeigen wir ehrlich, welche. */
+  function browserUsed(lng) { return voiceStatus(lng).k === 'info'; }
+  /** Tooltip-Zusatz „ · Browserstimme: Katja“ für Chips und Hörprobe-Knöpfe (leer, wenn die Server-Stimme spricht). */
+  function voiceTip(gender, preset, lng) {
+    if (!browserUsed(lng)) return '';
+    var pk = pickVoiceEx(gender, preset, tagOf(lng));
+    return pk.v ? ' · Browserstimme: ' + voiceLabel(pk.v) + (pk.shared ? ' (geteilt)' : '') : '';
+  }
+  /** Zeile „Browserstimme: <Name>“ für die aktive Voreinstellung + ein Satz, wenn sich Voreinstellungen eine Stimme teilen müssen. */
+  function voiceLineHtml(gender, preset, lng) {
+    if (!browserUsed(lng)) return '';
+    var tag = tagOf(lng), m = voiceMap(gender, tag), pk = pickVoiceEx(gender, preset, tag);
+    if (!pk.v) return '';
+    var L = LANGS.filter(function (l) { return l.code === normLang(lng); })[0];
+    var s = '<span class="as-vname">Browserstimme: <b>' + h(voiceLabel(pk.v)) + '</b>' +
+      (m.level === 'any' ? ' <span class="as-vlang">(' + h(pk.v.lang || '') + ' – keine Stimme für ' + h(L ? L.name : 'diese Sprache') + ' installiert)</span>' : '') + '</span>';
+    if (m.shares.length) {
+      s += '<span class="as-vshare">' + m.shares.map(function (x) {
+        return h(joinNames(x.ids.map(function (id) { return personaOf(presetOf(id, gender)); }))) + ' teilen sich die Browserstimme ' + h(voiceLabel(x.v));
+      }).join('; ') + ' – nur Tempo und Tonhöhe unterscheiden sich.</span>';
+    }
+    return s;
+  }
+  /** Hinweis in Auswahl und Seitenleiste: mit KI-Stimme hat jede Assistenz eine eigene, echte Stimme. */
+  function kiHint(gender) {
+    var names = VOICES.filter(function (v) { return v.gender === gender; }).map(personaOf);
+    return 'Mit aktivierter KI-Stimme klingt jede Assistenz wie eine echte Person' + (names.length > 1 ? ' – ' + joinNames(names) + ' haben dann eigene Stimmen.' : '.');
+  }
+  function paintStatus(el, gender, preset, lng, nameEl, hintEl) {
+    var st = voiceStatus(lng), used = st.k === 'info', pk = used ? pickVoiceEx(gender, preset, tagOf(lng)) : null;
+    if (el) {
+      el.textContent = st.t; el.setAttribute('data-k', st.k);
+      if (pk && pk.v) el.title = 'Browserstimme: ' + voiceLabel(pk.v); else el.removeAttribute('title');
+    }
+    if (nameEl) nameEl.innerHTML = used ? voiceLineHtml(gender, preset, lng) : '';
+    if (hintEl) { hintEl.textContent = used ? kiHint(gender) : ''; hintEl.classList.toggle('hidden', !used); }
+  }
+  /** Tooltips der Stimm-Chips und Hörprobe-Knöpfe nachziehen (Stimmenliste kommt asynchron). */
+  function voiceTips() {
+    if (PROF) document.querySelectorAll('#asTones button[data-v]').forEach(function (b) {
+      var v = presetOf(b.dataset.v, PROF.gender); if (v) b.title = v.label + (v.desc ? ' – ' + v.desc : '') + voiceTip(PROF.gender, v.id, PROF.lang);
+    });
+    if (D) {
+      document.querySelectorAll('#' + (isCho() ? 'asCTones' : 'asFVoices') + ' .pl[data-play]').forEach(function (b) {
+        var v = presetOf(b.dataset.play, D.gender); if (v) b.title = 'Hörprobe: ' + v.label + voiceTip(D.gender, v.id, D.lang);
+      });
+      var main = g(isCho() ? 'asChoPlay' : 'asFPreview'), pre = presetOf(D.voice.preset, D.gender);
+      if (main) main.title = 'Hörprobe' + (pre ? ': ' + pre.label : '') + voiceTip(D.gender, D.voice.preset, D.lang);
+    }
   }
   function voiceInfo() {
-    if (PROF) paintStatus(g('asVoiceInfo'), PROF.gender, PROF.voice && PROF.voice.preset, PROF.lang);
-    if (D) paintStatus(g(D.mode === 'cho' ? 'asCVoiceStat' : 'asFPrevInfo'), D.gender, D.voice.preset, D.lang);
+    if (PROF) paintStatus(g('asVoiceInfo'), PROF.gender, PROF.voice && PROF.voice.preset, PROF.lang, g('asVoiceName'), null);
+    if (D) { var cho = D.mode === 'cho'; paintStatus(g(cho ? 'asCVoiceStat' : 'asFPrevInfo'), D.gender, D.voice.preset, D.lang, g(cho ? 'asCVoiceName' : 'asFVoiceName'), g(cho ? 'asCVoiceHint' : 'asFVoiceHint')); }
+    voiceTips();
   }
 
   /* ======================================================================= Spracheingabe */
@@ -410,7 +541,7 @@
     var box = g('asTones'); if (!box || !PROF) return;
     box.innerHTML = VOICES.filter(function (v) { return v.gender === PROF.gender; }).map(function (v) {
       var on = PROF.voice && PROF.voice.preset === v.id;
-      return '<button type="button" data-v="' + h(v.id) + '" data-play="chip:' + h(v.id) + '" data-label="Stimme ' + h(v.label) + (on ? ' (aktiv) – Hörprobe' : ' wählen und anhören') + '" aria-pressed="' + (on ? 'true' : 'false') + '" title="' + h(v.label + (v.desc ? ' – ' + v.desc : '')) + '" aria-label="Stimme ' + h(v.label) + '">' + h(shortLabel(v)) + '</button>';
+      return '<button type="button" data-v="' + h(v.id) + '" data-play="chip:' + h(v.id) + '" data-label="Stimme ' + h(v.label) + (on ? ' (aktiv) – Hörprobe' : ' wählen und anhören') + '" aria-pressed="' + (on ? 'true' : 'false') + '" title="' + h(v.label + (v.desc ? ' – ' + v.desc : '') + voiceTip(PROF.gender, v.id, PROF.lang)) + '" aria-label="Stimme ' + h(v.label) + '">' + h(shortLabel(v)) + '</button>';
     }).join('');
     markPlaying();
   }
@@ -635,7 +766,7 @@
     return VOICES.filter(function (v) { return v.gender === D.gender; }).map(function (v) {
       var on = D.voice.preset === v.id;
       return '<div class="as-tcard' + (on ? ' on' : '') + '"><button type="button" class="sel" data-v="' + h(v.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '"><b>' + h(v.label) + '</b>' + h(v.desc || '') + '</button>' +
-        '<button type="button" class="pl" data-play="' + h(v.id) + '" data-label="Hörprobe: ' + h(v.label) + '" aria-label="Hörprobe: ' + h(v.label) + '">▶ Hörprobe</button></div>';
+        '<button type="button" class="pl" data-play="' + h(v.id) + '" data-label="Hörprobe: ' + h(v.label) + '" aria-label="Hörprobe: ' + h(v.label) + '" title="' + h('Hörprobe: ' + v.label + voiceTip(D.gender, v.id, D.lang)) + '">▶ Hörprobe</button></div>';
     }).join('');
   }
   function drawDrawer() {

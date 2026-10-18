@@ -628,40 +628,43 @@ function ch_speech_payload(string $demo, string $text, string $sector='', ?bool 
 }
 
 /* ====================================================================== */
-/* Stimm-Voreinstellungen (gleiche IDs im Studio-Assistenten und auf der Startseite) */
+/* Stimm-Voreinstellungen (gleiche IDs im Studio-Assistenten und auf der Startseite).
+   browser = Browserstimme (speechSynthesis), wenn kein Sprachdienst eingerichtet ist: names = Wunschnamen in Reihenfolge – je Voreinstellung
+   bewusst andere Erstwahl (Edge: Seraphina/Katja/Amala/Louisa, macOS/iOS: Anna/Petra/Helena, Chrome: Google Deutsch, Windows: Hedda/Katja/Stefan),
+   damit vier Assistentinnen vier verschiedene Stimmen bekommen; rate/pitch weit genug auseinander, dass man sie auch bei gleicher Stimme unterscheidet. */
 const CH_TTS_VOICES = [
   'f_warm'=>['label'=>'Lea · warm & herzlich','gender'=>'f','desc'=>'Herzlich, ruhig und zugewandt – wie die vertraute Stimme am Empfang.','rate'=>0.98,'pitch'=>1.0,
     'openai'=>'coral','instructions'=>'Voice: warm, kind and reassuring, with a gentle smile you can hear. Pace: calm and unhurried, short natural pauses between sentences. Emotion: genuinely caring; softer and slower when the caller is worried or in pain. Speak natural, native German from Germany; never robotic, never like an announcer.',
     'google'=>'de-DE-Chirp3-HD-Aoede','azure'=>'de-DE-SeraphinaMultilingualNeural','elevenlabs'=>'EXAVITQu4vr4xnSDxMaL','eleven'=>['stability'=>0.5,'similarity_boost'=>0.8,'style'=>0.25],
-    'browser'=>['names'=>['Seraphina','Katja','Google Deutsch','Anna','Petra','Helena','Marlene'],'rate'=>0.98,'pitch'=>1.0]],
+    'browser'=>['names'=>['Seraphina','Google Deutsch','Anna','Katja','Marlene','Vicki'],'rate'=>0.95,'pitch'=>1.0]],
   'f_klar'=>['label'=>'Sophie · klar & professionell','gender'=>'f','desc'=>'Deutlich, souverän und freundlich-sachlich – ideal für Kanzlei, Hotel und Büro.','rate'=>1.0,'pitch'=>1.0,
     'openai'=>'sage','instructions'=>'Voice: clear, composed and professional; friendly but matter-of-fact. Pace: steady and moderate; names, numbers, dates and codes are articulated very distinctly. Emotion: calm confidence and courtesy. Speak natural, native German from Germany with precise articulation; never stiff or robotic.',
     'google'=>'de-DE-Chirp3-HD-Kore','azure'=>'de-DE-KatjaNeural','elevenlabs'=>'XB0fDUnXU5powFXDhCwa','eleven'=>['stability'=>0.6,'similarity_boost'=>0.8,'style'=>0.15],
-    'browser'=>['names'=>['Katja','Seraphina','Google Deutsch','Petra','Anna','Helena'],'rate'=>1.0,'pitch'=>1.0]],
+    'browser'=>['names'=>['Katja','Petra','Hedda','Google Deutsch','Helena'],'rate'=>1.04,'pitch'=>0.96]],
   'f_frisch'=>['label'=>'Mia · frisch & lebendig','gender'=>'f','desc'=>'Gut gelaunt, schwungvoll und nahbar – passt zu Salon, Café und Studio.','rate'=>1.05,'pitch'=>1.04,
     'openai'=>'nova','instructions'=>'Voice: bright, cheerful and lively, a young friendly woman who enjoys her job. Pace: brisk but relaxed, never rushed. Emotion: upbeat and smiling, warm enthusiasm without exaggeration. Speak natural, casual native German from Germany; conversational, never salesy or over the top.',
     'google'=>'de-DE-Chirp3-HD-Leda','azure'=>'de-DE-AmalaNeural','elevenlabs'=>'pFZP5JQG7iQjIQuC4Bku','eleven'=>['stability'=>0.4,'similarity_boost'=>0.8,'style'=>0.4],
-    'browser'=>['names'=>['Amala','Seraphina','Google Deutsch','Anna','Petra','Helena'],'rate'=>1.05,'pitch'=>1.04]],
+    'browser'=>['names'=>['Amala','Helena','Hedda','Google Deutsch','Anna'],'rate'=>1.10,'pitch'=>1.08]],
   'f_sanft'=>['label'=>'Hanna · sanft & geduldig','gender'=>'f','desc'=>'Leise, geduldig und beruhigend – für Schaden, Sorgen und Gesundheit.','rate'=>0.94,'pitch'=>0.98,
     'openai'=>'shimmer','instructions'=>'Voice: soft, gentle and soothing. Pace: slow and patient with calm pauses; gives the caller time. Emotion: empathetic and steady, especially when someone is upset, worried or in a hurry. Speak natural, native German from Germany; quiet confidence, never sugary.',
     'google'=>'de-DE-Chirp3-HD-Zephyr','azure'=>'de-DE-LouisaNeural','elevenlabs'=>'21m00Tcm4TlvDq8ikWAM','eleven'=>['stability'=>0.6,'similarity_boost'=>0.75,'style'=>0.2],
-    'browser'=>['names'=>['Louisa','Seraphina','Katja','Anna','Helena','Petra','Google Deutsch'],'rate'=>0.94,'pitch'=>0.98]],
+    'browser'=>['names'=>['Louisa','Marlene','Vicki','Petra','Anna','Katja'],'rate'=>0.90,'pitch'=>1.02]],
   'm_ruhig'=>['label'=>'Jonas · ruhig & vertrauensvoll','gender'=>'m','desc'=>'Gelassen, warm und vertrauenswürdig – bleibt auch im Notfall ruhig.','rate'=>0.96,'pitch'=>0.97,
     'openai'=>'ballad','instructions'=>'Voice: calm, warm and trustworthy, a grounded man in his forties. Pace: measured and relaxed with natural pauses; in emergencies clear and firm but never hectic. Emotion: reassuring and patient. Speak natural, native German from Germany; never robotic, never like a radio announcer.',
     'google'=>'de-DE-Chirp3-HD-Charon','azure'=>'de-DE-FlorianMultilingualNeural','elevenlabs'=>'pNInz6obpgDQGcFmaJgB','eleven'=>['stability'=>0.6,'similarity_boost'=>0.8,'style'=>0.2],
-    'browser'=>['names'=>['Florian','Conrad','Killian','Markus','Viktor','Yannick'],'rate'=>0.96,'pitch'=>0.97]],
+    'browser'=>['names'=>['Florian','Markus','Stefan','Conrad'],'rate'=>0.94,'pitch'=>0.92]],
   'm_freundlich'=>['label'=>'Max · freundlich & locker','gender'=>'m','desc'=>'Nahbar, gut gelaunt und unkompliziert – wie der Lieblingsladen um die Ecke.','rate'=>1.03,'pitch'=>1.0,
     'openai'=>'ash','instructions'=>'Voice: friendly, relaxed and approachable, a cheerful man in his thirties. Pace: natural conversational tempo, quick short confirmations. Emotion: good-humoured and helpful, smiles audibly. Speak natural, casual native German from Germany; never pushy, never like an advert.',
     'google'=>'de-DE-Chirp3-HD-Fenrir','azure'=>'de-DE-ConradNeural','elevenlabs'=>'onwK4e9ZLuTAKqWW03F9','eleven'=>['stability'=>0.45,'similarity_boost'=>0.8,'style'=>0.35],
-    'browser'=>['names'=>['Conrad','Killian','Florian','Yannick','Markus'],'rate'=>1.03,'pitch'=>1.0]],
+    'browser'=>['names'=>['Conrad','Yannick','Stefan','Florian'],'rate'=>1.04,'pitch'=>1.0]],
   'm_souveraen'=>['label'=>'Thomas · souverän & seriös','gender'=>'m','desc'=>'Klar, bestimmt und seriös – für Bank, Versicherung und Zentrale.','rate'=>1.0,'pitch'=>0.96,
     'openai'=>'echo','instructions'=>'Voice: confident, composed and serious, a competent professional. Pace: crisp and efficient, every number and address spoken very clearly. Emotion: polite, firm and reliable; calm authority without arrogance. Speak natural, native German from Germany; never cold, never robotic.',
     'google'=>'de-DE-Chirp3-HD-Orus','azure'=>'de-DE-KillianNeural','elevenlabs'=>'TxGEqnHWrfWFTfGW9XjX','eleven'=>['stability'=>0.6,'similarity_boost'=>0.8,'style'=>0.15],
-    'browser'=>['names'=>['Killian','Conrad','Florian','Markus','Viktor'],'rate'=>1.0,'pitch'=>0.96]],
+    'browser'=>['names'=>['Killian','Viktor','Markus','Conrad'],'rate'=>0.98,'pitch'=>0.88]],
   'm_tief'=>['label'=>'Paul · tief & gelassen','gender'=>'m','desc'=>'Sonore, tiefe Stimme – entspannt, bodenständig und kompetent.','rate'=>0.95,'pitch'=>0.92,
     'openai'=>'onyx','instructions'=>'Voice: deep, resonant and easy-going, a down-to-earth craftsman who knows his trade. Pace: unhurried and steady. Emotion: relaxed, competent and friendly; reassuring when something is broken. Speak natural, native German from Germany; plain everyday language, never theatrical.',
     'google'=>'de-DE-Chirp3-HD-Puck','azure'=>'de-DE-ChristophNeural','elevenlabs'=>'JBFqnCBsd6RMkjVDRZzb','eleven'=>['stability'=>0.55,'similarity_boost'=>0.8,'style'=>0.2],
-    'browser'=>['names'=>['Christoph','Conrad','Florian','Viktor','Markus'],'rate'=>0.95,'pitch'=>0.92]],
+    'browser'=>['names'=>['Christoph','Viktor','Yannick','Stefan','Conrad'],'rate'=>0.92,'pitch'=>0.80]],
 ];
 const CH_TTS_PRESET_DEFAULT = ['f'=>'f_warm','m'=>'m_freundlich'];
 

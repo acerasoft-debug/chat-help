@@ -81,7 +81,9 @@ if($type==='checkout.session.completed'){
         $bal=th_balance_ledger($aid);
         th_mail($email,'ChatHelp: '.$pl['name'].' ist aktiv ✅', mail_plan($pl,$bal,$newKey,true,$until,$subStatus));
         if($pl['kind']==='agent') th_mail(defined('SMTP_FROM')?SMTP_FROM:'support@chat-help.com','[ChatHelp] Neuer Agent gebucht: '.$pl['name'],'<p>Kunde: '.htmlspecialchars($email).'<br>Agent: '.$pl['id'].'<br>Subscription: '.$subId.'</p><p>Onboarding innerhalb 24h: Wissensbasis/Konten anbinden.</p>');
-        done(['ok'=>true,'plan'=>$pl['id'],'kind'=>$pl['kind'],'status'=>$pl['kind']==='buy' ? 'active' : $subStatus,'included_until'=>$until,'credited'=>$credited,'balance'=>$bal,'key_issued'=>(bool)$newKey]);
+        /* Einrichtung: Datensatz je Checkout-Session + Einrichtungs-Anleitung (Mail mit „Einrichtung starten“ + App-Download) + Push – Wiederholungen senden nichts doppelt */
+        $onb=null; if(is_file(__DIR__.'/onboarding-lib.php')){ try{ require_once __DIR__.'/onboarding-lib.php'; $onb=onb_on_payment($aid,$email,$pl,(string)($o['id'] ?? '')); }catch(Throwable $e){ error_log('CH tokens-webhook onboarding: '.$e->getMessage()); } }
+        done(['ok'=>true,'plan'=>$pl['id'],'kind'=>$pl['kind'],'status'=>$pl['kind']==='buy' ? 'active' : $subStatus,'included_until'=>$until,'credited'=>$credited,'balance'=>$bal,'key_issued'=>(bool)$newKey,'onboarding'=>$onb]);
     }
     done(['ok'=>true,'skip'=>'other checkout']);
 }

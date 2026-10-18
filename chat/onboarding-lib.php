@@ -118,12 +118,12 @@ function onb_profile(string $planId): array {
 }
 function onb_step(string $id, string $type, string $group, string $title, array $o=[]): array { return ['id'=>$id,'type'=>$type,'group'=>$group,'title'=>$title]+$o; }
 const ONB_COLS_SERVICES = [['k'=>'name','l'=>'Leistung','t'=>'text','req'=>true,'max'=>120,'ph'=>'z. B. Damenhaarschnitt','w'=>3],['k'=>'duration_min','l'=>'Dauer','t'=>'int','min'=>5,'max'=>600,'def'=>30,'suffix'=>'Min.','w'=>1],['k'=>'price_cents','l'=>'Preis','t'=>'money','suffix'=>'€','w'=>1]];
-const ONB_COLS_MENU = [['k'=>'name','l'=>'Gericht','t'=>'text','req'=>true,'max'=>120,'ph'=>'z. B. Margherita','w'=>2],['k'=>'category','l'=>'Kategorie','t'=>'text','max'=>60,'ph'=>'Pizza','w'=>1],['k'=>'price_cents','l'=>'Preis','t'=>'money','suffix'=>'€','w'=>1],['k'=>'description','l'=>'Beschreibung','t'=>'text','max'=>300,'ph'=>'Zutaten, Allergene','w'=>4]];
+const ONB_COLS_MENU = [['k'=>'name','l'=>'Gericht','t'=>'text','req'=>true,'max'=>120,'ph'=>'z. B. Margherita','w'=>2],['k'=>'category','l'=>'Kategorie','t'=>'text','max'=>60,'ph'=>'Pizza','w'=>1],['k'=>'price_cents','l'=>'Preis','t'=>'money','suffix'=>'€','w'=>1],['k'=>'description','l'=>'Beschreibung','t'=>'text','max'=>300,'ph'=>'Zutaten, Allergene','w'=>5]];
 const ONB_COLS_ZONES = [['k'=>'plz','l'=>'Postleitzahlen','t'=>'plz','req'=>true,'ph'=>'50667, 50668','w'=>2],['k'=>'name','l'=>'Name','t'=>'text','max'=>60,'ph'=>'Innenstadt','w'=>1],['k'=>'fee_cents','l'=>'Liefergebühr','t'=>'money','suffix'=>'€','w'=>1],['k'=>'min_cents','l'=>'Mindestwert','t'=>'money','suffix'=>'€','w'=>1]];
 const ONB_COLS_STANDS = [['k'=>'name','l'=>'Taxistand','t'=>'text','req'=>true,'max'=>80,'ph'=>'Hauptbahnhof','w'=>2],['k'=>'address','l'=>'Adresse','t'=>'text','max'=>200,'ph'=>'Trankgasse 11, 50667 Köln','w'=>3]];
 const ONB_COLS_DRIVERS = [['k'=>'name','l'=>'Fahrer/in','t'=>'text','req'=>true,'max'=>80,'ph'=>'Max Mustermann','w'=>2],['k'=>'phone','l'=>'Handy','t'=>'tel','ph'=>'0170 1234567','w'=>2],['k'=>'plate','l'=>'Kennzeichen','t'=>'text','max'=>20,'ph'=>'K-TX 123','w'=>1]];
 const ONB_COLS_ROOMS = [['k'=>'name','l'=>'Zimmerkategorie','t'=>'text','req'=>true,'max'=>120,'ph'=>'Doppelzimmer','w'=>2],['k'=>'capacity','l'=>'Personen','t'=>'int','min'=>1,'max'=>20,'def'=>2,'w'=>1],['k'=>'units','l'=>'Anzahl','t'=>'int','min'=>1,'max'=>999,'def'=>1,'w'=>1],['k'=>'price_cents','l'=>'Preis/Nacht','t'=>'money','suffix'=>'€','w'=>1]];
-const ONB_COLS_FAQ = [['k'=>'question','l'=>'Frage','t'=>'text','req'=>true,'max'=>500,'ph'=>'Gibt es Parkplätze?','w'=>4],['k'=>'answer','l'=>'Antwort','t'=>'textarea','req'=>true,'max'=>2000,'ph'=>'Ja, direkt hinter dem Haus – kostenlos.','w'=>4]];
+const ONB_COLS_FAQ = [['k'=>'question','l'=>'Frage','t'=>'text','req'=>true,'max'=>500,'ph'=>'Gibt es Parkplätze?','w'=>5],['k'=>'answer','l'=>'Antwort','t'=>'textarea','req'=>true,'max'=>2000,'ph'=>'Ja, direkt hinter dem Haus – kostenlos.','w'=>5]];
 
 function onb_catalog(array $P): array {
     $S=[]; $b=$P['base']; $m=$P['mods']; $ch=$P['channels'];
@@ -305,7 +305,7 @@ function onb_prefill(int $aid, array $P): array {
     $rules=function_exists('train_rules') ? train_rules($aid,$b) : ''; $sec=onb_section_get($rules,ONB_SEC_START,ONB_SEC_END) ?? '';
     $an=preg_match('/Anrede: (Sie|du)/u',$sec,$mm) ? ($mm[1]==='Sie' ? 'sie' : 'du') : ''; $put('anrede',$an,$an!=='');
     $tone=(string)($cfg['tone'] ?? ''); $put('tone',isset(ONB_TONES[$tone]) ? $tone : 'freundlich-professionell',$sec!=='' && isset(ONB_TONES[$tone]));
-    $nv=[]; if(preg_match_all('/^• Niemals: (.+)$/mu',$sec,$mm)) $nv=$mm[1]; $put('never',$nv,(bool)$nv);
+    $nv=[]; if(preg_match_all('/^• (?:Niemals|Regel): (.+)$/mu',$sec,$mm)) $nv=$mm[1]; $put('never',$nv,(bool)$nv);
     $fq=function_exists('train_faq') ? array_map(fn($x)=>['question'=>$x['question'],'answer'=>$x['answer']],array_slice(train_faq($aid,$b,true),0,30)) : [];
     $put('faq',[],(bool)$fq);
     return $o;
@@ -536,14 +536,14 @@ function onb_apply(int $aid, array $onb): array {
     if(($use('anrede') || $use('never') || $use('tone')) && function_exists('train_rules_save')) $run('rules','Regeln für den Agenten',function() use($aid,$b,$v,$use,$P){
         $L=[]; if($use('anrede')) $L[]=$v('anrede')==='du' ? '• Anrede: du – wir duzen '.($P['private'] ? 'die Person, für die du arbeitest' : 'Kundinnen und Kunden').'.' : '• Anrede: Sie – wir siezen '.($P['private'] ? 'die Person, für die du arbeitest' : 'Kundinnen und Kunden').'.';
         if($use('tone')) $L[]='• Ton: '.(ONB_TONES[(string)$v('tone')] ?? (string)$v('tone')).'.';
-        foreach((array)($use('never') ? $v('never') : []) as $n) $L[]='• Niemals: '.rtrim((string)$n,'.');
+        foreach((array)($use('never') ? $v('never') : []) as $n){ $n=rtrim((string)$n,'.'); $L[]=preg_match('/^(nie|niemals|kein|keine|keinen|keine[rsm]|nicht|ohne)\b/iu',$n) ? '• Regel: '.$n : '• Niemals: '.$n; }
         $r=train_rules_save($aid,$b,onb_section_put(train_rules($aid,$b),ONB_SEC_START,ONB_SEC_END,implode("\n",$L)));
-        if(isset($r['error'])) throw new RuntimeException((string)$r['message']); return count($L).' Regeln';
+        if(isset($r['error'])) throw new RuntimeException((string)$r['message']); return count($L)===1 ? '1 Regel' : count($L).' Regeln';
     });
     if($use('faq') && function_exists('train_faq_save')) $run('faq','Häufige Fragen',function() use($aid,$b,$v){
         $cur=train_faq($aid,$b); $seen=[]; $items=[]; foreach($cur as $x){ $items[]=['id'=>$x['id'],'question'=>$x['question'],'answer'=>$x['answer'],'active'=>$x['active'],'source'=>$x['source'] ?? 'manual']; $seen[train_norm_q($x['question'])]=count($items)-1; }
         $n=0; foreach((array)$v('faq') as $r){ $k=train_norm_q((string)$r['question']); if(isset($seen[$k])){ $items[$seen[$k]]['answer']=(string)$r['answer']; $items[$seen[$k]]['active']=1; } else { $items[]=['question'=>(string)$r['question'],'answer'=>(string)$r['answer'],'source'=>'manual']; $seen[$k]=count($items)-1; } $n++; }
-        $x=train_faq_save($aid,$b,$items,[]); if(isset($x['error'])) throw new RuntimeException((string)$x['message']); return $n.' Fragen';
+        $x=train_faq_save($aid,$b,$items,[]); if(isset($x['error'])) throw new RuntimeException((string)$x['message']); return $n===1 ? '1 Frage' : $n.' Fragen';
     });
     /* 2) Telefon */
     if($use('managed_phone') && in_array('phone',$chan,true)) $run('phone_request','Telefonnummer angefragt',function() use($aid,$onb,$v,$P,$company){
@@ -557,7 +557,7 @@ function onb_apply(int $aid, array $onb): array {
         $d=['appt_on'=>1]; if($company!=='') $d['company']=$company; if($address!=='') $d['address']=$address; if($hours && $hoursAns) $d['hours']=$hours; if($use('appt_buffer')) $d['buffer_min']=(int)$v('appt_buffer');
         if($use('services')) $d['services']=array_map(fn($r)=>['name'=>$r['name'],'duration_min'=>(int)$r['duration_min'],'price_cents'=>(int)($r['price_cents'] ?? 0)],(array)$v('services'));
         appt_settings_save($aid,$d,$err); if($err) throw new RuntimeException((string)$err['message']);
-        return count(appt_services($aid,true)).' Leistungen · Buchung an';
+        $n=count(appt_services($aid,true)); return ($n===1 ? '1 Leistung' : $n.' Leistungen').' · Buchung an';
     });
     if(in_array('order',$P['mods'],true) && ($use('menu') || $use('order_modes') || $use('zones') || $use('order_fees') || $use('payments') || $use('hours'))) $run('order','Bestellannahme',function() use($aid,$v,$use,$company,$address,$phone,$hours,$hoursAns,$vis){
         $d=['order_on'=>1]; if($company!=='') $d['name']=$company; if($address!=='') $d['address']=$address; if($phone!=='') $d['phone']=$phone; if($hours && $hoursAns) $d['hours']=$hours;
@@ -653,10 +653,10 @@ function onb_checklist(int $aid, array $onb): array {
              'WhatsApp → Konfiguration → Webhook: Rückruf-URL '.($L['whatsapp_webhook'] ?? '(Studio → WhatsApp)').' · Verify-Token '.($L['verify_token'] ?? '').' → Feld „messages“ abonnieren',
              'Studio → WhatsApp: Telefonnummer-ID und Token eintragen, speichern – Testnachricht an deine Nummer schicken'],['url'=>$L['whatsapp_webhook'] ?? null,'verify'=>$L['verify_token'] ?? null,'go'=>'whatsapp']);
     }
-    if(in_array('appt',$P['mods'],true)){ $n=count(appt_services($aid,true)); $on=appt_settings($aid)['appt_on']===1; $item('appt','Terminbuchung',$n && $on ? 'done' : 'todo',$n && $on ? $n.' Leistungen buchbar. Buchungsseite zum Teilen: '.($L['booking'] ?? '') : 'Leistungen mit Dauer und Preis anlegen.',[],['url'=>$L['booking'] ?? null,'go'=>'termine']); }
-    if(in_array('order',$P['mods'],true)){ $n=count(ord_menu($aid,true)); $on=ord_settings($aid)['order_on']===1; $item('order','Bestellannahme',$n && $on ? 'done' : 'todo',$n && $on ? $n.' Gerichte auf der Karte. Küchen-Board fürs Tablet: '.($L['board'] ?? '') : 'Speisekarte anlegen.',[],['url'=>$L['board'] ?? null,'go'=>'bestellungen']); }
+    if(in_array('appt',$P['mods'],true)){ $n=count(appt_services($aid,true)); $on=appt_settings($aid)['appt_on']===1; $item('appt','Terminbuchung',$n && $on ? 'done' : 'todo',$n && $on ? ($n===1 ? '1 Leistung' : $n.' Leistungen').' buchbar – deine Buchungsseite zum Teilen (Instagram, Google-Profil, Website):' : 'Leistungen mit Dauer und Preis anlegen.',[],['url'=>$L['booking'] ?? null,'go'=>'termine']); }
+    if(in_array('order',$P['mods'],true)){ $n=count(ord_menu($aid,true)); $on=ord_settings($aid)['order_on']===1; $item('order','Bestellannahme',$n && $on ? 'done' : 'todo',$n && $on ? $n.' Gerichte auf der Karte – das Küchen-Board fürs Tablet zeigt jede Bestellung live:' : 'Speisekarte anlegen.',[],['url'=>$L['board'] ?? null,'go'=>'bestellungen']); }
     if(in_array('ride',$P['mods'],true) && function_exists('ride_settings')){ $s=ride_settings($aid,true); $nd=count(ride_drivers($aid,true)); $item('ride','Taxi-Zentrale',$s['ride_on'] && $s['saved'] ? 'done' : 'todo',$s['ride_on'] && $s['saved'] ? 'Tarif, '.count($s['stands']).' Taxistände und '.$nd.' Fahrer – Fahrer-Links verschicken.' : 'Tarif, Taxistände und Fahrer anlegen.',array_map(fn($d)=>$d['name'].': '.$d['url'],array_slice($L['drivers'] ?? [],0,10)),['url'=>$L['taxi_board'] ?? null,'go'=>'taxi']); }
-    if(in_array('hotel',$P['mods'],true) && function_exists('hotel_settings')){ $n=count(hotel_rooms($aid,true)); $on=hotel_settings($aid)['hotel_on']===1; $item('hotel','Hotel-Rezeption',$n && $on ? 'done' : 'todo',$n && $on ? $n.' Zimmerkategorien buchbar. Rezeptions-Board: '.($L['hotel_board'] ?? '') : 'Zimmer mit Preisen anlegen.',[],['url'=>$L['hotel_board'] ?? null,'go'=>'hotel']); }
+    if(in_array('hotel',$P['mods'],true) && function_exists('hotel_settings')){ $n=count(hotel_rooms($aid,true)); $on=hotel_settings($aid)['hotel_on']===1; $item('hotel','Hotel-Rezeption',$n && $on ? 'done' : 'todo',$n && $on ? $n.' Zimmerkategorien buchbar – das Rezeptions-Board zeigt Anfragen und Gästewünsche live:' : 'Zimmer mit Preisen anlegen.',[],['url'=>$L['hotel_board'] ?? null,'go'=>'hotel']); }
     if(in_array('callback',$P['mods'],true) && function_exists('cb_settings')){ $saved=(bool)onb_row('callback_settings',$aid); $item('callback','Rückrufe',$saved ? 'done' : 'todo',$saved ? 'Rückrufzeiten: '.cb_window_text(cb_settings($aid)) : 'Zeiten festlegen, zu denen zurückgerufen wird.',[],['url'=>$L['callback_form'] ?? null,'go'=>'rueckruf']); }
     if($byok){ $bk=bl_byok_public($aid); $item('byok','Eigenen KI-Schlüssel hinterlegen',!empty($bk['active']) ? 'done' : 'todo',!empty($bk['active']) ? 'Dein Schlüssel ist aktiv – ChatHelp bucht keine Tokens ab.' : 'Claude- oder DeepSeek-Schlüssel eintragen: Studio → Telefon → Verbindungen.',[],['go'=>'phone']); }
     $item('app','App installieren','info','ChatHelp aufs Handy: Aufträge, Rückrufe und Nachrichten sofort per Push.',['Android: '.$L['app_android'].' öffnen → „App installieren“','iPhone/iPad: '.$L['app_ios'].' in Safari öffnen → Teilen → „Zum Home-Bildschirm“','Computer: '.$L['app'].' in Chrome oder Edge öffnen → Installieren-Symbol in der Adressleiste'],['url'=>ONB_APP_URL,'go'=>'benachrichtigungen']);
@@ -686,7 +686,7 @@ function onb_guide(int $aid, array $onb, string $phase): array {
       .'<p style="color:#6b7083;font-size:13px;margin:0 0 6px;text-align:center">'.$h($nd.' von '.$nt.' Schritten erledigt').'</p>'
       .'<div style="height:6px;border-radius:99px;background:#f1f2f7;overflow:hidden;margin:0 0 22px"><div style="height:6px;width:'.($nt ? (int)round(100*$nd/$nt) : 0).'%;background:#b8862b"></div></div>';
     $T=($done ? 'Alles bereit.' : 'Willkommen – los geht’s.')."\n\n".$lead."\n\n".$btn[0].': '.$btn[1]."\n\n".$nd.' von '.$nt." Schritten erledigt\n";
-    $i=0; foreach($C as $c){ $i++;
+    $i=0; foreach($C as $c){ if($c['status']!=='done') $i++;
         $mark=$c['status']==='done' ? '<span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:#e4f5ea;color:#1a9e5a;text-align:center;line-height:26px;font-weight:700">✓</span>'
             : '<span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:'.($c['status']==='info' ? '#eceafe;color:#4f46e5' : '#f6ecd3;color:#b8862b').';text-align:center;line-height:26px;font-weight:700;font-size:13px">'.$i.'</span>';
         $H.='<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-top:1px solid #e6e8ef;padding:14px 0"><tr><td style="width:38px;vertical-align:top;padding-top:12px">'.$mark.'</td><td style="vertical-align:top;padding-top:12px">'
@@ -697,7 +697,7 @@ function onb_guide(int $aid, array $onb, string $phase): array {
             $H.='<ol style="margin:8px 0 0;padding-left:18px;color:#3b4055;font-size:13px;line-height:1.6">'.implode('',array_map(fn($s)=>'<li style="margin:3px 0">'.$h($s).'</li>',$c['steps'])).'</ol>';
             foreach($c['steps'] as $k=>$s) $T.='    '.($k+1).'. '.$s."\n"; }
         if(!empty($c['code'])){ $H.='<div style="font:12.5px ui-monospace,Menlo,Consolas,monospace;background:#0f1222;color:#e6e8f5;border-radius:12px;padding:12px;word-break:break-all;margin-top:8px;-webkit-user-select:all;user-select:all">'.$h($c['code']).'</div>'; $T.='    Code: '.$c['code']."\n"; }
-        if(!empty($c['url']) && $c['key']!=='questions'){ $H.='<div style="margin-top:6px;font-size:13px"><a href="'.$h($c['url']).'" style="color:#b8862b;text-decoration:none;font-weight:600">'.$h(['app'=>'App öffnen','test'=>'Test-Chat öffnen'][$c['key']] ?? 'Link öffnen').' →</a></div>'; $T.='    '.$c['url']."\n"; }
+        if(!empty($c['url']) && $c['key']!=='questions'){ $H.='<div style="margin-top:6px;font-size:13px"><a href="'.$h($c['url']).'" style="color:#b8862b;text-decoration:none;font-weight:600">'.$h(['app'=>'App öffnen','test'=>'Test-Chat öffnen','appt'=>'Buchungsseite öffnen','order'=>'Küchen-Board öffnen','hotel'=>'Rezeptions-Board öffnen','ride'=>'Taxi-Board öffnen','callback'=>'Rückruf-Formular öffnen','whatsapp'=>'Webhook-URL'][$c['key']] ?? 'Link öffnen').' →</a></div>'; $T.='    '.$c['url']."\n"; }
         $H.='</td></tr></table>'; }
     $H.='<div style="margin-top:18px;padding:16px;border-radius:14px;background:#f6f7fb;border:1px solid #e6e8ef"><div style="font-weight:700;font-size:14px;margin-bottom:6px">📱 ChatHelp-App herunterladen</div>'
        .'<div style="font-size:13px;color:#3b4055;line-height:1.6"><a href="'.$h(ONB_APP_URL.'#android').'" style="color:#0f1222;font-weight:600">Android</a> · <a href="'.$h(ONB_APP_URL.'#ios').'" style="color:#0f1222;font-weight:600">iPhone &amp; iPad</a> · <a href="'.$h(ONB_APP_URL).'" style="color:#0f1222;font-weight:600">Computer (Web-App)</a></div></div>'
