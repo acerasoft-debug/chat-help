@@ -55,35 +55,105 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
 .guide{margin-top:12px;border:1px solid var(--line);border-radius:14px;background:var(--sur2)}.guide summary{cursor:pointer;padding:12px 14px;font-weight:700;font-size:14px;list-style:none}.guide summary::-webkit-details-marker{display:none}.guide summary::after{content:"＋";float:right;color:var(--gold)}.guide[open] summary::after{content:"－"}
 .guide ol{margin:0;padding:0 16px 14px 34px;font-size:13.5px;color:var(--ink2);line-height:1.6}.guide ol li{margin:6px 0}.guide code{font:12px ui-monospace,Menlo,Consolas,monospace;background:#fff;border:1px solid var(--line);border-radius:6px;padding:1px 5px}.guide .tip{padding:0 16px 14px;font-size:12.5px;color:var(--mute)}
 .banner{display:flex;gap:12px;align-items:center;padding:12px 16px;border-radius:14px;background:var(--goldl);border:1px solid #eadbb0;color:#5c4411;margin-bottom:16px}
+/* login · premium */
+.login-wrap{position:relative;overflow:hidden;background:radial-gradient(640px 460px at 82% 26%,rgba(212,168,74,.20),rgba(212,168,74,0) 70%),radial-gradient(520px 420px at 8% 92%,rgba(79,70,229,.06),rgba(79,70,229,0) 70%),var(--bg)}
+.login .kick{display:inline-flex;align-items:center;gap:8px;font:600 11.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.7);border:1px solid #eadbb0}
+.login .kick i{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(184,134,43,.15)}
+.login h1 em{font-style:italic;color:var(--gold);font-weight:500}
+.trust{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:24px}@media(max-width:560px){.trust{grid-template-columns:1fr}}
+.trust div{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.75);border:1px solid var(--line);box-shadow:var(--sh1)}
+.trust svg{flex:0 0 auto;margin-top:2px}.trust b{display:block;font-size:13.5px;line-height:1.3}.trust span{display:block;color:var(--mute);font-size:12.5px;line-height:1.35;margin-top:2px}
+.lsteps{margin-top:22px;display:grid;gap:2px}.lsteps .perk{border-top:1px solid rgba(15,18,34,.07)}
+.lbox{position:relative;border:1px solid transparent;background:linear-gradient(#fff,#fff) padding-box,linear-gradient(140deg,#ecd08a,#e4e6ee 38%,#e4e6ee 62%,#c9972f) border-box;box-shadow:0 2px 6px rgba(15,18,34,.05),0 34px 80px -28px rgba(184,134,43,.38)}
+.lbox h2{font-size:28px;line-height:1.15}.lbox .lsub{color:var(--ink2);font-size:14px;margin:8px 0 4px}
+.lbox input[type=email]{height:52px;font-size:16px;border-radius:14px}
+.btn.cta{width:100%;min-height:52px;margin-top:14px;border-radius:14px;font-size:15.5px;background:var(--ink);color:#fff;border-color:var(--ink);box-shadow:0 12px 26px -12px rgba(15,18,34,.55)}.btn.cta:hover{background:#1c2140}.btn.cta .ar{color:var(--gold2);transition:transform .2s}.btn.cta:hover .ar{transform:translateX(3px)}
+.lbox .btn.ghost.s{min-height:44px}
+.otp{position:relative;height:60px;margin-top:2px}.otp input{position:absolute;inset:0;z-index:2;width:100%;height:100%;border:0!important;background:transparent!important;box-shadow:none!important;color:transparent;caret-color:transparent;font-size:16px;letter-spacing:0;padding:0;outline:0}.otp input::selection{background:transparent}
+.otp-slots{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;pointer-events:none}
+.otp-slots span{display:grid;place-items:center;border:1px solid var(--line2);border-radius:14px;background:#fff;font:700 24px ui-monospace,Menlo,Consolas,monospace;color:var(--ink);transition:border-color .15s,box-shadow .15s,background .15s}
+.otp-slots span.f{border-color:#dcc48f;background:#fffaf0}.otp-slots span.on{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,43,.16)}
+.otp-slots span.on:empty::after{content:"";width:2px;height:26px;background:var(--gold);animation:otpc 1s steps(1) infinite}@keyframes otpc{50%{opacity:0}}
+.lfine{color:var(--mute);font-size:12px;margin-top:16px;line-height:1.5}
+/* Profil-Assistent */
+body.pf-lock{overflow:hidden}
+.pfw{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px 16px;background:rgba(15,18,34,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:pfFade .25s ease}
+.pfw-card{position:relative;width:min(760px,100%);max-height:min(860px,calc(100vh - 48px));display:flex;flex-direction:column;background:#fff;border-radius:28px;overflow:hidden;box-shadow:0 40px 120px -30px rgba(15,18,34,.55),0 0 0 1px rgba(184,134,43,.22)}
+.pfw-card::before{content:"";position:absolute;inset:0 0 auto 0;height:220px;background:radial-gradient(520px 200px at 80% -40px,rgba(212,168,74,.22),rgba(212,168,74,0) 70%);pointer-events:none}
+.pfw-hd{position:relative;display:flex;align-items:center;gap:14px;padding:18px 22px 12px}
+.pfw-hd .logo .em{width:32px;height:32px}.pfw-prog{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;align-items:center}
+.pfw-step{font:600 11.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.pfw-dots{display:flex;gap:6px}.pfw-dots i{width:8px;height:8px;border-radius:99px;background:var(--line2);transition:width .3s,background .3s}.pfw-dots i.done{background:var(--gold2)}.pfw-dots i.on{width:26px;background:linear-gradient(90deg,#ecd08a,#c9972f)}
+.pfw-x{min-height:44px;padding:0 14px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--ink2);font-weight:600;cursor:pointer}.pfw-x:hover{background:var(--sur2)}
+.pfw-body{position:relative;flex:1;overflow:auto;padding:6px 30px 18px;overscroll-behavior:contain}
+.pfw-s{animation:pfIn .38s cubic-bezier(.2,.7,.2,1)}.pfw-s.back{animation-name:pfInB}
+@keyframes pfIn{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}@keyframes pfInB{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:none}}@keyframes pfFade{from{opacity:0}to{opacity:1}}
+.pfw-kick{font:600 12px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin:6px 0 8px}
+.pfw h2{font-size:clamp(26px,4.4vw,36px);line-height:1.12;outline:0}.pfw-sub{color:var(--ink2);margin:10px 0 0;font-size:15px;max-width:60ch}
+.pfw-kinds{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}@media(max-width:560px){.pfw-kinds{grid-template-columns:1fr}}
+.pfw-kind{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;min-height:150px;padding:20px;border-radius:20px;border:1.5px solid var(--line2);background:#fff;cursor:pointer;color:var(--ink);transition:border-color .15s,box-shadow .15s,transform .15s}
+.pfw-kind:hover{border-color:#cdb27a;box-shadow:var(--sh1)}.pfw-kind .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;background:var(--goldl)}.pfw-kind b{font:600 19px var(--serif);margin-top:6px}.pfw-kind span:last-child{color:var(--ink2);font-size:13.5px}
+.pfw-kind[aria-checked=true]{border-color:var(--gold);box-shadow:0 0 0 4px rgba(184,134,43,.14),var(--sh1);background:linear-gradient(180deg,#fffaf0,#fff)}
+.pfw-lbl{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:18px 0 8px;font:600 12.5px var(--sans);color:var(--mute)}.pfw-lbl label{margin:0}
+.pfw input[type=text],.pfw input[type=search],.pfw select{min-height:48px;font-size:16px;border-radius:14px}
+.pfw-chips{display:flex;flex-wrap:wrap;gap:8px}.pfw-scroll{max-height:236px;overflow:auto;padding:2px;margin-top:10px}
+.pc{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:9px 15px;border-radius:999px;border:1px solid var(--line2);background:#fff;color:var(--ink2);font-weight:500;font-size:14px;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.pc:hover{border-color:var(--gold)}.pc[aria-pressed=true],.pc[aria-checked=true]{background:var(--ink);border-color:var(--ink);color:#fff}.pc[aria-pressed=true]::after{content:"✓";color:var(--gold2);font-weight:700}
+.pc.top{border-color:#e0c98f;background:#fffaf0}.pc.top[aria-pressed=true]{background:var(--ink)}.pfw-chips.big .pc{min-height:52px;padding:12px 18px;font-size:15px;border-radius:16px}
+.pfw-seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media(max-width:420px){.pfw-seg{grid-template-columns:1fr 1fr}}.pfw-seg .pc{justify-content:center;border-radius:14px}
+.pfw-2{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}@media(max-width:560px){.pfw-2{grid-template-columns:1fr;gap:0}}
+.pfw-sep{height:1px;background:var(--line);margin:22px 0 4px}
+.pfw-ft{position:relative;display:flex;align-items:center;gap:10px;padding:14px 22px 18px;border-top:1px solid var(--line);background:rgba(255,255,255,.96)}.pfw-ft .sp{flex:1}.pfw-ft .btn{min-height:48px;padding:0 20px;border-radius:14px}
+.pfw-ft #pfNext{background:var(--ink);color:#fff;border-color:var(--ink)}.pfw-ft #pfNext.fin{background:linear-gradient(135deg,#ecd08a,#c9972f);color:#1a1407;border-color:transparent}
+.pfw-areas{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.pfw-areas span{padding:7px 12px;border-radius:999px;background:var(--goldl);border:1px solid #eadbb0;color:#5c4411;font-size:13px;font-weight:600}
+.pfw-link{margin-top:14px;min-height:44px;padding:0;border:0;background:none;color:var(--gold);font-weight:700;cursor:pointer}
+.pfw-load{display:flex;align-items:center;gap:12px;margin-top:28px;color:var(--ink2)}.pfw-load i{width:22px;height:22px;border-radius:50%;border:3px solid var(--goldl);border-top-color:var(--gold);animation:pfSpin .9s linear infinite}@keyframes pfSpin{to{transform:rotate(360deg)}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(max-width:600px){.pfw{padding:0}.pfw-card{width:100%;height:100%;max-height:none;border-radius:0}.pfw-hd{padding:12px 14px 8px;gap:8px}.pfw-hd .logo{display:none}.pfw-body{padding:4px 16px 16px}.pfw-ft{padding:10px 14px calc(12px + env(safe-area-inset-bottom));gap:6px}.pfw-ft .btn{padding:0 14px}}
+@media(max-width:380px){.pfw-ft #pfSkip{padding:0 8px}}
+/* Empfehlungen (Assistent-Zusammenfassung + Übersicht) */
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px;margin-top:16px}
+.rec-c{display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:18px;border:1px solid var(--line);background:#fff}.rec-c p{margin:0;color:var(--ink2);font-size:13.5px;line-height:1.5}
+.rec-h{display:flex;gap:12px;align-items:flex-start}.rec-ic{flex:0 0 auto;width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font:700 18px var(--sans);background:var(--goldl);color:var(--gold)}.rec-h b{display:block;font-size:15px;line-height:1.3}.rec-why{color:var(--gold);font-size:12.5px;font-weight:600;margin-top:3px}
+.rec-a{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:4px}.rec-a .btn{min-height:44px;flex:1 1 auto}.rec-pr{color:var(--mute);font-size:12px}
+.card.rec{border-color:#eadbb0;background:linear-gradient(180deg,#fffaf0 0,#fff 140px)}.card.rec h3,.rec-cta h3{font-size:22px;margin-top:10px}
+.rec-cta{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;border-color:#eadbb0;background:radial-gradient(420px 160px at 100% 0,rgba(212,168,74,.18),rgba(212,168,74,0) 70%),#fff}.rec-cta>div{flex:1 1 320px;min-width:0}.rec-cta .btn{min-height:48px}
+#profBtn{min-height:36px}@media(max-width:720px){#profBtn{display:none}}
+@media (prefers-reduced-motion:reduce){.pfw,.pfw *,.otp-slots span,.btn.cta .ar{animation:none!important;transition:none!important}}
 </style></head>
 <body>
 <div class="top">
   <a class="logo" href="/"><span class="em"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp <span class="s">Studio</span></a>
-  <div class="row hidden" id="acct"><span class="pill">Guthaben <b id="bal">–</b> Tokens</span><a class="btn s gold" href="/#preise" target="_blank">Tokens kaufen</a><span class="pill small" id="who"></span><button class="btn s" id="logout">Abmelden</button></div>
+  <div class="row hidden" id="acct"><span class="pill">Guthaben <b id="bal">–</b> Tokens</span><a class="btn s gold" href="/#preise" target="_blank">Tokens kaufen</a><span class="pill small" id="who"></span><button class="btn s hidden" id="profBtn" type="button" title="Profil bearbeiten: Betrieb, Branche, Bedarf, Sprachen">✎ Profil</button><button class="btn s" id="logout">Abmelden</button></div>
 </div>
 
 <!-- ===== LOGIN ===== -->
-<div id="vLogin" class="login">
+<div id="vLogin" class="login-wrap"><div class="login">
   <div>
-    <span class="tag gold">Studio · kostenlos starten</span>
-    <h1 style="margin-top:14px">Dein Agent arbeitet <span style="color:var(--gold)">heute noch.</span></h1>
-    <p class="sub">Mit deiner E-Mail anmelden, Wissensbasis einfügen, Agent testen – für Inkasso, Kanzlei, Steuerberatung, Praxis, Shop und mehr. <b>300 Tokens geschenkt</b>, keine Zahlungsdaten.</p>
-    <div style="margin-top:22px">
-      <div class="perk"><i>1</i><div><b>Alle Agenten testen</b><span>Telefon-, Kanzlei-, Inkasso-, Steuer-, Support-Agent … mit deinen eigenen Fakten.</span></div></div>
-      <div class="perk"><i>2</i><div><b>Telefon-Agent im Browser hören</b><span>Sprich mit deinem Agenten – bevor du eine Nummer buchst.</span></div></div>
-      <div class="perk"><i>3</i><div><b>Website-Widget &amp; Transkripte</b><span>Eine Zeile Code, alle Gespräche im Studio. Freischaltung mit aktivem Plan.</span></div></div>
+    <span class="kick"><i></i>ChatHelp Studio · kostenlos starten</span>
+    <h1 style="margin-top:16px">Dein Agent arbeitet <em>heute noch.</em></h1>
+    <p class="sub">Telefon, WhatsApp und Website-Chat – ein KI-Agent, der zu deinem Betrieb passt. Anmelden, kurz erzählen, wofür du ihn brauchst, und sofort live testen. <b>300 Tokens geschenkt.</b></p>
+    <div class="trust" role="list">
+      <div role="listitem"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#f6ecd3"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#b8862b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Keine Kreditkarte</b><span>Testen ohne Zahlungsdaten</span></div></div>
+      <div role="listitem"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#f6ecd3"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#b8862b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>In 10 Minuten startklar</b><span>Agent wählen, Fakten rein, testen</span></div></div>
+      <div role="listitem"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#f6ecd3"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#b8862b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Datenverarbeitung nach DSGVO</b><span>Pläne monatlich kündbar</span></div></div>
+    </div>
+    <div class="lsteps">
+      <div class="perk"><i>1</i><div><b>Kurz erzählen, wer du bist</b><span>Betrieb oder privat, Branche, Bedarf, Sprachen – vier kurze Schritte, alle freiwillig.</span></div></div>
+      <div class="perk"><i>2</i><div><b>Passenden Agenten live testen</b><span>Im Chat oder wie am Telefon – mit deinen eigenen Fakten, bevor du etwas buchst.</span></div></div>
+      <div class="perk"><i>3</i><div><b>Freischalten, wenn es passt</b><span>Website-Widget, Telefon und WhatsApp mit aktivem Plan – alle Gespräche im Studio.</span></div></div>
     </div>
   </div>
   <div class="card lbox">
     <div id="welcome" class="banner hidden">🎉 Zahlung erfolgreich! Melde dich mit der E-Mail aus dem Checkout an – dein Agent ist bereits freigeschaltet.</div>
-    <h2>Anmelden</h2><p class="mute small" style="margin:6px 0 0">Wir senden dir einen 6-stelligen Code. Kein Passwort nötig.</p>
-    <div id="stepEmail"><label>E-Mail</label><input type="email" id="lEmail" placeholder="du@firma.de" autocomplete="email"><button class="btn p" id="lSend" style="width:100%;margin-top:14px">Code senden</button></div>
-    <div id="stepCode" class="hidden"><label>Code aus der E-Mail <span class="mute" id="lTo"></span></label><div style="position:relative"><input type="text" id="lCode" class="code" inputmode="numeric" pattern="[0-9 ]*" placeholder="••••••" autocomplete="one-time-code" aria-label="6-stelliger Code" style="padding-right:104px"><button type="button" class="btn ghost s" id="lPaste" style="position:absolute;right:8px;top:50%;transform:translateY(-50%)">📋 Einfügen</button></div><button class="btn p" id="lVerify" style="width:100%;margin-top:14px">Anmelden</button><div class="row" style="justify-content:space-between;margin-top:10px"><button class="btn ghost s" id="lBack">andere E-Mail</button><button class="btn ghost s" id="lResend">Code erneut senden</button></div></div>
-    <div id="lMsg"></div>
-    <details style="margin-top:18px"><summary class="mute small" style="cursor:pointer">Mit API-Key anmelden (ch_live_…)</summary><label>API-Key</label><input type="text" id="lKey" placeholder="ch_live_…"><button class="btn" id="lKeyGo" style="width:100%;margin-top:10px">Weiter</button></details>
-    <p class="mute small" style="margin-top:16px">Mit der Anmeldung akzeptierst du die <a href="/agb.html">AGB</a> und <a href="/datenschutz.html">Datenschutzhinweise</a>. Spam-Ordner prüfen, falls der Code nicht ankommt. · <a href="/impressum.html">Impressum</a></p>
+    <h2>Anmelden oder registrieren</h2><p class="lsub">Ein Konto für Studio und App. Wir senden dir einen 6-stelligen Code – kein Passwort nötig.</p>
+    <div id="stepEmail"><label for="lEmail">E-Mail</label><input type="email" id="lEmail" placeholder="du@firma.de" autocomplete="email" inputmode="email"><button class="btn cta" id="lSend">Code senden <span class="ar" aria-hidden="true">→</span></button></div>
+    <div id="stepCode" class="hidden"><label for="lCode">Code aus der E-Mail <span class="mute" id="lTo"></span></label><div class="otp" id="lOtp"><input type="text" id="lCode" inputmode="numeric" pattern="[0-9 ]*" maxlength="12" autocomplete="one-time-code" aria-label="6-stelliger Code"><div class="otp-slots" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="row" style="justify-content:flex-end;margin-top:4px"><button type="button" class="btn ghost s" id="lPaste">📋 Code einfügen</button></div><button class="btn cta" id="lVerify" style="margin-top:6px">Anmelden <span class="ar" aria-hidden="true">→</span></button><div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn ghost s" id="lBack">andere E-Mail</button><button class="btn ghost s" id="lResend">Code erneut senden</button></div></div>
+    <div id="lMsg" aria-live="polite"></div>
+    <details style="margin-top:18px"><summary class="mute small" style="cursor:pointer;min-height:32px">Mit API-Key anmelden (ch_live_…)</summary><label for="lKey">API-Key</label><input type="text" id="lKey" placeholder="ch_live_…"><button class="btn" id="lKeyGo" style="width:100%;margin-top:10px;min-height:44px">Weiter</button></details>
+    <p class="lfine">Mit der Anmeldung akzeptierst du die <a href="/agb.html">AGB</a> und <a href="/datenschutz.html">Datenschutzhinweise</a>. Spam-Ordner prüfen, falls der Code nicht ankommt. · <a href="/impressum.html">Impressum</a></p>
   </div>
-</div>
+</div></div>
 
 <!-- ===== APP ===== -->
 <div class="nav2 hidden" id="nav2"><div class="tabs" id="tabs"><button class="tab on" data-v="home">Übersicht</button><?php if(isset($CH_PANELS["einrichtung"])): ?><button class="tab" data-v="einrichtung">✓ Einrichtung</button><?php endif; ?><?php if(isset($CH_PANELS["assistant"])): ?><button class="tab" data-v="assistant">✦ Assistent</button><?php endif; ?><button class="tab" data-v="agents">Agenten</button><span class="tabsep" data-sep="ch"></span><button class="tab" data-v="whatsapp" data-ch="wa">💬 WhatsApp</button><button class="tab" data-v="phone" data-ch="tel">☎ Telefon</button><button class="tab" data-v="website" data-ch="web">🌐 Website</button><span class="tabsep" data-sep="mod"></span><button class="tab" data-v="termine">Termine</button><button class="tab" data-v="bestellungen">Bestellungen</button><?php if(isset($CH_PANELS["taxi"])): ?><button class="tab" data-v="taxi">Taxi</button><?php endif; ?><?php if(isset($CH_PANELS["hotel"])): ?><button class="tab" data-v="hotel">Hotel</button><?php endif; ?><?php if(isset($CH_PANELS["rueckruf"])): ?><button class="tab" data-v="rueckruf">Rückrufe</button><?php endif; ?><?php if(isset($CH_PANELS["kunden"])): ?><button class="tab" data-v="kunden">Kunden</button><?php endif; ?><?php if(isset($CH_PANELS["training"])): ?><button class="tab" data-v="training">Training</button><?php endif; ?><span class="tabsep" data-sep="end"></span><?php if(isset($CH_PANELS["benachrichtigungen"])): ?><button class="tab" data-v="benachrichtigungen">🔔 Benachrichtigungen<span class="dot hidden" id="bellDot" style="background:var(--rose)"></span></button><?php endif; ?><button class="tab" data-v="tokens">Tokens &amp; API</button><button class="tab tab-all" id="navAll" type="button" title="Alle Bereiche ein- oder ausblenden">＋ Alle Bereiche</button></div></div>
@@ -93,6 +163,7 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
   <div id="pHome">
     <div id="byokBanner" class="banner hidden" role="alert" aria-live="polite"></div>
     <div id="trialBanner" class="banner hidden">🎁 Willkommen! <b>&nbsp;300 Tokens&nbsp;</b> sind auf deinem Konto. Wähle einen Agenten, füge deine Wissensbasis ein und teste ihn – jede Antwort kostet ca. 6 Tokens.</div>
+    <div id="hRec" style="margin-bottom:16px" class="hidden"></div>
     <div class="grid g4">
       <div class="card"><span class="tag">Guthaben</span><div class="num" style="margin-top:10px" id="hBal">–</div><div class="mute small">Tokens · verfallen nicht</div><a class="btn s gold" href="/#preise" target="_blank" style="margin-top:12px">Tokens kaufen</a></div>
       <div class="card"><span class="tag indigo">Aktive Agenten</span><div class="num" style="margin-top:10px" id="hPlans">0</div><div class="mute small">gemietet oder gekauft</div><button class="btn s" style="margin-top:12px" onclick="go('agents')">Agenten ansehen</button></div>
@@ -309,6 +380,20 @@ GET|POST /v1/order/settings · GET /v1/order/orders</div></div>
   </div>
 </div>
 
+<!-- ===== Profil-Assistent (nach der ersten Anmeldung · „Profil bearbeiten“) ===== -->
+<div id="pfWiz" class="pfw hidden" role="dialog" aria-modal="true" aria-labelledby="pfTitle">
+  <div class="pfw-card">
+    <div class="pfw-hd">
+      <span class="logo" aria-hidden="true"><span class="em"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span></span>
+      <div class="pfw-prog"><span class="pfw-step" id="pfStepTxt">Schritt 1 von 4</span><div class="pfw-dots" id="pfDots" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>
+      <button class="pfw-x" id="pfLater" type="button">Später</button>
+    </div>
+    <div class="sr" id="pfLive" aria-live="polite"></div>
+    <div class="pfw-body" id="pfBody"></div>
+    <div class="pfw-ft"><button class="btn" id="pfBack" type="button">← Zurück</button><span class="sp"></span><button class="btn ghost" id="pfSkip" type="button">Überspringen</button><button class="btn" id="pfNext" type="button">Weiter</button></div>
+  </div>
+</div>
+
 <script>
 const API='/chat/tokens-api.php/v1'; const $=s=>document.querySelector(s);
 let KEY=localStorage.getItem('ch_api_key')||'', ME=null, PLANS=[], CUR=null, HIST=[], CFG=null;
@@ -351,12 +436,15 @@ $('#lCode').addEventListener('input',()=>{const v=$('#lCode').value.replace(/\D/
 $('#lCode').addEventListener('paste',e=>{const t=(e.clipboardData||window.clipboardData)?.getData('text');if(t==null)return;e.preventDefault();$('#lCode').value=codeOf(t);$('#lCode').dispatchEvent(new Event('input'));});
 $('#lPaste').onclick=async()=>{try{const t=await navigator.clipboard.readText();const c=codeOf(t);if(c.length!==6){msg($('#lMsg'),'In der Zwischenablage ist kein 6-stelliger Code. Kopiere den Code aus der E-Mail und tippe erneut auf „Einfügen“.','err');return;}$('#lCode').value=c;$('#lCode').dispatchEvent(new Event('input'));}catch(e){msg($('#lMsg'),'Einfügen nicht erlaubt – tippe lange in das Feld und wähle „Einfügen“.','err');$('#lCode').focus();}};
 if(!(navigator.clipboard&&navigator.clipboard.readText))$('#lPaste').classList.add('hidden');
+/* Code-Eingabe: ein echtes Eingabefeld (Autofill, Einfügen, Screenreader) über sechs Anzeige-Feldern */
+function otpPaint(){const i=$('#lCode'),v=(i.value||'').replace(/\D/g,'').slice(0,6),foc=document.activeElement===i;document.querySelectorAll('#lOtp .otp-slots span').forEach((s,k)=>{s.textContent=v[k]||'';s.classList.toggle('f',!!v[k]);s.classList.toggle('on',foc&&(k===Math.min(v.length,5)));});}
+['input','focus','blur','keyup','select'].forEach(ev=>$('#lCode').addEventListener(ev,otpPaint));
 /* Ein-Tipp-Übernahme aus der Login-Mail: #code=123456&e=<base64url(E-Mail)> – nur vorausfüllen, angemeldet wird per Klick (Linkprüfer verbrauchen den Code nicht) */
 const LINK_LOGIN=(()=>{try{const h=new URLSearchParams(location.hash.slice(1));const c=(h.get('code')||'').replace(/\D/g,'');const e=h.get('e');if(c.length!==6||!e)return null;let b=e.replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';const em=decodeURIComponent(escape(atob(b)));history.replaceState(null,'',location.pathname+location.search);return /.+@.+\..+/.test(em)?{code:c,email:em}:null;}catch(_){return null;}})();
-function linkLogin(){if(!LINK_LOGIN)return false;lEmail=LINK_LOGIN.email;$('#lEmail').value=lEmail;$('#stepEmail').classList.add('hidden');$('#stepCode').classList.remove('hidden');$('#lTo').textContent='→ '+lEmail;$('#lCode').value=LINK_LOGIN.code;msg($('#lMsg'),'Code aus der E-Mail übernommen – tippe auf „Anmelden“.','ok');setTimeout(()=>$('#lVerify').focus(),50);return true;}
+function linkLogin(){if(!LINK_LOGIN)return false;lEmail=LINK_LOGIN.email;$('#lEmail').value=lEmail;$('#stepEmail').classList.add('hidden');$('#stepCode').classList.remove('hidden');$('#lTo').textContent='→ '+lEmail;$('#lCode').value=LINK_LOGIN.code;otpPaint();msg($('#lMsg'),'Code aus der E-Mail übernommen – tippe auf „Anmelden“.','ok');setTimeout(()=>$('#lVerify').focus(),50);return true;}
 $('#lVerify').onclick=async()=>{const code=$('#lCode').value.replace(/\D/g,'');if(code.length!==6)return;$('#lVerify').disabled=true;msg($('#lMsg'),'Prüfe …');
   try{const j=await api('/auth/verify',{method:'POST',body:JSON.stringify({email:lEmail,code})});KEY=j.key;localStorage.setItem('ch_api_key',KEY);localStorage.setItem('ch_email',j.email);if(j.trial_credited)sessionStorage.setItem('ch_trial','1');await boot();}
-  catch(e){msg($('#lMsg'),e.message,'err');$('#lCode').value='';}$('#lVerify').disabled=false;};
+  catch(e){msg($('#lMsg'),e.message,'err');$('#lCode').value='';otpPaint();}$('#lVerify').disabled=false;};
 $('#lBack').onclick=()=>{$('#stepCode').classList.add('hidden');$('#stepEmail').classList.remove('hidden');msg($('#lMsg'),'');};
 $('#lResend').onclick=()=>{$('#lEmail').value=lEmail;$('#lSend').click();};
 $('#lKeyGo').onclick=async()=>{const k=$('#lKey').value.trim();if(!/^ch_(live|test)_[a-f0-9]{48}$/.test(k)){msg($('#lMsg'),'Key-Format: ch_live_… (56 Zeichen)','err');return;}KEY=k;localStorage.setItem('ch_api_key',KEY);await boot();};
@@ -364,12 +452,14 @@ $('#logout').onclick=()=>{localStorage.removeItem('ch_api_key');location.href=lo
 
 /* ===== Boot ===== */
 async function boot(){if(LINK_LOGIN&&!boot._link){boot._link=1;if(!KEY||(localStorage.getItem('ch_email')||'').toLowerCase()!==LINK_LOGIN.email.toLowerCase()){show('login');linkLogin();return;}}if(!KEY){show('login');return;}
-  try{const [me,sec]=await Promise.all([api('/me'),api('/sectors')]);ME=me;PLANS=sec.plans||[];}
+  let prof=null;try{const [me,sec,pr]=await Promise.all([api('/me'),api('/sectors'),api('/profile').catch(()=>null)]);ME=me;PLANS=sec.plans||[];prof=pr;setProfile(pr);}
   catch(e){if(e.status===401){localStorage.removeItem('ch_api_key');KEY='';show('login');msg($('#lMsg'),'Sitzung ungültig – bitte neu anmelden.','err');return;}alert('Fehler: '+e.message);return;}
-  show('app');$('#who').textContent=ME.email;renderHome();renderAgents();renderPhone();renderTokens();applyNav();
+  show('app');$('#who').textContent=ME.email;renderHome();renderAgents();renderPhone();renderTokens();applyNav();renderRec();
   refreshBell();
   const q=new URLSearchParams(location.search);const w=q.get('welcome');if(w&&PANELS.einrichtung){go('einrichtung');}else if(w&&PLANS.find(p=>p.id===w)){go('agents');openAgent(w);}else{const h=(location.hash||'').slice(1);if(h&&(STATIC_TABS[h]||PANELS[h]))go(h);}
-  if(sessionStorage.getItem('ch_trial')){$('#trialBanner').classList.remove('hidden');sessionStorage.removeItem('ch_trial');}}
+  if(sessionStorage.getItem('ch_trial')){$('#trialBanner').classList.remove('hidden');sessionStorage.removeItem('ch_trial');}
+  /* Erste Anmeldung bzw. noch kein Profil: Profil-Assistent (nicht direkt nach einer Zahlung – dort zuerst die Einrichtung) */
+  if(prof&&!prof.exists&&!w)setTimeout(()=>{if(!PW.open)openWiz(false);},200);}
 function show(v){$('#vLogin').classList.toggle('hidden',v!=='login');$('#vApp').classList.toggle('hidden',v!=='app');$('#nav2').classList.toggle('hidden',v!=='app');$('#acct').classList.toggle('hidden',v!=='app');}
 const STATIC_TABS={home:'pHome',agents:'pAgents',whatsapp:'pWhatsapp',phone:'pPhone',website:'pWebsite',termine:'pTermine',bestellungen:'pBestellungen',tokens:'pTokens'};
 const PANELS=<?= json_encode((object)array_map(fn($x)=>$x['v'],$CH_PANELS)) ?>;window.STUDIO_PANELS=window.STUDIO_PANELS||{};
@@ -391,8 +481,8 @@ function focusGet(){try{return JSON.parse(localStorage.getItem('ch_focus')||'[]'
 function focusAdd(id){if(!id)return;const f=focusGet().filter(x=>x!==id);f.unshift(id);try{localStorage.setItem('ch_focus',JSON.stringify(f.slice(0,6)));}catch(e){}}
 function focusPlans(){const s=new Set();(ME&&ME.plans||[]).filter(p=>p.active).forEach(p=>s.add(planBase(p.id)));focusGet().forEach(id=>s.add(planBase(id)));if(CUR)s.add(planBase(CUR.id));return [...s].filter(Boolean);}
 function navAllOn(){try{return localStorage.getItem('ch_nav_all')==='1';}catch(e){return false;}}
-function applyNav(){const F=focusPlans(),all=navAllOn(),ch=new Set();F.forEach(id=>planChannels(id).forEach(c=>ch.add(c)));
-  const want=new Set(ALWAYS_TABS);
+function applyNav(){const F=[...new Set([...focusPlans(),...profPlans()])],all=navAllOn(),ch=new Set();F.forEach(id=>planChannels(id).forEach(c=>ch.add(c)));
+  const want=new Set(ALWAYS_TABS);profAreas().forEach(a=>want.add(a));   /* Profil: Bedarf → Bereiche (z. B. Termine, WhatsApp, Kunden) */
   if(F.length){want.add('website');want.add('training');want.add('kunden');if(ch.has('whatsapp'))want.add('whatsapp');if(ch.has('phone'))want.add('phone');
     Object.entries(MOD_FOR).forEach(([tab,ids])=>{if(F.some(id=>ids.includes(id)))want.add(tab);});}
   document.querySelectorAll('#tabs .tab[data-v]').forEach(t=>{const v=t.dataset.v;t.classList.toggle('hidden',!(all||want.has(v)));});
@@ -455,14 +545,131 @@ function renderHome(){$('#bal').textContent=de(ME.balance);$('#hBal').textConten
   $('#hList').innerHTML=act.length?act.map(p=>`<div class="row" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)"><span><b>${esc(p.name)}</b><br><span class="mute small">${p.kind==='buy'?(p.license==='lifetime'?'gekauft · unbefristet':'gekauft · Betrieb inklusive bis '+(p.period_end?new Date(p.period_end).toLocaleDateString('de-DE'):'–')):p.kind==='byok'?'eigener KI-Schlüssel · Plattformgebühr':p.kind==='betrieb'?'Betrieb · '+de(p.tokens_month)+' Tokens/Monat':'gemietet · bis '+(p.period_end?new Date(p.period_end).toLocaleDateString('de-DE'):'–')+' · '+de(p.tokens_month)+' Tokens/Monat'} ${chChips(p.channels)}</span></span><button class="btn s" onclick="go('agents');openAgent('${p.id}')">Öffnen</button></div>`).join(''):'<div class="mute">Noch kein Agent gemietet oder gekauft. Teste jeden Agenten im Studio mit deinem Guthaben – oder <a href="/#berufe" target="_blank">wähle einen im Katalog</a>.</div>';
   const tb=$('#hRecent tbody');tb.innerHTML=(ME.recent||[]).slice(0,10).map(r=>`<tr><td>${new Date(r.created_at).toLocaleString('de-DE')}</td><td>${esc(r.task)}</td><td>${esc(r.sector||'')}</td><td>${de(r.tokens)}</td></tr>`).join('')||'<tr><td colspan="4" class="mute">Noch keine Aktivität.</td></tr>';}
 
+/* ===== Profil (Registrierung): Für wen? · Betrieb/Aufgaben · Bedarf & Sprachen · Zusammenfassung — formt Navigation, Agenten-Reihenfolge und Empfehlungen ===== */
+let PROFILE=null,PROFILE_REC=null,PROFILE_OPT=null,PROFILE_EXISTS=false;
+function setProfile(j){if(!j||typeof j!=='object')return;PROFILE=j.profile||null;PROFILE_EXISTS=!!j.exists;PROFILE_REC=j.rec||null;if(j.options)PROFILE_OPT=j.options;const b=$('#profBtn');if(b)b.classList.toggle('hidden',!PROFILE_OPT);}
+const profPlans=()=>((PROFILE_REC&&PROFILE_REC.plans)||[]).map(p=>p.id).filter(id=>(PLANS||[]).some(x=>x.id===id));
+const profAreas=()=>(PROFILE_REC&&PROFILE_REC.areas)||[];
+const REC_IC={beauty:'💅',aesthetik:'✨',medtour:'✈️',taxi:'🚕',hotel:'🛎',gastro:'🍕',bank:'🏦',behoerde:'🏛',privat:'🙋',service:'☎'};
+const tabLabel=v=>{const t=document.querySelector('#tabs .tab[data-v="'+v+'"]');return t?t.textContent.trim():'';};
+const fold=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
+function recCard(p){const on=!!(ME&&active(p.id));const pr=Number(p.eur_month||0);
+  return `<div class="rec-c"><div class="rec-h"><span class="rec-ic" aria-hidden="true">${REC_IC[p.sector]||ICON[p.sector]||'✦'}</span><div><b>${esc(p.name)}</b>${p.reason?`<div class="rec-why">${esc(p.reason)}</div>`:''}</div></div><p>${esc(p.desc||'')}</p>
+  <div class="rec-a"><button class="btn p" type="button" data-try="${esc(p.id)}">${on?'Öffnen':'▶ Live testen'}</button>${on?'<span class="tag ok" style="align-self:center">Aktiv</span>':`<a class="btn gold" href="${esc(p.checkout)}&_=${Date.now().toString(36)}" target="_blank" rel="noopener">Aktivieren</a>`}</div>
+  <div class="rec-pr">${pr?'ab '+pr.toLocaleString('de-DE')+' €/Monat · ':''}Test im Studio mit deinen Tokens</div></div>`;}
+function profSummary(){const P=PROFILE;if(!P||!P.kind)return '';const O=PROFILE_OPT||{},lab=(list,id)=>((O[list]||[]).find(x=>x.id===id)||{}).label||id;
+  const parts=P.kind==='private'?[(P.needs||[]).map(n=>lab('private_tasks',n)).join(', ')]:[(P.sectors||[]).map(s=>lab('sectors',s)).join(', '),(P.needs||[]).map(n=>lab('needs',n)).join(', ')];
+  if(P.city||P.country)parts.push([P.city,P.country].filter(Boolean).join(', '));if((P.langs||[]).length)parts.push('Sprachen: '+P.langs.map(x=>x.toUpperCase()).join(' · '));return parts.filter(Boolean).join(' · ');}
+function renderRec(){const el=$('#hRec');if(!el)return;if(!PROFILE_OPT){el.classList.add('hidden');return;}el.classList.remove('hidden');
+  const P=PROFILE,R=(PROFILE_REC&&PROFILE_REC.plans)||[];
+  if(!P||!P.kind){el.innerHTML=`<div class="card rec-cta"><div><span class="tag gold">4 kurze Schritte · alle freiwillig</span><h3>Lass dein Studio zu dir passen</h3><p class="mute" style="margin:6px 0 0;font-size:14px">Erzähl uns, für wen du ChatHelp nutzt, in welcher Branche und was dir wichtig ist – dann zeigt dir das Studio genau die Agenten und Bereiche, die du brauchst.</p></div><button class="btn gold" type="button" data-prof>Profil anlegen →</button></div>`;}
+  else{const who=P.kind==='private'?'Für dich privat':(P.company||'Für deinen Betrieb');
+    el.innerHTML=`<div class="card rec"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px"><div style="flex:1 1 280px;min-width:0"><span class="tag gold">✦ Für dich empfohlen</span><h3>${esc(who)}</h3><div class="mute small" style="margin-top:4px">${esc(profSummary())}</div></div><button class="btn s" type="button" data-prof style="min-height:44px">✎ Profil bearbeiten</button></div>
+      <div class="rec-grid">${R.map(recCard).join('')||'<div class="mute small">Noch keine Empfehlung – ergänze Branche oder Bedarf im Profil.</div>'}</div></div>`;}
+  el.querySelectorAll('[data-prof]').forEach(b=>b.onclick=()=>openWiz(true));
+  el.querySelectorAll('[data-try]').forEach(b=>b.onclick=()=>openAgent(b.dataset.try));}
+
+const PW={open:false,step:1,edit:false,d:null,dir:1,busy:false,rec:null,err:'',ret:null};
+const pwPriv=()=>PW.d&&PW.d.kind==='private';
+const pwTitle=n=>n===1?'Für wen':n===2?(pwPriv()?'Deine Aufgaben':'Dein Betrieb'):n===3?(pwPriv()?'Deine Sprachen':'Bedarf und Sprachen'):'Dein Studio';
+function openWiz(edit){if(!PROFILE_OPT)return;const p=PROFILE||{};
+  PW.d={kind:p.kind||null,company:p.company||'',sectors:[...(p.sectors||[])],size:p.size||'',city:p.city||'',country:p.country||'',needs:[...(p.needs||[])],langs:[...(p.langs||[])]};
+  Object.assign(PW,{edit:!!edit,step:1,dir:1,rec:null,err:'',busy:false,open:true,ret:document.activeElement});
+  $('#pfWiz').classList.remove('hidden');document.body.classList.add('pf-lock');pwRender();}
+function closeWiz(){PW.open=false;$('#pfWiz').classList.add('hidden');document.body.classList.remove('pf-lock');try{if(PW.ret&&PW.ret.focus&&document.contains(PW.ret))PW.ret.focus();}catch(e){}}
+async function pwSave(){const j=await api('/profile',{method:'POST',body:JSON.stringify(PW.d)});setProfile(j);PW.rec=j.rec||{plans:[],areas:[]};applyNav();renderAgents();renderRec();return j;}
+async function pwLater(){if(PW.busy)return;
+  if(!PW.edit&&PW.step<4){const d=PW.d,any=d.kind||d.company||d.city||d.country||d.size||d.sectors.length||d.needs.length||d.langs.length;
+    try{if(any)await pwSave();else{const j=await api('/profile',{method:'POST',body:JSON.stringify({dismissed:true})});setProfile(j);renderRec();}}catch(e){}}
+  closeWiz();}
+function pwClearStep(){const d=PW.d;if(PW.step===1)d.kind=null;else if(PW.step===2){if(pwPriv())d.needs=[];else Object.assign(d,{company:'',sectors:[],size:''});d.city='';d.country='';}else if(PW.step===3){if(!pwPriv())d.needs=[];d.langs=[];}}
+async function pwNext(skip){if(PW.busy)return;
+  if(PW.step===4){closeWiz();go('home');return;}
+  if(skip)pwClearStep();
+  if(PW.step===1&&PW.d.kind!=='private')PW.d.needs=PW.d.needs.filter(n=>!/^p_/.test(n));
+  if(PW.step===1&&PW.d.kind==='private')PW.d.needs=PW.d.needs.filter(n=>/^p_/.test(n));
+  PW.dir=1;PW.step++;
+  if(PW.step===4){PW.busy=true;PW.rec=null;PW.err='';pwRender();try{await pwSave();}catch(e){PW.err=e.message||'Speichern fehlgeschlagen';}PW.busy=false;}
+  pwRender();}
+function pwBackStep(){if(PW.busy||PW.step<=1)return;PW.dir=-1;PW.step--;pwRender();}
+function pc(attr,id,label,icon,on,extra){return `<button type="button" class="pc${extra||''}" data-${attr}="${esc(id)}" aria-pressed="${on?'true':'false'}">${icon?`<span aria-hidden="true">${icon}</span>`:''}${esc(label)}</button>`;}
+function pwLangs(){const L=PROFILE_OPT.langs||[];return L.map(l=>pc('lang',l.id,l.label,'',PW.d.langs.includes(l.id),l.top?' top':'')).join('');}
+function pwLoc(){const C=PROFILE_OPT.countries||[];return `<div class="pfw-2"><div><label for="pfCity">Ort <span class="mute">(optional)</span></label><input type="text" id="pfCity" maxlength="80" autocomplete="address-level2" placeholder="z. B. Köln" value="${esc(PW.d.city)}"></div>
+  <div><label for="pfCountry">Land <span class="mute">(optional)</span></label><select id="pfCountry"><option value="">– bitte wählen –</option>${C.map(c=>`<option value="${c.id}"${PW.d.country===c.id?' selected':''}>${esc(c.label)}</option>`).join('')}</select></div></div>`;}
+function pwStepHTML(n){const O=PROFILE_OPT,d=PW.d,priv=pwPriv();
+  if(n===1){const k=(id,ic,t,s)=>{const on=d.kind===id,first=!d.kind&&id==='business';return `<button type="button" class="pfw-kind" role="radio" aria-checked="${on?'true':'false'}" tabindex="${on||first?0:-1}" data-kind="${id}"><span class="ic" aria-hidden="true">${ic}</span><b>${t}</b><span>${s}</span></button>`;};
+    return `<p class="pfw-kick">${PW.edit?'Profil bearbeiten':'Willkommen bei ChatHelp'}</p><h2 id="pfTitle" tabindex="-1">Für wen richtest du ChatHelp ein?</h2>
+      <p class="pfw-sub">Ein paar kurze Fragen – dann zeigt dir dein Studio genau die Agenten und Bereiche, die du brauchst. Jeder Schritt ist freiwillig.</p>
+      <div class="pfw-kinds" role="radiogroup" aria-label="Für wen">${k('business','🏢','Für meinen Betrieb','Anrufe, WhatsApp, Termine, Bestellungen – dein Agent arbeitet für deine Kundinnen und Kunden.')}${k('private','🙋','Für mich privat','Briefe, Behörden, Bank, Reisen und Anrufe – dein Assistent arbeitet für dich.')}</div>`;}
+  if(n===2&&priv)return `<p class="pfw-kick">Privat</p><h2 id="pfTitle" tabindex="-1">Was möchtest du erledigen?</h2><p class="pfw-sub">Wähle alles, wobei dir dein Assistent helfen soll.</p>
+      <div class="pfw-chips big" role="group" aria-label="Aufgaben" style="margin-top:20px">${(O.private_tasks||[]).map(t=>pc('need',t.id,t.label,t.icon,d.needs.includes(t.id))).join('')}</div><div class="pfw-sep"></div>${pwLoc()}`;
+  if(n===2){const max=O.max_sectors||6,sizes=O.sizes||[];
+    return `<p class="pfw-kick">Dein Betrieb</p><h2 id="pfTitle" tabindex="-1">Erzähl uns kurz von deinem Betrieb</h2><p class="pfw-sub">Damit dein Studio passende Agenten und Bereiche zuerst zeigt.</p>
+      <label for="pfCompany">Name des Betriebs</label><input type="text" id="pfCompany" maxlength="120" autocomplete="organization" placeholder="z. B. Salon Luna" value="${esc(d.company)}">
+      <div class="pfw-lbl"><label for="pfSecQ">Branche <span class="mute" style="font-weight:500">(mehrere möglich)</span></label><span id="pfSecN" aria-live="polite">${d.sectors.length} von ${max}</span></div>
+      <input type="search" id="pfSecQ" placeholder="Suchen – z. B. Friseur, Zahnklinik, Saç ekimi, Hotel" autocomplete="off" aria-controls="pfSecs">
+      <div class="pfw-chips pfw-scroll" id="pfSecs" role="group" aria-label="Branchen">${(O.sectors||[]).map(s=>`<button type="button" class="pc" data-sec="${esc(s.id)}" data-q="${esc(fold(s.label+' '+s.group+' '+(s.kw||'')))}" aria-pressed="${d.sectors.includes(s.id)?'true':'false'}" title="${esc(s.group)}"><span aria-hidden="true">${s.icon}</span>${esc(s.label)}</button>`).join('')}</div>
+      <div id="pfSecNone" class="mute small hidden" style="margin-top:8px">Nichts gefunden – wähle die Branche, die am nächsten liegt, oder überspring die Frage.</div>
+      <div class="pfw-lbl"><span id="pfSizeL">Wie viele Personen arbeiten mit?</span></div>
+      <div class="pfw-seg" role="radiogroup" aria-labelledby="pfSizeL">${sizes.map((s,i)=>`<button type="button" class="pc" role="radio" data-size="${s.id}" aria-checked="${d.size===s.id?'true':'false'}" tabindex="${d.size===s.id||(!d.size&&i===0)?0:-1}">${esc(s.label)}</button>`).join('')}</div>
+      ${pwLoc()}`;}
+  if(n===3&&priv)return `<p class="pfw-kick">Sprachen</p><h2 id="pfTitle" tabindex="-1">In welchen Sprachen soll dein Assistent schreiben?</h2><p class="pfw-sub">Dein Assistent versteht und schreibt 13 Sprachen – wähle deine wichtigsten.</p>
+      <div class="pfw-chips" role="group" aria-label="Sprachen" style="margin-top:20px">${pwLangs()}</div>`;
+  if(n===3)return `<p class="pfw-kick">Dein Bedarf</p><h2 id="pfTitle" tabindex="-1">Was soll dein Studio für dich übernehmen?</h2><p class="pfw-sub">Wir blenden die passenden Bereiche ein – alles andere bleibt unter „＋ Alle Bereiche“ erreichbar.</p>
+      <div class="pfw-chips big" role="group" aria-label="Bedarf" style="margin-top:20px">${(O.needs||[]).map(t=>pc('need',t.id,t.label,t.icon,d.needs.includes(t.id))).join('')}</div>
+      <div class="pfw-lbl" style="margin-top:24px"><span id="pfLangL">In welchen Sprachen sprechen deine Kundinnen und Kunden?</span></div>
+      <div class="pfw-chips" role="group" aria-labelledby="pfLangL">${pwLangs()}</div>`;
+  /* 4: Zusammenfassung */
+  if(PW.busy||(!PW.rec&&!PW.err))return `<p class="pfw-kick">Einen Moment</p><h2 id="pfTitle" tabindex="-1">Wir stellen dein Studio zusammen …</h2><div class="pfw-load" role="status"><i aria-hidden="true"></i>Branche, Bedarf und Sprachen werden ausgewertet.</div>`;
+  if(PW.err)return `<p class="pfw-kick">Fast geschafft</p><h2 id="pfTitle" tabindex="-1">Das Speichern hat nicht geklappt</h2><div class="msg err">${esc(PW.err)}</div><button type="button" class="btn p" id="pfRetry" style="margin-top:14px;min-height:48px">Erneut versuchen</button>`;
+  const R=PW.rec.plans||[],A=(PW.rec.areas||[]).map(tabLabel).filter(Boolean),who=priv?'für dich':(d.company?'für '+d.company:'für deinen Betrieb');
+  return `<p class="pfw-kick">Fertig</p><h2 id="pfTitle" tabindex="-1">Wir richten dein Studio ein – ${esc(who)}</h2>
+    <p class="pfw-sub">${A.length?'Deine Navigation zeigt jetzt zuerst:':'Deine Übersicht zeigt jetzt die passenden Agenten.'}</p>${A.length?`<div class="pfw-areas">${A.map(a=>`<span>${esc(a)}</span>`).join('')}</div>`:''}
+    <div class="pfw-lbl" style="margin-top:22px"><span>${R.length?'Empfohlen für dich – jetzt live testen oder aktivieren':''}</span></div>
+    <div class="rec-grid" style="margin-top:0">${R.map(recCard).join('')||'<div class="mute small">Ohne Branche und Bedarf können wir noch nichts empfehlen – du findest alle Agenten unter „Agenten“.</div>'}</div>
+    ${PANELS.einrichtung?'<button type="button" class="pfw-link" data-go="einrichtung">✓ Einrichtung Schritt für Schritt öffnen →</button>':''}
+    <p class="mute small" style="margin:10px 0 0">Ändern kannst du dein Profil jederzeit über „Profil bearbeiten“ auf der Übersicht.</p>`;}
+function pwRender(){const n=PW.step,B=$('#pfBody');
+  $('#pfStepTxt').textContent='Schritt '+n+' von 4';document.querySelectorAll('#pfDots i').forEach((d,i)=>{d.className=i+1<n?'done':i+1===n?'on':'';});
+  $('#pfBack').classList.toggle('hidden',n===1);$('#pfSkip').classList.toggle('hidden',n===4);
+  const nx=$('#pfNext');nx.textContent=n===4?'Studio öffnen →':n===3?'Studio zusammenstellen':'Weiter →';nx.classList.toggle('fin',n===4);nx.disabled=PW.busy;$('#pfBack').disabled=PW.busy;
+  $('#pfLater').textContent=n===4||PW.edit?'Schließen':'Später';
+  B.innerHTML=`<section class="pfw-s${PW.dir<0?' back':''}">${pwStepHTML(n)}</section>`;B.scrollTop=0;pwBind();
+  $('#pfLive').textContent='Schritt '+n+' von 4: '+pwTitle(n);const t=$('#pfTitle');if(t)try{t.focus({preventScroll:true});}catch(e){}}
+function pwBind(){const B=$('#pfBody'),d=PW.d,max=(PROFILE_OPT&&PROFILE_OPT.max_sectors)||6;
+  const tog=(arr,id)=>{const i=arr.indexOf(id);if(i>=0)arr.splice(i,1);else arr.push(id);};
+  B.querySelectorAll('[data-kind]').forEach(x=>x.onclick=ev=>{d.kind=x.dataset.kind;B.querySelectorAll('[data-kind]').forEach(y=>{const on=y===x;y.setAttribute('aria-checked',on?'true':'false');y.tabIndex=on?0:-1;});if(ev.detail>0)setTimeout(()=>{if(PW.open&&PW.step===1)pwNext();},280);});
+  B.querySelectorAll('[data-sec]').forEach(x=>x.onclick=()=>{const id=x.dataset.sec;if(!d.sectors.includes(id)&&d.sectors.length>=max){const c=$('#pfSecN');if(c){c.textContent='Höchstens '+max+' – bitte erst eine abwählen';c.style.color='var(--rose)';}return;}tog(d.sectors,id);x.setAttribute('aria-pressed',d.sectors.includes(id)?'true':'false');const c=$('#pfSecN');if(c){c.textContent=d.sectors.length+' von '+max;c.style.color='';}});
+  B.querySelectorAll('[data-need]').forEach(x=>x.onclick=()=>{tog(d.needs,x.dataset.need);x.setAttribute('aria-pressed',d.needs.includes(x.dataset.need)?'true':'false');});
+  B.querySelectorAll('[data-lang]').forEach(x=>x.onclick=()=>{tog(d.langs,x.dataset.lang);x.setAttribute('aria-pressed',d.langs.includes(x.dataset.lang)?'true':'false');});
+  B.querySelectorAll('[data-size]').forEach(x=>x.onclick=()=>{d.size=d.size===x.dataset.size?'':x.dataset.size;B.querySelectorAll('[data-size]').forEach(y=>{const on=y.dataset.size===d.size;y.setAttribute('aria-checked',on?'true':'false');y.tabIndex=on||(!d.size&&y===B.querySelector('[data-size]'))?0:-1;});});
+  [['#pfCompany','company'],['#pfCity','city']].forEach(([s,k])=>{const i=B.querySelector(s);if(i)i.oninput=()=>{d[k]=i.value;};});
+  const cs=B.querySelector('#pfCountry');if(cs)cs.onchange=()=>{d.country=cs.value;};
+  const q=B.querySelector('#pfSecQ');if(q){q.oninput=()=>{const f=fold(q.value).trim();let n=0;B.querySelectorAll('[data-sec]').forEach(x=>{const show=!f||f.split(/\s+/).every(w=>x.dataset.q.includes(w))||d.sectors.includes(x.dataset.sec);x.classList.toggle('hidden',!show);if(show)n++;});$('#pfSecNone').classList.toggle('hidden',n>0);};q.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();const f=B.querySelector('[data-sec]:not(.hidden)');if(f&&q.value.trim())f.click();}};}
+  B.querySelectorAll('[data-try]').forEach(x=>x.onclick=()=>{closeWiz();openAgent(x.dataset.try);});
+  B.querySelectorAll('[data-go]').forEach(x=>x.onclick=()=>{closeWiz();go(x.dataset.go);});
+  const r=B.querySelector('#pfRetry');if(r)r.onclick=async()=>{PW.busy=true;PW.err='';pwRender();try{await pwSave();}catch(e){PW.err=e.message||'Speichern fehlgeschlagen';}PW.busy=false;pwRender();};}
+$('#pfNext').onclick=()=>pwNext(false);$('#pfSkip').onclick=()=>pwNext(true);$('#pfBack').onclick=pwBackStep;$('#pfLater').onclick=pwLater;
+$('#profBtn').onclick=()=>openWiz(true);
+$('#pfWiz').addEventListener('click',e=>{if(e.target===e.currentTarget)pwLater();});
+$('#pfWiz').addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();pwLater();return;}
+  if(e.key==='Tab'){const f=[...$('#pfWiz').querySelectorAll('button,a[href],input,select')].filter(x=>!x.disabled&&x.tabIndex>=0&&x.offsetParent!==null);if(!f.length)return;const a=f[0],z=f[f.length-1];
+    if(e.shiftKey&&(document.activeElement===a||!$('#pfWiz').contains(document.activeElement)||document.activeElement.id==='pfTitle')){e.preventDefault();z.focus();}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus();}return;}
+  const rg=e.target.closest&&e.target.closest('[role=radiogroup]');
+  if(rg&&/^Arrow(Left|Right|Up|Down)$/.test(e.key)){const r=[...rg.querySelectorAll('[role=radio]')];let i=r.indexOf(e.target);if(i<0)return;e.preventDefault();i=(i+(/Right|Down/.test(e.key)?1:-1)+r.length)%r.length;r[i].focus();if(r[i].getAttribute('aria-checked')!=='true')r[i].click();return;}
+  if(e.key==='Enter'&&e.target.matches&&e.target.matches('#pfCompany,#pfCity')){e.preventDefault();pwNext(false);}});
+
 /* ===== Agenten ===== */
 let filter='all';
-function renderAgents(){const f=$('#agFilter');const F=[['all','Alle'],['mine','Meine'],['beruf','Berufsgruppen'],['agent','Agenten'],['privat','Für dich privat'],['abo','Content-Pakete']];f.innerHTML=F.map(([k,l])=>`<span class="chip${filter===k?' on':''}" style="${filter===k?'background:var(--ink);color:#fff;border-color:var(--ink)':''}" onclick="filter='${k}';renderAgents()">${l}</span>`).join('');
+function renderAgents(){const f=$('#agFilter');const REC=profPlans();if(filter==='rec'&&!REC.length)filter='all';const F=[['all','Alle'],...(REC.length?[['rec','✦ Für dich']]:[]),['mine','Meine'],['beruf','Berufsgruppen'],['agent','Agenten'],['privat','Für dich privat'],['abo','Content-Pakete']];f.innerHTML=F.map(([k,l])=>`<span class="chip${filter===k?' on':''}" style="${filter===k?'background:var(--ink);color:#fff;border-color:var(--ink)':''}" onclick="filter='${k}';renderAgents()">${l}</span>`).join('');
   const BERUF=['inkasso','kanzlei','steuer','versicherung','hausverwaltung','automotive','praxis','service'];
   let list=PLANS.filter(p=>p.kind!=='buy');
-  if(filter==='mine')list=list.filter(p=>active(p.id));if(filter==='beruf')list=list.filter(p=>BERUF.includes(p.sector)&&p.kind==='agent');if(filter==='agent')list=list.filter(p=>p.kind==='agent');if(filter==='abo')list=list.filter(p=>p.kind==='abo'&&p.sector!=='privat');if(filter==='privat')list=list.filter(p=>p.sector==='privat');
-  list.sort((a,b)=>(active(b.id)-active(a.id))||(BERUF.includes(b.sector)-BERUF.includes(a.sector)));
-  $('#agGrid').innerHTML=list.map(p=>`<div class="card ag" onclick="openAgent('${p.id}')"><div class="row" style="justify-content:space-between"><div class="ic">${ICON[p.sector]||'✦'}</div>${active(p.id)?'<span class="tag ok">Aktiv</span>':'<span class="tag">Testen mit Tokens</span>'}</div><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><div class="pr">${p.eur_month.toLocaleString('de-DE')} €/Monat · ${de(p.tokens_month)} Tokens</div><div style="margin-top:6px">${chChips(p.channels)}</div></div>`).join('');}
+  if(filter==='rec')list=list.filter(p=>REC.includes(p.id));if(filter==='mine')list=list.filter(p=>active(p.id));if(filter==='beruf')list=list.filter(p=>BERUF.includes(p.sector)&&p.kind==='agent');if(filter==='agent')list=list.filter(p=>p.kind==='agent');if(filter==='abo')list=list.filter(p=>p.kind==='abo'&&p.sector!=='privat');if(filter==='privat')list=list.filter(p=>p.sector==='privat');
+  /* Reihenfolge: aktiv → passend zum Profil (Branche + Bedarf) → Berufsgruppen */
+  const rk=id=>{const i=REC.indexOf(id);return i<0?99:i;};
+  list.sort((a,b)=>(active(b.id)-active(a.id))||(rk(a.id)-rk(b.id))||(BERUF.includes(b.sector)-BERUF.includes(a.sector)));
+  $('#agGrid').innerHTML=list.map(p=>`<div class="card ag" onclick="openAgent('${p.id}')"><div class="row" style="justify-content:space-between"><div class="ic">${ICON[p.sector]||'✦'}</div>${active(p.id)?'<span class="tag ok">Aktiv</span>':REC.includes(p.id)?'<span class="tag gold">Empfohlen für dich</span>':'<span class="tag">Testen mit Tokens</span>'}</div><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><div class="pr">${p.eur_month.toLocaleString('de-DE')} €/Monat · ${de(p.tokens_month)} Tokens</div><div style="margin-top:6px">${chChips(p.channels)}</div></div>`).join('');}
 function showList(){$('#agWork').classList.add('hidden');$('#agList').classList.remove('hidden');CUR=null;}
 async function openAgent(id){const p=planOf(id);if(!p)return;CUR=p;focusAdd(p.id);applyNav();HIST=[];$('#agList').classList.add('hidden');$('#agWork').classList.remove('hidden');go('agents');
   $('#wName').textContent=p.name;$('#wDesc').textContent=p.desc;$('#wStatus').textContent=active(id)?'Aktiv · freigeschaltet':'Studio-Test · '+ME.pricing.agent_turn+' Tokens je Antwort';$('#wStatus').className='tag '+(active(id)?'ok':'');

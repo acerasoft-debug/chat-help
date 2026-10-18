@@ -8,6 +8,7 @@
  *        /v1/categories?cur=USD&lang=en · /v1/pricing?cur=TRY               → zusätzlich „local“-Anzeigepreise + display_currency (EUR-Felder unverändert)
  *   GET  /v1/billing · GET /v1/usage?month=YYYY-MM · POST /v1/connections/ai-test {provider}   → Lizenzen/Betrieb, Kostenübersicht, Schlüssel-Test (Studio)
  *   GET  /chat/tokens-api.php/v1/me                                        → hesap, bakiye, aktif paketler/agentler, son kullanım
+ *   GET|POST /v1/profile {kind,company,sectors[],size,city,country,needs[],langs[]} | {dismissed:true} → Konto-Profil + Empfehlungen (profile-lib)
  *   GET  /chat/tokens-api.php/v1/balance                                   → bakiye + son kullanım
  *   POST /chat/tokens-api.php/v1/generate   {task, sector, input, lang}    → metin üretimi (post/script/widerspruch/...)
  *   POST /chat/tokens-api.php/v1/translate  {text, target[], lang}         → çeviri
@@ -26,6 +27,7 @@ require_once __DIR__.'/plans.php';
 require_once __DIR__.'/appt-lib.php';
 require_once __DIR__.'/order-lib.php';
 require_once __DIR__.'/agent-tools.php';   // Werkzeug-Register + Fachmodule (Taxi, Hotel, Rückruf, Training)
+require_once __DIR__.'/profile-lib.php';   // Konto-Profil aus der Registrierung (Branche, Bedarf, Sprachen) + Empfehlungen
 header('Access-Control-Allow-Origin: *'); header('Access-Control-Allow-Headers: Authorization, Content-Type'); header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 if($_SERVER['REQUEST_METHOD']==='OPTIONS'){ http_response_code(204); exit; }
 th_bootstrap();
@@ -154,6 +156,15 @@ switch(true){
     th_json(200,['email'=>$acc['email'],'balance'=>th_balance_ledger($aid),'byok'=>['active'=>$byok['active'],'alert'=>$byok['alert'] ?? null],'channels'=>ch_account_channels($aid),'plans'=>$plans,'configs'=>$cf->fetchAll(PDO::FETCH_ASSOC),'trial'=>(int)$tr->fetchColumn()>0,
       'pricing'=>['agent_turn'=>PRICING['agent_turn'],'widget_turn'=>PRICING['widget_turn'],'phone_turn'=>PRICING['phone_turn']],
       'recent'=>array_map(fn($x)=>['created_at'=>th_dbiso($x['created_at'])]+$x,$u->fetchAll(PDO::FETCH_ASSOC)),'sectors'=>array_map(fn($k,$v)=>['id'=>$k,'name'=>$v['name']],array_keys(SECTORS),SECTORS)]);
+
+  /* ---- Konto-Profil (Registrierungs-Assistent): Betrieb/privat, Branchen, Bedarf, Sprachen → Empfehlungen + Studio-Bereiche ---- */
+  case $r==='profile' && $m==='GET':
+    th_json(200,profile_response($aid));
+  case $r==='profile' && $m==='POST':
+    if(!th_rate('profile:'.$aid,60,3600)) th_json(429,['error'=>'rate_limited','message'=>'Bitte kurz warten und erneut speichern.']);
+    if(empty($b['dismissed']) && !array_intersect(array_keys($b),['kind','company','sectors','size','city','country','needs','langs'])) th_json(400,['error'=>'profile_fields_required','message'=>'Keine Profilangaben übermittelt.']);   // kaputter/leerer Body löscht kein vorhandenes Profil
+    $pr=profile_save($aid,$b,!empty($b['dismissed']));
+    th_json(200,['ok'=>true]+profile_response($aid,$pr));
 
   /* ---- Telefon-Agent: Anrufliste mit Transkripten ---- */
   case $r==='phone/calls' && $m==='GET':
@@ -311,5 +322,5 @@ switch(true){
       'phone_webhook'=>'https://chat-help.com/chat/phone-webhook.php?key='.$c['widget_key']]);
 
   default:
-    th_json(404,['error'=>'not_found','routes'=>['GET /v1/sectors','GET /v1/categories','GET /v1/pricing','GET /v1/billing','GET /v1/usage','POST /v1/connections/ai-test','POST /v1/auth/request','POST /v1/auth/verify','GET /v1/me','GET /v1/balance','POST /v1/generate','POST /v1/translate','POST /v1/subtitles','POST /v1/agent','GET|POST /v1/agent/config','GET /v1/phone/calls','GET|POST /v1/appt/settings','GET /v1/appt/slots','GET /v1/appt/bookings','POST /v1/appt/book|cancel|status','GET|POST /v1/order/settings','POST /v1/order/menu','POST /v1/order/drivers','GET /v1/order/check','GET /v1/order/orders','POST /v1/order/create|status']]);
+    th_json(404,['error'=>'not_found','routes'=>['GET /v1/sectors','GET /v1/categories','GET /v1/pricing','GET /v1/billing','GET /v1/usage','POST /v1/connections/ai-test','POST /v1/auth/request','POST /v1/auth/verify','GET /v1/me','GET|POST /v1/profile','GET /v1/balance','POST /v1/generate','POST /v1/translate','POST /v1/subtitles','POST /v1/agent','GET|POST /v1/agent/config','GET /v1/phone/calls','GET|POST /v1/appt/settings','GET /v1/appt/slots','GET /v1/appt/bookings','POST /v1/appt/book|cancel|status','GET|POST /v1/order/settings','POST /v1/order/menu','POST /v1/order/drivers','GET /v1/order/check','GET /v1/order/orders','POST /v1/order/create|status']]);
 }

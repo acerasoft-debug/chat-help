@@ -20,6 +20,7 @@ require_once __DIR__.'/appt-lib.php';
 require_once __DIR__.'/order-lib.php';
 require_once __DIR__.'/agent-tools.php';   // ch_plan_active_any, Fachmodule (Taxi, Hotel, Rückruf, Training) – bereits geladen, wenn agent-tools uns einbindet
 if(is_file(__DIR__.'/speech-lib.php')) require_once __DIR__.'/speech-lib.php';
+if(is_file(__DIR__.'/profile-lib.php')) require_once __DIR__.'/profile-lib.php';   // Registrierungs-Profil (ch_profile_brief) als kurzer Kontext
 
 const ASSISTANT_COST_TURN = 6;          // Tokens je Antwort
 const ASSISTANT_COST_TOOL = 2;          // + je Werkzeugaufruf
@@ -846,6 +847,7 @@ function assistant_system(int $acc, array $pr, array $ov, array $items, int $pro
     $s.="\n7. Grenzen: Du kannst keine Zahlungen auslösen, keine Pläne kaufen und keine Telefonnummern schalten. Für einen Agenten empfiehlst du mit recommend_agent den passenden Plan (Preis + Link im Chat, nie vorlesen). Eine eigene Rufnummer richtet support@chat-help.com ein. Keine Rechts- oder Steuerberatung.";
     $s.="\n8. Tabs: Will der Inhaber etwas selbst sehen oder bearbeiten, öffne mit open_studio_tab den passenden Bereich (".implode(', ',assistant_tabs_available()).').';
     $s.="\n\nKONTO-ÜBERBLICK (live)\n".assistant_overview_text($ov);
+    $pb=function_exists('ch_profile_brief') ? ch_profile_brief($acc) : ''; if($pb!=='') $s.="\nProfil aus der Registrierung (vom Inhaber angegeben, nicht erneut erfragen): ".$pb;
     $s.="\n\nWAS DU SCHON WEISST (Gedächtnis)\n".($mem ? '- '.implode("\n- ",array_map(fn($m)=>$m['topic'].': '.$m['fact'],array_slice($mem,0,80))) : '- noch nichts – lerne den Betrieb kennen.');
     $s.="\n\nCHECKLISTE (".$progress." % erledigt)";
     foreach($items as $i) $s.="\n[".($i['done'] ? 'x' : ' ').'] '.$i['label'].($i['done'] ? '' : ' – '.$i['hint']);
