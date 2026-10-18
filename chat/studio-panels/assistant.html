@@ -1,5 +1,9 @@
 <style>
-/* Persönlicher Assistent – alle Regeln auf #panel-assistant begrenzt (keine globalen Stile); Keyframes mit Präfix „as“ */
+/* Persönlicher Assistent – bewusste, abgesprochene Ausnahme vom Panel-Vertrag („nur Studio-Klassen“): Porträt-Animationen, Drawer, Hover- und
+   Media-Query-Regeln lassen sich nicht als Inline-Stile schreiben. Deshalb ein eigener Block – ausschließlich auf #panel-assistant begrenzt,
+   keine globalen Selektoren, Keyframes mit Präfix „as“, Farben aus den Studio-Variablen. */
+#panel-assistant .as-ml{width:150px;flex:0 0 auto;height:32px;padding:4px 24px 4px 10px;border-radius:10px;font-size:12.5px;margin:0;text-overflow:ellipsis}
+#panel-assistant .as-warn{color:#8a5a00 !important}
 #panel-assistant .as-grid{display:grid;grid-template-columns:292px minmax(0,1fr) 300px;gap:18px;align-items:start}
 #panel-assistant .as-left{position:sticky;top:118px}
 #panel-assistant .as-pcard{padding:16px 16px 18px;overflow:visible}
@@ -168,6 +172,8 @@
   #panel-assistant .as-vc{grid-template-columns:1fr}
   #panel-assistant .as-head .mute{display:none}
   #panel-assistant .as-head b{flex:1}
+  #panel-assistant .as-ml{width:112px;font-size:12px;padding:4px 20px 4px 8px}
+  #panel-assistant .as-head{padding:12px 12px;gap:8px}
   #panel-assistant .as-titlerow .tag{display:none}
   #panel-assistant .as-titlerow h2{font-size:22px !important}
   #panel-assistant .as-titlerow p{font-size:14px}
@@ -205,12 +211,12 @@
         </div>
       </div>
       <div class="as-vinfo" id="asVoiceInfo"></div>
-      <div class="as-tip hidden" id="asTip">Tipp: Unter <b>Anpassen</b> legst du Aussehen, Stimme und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.</div>
+      <div class="as-tip hidden" id="asTip">Tipp: Unter <b>Anpassen</b> legst du Aussehen, Stimme, Sprache und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.</div>
     </div>
   </aside>
 
   <section class="card as-chat" aria-label="Gespräch mit dem Assistenten">
-    <div class="as-head"><b>Gespräch</b><span class="mute small" id="asHeadInfo">Ich ändere nichts, ohne dich vorher zu fragen.</span><button class="btn ghost s" type="button" id="asReset" title="Verlauf leeren – das Gedächtnis bleibt">Neu beginnen</button></div>
+    <div class="as-head"><b>Gespräch</b><span class="mute small" id="asHeadInfo">Ich ändere nichts, ohne dich vorher zu fragen.</span><select class="as-ml" id="asMicLang" aria-label="Sprache der Spracheingabe" title="Sprache der Spracheingabe"><option value="auto">Auto</option></select><button class="btn ghost s" type="button" id="asReset" title="Verlauf leeren – das Gedächtnis bleibt">Neu beginnen</button></div>
     <div class="as-msgs" id="asMsgs" aria-live="polite" aria-relevant="additions"></div>
     <div class="as-foot">
       <div class="as-sg" id="asSugg"></div>
@@ -246,14 +252,14 @@
     <div class="as-sh-b">
       <label for="asFName">Name</label>
       <input type="text" id="asFName" maxlength="30" autocomplete="off" spellcheck="false" placeholder="z. B. Lea">
-      <label>Wer soll dich begleiten?</label>
+      <label id="asFGenderL">Wer soll dich begleiten?</label>
       <div class="as-seg" id="asFGender" role="group" aria-label="Frau oder Mann"><button type="button" data-v="f">Frau</button><button type="button" data-v="m">Mann</button></div>
 
       <h4>Porträt</h4>
       <div class="as-pg" id="asFPortraits"></div>
       <input type="file" id="asFFile" accept="image/jpeg,image/png,image/webp" class="hidden">
       <div class="row" style="margin-top:8px"><button class="btn ghost s hidden" type="button" id="asFPhotoRm">Eigenes Foto entfernen</button></div>
-      <div class="as-consent">📷 Eigenes Foto: JPEG, PNG oder WebP – wird im Browser auf 512 px verkleinert. <b>Nur Fotos verwenden, für die du die Rechte hast.</b></div>
+      <div class="as-consent">📷 Eigenes Foto: JPEG, PNG oder WebP – wird im Browser auf 512 px verkleinert. <b id="asFRights">Nur Fotos verwenden, für die du die Rechte hast.</b></div>
       <div class="mute small" style="margin-top:4px" id="asFCredit">Die Studio-Porträts sind synthetisch erzeugte Gesichter (StyleGAN2) – keine realen Personen.</div>
 
       <h4>Stimme</h4>
@@ -276,8 +282,8 @@
       <label>Antwortlänge</label>
       <div class="as-seg" id="asFDetail" role="group" aria-label="Antwortlänge"><button type="button" data-v="kurz">Kurz &amp; knapp</button><button type="button" data-v="ausführlich">Ausführlich</button></div>
       <label for="asFLang">Sprache</label>
-      <select id="asFLang"><option value="de">Deutsch</option><option value="en">English</option><option value="tr">Türkçe</option><option value="fr">Français</option><option value="es">Español</option><option value="it">Italiano</option><option value="nl">Nederlands</option><option value="pl">Polski</option><option value="ru">Русский</option></select>
-      <div class="mute small" style="margin-top:6px">Schreibst du in einer anderen Sprache, antwortet der Assistent automatisch darin.</div>
+      <select id="asFLang"><option value="de">Deutsch</option><option value="en">English · Englisch</option><option value="fr">Français · Französisch</option><option value="es">Español · Spanisch</option><option value="tr">Türkçe · Türkisch</option><option value="ru">Русский · Russisch</option><option value="it">Italiano · Italienisch</option><option value="nl">Nederlands · Niederländisch</option><option value="sv">Svenska · Schwedisch</option><option value="no">Norsk · Norwegisch</option><option value="fi">Suomi · Finnisch</option><option value="ja">日本語 · Japanisch</option><option value="az">Azərbaycanca · Aserbaidschanisch</option></select>
+      <div class="mute small" style="margin-top:6px" id="asFLangHint">Schreibst oder sprichst du in einer anderen Sprache, antwortet der Assistent automatisch darin – in allen 13 Sprachen.</div>
       <div id="asFMsg"></div>
     </div>
     <div class="as-sh-f"><button class="btn" type="button" id="asFCancel">Abbrechen</button><button class="btn p" type="button" id="asFSave">Speichern</button></div>

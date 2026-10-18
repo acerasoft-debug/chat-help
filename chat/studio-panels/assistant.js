@@ -18,7 +18,12 @@
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* privater Modus */ } }
   };
   var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  var LANG_TAG = { de: 'de-DE', en: 'en-US', tr: 'tr-TR', fr: 'fr-FR', es: 'es-ES', it: 'it-IT', nl: 'nl-NL', pl: 'pl-PL', ru: 'ru-RU' };
+  /* 13 Sprachen – Ersatz, bis /assistant/profile die Tabelle aus assistant-lib (langs) liefert */
+  var LANGS = [['de', 'Deutsch', 'Deutsch', 'de-DE'], ['en', 'Englisch', 'English', 'en-GB'], ['fr', 'Französisch', 'Français', 'fr-FR'], ['es', 'Spanisch', 'Español', 'es-ES'],
+    ['tr', 'Türkisch', 'Türkçe', 'tr-TR'], ['ru', 'Russisch', 'Русский', 'ru-RU'], ['it', 'Italienisch', 'Italiano', 'it-IT'], ['nl', 'Niederländisch', 'Nederlands', 'nl-NL'],
+    ['sv', 'Schwedisch', 'Svenska', 'sv-SE'], ['no', 'Norwegisch', 'Norsk', 'nb-NO'], ['fi', 'Finnisch', 'Suomi', 'fi-FI'], ['ja', 'Japanisch', '日本語', 'ja-JP'],
+    ['az', 'Aserbaidschanisch', 'Azərbaycanca', 'az-AZ']].map(function (x) { return { code: x[0], name: x[1], native: x[2], tag: x[3], preview: null }; });
+  var LANG_TAG = {}; LANGS.forEach(function (l) { LANG_TAG[l.code] = l.tag; });
   var TABN = { home: 'Übersicht', agents: 'Agenten', training: 'Training', phone: 'Telefon', rueckruf: 'Rückrufe', termine: 'Termine', bestellungen: 'Bestellungen',
     taxi: 'Taxi', hotel: 'Hotel', benachrichtigungen: 'Benachrichtigungen', tokens: 'Tokens & API' };
   var STATUS = { idle: 'bereit', listening: 'hört zu…', thinking: 'denkt…', speaking: 'spricht…' };
@@ -26,15 +31,26 @@
   var CHECK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   var SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 
-  var PROF = null, PORTRAITS = [], VOICES = [], TTS = false, PHOTO_MAX = 358400, COST = { turn: 6, tool: 2 };
+  var PROF = null, PORTRAITS = [], VOICES = [], TTS = false, TTS_LANGS = [], TOOLS = true, PHOTO_MAX = 358400, COST = { turn: 6, tool: 2 };
   var HIST = [], busy = false, bound = false, lastLoad = 0, state = 'idle';
   var voiceOn = LS.get('ch_as_voice') === '1', micUsed = false, lastViaVoice = false;
+  var micLangPick = LS.get('ch_as_miclang') || 'auto';
   var imgCache = {};
 
   /* ======================================================================= Hilfen */
   function isSie() { return !!PROF && PROF.personality && PROF.personality.address === 'sie'; }
   function fem(p) { return (p || PROF || {}).gender !== 'm'; }
-  function lang() { return (PROF && LANG_TAG[PROF.lang]) || 'de-DE'; }
+  function normLang(c) { c = String(c || '').toLowerCase().slice(0, 2); return c === 'nb' || c === 'nn' ? 'no' : c; }
+  function tagOf(code) { return LANG_TAG[normLang(code)] || LANG_TAG[(PROF && PROF.lang) || 'de'] || 'de-DE'; }
+  function lang() { return tagOf(PROF && PROF.lang); }
+  /** Sprache des Gesprächs: Sprache der letzten Antwort (vom Server erkannt), sonst die Profilsprache. */
+  function convLang() {
+    for (var i = HIST.length - 1; i >= 0; i--) { if (HIST[i].role === 'assistant' && HIST[i].lang && LANG_TAG[HIST[i].lang]) return HIST[i].lang; }
+    return (PROF && PROF.lang) || 'de';
+  }
+  /** Spracheingabe: gewählte Sprache oder „Auto“ = Sprache des Gesprächs. */
+  function micLang() { return micLangPick !== 'auto' && LANG_TAG[micLangPick] ? micLangPick : convLang(); }
+  function T(du, sie) { return isSie() ? sie : du; }
   function note(html, kind) { msg(g('asNote'), html, kind); if (html && kind !== 'err') { setTimeout(function () { if (g('asNote')) msg(g('asNote'), ''); }, 4500); } }
   function setBalance(b) {
     if (typeof b !== 'number') return;
@@ -72,7 +88,7 @@
   function sentences(t) {
     t = String(t || '').replace(/https?:\/\/\S+/g, '').replace(/\*\*|__|`/g, '').replace(/^\s*[-•*]\s+/gm, '')
       .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, ' ').replace(/\s+/g, ' ').trim();
-    var parts = t.match(/[^.!?…]+(?:[.!?…]+|$)/g) || [], out = [];
+    var parts = t.match(/[^.!?…。！？]+(?:[.!?…。！？]+|$)/g) || [], out = [];
     parts.forEach(function (p) {
       p = p.trim();
       while (p.length > 380) { var cut = p.lastIndexOf(', ', 380); if (cut < 60) cut = p.lastIndexOf(' ', 380); if (cut < 30) cut = 380; out.push(p.slice(0, cut + 1).trim()); p = p.slice(cut + 1).trim(); }
@@ -90,7 +106,7 @@
   }
 
   /* ======================================================================= Sprachausgabe */
-  var SPK = { gen: 0, el: null, url: null, serverOk: true, vlist: [] };
+  var SPK = { gen: 0, el: null, url: null, serverOk: true, noLang: {} };
   function audioEl() { if (!SPK.el) { SPK.el = new Audio(); SPK.el.preload = 'auto'; } return SPK.el; }
   /** Im Klick-Handler aufrufen: entsperrt Audio (Safari/iOS) und die Browserstimme. */
   function unlockAudio() {
@@ -122,15 +138,16 @@
     return f && !m ? 'f' : (m && !f ? 'm' : '');
   }
   /** Beste Browserstimme: Sprache passend, Geschlecht passend, Natural/Online/Neural/Premium/Enhanced/Google bevorzugt, Wunschnamen der Voreinstellung zuerst. */
-  function pickVoice(gender, presetId) {
+  function pickVoice(gender, presetId, tag) {
     if (!window.speechSynthesis) return null;
-    var all = speechSynthesis.getVoices() || [], l2 = lang().slice(0, 2).toLowerCase(), pre = presetOf(presetId, gender), want = (pre && pre.browser) || [];
+    tag = tag || lang();
+    var all = speechSynthesis.getVoices() || [], l2 = normLang(tag), pre = presetOf(presetId, gender), want = l2 === 'de' ? ((pre && pre.browser) || []) : [];   // Wunschnamen sind deutsche Stimmen
     var best = null, bestS = -1e9;
     all.forEach(function (v) {
       var vl = String(v.lang || '').toLowerCase().replace('_', '-');
-      if (vl.slice(0, 2) !== l2) return;
+      if (normLang(vl) !== l2) return;
       var n = String(v.name || ''), s = 0, vg = voiceGender(n);
-      if (vl === lang().toLowerCase()) s += 6;
+      if (vl === tag.toLowerCase()) s += 6;
       if (vg === gender) s += 40; else if (vg) s -= 120;
       want.forEach(function (w, i) { if (n.toLowerCase().indexOf(String(w).toLowerCase()) >= 0) s += 30 - i * 3; });
       if (/natural/i.test(n)) s += 34; if (/online/i.test(n)) s += 12; if (/neural/i.test(n)) s += 26;
@@ -140,75 +157,88 @@
     });
     return best;
   }
-  function browserParams(over) {
+  function browserParams(over, tag) {
     var gender = (over && over.gender) || PROF.gender, pid = (over && over.preset) || (PROF.voice && PROF.voice.preset), pre = presetOf(pid, gender) || {};
     var rate = Number((over && over.rate) || (PROF.voice && PROF.voice.rate) || 1) * Number(pre.rate || 1);
     var pitch = Number((over && over.pitch) || (PROF.voice && PROF.voice.pitch) || 1) * Number(pre.pitch || 1);
-    return { voice: pickVoice(gender, pid), rate: Math.max(0.6, Math.min(1.5, rate)), pitch: Math.max(0.5, Math.min(1.6, pitch)) };
+    return { voice: pickVoice(gender, pid, tag), rate: Math.max(0.6, Math.min(1.5, rate)), pitch: Math.max(0.5, Math.min(1.6, pitch)) };
   }
-  function speakBrowser(list, gen, done, over) {
+  function speakBrowser(list, gen, done, over, tag) {
     if (!window.speechSynthesis || !list.length) { done(); return; }
-    var p = browserParams(over), i = 0;
-    if (!p.voice && !speechSynthesis.getVoices().length) { /* Stimmen noch nicht geladen – Standardstimme mit Sprache */ }
+    tag = tag || lang();
+    var p = browserParams(over, tag), i = 0;
     function next() {
       if (gen !== SPK.gen) return;
       if (i >= list.length) { done(); return; }
       var u = new SpeechSynthesisUtterance(list[i++]);
-      u.lang = p.voice ? p.voice.lang : lang(); if (p.voice) u.voice = p.voice; u.rate = p.rate; u.pitch = p.pitch;
+      u.lang = p.voice ? p.voice.lang : tag; if (p.voice) u.voice = p.voice; u.rate = p.rate; u.pitch = p.pitch;   // ohne passende Stimme: Standardstimme der Sprache
       u.onend = function () { next(); };
       u.onerror = function (e) { if (e && (e.error === 'interrupted' || e.error === 'canceled')) return; next(); };
       speechSynthesis.speak(u);
     }
     next();
   }
-  function ttsFetch(text, over) {
-    var body = { text: text }; if (over) body.voice = over;
+  /** Server liest nur eigene Sätze vor: {mid,i} = Satz i der Assistenten-Nachricht mid, {preview} = Hörprobe (Text baut der Server). */
+  function ttsFetch(src, idx) {
+    var body = src.preview ? { preview: src.preview } : { mid: src.mid, i: idx };
     return fetch(API_BASE + '/assistant/speak?_=' + Date.now(), { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key() }, body: JSON.stringify(body) })
       .then(function (r) {
         var ct = r.headers.get('Content-Type') || '';
-        if (!r.ok || ct.indexOf('audio') < 0) { var e = new Error('tts ' + r.status); e.status = r.status; throw e; }
+        if (!r.ok || ct.indexOf('audio') < 0) {
+          var e = new Error('tts ' + r.status); e.status = r.status;
+          return r.json().catch(function () { return {}; }).then(function (d) { e.code = d && d.error; throw e; });
+        }
         return r.blob();
       });
   }
-  function speakServer(list, gen, done, over) {
-    var i = 0, pending = ttsFetch(list[0], over);
+  function speakServer(list, gen, done, src, over) {
+    var i = 0, tag = tagOf(src.lang), pending = ttsFetch(src, 0);
     pending.catch(function () {});
     function fail(e, from) {
       if (gen !== SPK.gen) return;
-      if (e && (e.status === 501 || e.status === 429 || e.status === 401)) SPK.serverOk = false;
-      speakBrowser(list.slice(from), gen, done, over);   // Rest mit der Browserstimme
+      if (e && e.code === 'tts_lang_unavailable') SPK.noLang[normLang(src.lang)] = true;   // nur diese Sprache über den Browser
+      else if (e && (e.status === 501 || e.status === 429 || e.status === 401 || e.status === 402)) SPK.serverOk = false;
+      speakBrowser(list.slice(from), gen, done, over, tag);   // Rest mit der Browserstimme
     }
     function step() {
       if (gen !== SPK.gen) return;
       if (i >= list.length) { done(); return; }
       var cur = pending, idx = i; i++;
-      pending = i < list.length ? ttsFetch(list[i], over) : null;
+      pending = i < list.length ? ttsFetch(src, i) : null;
       if (pending) pending.catch(function () {});
       cur.then(function (blob) {
         if (gen !== SPK.gen) return;
         var a = audioEl(); if (SPK.url) { try { URL.revokeObjectURL(SPK.url); } catch (e) { /* egal */ } }
         SPK.url = URL.createObjectURL(blob); a.src = SPK.url;
-        a.onended = function () { step(); };
-        a.onerror = function () { fail(null, idx); };
-        var p = a.play(); if (p && p.catch) p.catch(function () { fail(null, idx); });
+        var failed = false, once = function () { if (failed) return; failed = true; a.onended = null; a.onerror = null; fail(null, idx); };   // onerror UND play().catch → nur einmal
+        a.onended = function () { if (failed) return; failed = true; step(); };
+        a.onerror = once;
+        var p = a.play(); if (p && p.catch) p.catch(once);
       }, function (e) { fail(e, idx); });
     }
     step();
   }
-  /** Sätze vorlesen. onend läuft nur, wenn die Ausgabe nicht unterbrochen wurde. */
-  function speakList(list, onend, over) {
+  function serverCan(lng) { lng = normLang(lng); return TTS && SPK.serverOk && !SPK.noLang[lng] && (!TTS_LANGS.length || TTS_LANGS.indexOf(lng) >= 0); }
+  /**
+   * Sätze vorlesen. src = {mid, lang} (Antwort aus dem Verlauf) oder {preview:{…}, lang} (Hörprobe); ohne mid/preview nur Browserstimme.
+   * onend läuft nur, wenn die Ausgabe nicht unterbrochen wurde.
+   */
+  function speakList(list, onend, over, src) {
     stopSpeaking();
+    src = src || {};
     list = (list || []).filter(function (s) { return String(s).trim() !== ''; }).map(function (s) { return String(s).slice(0, 400); });
     if (!list.length) { if (onend) onend(); return; }
-    var gen = SPK.gen;
+    var gen = SPK.gen, lng = src.lang || convLang();
     setState('speaking');
     var done = function () { if (gen !== SPK.gen) return; setState('idle'); if (onend) onend(); };
-    if (TTS && SPK.serverOk) speakServer(list, gen, done, over); else speakBrowser(list, gen, done, over);
+    if ((src.mid || src.preview) && serverCan(lng)) speakServer(list, gen, done, { mid: src.mid, preview: src.preview, lang: lng }, over);
+    else speakBrowser(list, gen, done, over, tagOf(lng));
   }
+  function speakMsg(m, onend) { if (m) speakList(m.speech && m.speech.length ? m.speech : sentences(m.content), onend, null, { mid: m.speech && m.speech.length ? m.id : 0, lang: m.lang }); }
   function voiceInfo() {
     var el = g('asVoiceInfo'); if (!el || !PROF) return;
     var pre = presetOf(PROF.voice && PROF.voice.preset, PROF.gender);
-    if (TTS && SPK.serverOk) { el.textContent = 'Stimme: natürliche Studio-Stimme' + (pre ? ' · ' + pre.label : '') + (voiceOn ? '' : ' – zum Vorlesen „Stimme“ einschalten.'); return; }
+    if (serverCan(PROF.lang)) { el.textContent = 'Stimme: natürliche Studio-Stimme' + (pre ? ' · ' + pre.label : '') + (voiceOn ? '' : ' – zum Vorlesen „Stimme“ einschalten.'); return; }
     if (!window.speechSynthesis) { el.textContent = 'Dieser Browser kann nicht vorlesen – Antworten erscheinen als Text.'; return; }
     var v = pickVoice(PROF.gender, PROF.voice && PROF.voice.preset);
     el.textContent = v ? 'Browserstimme: ' + v.name.replace(/^Microsoft\s+/, '').replace(/\s*-\s*[^-]+$/, '') : 'Keine passende Browserstimme gefunden – Antworten erscheinen als Text.';
@@ -223,7 +253,7 @@
     stopSpeaking();
     var r; try { r = new SR(); } catch (e) { return; }
     REC.r = r; REC.final = ''; REC.sent = false;
-    r.lang = lang(); r.interimResults = true; r.continuous = false; r.maxAlternatives = 1;
+    r.lang = tagOf(micLang()); r.interimResults = true; r.continuous = false; r.maxAlternatives = 1;
     var input = g('asInput'), before = auto ? '' : input.value.trim();
     r.onresult = function (ev) {
       var interim = '';
@@ -233,6 +263,7 @@
     r.onerror = function (e) {
       if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { micUsed = false; note('Das Mikrofon ist blockiert – bitte in den Browser-Einstellungen für diese Seite erlauben.', 'err'); }
       else if (e.error === 'network') note('Die Spracherkennung braucht eine Internetverbindung.', 'err');
+      else if (e.error === 'language-not-supported') note('Diese Sprache kann der Browser nicht erkennen – bitte oben eine andere Sprache für die Spracheingabe wählen oder tippen.', 'err');
     };
     r.onend = function () {
       REC.on = false; micUi(false); if (state === 'listening') setState('idle');
@@ -268,7 +299,12 @@
     g('asTitle').textContent = PROF.role;
     var sie = isSie(), f = fem();
     g('asSub').textContent = (sie ? 'Erzählen Sie einfach, was erledigt werden soll – ' : 'Erzähl einfach, was erledigt werden soll – ') + PROF.name + ' fragt nach, was noch fehlt, merkt sich alles und richtet ' + (sie ? 'Ihre Agenten mit Ihnen' : 'deine Agenten mit dir') + ' ein.';
-    g('asHeadInfo').textContent = sie ? 'Ich ändere nichts, ohne Sie vorher zu fragen.' : 'Ich ändere nichts, ohne dich vorher zu fragen.';
+    g('asHeadInfo').textContent = !TOOLS ? T('Gerade kann ich nur beraten – Einstellungen trägst du im jeweiligen Bereich selbst ein.', 'Gerade kann ich nur beraten – Einstellungen tragen Sie im jeweiligen Bereich selbst ein.')
+      : (sie ? 'Ich ändere nichts, ohne Sie vorher zu fragen.' : 'Ich ändere nichts, ohne dich vorher zu fragen.');
+    g('asHeadInfo').classList.toggle('as-warn', !TOOLS);
+    g('asTip').innerHTML = T('Tipp: Unter <b>Anpassen</b> legst du Aussehen, Stimme, Sprache und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.',
+      'Tipp: Unter <b>Anpassen</b> legen Sie Aussehen, Stimme, Sprache und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.');
+    micLangUi();
     g('asMemTitle').textContent = sie ? 'Was ich über Sie weiß' : 'Was ich über dich weiß';
     g('asMemEmpty').textContent = sie ? 'Noch nichts – erzählen Sie mir von Ihrem Betrieb, ich merke mir das Wichtigste.' : 'Noch nichts – erzähl mir von deinem Betrieb, ich merke mir das Wichtigste.';
     g('asInput').placeholder = sie ? 'Sagen Sie mir, was ich erledigen soll …' : 'Erzähl mir, was ich erledigen soll …';
@@ -276,6 +312,24 @@
     var sec = document.querySelector('#' + PANEL + ' .as-chat'); if (sec) sec.setAttribute('aria-label', 'Gespräch mit ' + PROF.name + ' (' + (f ? 'Assistentin' : 'Assistent') + ')');
     document.querySelectorAll('#' + PANEL + ' .as-av').forEach(function (a) { a.src = url; });
     voiceBtn(); voiceInfo();
+  }
+  /** Auswahl „Sprache der Spracheingabe“ (Auto = Sprache des Gesprächs) und Sprachliste im Anpassen-Dialog aus derselben Tabelle. */
+  function langOptions(sel, withAuto) {
+    if (!sel) return;
+    var cur = sel.value;
+    var pre = withAuto ? '🎙 ' : '';
+    var cl = (LANGS.filter(function (l) { return l.code === convLang(); })[0]) || LANGS[0];
+    sel.innerHTML = (withAuto ? '<option value="auto">' + pre + 'Auto</option>' : '') +
+      LANGS.map(function (l) { return '<option value="' + h(l.code) + '">' + (withAuto ? pre + h(l.code.toUpperCase()) + ' · ' + h(l.native) : h(l.native) + (l.native !== l.name ? ' · ' + h(l.name) : '')) + '</option>'; }).join('');
+    if (cur && sel.querySelector('option[value="' + cur + '"]')) sel.value = cur;
+  }
+  function micLangUi() {
+    var sel = g('asMicLang'); if (!sel) return;
+    langOptions(sel, true);
+    sel.value = micLangPick !== 'auto' && LANG_TAG[micLangPick] ? micLangPick : 'auto';
+    var cl = ((LANGS.filter(function (l) { return l.code === convLang(); })[0]) || LANGS[0]);
+    sel.title = 'Sprache der Spracheingabe – Auto: ' + cl.name + ' (Sprache des Gesprächs)';
+    sel.setAttribute('aria-label', sel.title);
   }
   function voiceBtn() {
     var b = g('asVoiceBtn'); if (!b) return;
@@ -305,6 +359,7 @@
     var box = g('asMsgs'); if (!box) return;
     box.innerHTML = HIST.map(function (m, i) { return msgHtml(m, i, false); }).join('');
     box.scrollTop = box.scrollHeight;
+    micLangUi();   // „Auto · <Sprache des Gesprächs>“
   }
   function addMsg(m) {
     HIST.push(m);
@@ -367,11 +422,13 @@
     typing(true); setState('thinking');
     api('/assistant/chat', { method: 'POST', body: JSON.stringify({ message: text, voice: voiceOn }) }).then(function (j) {
       typing(false);
-      addMsg({ role: 'assistant', content: String(j.reply || ''), actions: j.actions || [] });
+      var am = { id: j.id, role: 'assistant', content: String(j.reply || ''), actions: j.actions || [], lang: j.lang || null, speech: j.speech || null };
+      addMsg(am); micLangUi();
+      if (typeof j.tools_ready === 'boolean' && j.tools_ready !== TOOLS) { TOOLS = j.tools_ready; applyProfile(); }
       applyState(j);
       var acts = j.actions || [];
       if (voiceOn && j.speech && j.speech.length) {
-        speakList(j.speech, function () {
+        speakMsg(am, function () {
           runOpens(acts);
           if (voiceOn && micUsed && lastViaVoice && SR && visible() && !document.hidden && !acts.some(function (a) { return a.open; })) setTimeout(function () { if (!busy && !speaking()) startListen(true); }, 250);
         });
@@ -380,7 +437,7 @@
       typing(false); setState('idle');
       var d = (e && e.data) || {};
       if (e && e.status === 402) {
-        sysMsg(h(d.message || 'Dein Guthaben reicht nicht für eine Antwort.') + ' <a href="/#preise" target="_blank" rel="noopener">Tokens kaufen</a>', true);
+        sysMsg(h(d.message || T('Dein', 'Ihr') + ' Guthaben reicht nicht für eine Antwort.') + ' <a href="/#preise" target="_blank" rel="noopener">Tokens kaufen</a>', true);
         if (typeof d.balance === 'number') setBalance(d.balance);
       } else if (e && e.status === 503) {
         sysMsg(h(d.message || 'Ich bin gerade nicht erreichbar – bitte gleich noch einmal versuchen.'), true);
@@ -401,13 +458,22 @@
     return Promise.all(jobs).then(function (r) {
       if (r[1]) takeProfile(r[1]);
       var st = r[0];
-      HIST = (st.history || []).map(function (m) { return { role: m.role, content: m.content, actions: m.actions || [], greeting: !!m.greeting }; });
-      applyProfile(); renderHistory(); applyState(st);
+      HIST = histFrom(st);
+      applyProfile(); renderHistory(); applyState(st); micLangUi();
+      if (!TOOLS) sysMsg(h(T('Hinweis: Das automatische Einrichten ist gerade nicht verfügbar. Ich kann dich beraten und Texte vorschlagen – eintragen musst du sie im jeweiligen Bereich selbst.',
+        'Hinweis: Das automatische Einrichten ist gerade nicht verfügbar. Ich kann Sie beraten und Texte vorschlagen – eintragen müssen Sie sie im jeweiligen Bereich selbst.')));
       lastLoad = Date.now();
     });
   }
+  function histFrom(st) {
+    return (st.history || []).map(function (m) { return { id: m.id, role: m.role, content: m.content, actions: m.actions || [], greeting: !!m.greeting, lang: m.lang || null, speech: m.speech || null }; });
+  }
   function takeProfile(j) {
     PROF = j.profile; PORTRAITS = j.portraits || []; VOICES = j.voices || []; TTS = !!j.tts; if (j.photo_max) PHOTO_MAX = j.photo_max;
+    if (j.tts_langs) TTS_LANGS = j.tts_langs.map(normLang);
+    if (typeof j.tools_ready === 'boolean') TOOLS = j.tools_ready;
+    if (j.langs && j.langs.length) { LANGS = j.langs; LANG_TAG = {}; LANGS.forEach(function (l) { LANG_TAG[l.code] = l.tag; }); }
+    langOptions(g('asFLang'), false);
   }
 
   /* ======================================================================= Anpassen (Drawer) */
@@ -440,7 +506,11 @@
     g('asFRate').value = String(D.voice.rate); g('asFRateO').textContent = fx(D.voice.rate);
     g('asFPitch').value = String(D.voice.pitch); g('asFPitchO').textContent = fx(D.voice.pitch);
     g('asFLang').value = D.lang;
-    g('asFPrevInfo').textContent = TTS && SPK.serverOk ? 'natürliche Studio-Stimme' : (window.speechSynthesis ? 'Browserstimme' : 'Vorlesen nicht verfügbar');
+    g('asFPrevInfo').textContent = serverCan(D.lang) ? 'natürliche Studio-Stimme' : (window.speechSynthesis ? 'Browserstimme' : 'Vorlesen nicht verfügbar');
+    var sie = D.personality.address === 'sie';
+    g('asFGenderL').textContent = sie ? 'Wer soll Sie begleiten?' : 'Wer soll dich begleiten?';
+    g('asFRights').textContent = sie ? 'Nur Fotos verwenden, für die Sie die Rechte haben.' : 'Nur Fotos verwenden, für die du die Rechte hast.';
+    g('asFLangHint').textContent = (sie ? 'Schreiben oder sprechen Sie' : 'Schreibst oder sprichst du') + ' in einer anderen Sprache, antwortet ' + (f ? 'die Assistentin' : 'der Assistent') + ' automatisch darin – in allen ' + LANGS.length + ' Sprachen.';
   }
   function openDrawer() {
     if (!PROF) return;
@@ -478,7 +548,8 @@
       var first = PORTRAITS.filter(function (p) { return p.gender === gd; })[0];
       if (first) { if (D.autoName && oldP && (D.name === oldP.label || D.name === 'Lea')) { D.name = first.label; g('asFName').value = D.name; } D.portrait = first.id; }
     }
-    var pre = presetOf(D.voice.preset, gd); if (!pre || pre.gender !== gd) D.voice.preset = toneToPreset(gd, D.voice.tone);
+    var cur = VOICES.filter(function (v) { return v.id === D.voice.preset; })[0];   // exakt nachschlagen – presetOf fiele auf die erste Stimme des neuen Geschlechts zurück
+    if (!cur || cur.gender !== gd) D.voice.preset = toneToPreset(gd, D.voice.tone);
     drawDrawer();
   }
   function pickPortrait(id) {
@@ -516,12 +587,15 @@
   function preview() {
     if (!D) return;
     unlockAudio();
-    var n = (g('asFName').value || '').trim() || (D.gender === 'm' ? 'dein Assistent' : 'deine Assistentin');
-    var sie = D.personality.address === 'sie';
-    var txt = D.lang === 'en' ? 'Hello, I\'m ' + n + '. This is how I sound – does that suit you?' : 'Hallo, ich bin ' + n + '. So klinge ich – passt das für ' + (sie ? 'Sie' : 'dich') + '?';
+    var sie = D.personality.address === 'sie', f = D.gender !== 'm';
+    var nm = (g('asFName').value || '').replace(/\s+/g, ' ').trim() || (f ? (sie ? 'Ihre Assistentin' : 'deine Assistentin') : (sie ? 'Ihr Assistent' : 'dein Assistent'));
+    var L = LANGS.filter(function (l) { return l.code === D.lang; })[0];
+    var tpl = L && L.preview ? L.preview[sie ? 'sie' : 'du'][f ? 'f' : 'm'] : (D.lang === 'de' ? 'Hallo, ich bin {name}. So klinge ich – passt das für ' + (sie ? 'Sie' : 'dich') + '?' : 'Hello, I\'m {name}. This is how I sound – does that suit you?');
+    var txt = tpl.split('{name}').join(nm);
     var over = { gender: D.gender, tone: D.voice.tone, rate: D.voice.rate, pitch: D.voice.pitch, preset: D.voice.preset };
+    var pv = { name: nm, lang: D.lang, gender: D.gender, address: D.personality.address, tone: D.voice.tone, rate: D.voice.rate, pitch: D.voice.pitch, preset: D.voice.preset };
     var btn = g('asFPreview'); btn.disabled = true;
-    speakList([txt], function () { btn.disabled = false; }, over);
+    speakList([txt], function () { btn.disabled = false; }, over, { preview: pv, lang: D.lang });
     setTimeout(function () { btn.disabled = false; }, 6000);
   }
   function saveDrawer() {
@@ -541,9 +615,9 @@
       note('Gespeichert – ' + h(PROF.name) + ' ist bereit.', 'ok');
       /* Nur die Begrüßung im Verlauf? Dann neu begrüßen – mit neuem Namen, neuer Anrede (kostenlos, ohne KI). */
       if (onlyGreeting && changedIntro) return api('/assistant/reset', { method: 'POST', body: '{}' }).then(function (st) {
-        HIST = (st.history || []).map(function (m) { return { role: m.role, content: m.content, actions: m.actions || [], greeting: !!m.greeting }; });
+        HIST = histFrom(st);
         renderHistory(); applyState(st);
-        if (voiceOn && HIST.length) speakList(sentences(HIST[HIST.length - 1].content));
+        if (voiceOn && HIST.length) speakMsg(HIST[HIST.length - 1]);
       });
       renderHistory();
     }).catch(function (e) {
@@ -568,7 +642,7 @@
       if (voiceOn) {
         unlockAudio();
         var only = HIST.filter(function (m) { return m.role === 'assistant'; });
-        if (only.length === 1 && HIST.length <= 2) speakList(sentences(only[0].content));   // erster Besuch: Begrüßung vorlesen
+        if (only.length === 1 && HIST.length <= 2) speakMsg(only[0]);   // erster Besuch: Begrüßung vorlesen
       } else stopSpeaking();
       voiceBtn(); voiceInfo();
     });
@@ -578,7 +652,7 @@
       if (!window.confirm('Gespräch neu beginnen? Der Verlauf wird geleert – was ' + (PROF ? PROF.name : 'der Assistent') + ' über ' + (isSie() ? 'Sie' : 'dich') + ' weiß, bleibt erhalten.')) return;
       stopSpeaking(); abortListen();
       api('/assistant/reset', { method: 'POST', body: '{}' }).then(function (st) {
-        HIST = (st.history || []).map(function (m) { return { role: m.role, content: m.content, actions: m.actions || [], greeting: !!m.greeting }; });
+        HIST = histFrom(st);
         renderHistory(); applyState(st);
       }).catch(function (e) { note(h(e.message), 'err'); });
     });
@@ -586,7 +660,7 @@
       var t = e.target.closest('.as-go[data-tab]');
       if (t) { e.preventDefault(); stopSpeaking(); go(t.dataset.tab); return; }
       var p = e.target.closest('.as-play');
-      if (p) { unlockAudio(); var m = HIST[Number(p.dataset.i)]; if (m) { if (speaking()) stopSpeaking(); else speakList(sentences(m.content)); } }
+      if (p) { unlockAudio(); var m = HIST[Number(p.dataset.i)]; if (m) { if (speaking()) stopSpeaking(); else speakMsg(m); } }
     });
     g('asSugg').addEventListener('click', function (e) { var b = e.target.closest('button[data-s]'); if (b) send(b.dataset.s); });
     var cl = g('asCheck');
@@ -626,7 +700,8 @@
     segBind('asFDetail', function (v) { D.personality.detail = v; });
     g('asFRate').addEventListener('input', function () { if (D) { D.voice.rate = Number(this.value); g('asFRateO').textContent = fx(D.voice.rate); } });
     g('asFPitch').addEventListener('input', function () { if (D) { D.voice.pitch = Number(this.value); g('asFPitchO').textContent = fx(D.voice.pitch); } });
-    g('asFLang').addEventListener('change', function () { if (D) D.lang = this.value; });
+    g('asFLang').addEventListener('change', function () { if (D) { D.lang = this.value; drawDrawer(); } });
+    g('asMicLang').addEventListener('change', function () { micLangPick = this.value; LS.set('ch_as_miclang', micLangPick); micLangUi(); if (REC.on) abortListen(); });
     /* Browserstimmen laden asynchron */
     if (window.speechSynthesis) { try { speechSynthesis.addEventListener('voiceschanged', voiceInfo); } catch (e) { speechSynthesis.onvoiceschanged = voiceInfo; } }
     /* Panel verlassen → Ausgabe und Zuhören beenden (kein Geister-Mikrofon im Hintergrund) */

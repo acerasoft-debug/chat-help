@@ -8,7 +8,9 @@
  *
  * Tabellen:  assistant_profiles (Persona je Konto) · assistant_messages (Verlauf) · assistant_memory (gemerkte Fakten)
  * REST (Studio, Bearer-Key):  GET|POST /v1/assistant/profile · GET /v1/assistant/state · POST /v1/assistant/chat
- *                             POST /v1/assistant/speak (audio/mpeg) · POST /v1/assistant/reset · POST /v1/assistant/forget
+ *                             POST /v1/assistant/speak {mid,i} | {preview:{name,lang,gender,address,tone,rate,pitch,preset}} (audio/mpeg)
+ *                             POST /v1/assistant/reset · POST /v1/assistant/forget
+ * Sprachen: 13 (ASSISTANT_LANG_TABLE) – Profilsprache, automatische Antwortsprache, Begrüßung, Hörprobe, Stimme und Spracheingabe je Sprache.
  * Stimme: nutzt chat/speech-lib.php (ch_tts_synth …), wenn vorhanden – sonst spricht das Studio-Panel mit der besten Browserstimme.
  * Wichtig: Die Werkzeuge gehören ausschließlich dem Inhaber im Studio – nie in Kundenkanäle (Widget, Telefon, WhatsApp) einbinden.
  */
@@ -135,7 +137,7 @@ const ASSISTANT_LANG_TEXT = [
  * laufen nur, wenn die letzte Assistenten-Nachricht eine Frage war UND der Inhaber kurz und klar zustimmt (assistant_confirmed).
  */
 const ASSISTANT_YES = [
-    'ja','jawohl','jap','jep','jo','joa','jupp','passt','genau','gerne','gern','ok','okay','oki','okey','einverstanden','richtig','stimmt','klar','sicher','perfekt','super','top','prima','alles klar','in ordnung','mach das','mach es','mach ruhig','mach so','übernimm','übernehmen','bitte übernehmen','trag ein','trag es ein','speicher','speichern','los','leg los',
+    'ja','jawohl','jap','jep','jo','joa','jupp','passt','genau','gerne','gern','ok','okay','oki','okey','einverstanden','richtig','stimmt','klar','sicher','perfekt','super','top','prima','alles klar','in ordnung','mach das','mach es','mach ruhig','mach so','übernimm das','übernimm es','übernehmen','bitte übernehmen','trag es ein','speichern','leg los',
     'yes','yeah','yep','yup','sure','go ahead','do it','please do','correct','right','fine','sounds good','perfect','absolutely','of course',
     'oui','ouais','d\'accord','vas-y','allez-y','parfait','exactement','c\'est bon','bien sûr','volontiers',
     'sí','si','vale','claro','perfecto','de acuerdo','hazlo','adelante','correcto','por supuesto',
@@ -248,7 +250,9 @@ function assistant_preview_text(string $lang, string $name, bool $sie, bool $fem
 }
 /** Sprachliste fürs Panel. */
 function assistant_langs_public(): array {
-    $o=[]; foreach(ASSISTANT_LANGS as $c){ $t=ASSISTANT_LANG_TABLE[$c]; $o[]=['code'=>$c,'name'=>$t['de'],'native'=>$t['native'],'tag'=>$t['tag'],'formal'=>$t['formal']]; }
+    $o=[]; foreach(ASSISTANT_LANGS as $c){ $t=ASSISTANT_LANG_TABLE[$c]; $pv=[];
+        foreach(['du'=>false,'sie'=>true] as $a=>$sie) foreach(['f'=>true,'m'=>false] as $gk=>$fem) $pv[$a][$gk]=assistant_preview_text($c,'{name}',$sie,$fem);   // für die Browserstimme
+        $o[]=['code'=>$c,'name'=>$t['de'],'native'=>$t['native'],'tag'=>$t['tag'],'formal'=>$t['formal'],'preview'=>$pv]; }
     return $o;
 }
 /**
@@ -1054,10 +1058,13 @@ function assistant_tool_appt(int $acc, array $in): array {
 }
 function assistant_tool_menu(int $acc, array $in): array {
     if(!function_exists('ord_menu_save')) return ['error'=>'module_unavailable','hint'=>'Die Bestellannahme ist hier nicht verfügbar.'];
-    $itemsIn=is_array($in['items'] ?? null) ? $in['items'] : []; $clean=[];
-    foreach(array_slice($itemsIn,0,120) as $it){ if(!is_array($it)) continue; $n=assistant_line($it['name'] ?? '',120); $pc=assistant_cents($it['price_eur'] ?? ($it['price'] ?? null)); if($n==='' || $pc===null) continue;
+    $itemsIn=is_array($in['items'] ?? null) ? $in['items'] : []; $clean=[]; $skipped=[];
+    foreach(array_slice($itemsIn,0,120) as $it){ if(!is_array($it)){ $skipped[]='(ungültiger Eintrag)'; continue; }
+        $n=assistant_line($it['name'] ?? '',120); $pc=assistant_cents($it['price_eur'] ?? ($it['price'] ?? null));
+        if($n===''){ $skipped[]='(ohne Namen)'; continue; }
+        if($pc===null){ $skipped[]=$n; continue; }   // Preis fehlt, ist keine Zahl oder negativ
         $clean[mb_strtolower($n)]=['category'=>assistant_line($it['category'] ?? '',60),'name'=>$n,'description'=>assistant_line($it['description'] ?? '',300),'price_cents'=>$pc,'options'=>is_string($it['options'] ?? null) ? assistant_line($it['options'],600) : (is_array($it['options'] ?? null) ? $it['options'] : [])]; }
-    if(!$clean) return ['error'=>'items_invalid','hint'=>'Jeder Artikel braucht Name und Preis in Euro.'];
+    if(!$clean) return ['error'=>'items_invalid','skipped'=>array_slice($skipped,0,20),'hint'=>'Nichts gespeichert: Jeder Artikel braucht einen Namen und einen gültigen Preis in Euro.'.($skipped ? ' Betroffen: '.implode(', ',array_slice($skipped,0,10)).'. Bitte den Inhaber nach den richtigen Preisen fragen.' : '')];
     $replace=($in['mode'] ?? 'append')==='replace'; $list=[]; $seen=[];
     foreach(ord_menu($acc,false) as $ex){ $k=mb_strtolower($ex['name']);
         if(isset($clean[$k])){ $c=$clean[$k]; $list[]=['id'=>$ex['id'],'category'=>$c['category'] ?: $ex['category'],'name'=>$c['name'],'description'=>$c['description'] ?: $ex['description'],'price_cents'=>$c['price_cents'],'options'=>$c['options'] ?: $ex['options'],'tags'=>$ex['tags'],'active'=>1]; $seen[$k]=1; }
@@ -1069,7 +1076,10 @@ function assistant_tool_menu(int $acc, array $in): array {
     $cur=ord_settings($acc); if(trim((string)$cur['name'])===''){ $mc=th_agent_cfg($acc,assistant_main_plan($acc))['company'] ?? ''; if($mc!=='') $d['name']=$mc; }
     if($d){ ord_settings_save($acc,$d); if($en!==null) $sum[]='Bestellannahme '.($en ? 'eingeschaltet' : 'ausgeschaltet'); }
     $total=count(ord_menu($acc,true)); $sum[]=$total.' Artikel auf der Karte';
-    return ['ok'=>true,'tab'=>'bestellungen','items'=>$total,'summary'=>'Speisekarte: '.implode(' · ',$sum)];
+    if($skipped) $sum[]='nicht übernommen (Preis fehlt/ungültig): '.implode(', ',array_slice($skipped,0,6)).(count($skipped)>6 ? ' …' : '');
+    $r=['ok'=>true,'tab'=>'bestellungen','items'=>$total,'summary'=>'Speisekarte: '.implode(' · ',$sum)];
+    if($skipped){ $r['skipped']=array_slice($skipped,0,20); $r['hint']='Diese Artikel wurden NICHT übernommen, weil der Preis fehlt oder ungültig ist: '.implode(', ',array_slice($skipped,0,10)).'. Sag das dem Inhaber und frag nach den richtigen Preisen.'; }
+    return $r;
 }
 /** Nur übergebene Grundfelder übernehmen. */
 function assistant_pick(array $in, array $keys, int $max=200): array { $o=[]; foreach($keys as $k) if(array_key_exists($k,$in) && is_scalar($in[$k]) && trim((string)$in[$k])!=='') $o[$k]=mb_substr(trim((string)$in[$k]),0,$max); return $o; }
@@ -1117,54 +1127,123 @@ function assistant_tool_recommend(int $acc, array $in): array {
 }
 
 /* ======================================================================= Gespräch */
+/** Lokaler Test-Haken (nur Kommandozeile / php -S, nur wenn ein Testskript assistant_test_ai definiert). */
+function assistant_test_hook(): bool { return in_array(PHP_SAPI,['cli','cli-server'],true) && function_exists('assistant_test_ai'); }
+/** Werkzeuge gibt es nur mit Claude: ohne CLAUDE_KEY fällt th_ai_tools auf th_ai (z. B. DeepSeek) ohne Werkzeuge zurück. */
+function assistant_tools_ready(): bool { return assistant_test_hook() || (defined('CLAUDE_KEY') && (string)CLAUDE_KEY!==''); }
+function assistant_last_message(int $acc): ?array {
+    $s=th_db()->prepare("SELECT id,role,content FROM assistant_messages WHERE account_id=? ORDER BY id DESC LIMIT 1"); $s->execute([$acc]); $r=$s->fetch(PDO::FETCH_ASSOC); return $r ?: null;
+}
+/** Hat der Assistent zuletzt etwas gefragt? Sprachneutral: Fragezeichen (?, ？, ؟) im Schluss der Nachricht. */
+function assistant_asked(string $t): bool { $t=trim($t); return $t!=='' && (bool)preg_match('/[?？؟]/u',mb_substr($t,-160)); }
+/** Kurze, klare Zustimmung am Anfang der Nachricht – in allen 13 Sprachen (ASSISTANT_YES / ASSISTANT_YES_JA) oder 👍 ✅ 👌. */
+function assistant_affirmative(string $m): bool {
+    $m=trim(mb_strtolower($m)); if($m==='' || mb_strlen($m)>240) return false;
+    if(preg_match('/^(\x{1F44D}|\x{1F44C}|\x{2705}|\x{2714}|\x{1F197})/u',$m)) return true;
+    $m=trim((string)preg_replace('/^[\s„“"\'«»(\-–—…]+/u','',$m));
+    foreach(ASSISTANT_YES_JA as $w) if(str_starts_with($m,$w)) return true;
+    foreach(ASSISTANT_YES as $w){
+        if(!str_starts_with($m,$w)) continue; $rest=mb_substr($m,mb_strlen($w));
+        if($rest==='') return true;
+        if($w==='si'){ if(preg_match('/^[,.!;:]/u',$rest)) return true; continue; }   // „si“ ohne Akzent heißt auch „wenn“
+        if(preg_match('/^[\s,.!;:)\-–—…]/u',$rest)) return true;
+    }
+    return false;
+}
+/** Verlaufseinträge fürs Panel; Assistenten-Nachrichten mit Sprache und vorlesbaren Sätzen (dieselben, die /speak vorliest). */
+function assistant_history_public(array $hist, array $pr): array {
+    $du=$pr['personality']['address']!=='sie';
+    return array_map(function($m) use($pr,$du){
+        $o=['id'=>$m['id'],'role'=>$m['role'],'content'=>$m['content'],'actions'=>$m['actions'],'greeting'=>$m['greeting'],'created_at'=>$m['created_at'],'lang'=>$m['lang']];
+        if($m['role']==='assistant'){ $o['lang']=$m['lang'] ?? assistant_detect_lang((string)$m['content'],$pr['lang']); $o['speech']=assistant_speech((string)$m['content'],$o['lang'],$du); }
+        return $o; },$hist);
+}
 /**
  * Eine Nachricht des Inhabers beantworten. Rückgabe [status, json]. Abrechnung nur, wenn die KI geantwortet hat:
- * 6 Tokens + 2 je Werkzeugaufruf (th_charge, höchstens Restguthaben).
+ * 6 Tokens + 2 je ausgeführtem Werkzeug (th_charge, höchstens Restguthaben).
+ * Werkzeuge, die etwas ändern (ASSISTANT_CHANGING_TOOLS), laufen nur nach Bestätigung: letzte Assistenten-Nachricht war eine Frage
+ * UND die neue Nachricht ist eine kurze, klare Zustimmung – sonst bekommt die KI confirm_first und muss erst fragen.
  */
 function assistant_chat(int $acc, string $message, bool $voice=false): array {
     assistant_bootstrap(); $message=trim(str_replace("\r",'',$message));
+    $pr=assistant_profile($acc); $sie=$pr['personality']['address']==='sie'; $S=fn(string $du,string $s)=>$sie ? $s : $du;
     if($message==='') return [400,['error'=>'message_required','message'=>'Bitte eine Nachricht eingeben.']];
     if(mb_strlen($message)>ASSISTANT_MSG_MAX) return [400,['error'=>'message_too_long','message'=>'Die Nachricht ist zu lang (höchstens 2.000 Zeichen).']];
     $bal=th_balance($acc);
-    if($bal<ASSISTANT_COST_TURN) return [402,['error'=>'insufficient_tokens','need'=>ASSISTANT_COST_TURN,'balance'=>$bal,'buy'=>'/#preise','message'=>'Dein Guthaben reicht nicht für eine Antwort ('.ASSISTANT_COST_TURN.' Tokens). Bitte Tokens nachkaufen.']];
+    if($bal<ASSISTANT_COST_TURN) return [402,['error'=>'insufficient_tokens','need'=>ASSISTANT_COST_TURN,'balance'=>$bal,'buy'=>'/#preise','message'=>$S('Dein','Ihr').' Guthaben reicht nicht für eine Antwort ('.ASSISTANT_COST_TURN.' Tokens). Bitte Tokens nachkaufen.']];
     if(!th_rate('as:chat:'.$acc,150,3600)) return [429,['error'=>'rate_limited','message'=>'Sehr viele Nachrichten in kurzer Zeit – bitte einen Moment warten.']];
-    if(!th_lock('as:'.$acc,8)) return [429,['error'=>'busy','message'=>'Ich beantworte gerade noch deine letzte Nachricht – einen Moment bitte.']];
+    if(!th_lock('as:'.$acc,8)) return [429,['error'=>'busy','message'=>'Ich beantworte gerade noch '.$S('deine','Ihre').' letzte Nachricht – einen Moment bitte.']];
     try{
-        $t0=microtime(true); $pr=assistant_profile($acc);
+        $t0=microtime(true);
         assistant_ensure_greeting($acc,$pr);
-        $uid=assistant_add_message($acc,'user',$message);
+        $prev=assistant_last_message($acc);
+        $confirmed=$prev && $prev['role']==='assistant' && assistant_asked((string)$prev['content']) && assistant_affirmative($message);
+        $uid=assistant_add_message($acc,'user',$message,['lang'=>assistant_detect_lang($message,$pr['lang'])]);
         $ov=assistant_overview($acc); $mem=assistant_memory($acc,120); [$items,$pg]=assistant_checklist($acc,$ov,$mem);
-        $sys=assistant_system($acc,$pr,$ov,$items,$pg,$mem,$voice);
-        $msgs=assistant_ai_messages($acc); $tools=assistant_tools(); $actions=[]; $calls=0;
-        $exec=function(string $n, array $i) use($acc,&$actions,&$calls): array {
-            if(++$calls>12) return ['error'=>'too_many_tools','hint'=>'Genug Werkzeuge für diese Antwort – fasse zusammen und frag nach.'];
+        $toolsReady=assistant_tools_ready();
+        $sys=assistant_system($acc,$pr,$ov,$items,$pg,$mem,$voice,$toolsReady);
+        $msgs=assistant_ai_messages($acc); $tools=$toolsReady ? assistant_tools() : []; $actions=[]; $calls=0; $tries=0;
+        $exec=function(string $n, array $i) use($acc,$confirmed,&$actions,&$calls,&$tries): array {
+            if(++$tries>12) return ['error'=>'too_many_tools','hint'=>'Genug Werkzeuge für diese Antwort – fasse zusammen und frag nach.'];
             foreach(array_keys($i) as $k) if($k==='force' || $k==='account_id' || str_starts_with((string)$k,'_')) unset($i[$k]);
+            if(in_array($n,ASSISTANT_CHANGING_TOOLS,true) && !$confirmed)
+                return ['error'=>'confirm_first','hint'=>'NICHT ausgeführt – der Inhaber hat diese Änderung noch nicht bestätigt. Fasse in einem Satz zusammen, was du eintragen willst, und frag in seiner Sprache: „Soll ich das so übernehmen?“. Erst nach seinem klaren Ja in der nächsten Nachricht ausführen. Behaupte nicht, es sei schon gespeichert.'];
+            $calls++;
             $r=assistant_exec($acc,$n,$i,'studio');
             if($n!=='get_overview') $actions[]=assistant_action($n,$r);
             return $r;
         };
-        $hook=in_array(PHP_SAPI,['cli','cli-server'],true) && function_exists('assistant_test_ai');   // nur lokale Tests (Testskript definiert den Haken)
-        $reply=$hook ? assistant_test_ai($sys,$msgs,$tools,$exec) : th_ai_tools($sys,$msgs,$tools,$exec,$voice ? 500 : 900,60,6);
+        $reply=assistant_test_hook() ? assistant_test_ai($sys,$msgs,$tools,$exec) : th_ai_tools($sys,$msgs,$tools,$exec,$voice ? 500 : 900,60,6);
         $reply=is_string($reply) ? trim($reply) : '';
         if($reply===''){
             if(!$actions) th_db()->prepare("DELETE FROM assistant_messages WHERE id=? AND account_id=?")->execute([$uid,$acc]);
-            else assistant_add_message($acc,'assistant',($pr['personality']['address']==='sie' ? 'Ich habe Folgendes erledigt, aber meine Antwort ist unterwegs verloren gegangen: ' : 'Ich habe Folgendes erledigt, aber meine Antwort ist unterwegs verloren gegangen: ').implode('; ',array_map(fn($a)=>$a['summary'],$actions)).'.',['actions'=>$actions]);
-            return [503,['error'=>'ai_unavailable','message'=>'Ich bin gerade nicht erreichbar – bitte versuch es in einem Moment noch einmal. Es wurden keine Tokens berechnet.','actions'=>$actions]];
+            else assistant_add_message($acc,'assistant','Ich habe Folgendes erledigt, aber meine Antwort ist unterwegs verloren gegangen: '.implode('; ',array_map(fn($a)=>$a['summary'],$actions)).'.',['actions'=>$actions,'lang'=>'de']);
+            return [503,['error'=>'ai_unavailable','message'=>'Ich bin gerade nicht erreichbar – bitte '.$S('versuch es','versuchen Sie es').' in einem Moment noch einmal. Es wurden keine Tokens berechnet.','actions'=>$actions]];
         }
-        assistant_add_message($acc,'assistant',$reply,$actions ? ['actions'=>$actions] : []);
+        $lang=assistant_detect_lang($reply,$pr['lang']);
+        $mid=assistant_add_message($acc,'assistant',$reply,($actions ? ['actions'=>$actions] : [])+['lang'=>$lang]);
         $cost=ASSISTANT_COST_TURN+ASSISTANT_COST_TOOL*$calls;
         $charged=th_charge($acc,$cost,'assistant:chat'); th_log_usage($acc,'assistant','assistant',$charged,(int)((microtime(true)-$t0)*1000));
         $ov=assistant_overview($acc); $mem=assistant_memory($acc,100); [$items,$pg]=assistant_checklist($acc,$ov,$mem);
-        return [200,['reply'=>$reply,'speech'=>assistant_speech($reply,$pr['lang'],$pr['personality']['address']!=='sie'),'actions'=>$actions,'checklist'=>$items,'progress'=>$pg,
-            'memory'=>array_map(fn($m)=>['id'=>$m['id'],'topic'=>$m['topic'],'fact'=>$m['fact']],$mem),'suggestions'=>assistant_suggestions($items,$mem),'tokens_used'=>$charged,'balance'=>th_balance($acc)]];
+        return [200,['reply'=>$reply,'id'=>$mid,'lang'=>$lang,'speech'=>assistant_speech($reply,$lang,!$sie),'actions'=>$actions,'checklist'=>$items,'progress'=>$pg,
+            'memory'=>array_map(fn($m)=>['id'=>$m['id'],'topic'=>$m['topic'],'fact'=>$m['fact']],$mem),'suggestions'=>assistant_suggestions($items,$mem),
+            'tools_ready'=>$toolsReady,'tokens_used'=>$charged,'balance'=>th_balance($acc)]];
     } finally { th_unlock('as:'.$acc); }
 }
 /** Zustand fürs Panel: Verlauf, Gedächtnis, Checkliste, Vorschläge, Guthaben. Legt beim ersten Besuch die Begrüßung an. */
 function assistant_state(int $acc): array {
     $pr=assistant_profile($acc); assistant_ensure_greeting($acc,$pr);
     $ov=assistant_overview($acc); $mem=assistant_memory($acc,100); [$items,$pg]=assistant_checklist($acc,$ov,$mem);
-    return ['history'=>assistant_history($acc,30),'memory'=>array_map(fn($m)=>['id'=>$m['id'],'topic'=>$m['topic'],'fact'=>$m['fact']],$mem),'checklist'=>$items,'progress'=>$pg,
-        'suggestions'=>assistant_suggestions($items,$mem),'balance'=>$ov['balance'],'cost'=>['turn'=>ASSISTANT_COST_TURN,'tool'=>ASSISTANT_COST_TOOL]];
+    return ['history'=>assistant_history_public(assistant_history($acc,30),$pr),'memory'=>array_map(fn($m)=>['id'=>$m['id'],'topic'=>$m['topic'],'fact'=>$m['fact']],$mem),'checklist'=>$items,'progress'=>$pg,
+        'suggestions'=>assistant_suggestions($items,$mem),'balance'=>$ov['balance'],'cost'=>['turn'=>ASSISTANT_COST_TURN,'tool'=>ASSISTANT_COST_TOOL],'tools_ready'=>assistant_tools_ready()];
+}
+/**
+ * Was /speak vorlesen darf: nur Sätze aus den letzten 60 Nachrichten des eigenen Verlaufs ({mid,i}) oder die vom Server gebaute Hörprobe ({preview}).
+ * Rückgabe [text, lang, voice-override] oder [null, Fehler-Antwort].
+ */
+function assistant_speak_source(int $aid, array $pr, array $body): array {
+    $sie=$pr['personality']['address']==='sie';
+    if(isset($body['preview'])){
+        $pv=is_array($body['preview']) ? $body['preview'] : [];
+        $lang=assistant_lang(is_string($pv['lang'] ?? null) ? $pv['lang'] : $pr['lang']);
+        $name=trim((string)preg_replace('/\s+/u',' ',assistant_str($pv['name'] ?? '')));
+        if($name==='' || mb_strlen($name)>30 || !preg_match('/^\p{L}[\p{L}\p{M} \-]*$/u',$name)) $name=$pr['name'];
+        $g=in_array($pv['gender'] ?? '',['f','m'],true) ? $pv['gender'] : $pr['gender'];
+        $psie=in_array($pv['address'] ?? '',['du','sie'],true) ? $pv['address']==='sie' : $sie;
+        $over=array_intersect_key($pv,array_flip(['gender','tone','rate','pitch','preset']));
+        return [assistant_preview_text($lang,$name,$psie,$g!=='m'),$lang,$over];
+    }
+    $mid=is_numeric($body['mid'] ?? null) ? (int)$body['mid'] : 0; $i=is_numeric($body['i'] ?? null) ? (int)$body['i'] : -1;
+    if($mid<=0 || $i<0) return [null,[400,['error'=>'sentence_required','message'=>'Kein Satz zum Vorlesen.']],null];
+    $p=th_db();
+    $q=$p->prepare("SELECT id FROM assistant_messages WHERE account_id=? ORDER BY id DESC LIMIT 1 OFFSET 59"); $q->execute([$aid]); $floor=(int)$q->fetchColumn();
+    $s=$p->prepare("SELECT content,meta FROM assistant_messages WHERE id=? AND account_id=? AND role='assistant'"); $s->execute([$mid,$aid]); $r=$s->fetch(PDO::FETCH_ASSOC);
+    if(!$r || $mid<=$floor) return [null,[404,['error'=>'not_found','message'=>'Diese Nachricht gibt es nicht (mehr).']],null];
+    $m=json_decode((string)($r['meta'] ?? ''),true);
+    $lang=is_array($m) && is_string($m['lang'] ?? null) && isset(ASSISTANT_LANG_TABLE[$m['lang']]) ? $m['lang'] : assistant_detect_lang((string)$r['content'],$pr['lang']);
+    $list=assistant_speech((string)$r['content'],$lang,!$sie);
+    if(!isset($list[$i])) return [null,[404,['error'=>'not_found','message'=>'Diesen Satz gibt es nicht.']],null];
+    return [$list[$i],$lang,[]];
 }
 /** MP3 direkt ausliefern (nur Web); in der Kommandozeile (Tests) als JSON-Beschreibung zurück. */
 function assistant_emit_audio(string $mp3): array {
@@ -1178,7 +1257,7 @@ function assistant_api(string $route, string $method, int $aid, array $body, arr
     if($aid<=0) return [403,['error'=>'forbidden']];
     assistant_bootstrap();
     $pub=fn()=>['profile'=>assistant_profile_public(assistant_profile($aid)),'portraits'=>array_map(fn($p)=>['id'=>$p['id'],'url'=>$p['url'],'gender'=>$p['gender'],'label'=>$p['label']],assistant_portraits()),
-        'voices'=>assistant_voice_presets_public(),'tts'=>assistant_tts_ready(),'photo_max'=>ASSISTANT_PHOTO_MAX];
+        'voices'=>assistant_voice_presets_public(),'langs'=>assistant_langs_public(),'tts'=>assistant_tts_ready(),'tts_langs'=>assistant_tts_langs(),'tools_ready'=>assistant_tools_ready(),'photo_max'=>ASSISTANT_PHOTO_MAX];
     switch(true){
         case $route==='assistant/profile' && $method==='GET': return [200,$pub()];
         case $route==='assistant/profile' && $method==='POST':
@@ -1186,22 +1265,25 @@ function assistant_api(string $route, string $method, int $aid, array $body, arr
             return [200,['ok'=>true]+$pub()];
         case $route==='assistant/state' && $method==='GET': return [200,assistant_state($aid)];
         case $route==='assistant/chat' && $method==='POST':
-            return assistant_chat($aid,assistant_str($body['message'] ?? ''),!empty($body['voice']));
+            return assistant_chat($aid,assistant_str($body['message'] ?? ''),assistant_truthy($body['voice'] ?? null)===true);
         case $route==='assistant/speak' && $method==='POST':
-            $text=assistant_str($body['text'] ?? '');
-            if($text==='') return [400,['error'=>'text_required','message'=>'Kein Text zum Vorlesen.']];
-            if(mb_strlen($text)>ASSISTANT_SPEAK_MAX) return [400,['error'=>'text_too_long','message'=>'Höchstens '.ASSISTANT_SPEAK_MAX.' Zeichen je Satz.']];
-            if(!assistant_tts_ready()) return [501,['error'=>'tts_unavailable','message'=>'Server-Stimme nicht eingerichtet – das Studio nutzt die Stimme deines Browsers.']];
+            $pr=assistant_profile($aid); $sie=$pr['personality']['address']==='sie';
+            if(!assistant_tts_ready()) return [501,['error'=>'tts_unavailable','message'=>'Server-Stimme nicht eingerichtet – das Studio nutzt die Stimme '.($sie ? 'Ihres' : 'deines').' Browsers.']];
+            /* Keine kostenlose Vorlese-Schnittstelle: nur mit Guthaben oder aktivem Agenten */
+            if(th_balance($aid)<=0 && !assistant_active_plans($aid)) return [402,['error'=>'insufficient_tokens','message'=>'Die Studio-Stimme braucht Guthaben oder einen aktiven Agenten – bis dahin liest die Browserstimme vor.']];
+            [$text,$lang,$over]=assistant_speak_source($aid,$pr,$body);
+            if($text===null) return $lang;
+            if(!assistant_tts_ready($lang)) return [501,['error'=>'tts_lang_unavailable','lang'=>$lang,'message'=>'Die Studio-Stimme spricht '.assistant_lang_name($lang).' noch nicht – dafür liest die Browserstimme vor.']];
             if(!th_rate('as:tts:'.$aid,300,86400)) return [429,['error'=>'rate_limited','message'=>'Tageslimit für die Sprachausgabe erreicht – ab jetzt spricht die Browserstimme.']];
-            $pr=assistant_profile($aid); $mp3=null;
-            try{ $mp3=ch_tts_synth($text,assistant_voice($pr,is_array($body['voice'] ?? null) ? $body['voice'] : [])); }catch(Throwable $e){ error_log('CH assistant tts: '.$e->getMessage()); }
+            $mp3=null;
+            try{ $mp3=ch_tts_synth($text,assistant_voice($pr,is_array($over) ? $over : [],$lang)); }catch(Throwable $e){ error_log('CH assistant tts: '.$e->getMessage()); }
             if(!is_string($mp3) || $mp3==='') return [502,['error'=>'tts_failed','message'=>'Die Stimme konnte gerade nicht erzeugt werden.']];
             return assistant_emit_audio($mp3);
         case $route==='assistant/reset' && $method==='POST':
             th_db()->prepare("DELETE FROM assistant_messages WHERE account_id=?")->execute([$aid]);
             return [200,['ok'=>true]+assistant_state($aid)];
         case $route==='assistant/forget' && $method==='POST':
-            $ok=assistant_forget($aid,(int)($body['id'] ?? 0));
+            $ok=assistant_forget($aid,is_numeric($body['id'] ?? null) ? (int)$body['id'] : 0);
             if(!$ok) return [404,['error'=>'not_found','message'=>'Diesen Eintrag gibt es nicht (mehr).']];
             $ov=assistant_overview($aid); $mem=assistant_memory($aid,100); [$items,$pg]=assistant_checklist($aid,$ov,$mem);
             return [200,['ok'=>true,'memory'=>array_map(fn($m)=>['id'=>$m['id'],'topic'=>$m['topic'],'fact'=>$m['fact']],$mem),'checklist'=>$items,'progress'=>$pg,'suggestions'=>assistant_suggestions($items,$mem)]];
