@@ -825,7 +825,7 @@ const DEMOS=[
 let cur=null,playId=0,liveHist=[],liveOn=false;
 (function(){const w=$('#dtabs');DEMOS.forEach(d=>{const b=document.createElement('button');b.type='button';b.className='dtab';b.dataset.k=d.key;b.textContent=d.tab;b.onclick=()=>{vUnlock();demoSelect(d.key,true);};w.appendChild(b);});})();
 /* gesture=true: der Wechsel kam durch Klick/Taste – dann darf der Demo-Anruf (Telefon-Gerät) vorgelesen werden, wenn die Stimme an ist */
-function demoSelect(key,gesture){const d=DEMOS.find(x=>x.key===key)||DEMOS.find(x=>x.key==='support')||DEMOS[0];liveLeave();cur=d;liveHist=[];
+function demoSelect(key,gesture){const d=DEMOS.find(x=>x.key===key)||DEMOS.find(x=>x.key==='support')||DEMOS[0];liveLeave();cur=d;liveHist=[];VP.g='';
   document.querySelectorAll('.dtab').forEach(b=>b.classList.toggle('on',b.dataset.k===d.key));
   const sp=$('#secpick');if(sp)sp.classList.toggle('on',!!d.sectors);
   $('#exTag').textContent=d.tag;$('#exTitle').textContent=d.title;$('#exText').textContent=d.text;$('#btnRent').href=CHECKOUT+'?plan='+d.plan;
@@ -850,16 +850,23 @@ function stamp(m,role){if(!cur||cur.device!=='wa'||role==='sys'||!m)return;const
 function stepOn(i){document.querySelectorAll('#exSteps .it').forEach(el=>el.classList.toggle('on',+el.dataset.i<=i));}
 /* Demo-Gespräch abspielen; beim Telefon-Agenten das Skript der gewählten Branche (GET ?agent=agent-phone&sector=…). opt.voice: Agent-Sätze vorlesen, wenn die Stimme an ist (nur nach einer Geste) */
 async function playDemo(opt){const d=cur,my=++playId;const tr=$('#dTr');if(tr)tr.innerHTML='';stepOn(-1);const out=$('#dOut');if(out)out.style.opacity=0;
-  let script=d.script,greet=null;
+  let script=d.script,srvScript=false;
   if(d.sectors){const k=secCur,j=await secData(k);if(my!==playId||liveOn||cur!==d)return;
-    if(j){secApply(j,k);liveWho=[phoneSec.persona,phoneSec.persona];secHeader();liveApply(j);greet={text:vText(j.greeting).trim(),items:V.greet};const sc=secScript(j.script);if(sc.length)script=sc;}
+    if(j){secApply(j,k);liveWho=[phoneSec.persona,phoneSec.persona];secHeader();liveApply(j);const sc=secScript(j.script,j.script_speech);if(sc.length){script=sc;srvScript=true;}}
     else{V.gender=phoneSec.gender;V.preset=phoneSec.preset||'';V.rate=1;V.pitch=1;V.sector=k;V.demo='agent-phone';V.greet=[];vpLabel();if(k!==SEC_DEF)script=secFallbackScript(phoneSec);}}
+  else if(d.device==='phone'){const j=await demoData(d.plan);if(my!==playId||liveOn||cur!==d)return;   /* Taxi & Co.: Skript vom Server nur, wenn es signierte Sätze mitbringt */
+    if(j){liveApply(j);const sc=secScript(j.script,j.script_speech);if(sc.some(r=>r[1]==='a'&&r[3])){script=sc;srvScript=true;}}}
+  /* Eine Stimme für den ganzen Anruf: Server-Stimme nur, wenn JEDE Agenten-Zeile signierte Sätze hat (Begrüßung = erste Agenten-Zeile); sonst durchgehend Browser-Stimme */
+  const aRows=script.filter(r=>r[1]==='a');let firstA=true;
+  const items=script.map(r=>{if(r[1]!=='a')return null;let it=r[3]||null;if(!it&&firstA&&srvScript&&V.greet.length)it=V.greet;firstA=false;return it;});
+  const allSigned=aRows.length>0&&items.every((it,i)=>script[i][1]!=='a'||(it&&it.length&&it.every(x=>x.t)));
+  const vst={srv:allSigned};
   const voiced=!!(opt&&opt.voice)&&V.on&&d.device==='phone'&&!liveOn,turn=V.turn;V.auto=voiced;const lv=$('#live');if(lv)lv.classList.toggle('aut',voiced);
   const wv=$('#dWave');if(wv){wv.classList.toggle('idle',voiced);wv.classList.remove('talk','lis');}liveState('');
   let sec=0;const timer=$('#dTimer');const tick=setInterval(()=>{if(my!==playId||liveOn){clearInterval(tick);return;}sec++;if(timer)timer.textContent=fmtT(sec);},1000);
   const gone=()=>my!==playId||liveOn;
-  for(const [step,role,text] of script){if(gone())return;stepOn(step);
-    if(role==='a'){const t=dmsg('a','',true);const sp=voiced&&turn===V.turn?vSay(greet&&greet.text===text?greet.items:vItems(null,text),turn):null;
+  for(let ri=0;ri<script.length;ri++){const [step,role,text]=script[ri];if(gone())return;stepOn(step);
+    if(role==='a'){const t=dmsg('a','',true);const sp=voiced&&turn===V.turn?vSay(items[ri]||vItems(null,text),turn,vst):null;
       if(V_RM)t.textContent=text;else{await sleep(600);if(gone())return;let s='';for(const ch of text){s+=ch;t.textContent=s;if(ch===' '&&Math.random()<.3)await sleep(14);if(gone())return;}}
       t.classList.remove('typing');stamp(t,'a');
       if(sp){await sp;if(gone())return;await sleep(350);}else await sleep(900);}
@@ -868,6 +875,11 @@ async function playDemo(opt){const d=cur,my=++playId;const tr=$('#dTr');if(tr)tr
     if(text.includes('✓')&&out)out.style.opacity=1;}
   clearInterval(tick);if(out)out.style.opacity=1;stepOn(3);if(voiced&&my===playId){V.auto=false;if(lv)lv.classList.remove('aut');liveState('');}}
 $('#btnReplay').onclick=()=>{vUnlock();liveLeave();playDemo({voice:true});};
+/* GET ?agent=<plan> für Demos ohne Branchen (Taxi): je Sitzung gecacht wie secData */
+const demoCache=new Map();
+function demoData(plan){const c=demoCache.get(plan);if(c&&c.j&&Date.now()-c.ts<SEC_TTL)return Promise.resolve(c.j);if(c&&c.p)return c.p;
+  const p=(async()=>{try{const r=await fetch(DEMO_API+'?agent='+encodeURIComponent(plan)+'&channel=phone',{cache:'no-store'});const j=await r.json();if(!j||typeof j!=='object'||!vText(j.greeting).trim())throw 0;demoCache.set(plan,{j,ts:Date.now()});return j;}catch(e){demoCache.delete(plan);return null;}})();
+  demoCache.set(plan,{p,ts:0});return p;}
 $('#btnLive').onclick=()=>{vUnlock();goLive();};
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 /* ===== Live-Modus: Persona, Stimme (Server-TTS → Browser-Stimme), Füllsätze, Barge-in, Vorschläge ===== */
@@ -928,13 +940,32 @@ function secData(k){const c=secCache.get(k);if(c&&c.j&&Date.now()-c.ts<SEC_TTL)r
 function secApply(j,k){const s=secInfo(k);if(j&&typeof j==='object'){const c=vText(j.company).trim(),p=livePersona(j.persona),vo=j.voice&&typeof j.voice==='object'?j.voice:{};if(c)s.company=c;if(p)s.persona=p;if(vo.gender==='m'||vo.gender==='f')s.gender=vo.gender;if(vpId(vo.preset))s.preset=vo.preset;const lb=vText(j.label).trim();if(lb)s.label=lb;}phoneSec=s;}
 function secHeader(){if(!cur||!cur.sectors)return;const s=phoneSec,co=$('#dCo'),ro=$('#dRole');if(co)co.textContent=s.company;if(ro)ro.textContent=s.persona+' · Telefon-Agent';liveNoteSet();
   $('#exTag').textContent='Telefon-Agent · '+s.label;$('#exText').textContent='Beispiel: '+s.company+'. '+s.persona+' nimmt ab, antwortet nur aus der Wissensbasis dieses Betriebs, nimmt Anliegen auf und bestätigt – in natürlicher Sprache. Wähle oben eine andere Branche, um denselben Agenten in einem anderen Betrieb zu hören.';}
-function secScript(sc){if(!Array.isArray(sc))return [];const rows=sc.map(r=>Array.isArray(r)&&r.length>=2?[String(r[r.length-2]),vText(r[r.length-1]).trim()]:null).filter(r=>r&&/^(a|u|sys)$/.test(r[0])&&r[1]).slice(0,24);const n=rows.length;return rows.map((r,i)=>[Math.min(3,Math.floor(i*4/n)),r[0],r[1]]);}
+const ROLE_RE=/^(a|u|sys)$/;
+function secSpeech(x){if(!Array.isArray(x))return null;const it=x.map(y=>y&&typeof y==='object'?{text:vText(y.text).trim(),t:typeof y.t==='string'?y.t:''}:typeof y==='string'?{text:y.trim(),t:''}:null).filter(y=>y&&y.text);return it.length?it:null;}
+/* Skriptzeile → [schritt, rolle, text, sätze|null]; Formate [role,text], [role,text,speech] und [step,role,text]; sp = script_speech (parallel zum Skript) */
+function secScript(sc,sp){if(!Array.isArray(sc))return [];const rows=[];
+  sc.forEach((r,i)=>{if(!Array.isArray(r)||r.length<2)return;let role,text,speech;
+    if(ROLE_RE.test(String(r[0]))){role=String(r[0]);text=r[1];speech=r[2];}else if(r.length>=3&&ROLE_RE.test(String(r[1]))){role=String(r[1]);text=r[2];speech=r[3];}else return;
+    text=vText(text).trim();if(!text)return;if(role==='sys')text=toolRow(text);
+    rows.push([role,text,role==='a'?(secSpeech(speech)||secSpeech(Array.isArray(sp)?sp[i]:null)):null]);});
+  const L=rows.slice(0,24),n=L.length;return L.map((r,i)=>[Math.min(3,Math.floor(i*4/n)),r[0],r[1],r[2]]);}
+/* Werkzeug-Aufrufe auf Deutsch (POST tools[] und Skriptzeilen „⚙ request callback ✓ …“): [erledigt, Tätigkeit] */
+const TOOL_DE={request_callback:['Rückruf eingetragen','Rückruf eintragen'],book_appointment:['Termin gebucht','Termin buchen'],get_available_slots:['Freie Termine geprüft','Freie Termine prüfen'],list_services:['Leistungen abgerufen','Leistungen abrufen'],
+  find_appointments:['Termin gefunden','Termin suchen'],cancel_appointment:['Termin storniert','Termin stornieren'],create_order:['Bestellung angelegt','Bestellung anlegen'],check_delivery_address:['Lieferadresse geprüft','Lieferadresse prüfen'],
+  get_menu:['Speisekarte abgerufen','Speisekarte abrufen'],get_order_status:['Bestellstatus abgefragt','Bestellstatus abfragen'],cancel_order:['Bestellung storniert','Bestellung stornieren'],estimate_ride:['Fahrpreis berechnet','Fahrpreis berechnen'],
+  book_ride:['Fahrt gebucht','Fahrt buchen'],get_ride_status:['Fahrtstatus abgefragt','Fahrtstatus abfragen'],cancel_ride:['Fahrt storniert','Fahrt stornieren'],get_taxi_info:['Taxi-Infos abgerufen','Taxi-Infos abrufen'],
+  check_room_availability:['Zimmer geprüft','Zimmer prüfen'],book_room:['Zimmer gebucht','Zimmer buchen'],get_booking:['Buchung abgerufen','Buchung abrufen'],cancel_booking:['Buchung storniert','Buchung stornieren'],
+  create_guest_request:['Gästewunsch angelegt','Gästewunsch anlegen'],get_hotel_info:['Hotel-Infos abgerufen','Hotel-Infos abrufen'],order_taxi_for_guest:['Taxi für den Gast bestellt','Taxi für den Gast bestellen'],
+  report_unanswered_question:['Frage ans Team weitergegeben','Frage weitergeben']},TOOL_DEF=['Aktion ausgeführt','Aktion'];
+function toolLabel(x){const n=String(x&&x.name||'').trim().toLowerCase().replace(/[\s-]+/g,'_'),m=Object.prototype.hasOwnProperty.call(TOOL_DE,n)?TOOL_DE[n]:TOOL_DEF,own=vText(x&&x.label).trim().slice(0,60);
+  return x&&x.ok===false?(m===TOOL_DEF&&own?own:m[1])+' – nicht möglich ✗':(own||m[0])+' ✓';}
+function toolRow(t){return String(t).replace(/^⚙\s*([a-z][a-z_ ]*[a-z])\s*(✓|✗)?(?=\s*(·|$))/,(all,n,mk)=>{const k=n.trim().replace(/\s+/g,'_');return Object.prototype.hasOwnProperty.call(TOOL_DE,k)?'⚙ '+toolLabel({name:k,ok:mk!=='✗'}):all;});}
 const secGreeting=s=>s.company+', guten Tag, hier ist '+s.persona+', '+(s.gender==='m'?'der digitale Assistent':'die digitale Assistentin')+'. Wie kann ich Ihnen helfen?';
 function secFallbackScript(s){return secScript([['sys','Eingehender Anruf · +49 …'],['a',secGreeting(s)],['u','Guten Tag, ich habe eine Frage zu Ihren Öffnungszeiten – und könnte mich jemand zurückrufen?'],['a','Sehr gern. Wie heißen Sie, und unter welcher Nummer erreichen wir Sie am besten?'],['u','Sandra Hoffmann, 0170 5551234.'],['sys','⚙ Rückruf eingetragen ✓ · Sandra Hoffmann · heute'],['a','Danke, Frau Hoffmann – das Team ruft Sie heute noch zurück. Auf Wiederhören!'],['sys','Gespräch beendet · Rückruf eingetragen ✓ · Transkript im Studio']]);}
 /* Branche wählen: Telefon-Gerät umstellen, Branchen-Daten laden, Skript abspielen (mit Stimme, wenn an); der Live-Modus spricht danach mit dieser Persona (sector im POST) */
 function secSelect(k,gesture){if(!secList.some(s=>s.key===k))k=SEC_DEF;secCur=k;phoneSec=secInfo(k);secMark();
   if(!cur||!cur.sectors){demoSelect('phone',gesture);return;}
-  liveLeave();liveHist=[];liveWho=[phoneSec.persona,phoneSec.persona];V.sector=k;V.gender=phoneSec.gender;V.preset=phoneSec.preset||'';V.rate=1;V.pitch=1;V.greet=[];secHeader();vpLabel();liveState('');playDemo({voice:!!gesture});}
+  liveLeave();liveHist=[];VP.g='';liveWho=[phoneSec.persona,phoneSec.persona];V.sector=k;V.gender=phoneSec.gender;V.preset=phoneSec.preset||'';V.rate=1;V.pitch=1;V.greet=[];secHeader();vpLabel();liveState('');playDemo({voice:!!gesture});}
 /* ===== Stimme wählen: Frau/Mann, Voreinstellungen (voices[] vom Server, sonst eingebaut), Hörprobe – die Wahl bleibt im Browser gespeichert ===== */
 const VPKEY='chLiveVoicePick';
 const VOICES_FALLBACK=[
@@ -947,13 +978,13 @@ const VOICES_FALLBACK=[
  {id:'m_souveraen',label:'Thomas · souverän & seriös',gender:'m',desc:'Klar, bestimmt und seriös – für Bank, Versicherung und Zentrale.',rate:1,pitch:.96,browser:{names:['Killian','Conrad','Florian','Markus','Viktor'],rate:1,pitch:.96}},
  {id:'m_tief',label:'Paul · tief & gelassen',gender:'m',desc:'Sonore, tiefe Stimme – entspannt, bodenständig und kompetent.',rate:.95,pitch:.92,browser:{names:['Christoph','Conrad','Florian','Viktor','Markus'],rate:.95,pitch:.92}}];
 let voices=VOICES_FALLBACK.slice();
-let VP=(()=>{let o=null;try{o=JSON.parse(localStorage.getItem(VPKEY)||'{}');}catch(e){}o=o&&typeof o==='object'?o:{};return {g:o.g==='m'||o.g==='f'?o.g:'',f:vpId(o.f),m:vpId(o.m)};})();
-function vpSave(){try{localStorage.setItem(VPKEY,JSON.stringify(VP));}catch(e){}}
+let VP=(()=>{let o=null;try{o=JSON.parse(localStorage.getItem(VPKEY)||'{}');}catch(e){}o=o&&typeof o==='object'?o:{};return {g:'',f:vpId(o.f),m:vpId(o.m)};})();
+function vpSave(){try{localStorage.setItem(VPKEY,JSON.stringify({f:VP.f,m:VP.m}));}catch(e){}}
 function vVoicesNorm(a){if(!Array.isArray(a))return null;const o=[];a.forEach(v=>{if(!v||typeof v!=='object')return;const id=vpId(v.id);if(!id||o.some(x=>x.id===id))return;const b=v.browser&&typeof v.browser==='object'?v.browser:{},r=vClamp(v.rate,.7,1.3,1),p=vClamp(v.pitch,.7,1.3,1);
   o.push({id,label:vText(v.label).trim()||id,gender:v.gender==='m'||v.gender==='f'?v.gender:id[0],desc:vText(v.desc).trim(),rate:r,pitch:p,browser:{names:(Array.isArray(b.names)?b.names:[]).map(x=>vText(x).trim()).filter(Boolean).slice(0,12),rate:vClamp(b.rate,.7,1.3,r),pitch:vClamp(b.pitch,.7,1.3,p)}});});
   return o.filter(v=>v.gender==='f').length>=3&&o.filter(v=>v.gender==='m').length>=3?o:null;}
 const vpName=p=>p?(p.label.split(/\s·\s/)[0]||p.label).trim():'',vpTone=p=>p?p.label.split(/\s·\s/).slice(1).join(' · ').trim():'';
-/* Wirksame Stimme: eigene Wahl (VP) → sonst Stimme der Persona (voice.preset) → sonst erste Stimme des Geschlechts */
+/* Wirksame Stimme: Geschlecht der Persona (außer Frau/Mann wurde für diese Persona umgeschaltet: VP.g) → eigene Wahl für dieses Geschlecht (VP.f/VP.m, gilt für alle Demos) → Stimme der Persona (voice.preset) → erste Stimme des Geschlechts */
 function vGender(){return VP.g==='m'||VP.g==='f'?VP.g:(V.gender==='m'?'m':'f');}
 function vPreset(){const g=vGender(),list=voices.filter(v=>v.gender===g);if(!list.length)return null;return (VP[g]&&list.find(v=>v.id===VP[g]))||(V.preset&&list.find(v=>v.id===V.preset))||list[0];}
 function vPresetId(){const p=vPreset();return p?p.id:'';}
@@ -964,10 +995,10 @@ function vpRender(){const pop=$('#vpop');if(!pop||pop.hidden)return;const g=vGen
   const l=$('#vpList');l.textContent='';voices.filter(v=>v.gender===g).forEach(v=>{const b=document.createElement('button');b.type='button';b.className='vo';b.setAttribute('role','radio');const on=!!p&&v.id===p.id;b.setAttribute('aria-checked',on?'true':'false');b.tabIndex=on?0:-1;b.dataset.id=v.id;
     b.innerHTML=`<span class="von"><b>${esc(vpName(v))}</b><span>${esc(vpTone(v))}</span>${v.id===V.preset?'<em>Standard</em>':''}</span>${v.desc?`<small>${esc(v.desc)}</small>`:''}`;b.onclick=()=>vpPick(v.id);l.appendChild(b);});
   const r=$('#vpReset');if(r)r.hidden=!(VP.g||VP.f||VP.m);}
-function vpPick(id){const p=voices.find(v=>v.id===id);if(!p)return;const pop=$('#vpop'),had=!!(pop&&(pop.contains(document.activeElement)||document.activeElement===document.body));VP.g=p.gender;VP[p.gender]=id;vpSave();vpRender();vpLabel();
+function vpPick(id){const p=voices.find(v=>v.id===id);if(!p)return;const pop=$('#vpop'),had=!!(pop&&(pop.contains(document.activeElement)||document.activeElement===document.body));VP[p.gender]=id;vpSave();vpRender();vpLabel();
   if(had){const f=pop.querySelector('#vpList [aria-checked="true"]');if(f)try{f.focus({preventScroll:true});}catch(e){}}}
-function vpSetGender(g){VP.g=g==='m'?'m':'f';vpSave();vpRender();vpLabel();}
-function vpReset(){VP={g:'',f:'',m:''};vpSave();vpRender();vpLabel();}
+function vpSetGender(g){g=g==='m'?'m':'f';VP.g=g===(V.gender==='m'?'m':'f')?'':g;vpRender();vpLabel();}
+function vpReset(){VP.g='';VP.f='';VP.m='';vpSave();vpRender();vpLabel();}
 /* Hörprobe: die Begrüßung der Persona (signierte Sätze → Server-Stimme mit der gewählten Voreinstellung) oder ein kurzer Beispielsatz mit der Browser-Stimme */
 function vpSample(){vUnlock();vStop();if(!V.on){V.on=true;if(cur)vPrefSet(vCls(cur),true);liveVoiceUI();}
   const turn=V.turn;let items=V.greet.slice(0,2);if(!items.length)items=[{text:'Guten Tag, schön, dass Sie anrufen. Wie kann ich Ihnen helfen?',t:''}];vSay(items,turn);}
@@ -1038,12 +1069,12 @@ async function vBrowser(text,turn){const ss=window.speechSynthesis;if(!ss||!wind
     to=setTimeout(()=>done(true),3500+text.length*95/(V.rate||1));
     try{if(ss.paused)ss.resume();ss.speak(u);}catch(e){done('none');}});}
 /* Sätze nacheinander: Server-Stimme mit Prefetch des nächsten Satzes, bei Fehler Browser-Stimme für den Rest */
-async function vSay(items,turn){items=(items||[]).filter(x=>x&&x.text);if(!items.length||turn!==V.turn||!V.on)return false;
-  V.busy=true;if(!V.spoken){V.spoken=true;ttsHintUI();}liveState();let srv=vServer(),ok=true;const pre=[];const get=i=>pre[i]||(pre[i]=vFetch(items[i]));
+async function vSay(items,turn,st){items=(items||[]).filter(x=>x&&x.text);if(!items.length||turn!==V.turn||!V.on)return false;
+  V.busy=true;if(!V.spoken){V.spoken=true;ttsHintUI();}liveState();let srv=vServer()&&!(st&&st.srv===false),ok=true;const pre=[];const get=i=>pre[i]||(pre[i]=vFetch(items[i]));
   try{for(let i=0;i<items.length;i++){if(turn!==V.turn||!V.on){ok=false;break;}let r='none';
       if(srv&&items[i].t){const url=await get(i);if(turn!==V.turn){ok=false;break;}
         if(url){if(i+1<items.length&&items[i+1].t)get(i+1);r=await vPlayUrl(url,turn);try{URL.revokeObjectURL(url);}catch(e){}if(r===false){ok=false;break;}}
-        if(r!==true)srv=false;}
+        if(r!==true){srv=false;if(st)st.srv=false;}}
       if(r!==true){r=await vBrowser(items[i].text,turn);if(r===false){ok=false;break;}}
       if(i<items.length-1){await sleep(120+Math.random()*80);}}}
   finally{pre.forEach(p=>p&&p.then(u=>{if(u)try{URL.revokeObjectURL(u);}catch(e){}}));if(turn===V.turn){V.busy=false;liveState();}}
@@ -1122,7 +1153,7 @@ async function liveSend(text){text=String(text||$('#liveIn').value||'').trim();i
   if(!j||typeof j!=='object'){if(t){t.textContent='Verbindungsfehler – bitte erneut versuchen.';t.classList.remove('typing');}return;}
   if(typeof j.tts==='boolean')V.tts=j.tts;
   const a=vText(j.reply).trim()||vText(j.message).trim()||'Gerade nicht erreichbar – bitte gleich erneut versuchen.';
-  if(Array.isArray(j.tools)&&j.tools.length&&t&&t.parentNode){const s=document.createElement('div');s.className='m sys';s.textContent='⚙ '+j.tools.map(x=>String(x&&x.name||'Werkzeug').replace(/_/g,' ')+(x&&x.ok===false?' ✗':' ✓')).join(' · ');t.parentNode.insertBefore(s,t);}
+  if(Array.isArray(j.tools)&&j.tools.length&&t&&t.parentNode){const s=document.createElement('div');s.className='m sys';s.textContent='⚙ '+j.tools.map(toolLabel).filter((l,i,a)=>i===0||l!==a[i-1]).join(' · ');t.parentNode.insertBefore(s,t);}
   if(t){t.textContent=a;t.classList.remove('typing');stamp(t,'a');}
   if(vText(j.reply).trim()&&!j.error)histPush('assistant',a);
   if(j.forward)dmsg('sys','→ Weiterleitung an Mitarbeiter');
