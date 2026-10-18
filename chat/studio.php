@@ -77,10 +77,10 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
     <div id="welcome" class="banner hidden">🎉 Zahlung erfolgreich! Melde dich mit der E-Mail aus dem Checkout an – dein Agent ist bereits freigeschaltet.</div>
     <h2>Anmelden</h2><p class="mute small" style="margin:6px 0 0">Wir senden dir einen 6-stelligen Code. Kein Passwort nötig.</p>
     <div id="stepEmail"><label>E-Mail</label><input type="email" id="lEmail" placeholder="du@firma.de" autocomplete="email"><button class="btn p" id="lSend" style="width:100%;margin-top:14px">Code senden</button></div>
-    <div id="stepCode" class="hidden"><label>Code aus der E-Mail <span class="mute" id="lTo"></span></label><input type="text" id="lCode" class="code" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code"><button class="btn p" id="lVerify" style="width:100%;margin-top:14px">Anmelden</button><div class="row" style="justify-content:space-between;margin-top:10px"><button class="btn ghost s" id="lBack">andere E-Mail</button><button class="btn ghost s" id="lResend">Code erneut senden</button></div></div>
+    <div id="stepCode" class="hidden"><label>Code aus der E-Mail <span class="mute" id="lTo"></span></label><div style="position:relative"><input type="text" id="lCode" class="code" inputmode="numeric" pattern="[0-9 ]*" placeholder="••••••" autocomplete="one-time-code" aria-label="6-stelliger Code" style="padding-right:104px"><button type="button" class="btn ghost s" id="lPaste" style="position:absolute;right:8px;top:50%;transform:translateY(-50%)">📋 Einfügen</button></div><button class="btn p" id="lVerify" style="width:100%;margin-top:14px">Anmelden</button><div class="row" style="justify-content:space-between;margin-top:10px"><button class="btn ghost s" id="lBack">andere E-Mail</button><button class="btn ghost s" id="lResend">Code erneut senden</button></div></div>
     <div id="lMsg"></div>
     <details style="margin-top:18px"><summary class="mute small" style="cursor:pointer">Mit API-Key anmelden (ch_live_…)</summary><label>API-Key</label><input type="text" id="lKey" placeholder="ch_live_…"><button class="btn" id="lKeyGo" style="width:100%;margin-top:10px">Weiter</button></details>
-    <p class="mute small" style="margin-top:16px">Mit der Anmeldung akzeptierst du die <a href="/chat/?view=agb">AGB</a> und <a href="/chat/?view=datenschutz">Datenschutzhinweise</a>. Spam-Ordner prüfen, falls der Code nicht ankommt.</p>
+    <p class="mute small" style="margin-top:16px">Mit der Anmeldung akzeptierst du die <a href="/chat/?view=agb">AGB</a> und <a href="/chat/?view=datenschutz">Datenschutzhinweise</a>. Spam-Ordner prüfen, falls der Code nicht ankommt. · <a href="/impressum.html">Impressum</a></p>
   </div>
 </div>
 
@@ -316,7 +316,14 @@ $('#lSend').onclick=async()=>{lEmail=$('#lEmail').value.trim();if(!/.+@.+\..+/.t
   try{const j=await api('/auth/request',{method:'POST',body:JSON.stringify({email:lEmail,lang:'de'})});$('#stepEmail').classList.add('hidden');$('#stepCode').classList.remove('hidden');$('#lTo').textContent='→ '+lEmail;msg($('#lMsg'),j.sent?'Code gesendet – bitte E-Mail (und Spam-Ordner) prüfen.':'Code erzeugt, aber der Versand ist fehlgeschlagen – bitte erneut versuchen oder support@chat-help.com.',j.sent?'ok':'err');$('#lCode').focus();}
   catch(e){msg($('#lMsg'),e.message,'err');}$('#lSend').disabled=false;};
 $('#lEmail').addEventListener('keydown',e=>{if(e.key==='Enter')$('#lSend').click();});
-$('#lCode').addEventListener('input',()=>{if($('#lCode').value.replace(/\D/g,'').length===6)$('#lVerify').click();});
+const codeOf=t=>{const m=String(t||'').match(/(?:\d[\s\u00a0.-]?){6}/);return m?m[0].replace(/\D/g,'').slice(0,6):String(t||'').replace(/\D/g,'').slice(0,6);};
+$('#lCode').addEventListener('input',()=>{const v=$('#lCode').value.replace(/\D/g,'').slice(0,6);if($('#lCode').value!==v)$('#lCode').value=v;if(v.length===6)$('#lVerify').click();});
+$('#lCode').addEventListener('paste',e=>{const t=(e.clipboardData||window.clipboardData)?.getData('text');if(t==null)return;e.preventDefault();$('#lCode').value=codeOf(t);$('#lCode').dispatchEvent(new Event('input'));});
+$('#lPaste').onclick=async()=>{try{const t=await navigator.clipboard.readText();const c=codeOf(t);if(c.length!==6){msg($('#lMsg'),'In der Zwischenablage ist kein 6-stelliger Code. Kopiere den Code aus der E-Mail und tippe erneut auf „Einfügen“.','err');return;}$('#lCode').value=c;$('#lCode').dispatchEvent(new Event('input'));}catch(e){msg($('#lMsg'),'Einfügen nicht erlaubt – tippe lange in das Feld und wähle „Einfügen“.','err');$('#lCode').focus();}};
+if(!(navigator.clipboard&&navigator.clipboard.readText))$('#lPaste').classList.add('hidden');
+/* Ein-Tipp-Übernahme aus der Login-Mail: #code=123456&e=<base64url(E-Mail)> – nur vorausfüllen, angemeldet wird per Klick (Linkprüfer verbrauchen den Code nicht) */
+const LINK_LOGIN=(()=>{try{const h=new URLSearchParams(location.hash.slice(1));const c=(h.get('code')||'').replace(/\D/g,'');const e=h.get('e');if(c.length!==6||!e)return null;let b=e.replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';const em=decodeURIComponent(escape(atob(b)));history.replaceState(null,'',location.pathname+location.search);return /.+@.+\..+/.test(em)?{code:c,email:em}:null;}catch(_){return null;}})();
+function linkLogin(){if(!LINK_LOGIN)return false;lEmail=LINK_LOGIN.email;$('#lEmail').value=lEmail;$('#stepEmail').classList.add('hidden');$('#stepCode').classList.remove('hidden');$('#lTo').textContent='→ '+lEmail;$('#lCode').value=LINK_LOGIN.code;msg($('#lMsg'),'Code aus der E-Mail übernommen – tippe auf „Anmelden“.','ok');setTimeout(()=>$('#lVerify').focus(),50);return true;}
 $('#lVerify').onclick=async()=>{const code=$('#lCode').value.replace(/\D/g,'');if(code.length!==6)return;$('#lVerify').disabled=true;msg($('#lMsg'),'Prüfe …');
   try{const j=await api('/auth/verify',{method:'POST',body:JSON.stringify({email:lEmail,code})});KEY=j.key;localStorage.setItem('ch_api_key',KEY);localStorage.setItem('ch_email',j.email);if(j.trial_credited)sessionStorage.setItem('ch_trial','1');await boot();}
   catch(e){msg($('#lMsg'),e.message,'err');$('#lCode').value='';}$('#lVerify').disabled=false;};
@@ -326,7 +333,7 @@ $('#lKeyGo').onclick=async()=>{const k=$('#lKey').value.trim();if(!/^ch_(live|te
 $('#logout').onclick=()=>{localStorage.removeItem('ch_api_key');location.href=location.pathname;};
 
 /* ===== Boot ===== */
-async function boot(){if(!KEY){show('login');return;}
+async function boot(){if(LINK_LOGIN&&!boot._link){boot._link=1;if(!KEY||(localStorage.getItem('ch_email')||'').toLowerCase()!==LINK_LOGIN.email.toLowerCase()){show('login');linkLogin();return;}}if(!KEY){show('login');return;}
   try{const [me,sec]=await Promise.all([api('/me'),api('/sectors')]);ME=me;PLANS=sec.plans||[];}
   catch(e){if(e.status===401){localStorage.removeItem('ch_api_key');KEY='';show('login');msg($('#lMsg'),'Sitzung ungültig – bitte neu anmelden.','err');return;}alert('Fehler: '+e.message);return;}
   show('app');$('#who').textContent=ME.email;renderHome();renderAgents();renderPhone();renderTokens();

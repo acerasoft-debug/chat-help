@@ -73,16 +73,23 @@ function th_login_request(string $email, string $ip, string $lang='de'): array {
     $p->prepare("UPDATE auth_codes SET used=1 WHERE email=? AND used=0")->execute([$email]);
     $p->prepare("INSERT INTO auth_codes(email,code_hash,ip_hash,expires_at) VALUES(?,?,?,NOW() + INTERVAL 15 MINUTE)")->execute([$email,hash('sha256',$code.'|'.$email),$ih]);
     if(random_int(1,30)===1) $p->exec("DELETE FROM auth_codes WHERE created_at < (NOW() - INTERVAL 2 DAY)");
-    $T=['de'=>['s'=>'Dein ChatHelp Studio-Code: '.$code,'h'=>'Anmeldung im ChatHelp Studio','p'=>'Gib diesen Code im Studio ein. Er ist 15 Minuten gültig.','f'=>'Falls du das nicht warst, ignoriere diese E-Mail einfach.'],
-        'en'=>['s'=>'Your ChatHelp Studio code: '.$code,'h'=>'Sign in to ChatHelp Studio','p'=>'Enter this code in the Studio. It is valid for 15 minutes.','f'=>"If this wasn't you, just ignore this email."],
-        'tr'=>['s'=>'ChatHelp Studio kodun: '.$code,'h'=>'ChatHelp Studio girişi','p'=>'Bu kodu Studio\'da gir. 15 dakika geçerlidir.','f'=>'Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin.']][$lang] ?? null;
-    $T = $T ?: ['s'=>'Dein ChatHelp Studio-Code: '.$code,'h'=>'Anmeldung im ChatHelp Studio','p'=>'Gib diesen Code im Studio ein. Er ist 15 Minuten gültig.','f'=>'Falls du das nicht warst, ignoriere diese E-Mail einfach.'];
+    $T=['de'=>['s'=>$code.' ist dein ChatHelp Studio-Code','h'=>'Anmeldung im ChatHelp Studio','p'=>'Dein Anmeldecode ist 15 Minuten gültig.','c'=>'Tippe auf den Code, um ihn zu markieren und zu kopieren.','b'=>'Code übernehmen & anmelden','o'=>'Oder im Studio eingeben:','f'=>'Falls du das nicht warst, ignoriere diese E-Mail einfach. Gib den Code niemals an andere weiter.'],
+        'en'=>['s'=>$code.' is your ChatHelp Studio code','h'=>'Sign in to ChatHelp Studio','p'=>'Your sign-in code is valid for 15 minutes.','c'=>'Tap the code to select and copy it.','b'=>'Use code & sign in','o'=>'Or enter it in the Studio:','f'=>"If this wasn't you, just ignore this email. Never share this code with anyone."],
+        'tr'=>['s'=>$code.' ChatHelp Studio kodun','h'=>'ChatHelp Studio girişi','p'=>'Giriş kodun 15 dakika geçerlidir.','c'=>'Kopyalamak için koda dokun ve seç.','b'=>'Kodu aktar ve giriş yap','o'=>'Ya da Studio\'da gir:','f'=>'Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin. Kodu kimseyle paylaşma.']][$lang] ?? null;
+    $T = $T ?: ['s'=>$code.' ist dein ChatHelp Studio-Code','h'=>'Anmeldung im ChatHelp Studio','p'=>'Dein Anmeldecode ist 15 Minuten gültig.','c'=>'Tippe auf den Code, um ihn zu markieren und zu kopieren.','b'=>'Code übernehmen & anmelden','o'=>'Oder im Studio eingeben:','f'=>'Falls du das nicht warst, ignoriere diese E-Mail einfach. Gib den Code niemals an andere weiter.'];
+    /* Ein-Tipp-Übernahme: Code + E-Mail stehen im Fragment (#…) – das wird nie an den Server/Logs/Mail-Scanner übertragen;
+       das Studio füllt nur vor, angemeldet wird erst mit dem Klick auf „Anmelden“ (Linkprüfer verbrauchen den Code nicht). */
+    $link='https://chat-help.com/chat/studio.php#code='.$code.'&e='.rtrim(strtr(base64_encode($email),'+/','-_'),'=');
+    $h=fn($x)=>htmlspecialchars($x,ENT_QUOTES,'UTF-8');
     $html='<div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px;border:1px solid #e6e8ef;border-radius:20px;color:#0f1222">'
          .'<div style="font-size:22px;font-weight:700;margin-bottom:6px">ChatHelp <span style="color:#b8862b">Studio</span></div>'
-         .'<h2 style="font-size:18px;margin:18px 0 8px">'.$T['h'].'</h2><p style="color:#3b4055;margin:0 0 18px">'.$T['p'].'</p>'
-         .'<div style="font:700 36px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.22em;background:#f6ecd3;color:#1a1407;padding:18px 22px;border-radius:14px;text-align:center">'.$code.'</div>'
-         .'<p style="color:#6b7083;font-size:13px;margin-top:22px">'.$T['f'].'<br>ChatHelp · chat-help.com · support@chat-help.com</p></div>';
-    $sent=th_mail($email,$T['s'],$html);
+         .'<h2 style="font-size:18px;margin:18px 0 8px">'.$h($T['h']).'</h2><p style="color:#3b4055;margin:0 0 18px">'.$h($T['p']).'</p>'
+         .'<div style="font:700 36px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.22em;background:#f6ecd3;color:#1a1407;padding:18px 22px;border-radius:14px;text-align:center;-webkit-user-select:all;-moz-user-select:all;user-select:all;cursor:text">'.$code.'</div>'
+         .'<p style="color:#6b7083;font-size:13px;margin:10px 0 0;text-align:center">'.$h($T['c']).'</p>'
+         .'<div style="text-align:center;margin:22px 0 4px"><a href="'.$h($link).'" style="display:inline-block;background:#0f1222;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:13px 22px;border-radius:999px">'.$h($T['b']).' →</a></div>'
+         .'<p style="color:#6b7083;font-size:13px;margin-top:22px">'.$h($T['f']).'<br>ChatHelp · chat-help.com · support@chat-help.com</p></div>';
+    $text=$T['h']."\n\n".$T['p']."\n\n".$code."\n\n".$T['b'].":\n".$link."\n\n".$T['f']."\n\nChatHelp · chat-help.com · support@chat-help.com\n";
+    $sent=th_mail($email,$T['s'],$html,$text);
     return ['ok'=>true,'sent'=>$sent,'message'=>$sent?'Code gesendet.':'Code erzeugt, E-Mail-Versand fehlgeschlagen.'];
 }
 /** Code prüfen → Konto (oder null). Max. 6 Versuche je Code. */
@@ -438,20 +445,27 @@ function th_ai_tools(string $system, array $messages, array $tools, callable $ex
 }
 
 /** E-posta: Brevo HTTPS API varsa onunla, yoksa mail(). */
-function th_mail(string $to, string $subject, string $html): bool {
+function th_mail(string $to, string $subject, string $html, string $text=''): bool {
     /* Absender: MAIL_FROM, sonst support@chat-help.com (Domain mit MX/SPF; SMTP_FROM zeigt ggf. auf .de) */
     $from = defined('MAIL_FROM') ? MAIL_FROM : 'support@chat-help.com'; $name = defined('SMTP_NAME') ? SMTP_NAME : 'ChatHelp';
     if(preg_match('/\.(invalid|test|example)$/i',trim($to)) || !filter_var(trim($to),FILTER_VALIDATE_EMAIL)) return true;   // Testkonten (RFC 2606) / ungültige Adressen: nichts versenden, keine Bounces
     if(defined('BREVO_KEY') && BREVO_KEY){
         $ch=curl_init('https://api.brevo.com/v3/smtp/email');
         curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>20,
-            CURLOPT_POSTFIELDS=>json_encode(['sender'=>['name'=>$name,'email'=>$from],'to'=>[['email'=>$to]],'subject'=>$subject,'htmlContent'=>$html]),
+            CURLOPT_POSTFIELDS=>json_encode(['sender'=>['name'=>$name,'email'=>$from],'to'=>[['email'=>$to]],'subject'=>$subject,'htmlContent'=>$html]+($text!==''?['textContent'=>$text]:[])),
             CURLOPT_HTTPHEADER=>['accept: application/json','api-key: '.BREVO_KEY,'content-type: application/json']]);
         curl_exec($ch); $c=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); if($c>=200&&$c<300) return true;
     }
     /* -f: Envelope-Absender = From (im Web-Kontext sonst www-data@host → Relay/Empfänger verwerfen die Mail) */
-    $ok = @mail($to,'=?UTF-8?B?'.base64_encode($subject).'?=',$html,"MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: $name <$from>\r\nReply-To: $from\r\nX-Mailer: ChatHelp",'-f'.$from);
-    if(!$ok) $ok = @mail($to,'=?UTF-8?B?'.base64_encode($subject).'?=',$html,"MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: $name <$from>\r\nReply-To: $from\r\nX-Mailer: ChatHelp");
+    $ctype="Content-Type: text/html; charset=UTF-8"; $body=$html;
+    if($text!==''){   // multipart/alternative: Klartext (Code-Erkennung in Mail-Apps, Vorschau) + HTML
+        $bd='=_ch'.bin2hex(random_bytes(8)); $ctype="Content-Type: multipart/alternative; boundary=\"$bd\"";
+        $body="--$bd\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n".chunk_split(base64_encode($text))
+             ."--$bd\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n".chunk_split(base64_encode($html))."--$bd--\r\n";
+    }
+    $hdr="MIME-Version: 1.0\r\n$ctype\r\nFrom: $name <$from>\r\nReply-To: $from\r\nX-Mailer: ChatHelp";
+    $ok = @mail($to,'=?UTF-8?B?'.base64_encode($subject).'?=',$body,$hdr,'-f'.$from);
+    if(!$ok) $ok = @mail($to,'=?UTF-8?B?'.base64_encode($subject).'?=',$body,$hdr);
     return $ok;
 }
 
