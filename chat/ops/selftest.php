@@ -381,7 +381,8 @@ if($DOCS){
             echo "  [$loc] Google Chirp3-HD: ".(implode(' ;; ',$pick('/Chirp3-HD/i',4)) ?: '—')."\n";
         }
         foreach(['Vicki-Generative','Daniel-Generative','Joanna-Generative','Matthew-Generative','Amy-Generative','Lea-Generative','Remi-Generative','Lucia-Generative','Sergio-Generative','Bianca-Generative','Adriano-Generative','de-DE-Chirp3-HD-Aoede','de-DE-Chirp3-HD-Charon','tr-TR-Chirp3-HD-Aoede'] as $v) echo "  enthält „{$v}“: ".(stripos($doc,$v)!==false?'ja':'nein')."\n";
-        if(preg_match_all('/[a-z]{2}-[A-Z]{2}-Chirp3-HD-[A-Za-z]+/',$doc,$cm)){ $byLoc=[]; foreach(array_unique($cm[0]) as $v){ $byLoc[substr($v,0,5)][]=substr($v,16); } foreach(['de-DE','tr-TR','en-US','fr-FR'] as $l) if(isset($byLoc[$l])) echo "  Chirp3-HD $l: ".implode(', ',array_slice($byLoc[$l],0,30))."\n"; }
+        if(preg_match_all('/[a-z]{2}-[A-Z]{2}-Chirp3-HD-[A-Za-z]+/',$doc,$cm)){ $byLoc=[]; foreach(array_unique($cm[0]) as $v){ $byLoc[substr($v,0,5)][]=substr($v,16); } foreach(['de-DE','fr-FR','tr-TR','es-ES','it-IT','en-US','en-GB','nl-NL','ru-RU'] as $l) if(isset($byLoc[$l])) echo "  Chirp3-HD $l (".count(array_unique($byLoc[$l]))."): ".implode(', ',array_unique($byLoc[$l]))."\n"; }
+        foreach(['de-DE','fr-FR','es-ES','it-IT','en-US','en-GB'] as $l){ if(preg_match_all('/Polly\.([A-Z][a-z]+)-(Generative|Neural)[^\n]{0,80}'.preg_quote($l,'/').'|'.preg_quote($l,'/').'[^\n]{0,120}?Polly\.([A-Z][a-z]+)-(Generative|Neural)/',$doc,$pm)){ $nm=array_unique(array_filter(array_merge(array_map(fn($a,$b)=>$a?$a.'-'.$b:'',$pm[1],$pm[2]),array_map(fn($a,$b)=>$a?$a.'-'.$b:'',$pm[3],$pm[4])))); echo "  Polly $l: ".implode(', ',$nm)."\n"; } }
         foreach(preg_split('/\R/',strip_tags($doc)) as $l){ if(preg_match('/beta|not covered|SLA|13520|13512|invalid voice|SSML/i',$l) && mb_strlen(trim($l))>20){ echo "  Hinweis: ".short($l,260)."\n"; } }
     }
     sec('Twilio <Gather>: speechModel / speechTimeout laut Doku');
