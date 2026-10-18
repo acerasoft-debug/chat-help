@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -q piper-tts==1.8.0 praat-parselmouth==0.4.7
-      - run: python tools/voice-check/check.py out
+      - run: python tools/voice-check/search.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
