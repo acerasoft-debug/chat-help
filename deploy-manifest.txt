@@ -124,6 +124,8 @@ chat/i18n.php                chat/i18n.php
 chat/onboarding-lib.php      chat/onboarding-lib.php
 chat/studio-panels/einrichtung.html chat/studio-panels/einrichtung.html
 chat/studio-panels/einrichtung.js chat/studio-panels/einrichtung.js
+# Konto-Profil aus der Registrierung (Betrieb/privat, Branchen, Bedarf, Sprachen) → Empfehlungen + Studio-Navigation
+chat/profile-lib.php         chat/profile-lib.php
 # Business-App (PWA) + Download-Seite
 chat/app.php                 chat/app.php
 chat/app-download.php        chat/app-download.php
