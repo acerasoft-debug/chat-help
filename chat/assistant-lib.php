@@ -536,6 +536,14 @@ function assistant_voice(array $pr, array $over=[], string $lang=''): array {
 }
 /** Antworttext → vorlesbare Sätze (ohne Markdown, Links, Emojis). */
 function assistant_speech(string $text, string $lang='de', bool $du=true): array {
+    if($lang==='ja'){   // Japanisch: keine Leerzeichen – an 。！？ teilen, lange Teile an 、 kürzen
+        $t=preg_replace(['#https?://\S+#u','/\*\*|__|`+|^#+\s*/mu','/^\s*[-•*]\s+/mu','/[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{FE0F}]/u'],['','','',' '],$text) ?? $text;
+        $t=trim(preg_replace('/\s+/u',' ',$t) ?? $t); $out=[];
+        foreach(preg_split('/(?<=[。！？!?])\s*/u',$t,-1,PREG_SPLIT_NO_EMPTY) ?: [] as $p){ $p=trim($p);
+            while(mb_strlen($p)>160){ $cut=mb_strrpos(mb_substr($p,0,160),'、'); if($cut===false || $cut<20) $cut=159; $out[]=mb_substr($p,0,$cut+1); $p=trim(mb_substr($p,$cut+1)); }
+            if($p!=='') $out[]=$p; }
+        return array_slice($out,0,24);
+    }
     if(function_exists('ch_speech_sentences')){ try{ $r=ch_speech_sentences($text,$lang,$du); if(is_array($r) && $r) return array_values(array_filter(array_map(fn($x)=>mb_substr(trim((string)$x),0,ASSISTANT_SPEAK_MAX),$r),fn($x)=>$x!=='')); }catch(Throwable $e){} }
     $t=preg_replace('#https?://\S+#u','',$text) ?? $text;
     $t=preg_replace(['/\*\*|__|`+|^#+\s*/mu','/^\s*[-•*]\s+/mu','/[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{FE0F}\x{2705}\x{2728}]/u','/\(\s*\)/u'],['','',' ',''],$t) ?? $t;
@@ -581,7 +589,8 @@ function assistant_history(int $acc, int $limit=30): array {
     $s=th_db()->prepare("SELECT id,role,content,meta,created_at FROM assistant_messages WHERE account_id=? ORDER BY id DESC LIMIT ".max(1,min(200,$limit))); $s->execute([$acc]);
     $rows=array_reverse($s->fetchAll(PDO::FETCH_ASSOC));
     return array_map(function($r){ $m=json_decode((string)($r['meta'] ?? ''),true); $m=is_array($m) ? $m : [];
-        return ['id'=>(int)$r['id'],'role'=>$r['role'],'content'=>$r['content'],'actions'=>array_values((array)($m['actions'] ?? [])),'greeting'=>!empty($m['greeting']),'created_at'=>th_dbiso($r['created_at'])]; },$rows);
+        return ['id'=>(int)$r['id'],'role'=>$r['role'],'content'=>$r['content'],'actions'=>array_values((array)($m['actions'] ?? [])),'greeting'=>!empty($m['greeting']),
+            'lang'=>isset($m['lang']) && is_string($m['lang']) && isset(ASSISTANT_LANG_TABLE[$m['lang']]) ? $m['lang'] : null,'created_at'=>th_dbiso($r['created_at'])]; },$rows);
 }
 function assistant_add_message(int $acc, string $role, string $content, array $meta=[]): int {
     assistant_bootstrap(); $p=th_db();
@@ -605,9 +614,11 @@ function assistant_ai_messages(int $acc): array {
 function assistant_greeting(int $acc, array $pr, ?array $ov=null): string {
     $ov=$ov ?? assistant_overview($acc); $sie=$pr['personality']['address']==='sie'; $n=$pr['name']; $f=$pr['gender']!=='m';
     $company=''; foreach($ov['configs'] as $c) if($c['company']!==''){ $company=$c['company']; break; }
-    if($pr['lang']==='en'){
-        return 'Hello! I\'m '.$n.', your personal assistant here in ChatHelp Studio. Just tell me what you need done – I\'ll ask whatever I still need to know and set up your agents with you, step by step. '
-            .($company!=='' ? 'I can see "'.$company.'" is already set up. What shall I take care of first?' : 'To start: what kind of business do you run?');
+    $lang=assistant_lang($pr['lang']);
+    if($lang!=='de'){
+        $T=fn(string $k)=>assistant_lt($lang,$k,$sie,$f,['name'=>$n,'company'=>$company]);
+        $sep=$lang==='ja' ? '' : ' ';
+        return $T('hi').$sep.$T('intro').$sep.$T('mid').$sep.$T($company!=='' ? 'co' : 'new');
     }
     $hi=['herzlich'=>'Hallo und herzlich willkommen!','professionell'=>'Guten Tag!','locker'=>($sie ? 'Hallo, schön, dass Sie da sind!' : 'Hey, schön, dass du da bist!')][$pr['personality']['mood']] ?? 'Hallo!';
     $role=$f ? ($sie ? 'Ihre persönliche Assistentin' : 'deine persönliche Assistentin') : ($sie ? 'Ihr persönlicher Assistent' : 'dein persönlicher Assistent');
@@ -620,7 +631,7 @@ function assistant_greeting(int $acc, array $pr, ?array $ov=null): string {
 /** Begrüßung einmalig in den Verlauf legen, wenn er leer ist. */
 function assistant_ensure_greeting(int $acc, array $pr): void {
     if($acc<=0) return; $s=th_db()->prepare("SELECT COUNT(*) FROM assistant_messages WHERE account_id=?"); $s->execute([$acc]);
-    if((int)$s->fetchColumn()===0) assistant_add_message($acc,'assistant',assistant_greeting($acc,$pr),['greeting'=>true]);
+    if((int)$s->fetchColumn()===0) assistant_add_message($acc,'assistant',assistant_greeting($acc,$pr),['greeting'=>true,'lang'=>assistant_lang($pr['lang'])]);
 }
 
 /* ======================================================================= Konto-Überblick */
@@ -707,7 +718,9 @@ function assistant_overview_text(array $ov): string {
 }
 
 /* ======================================================================= Wissensbasis-Abschnitte (## Titel) */
-function assistant_section_title(string $t): string { return mb_substr(trim(preg_replace('/[#\r\n]+/u',' ',$t) ?? ''),0,60); }
+function assistant_section_title(string $t): string { return mb_substr(trim(preg_replace('/[#\s]+/u',' ',$t) ?? ''),0,60); }
+/** Freitext für die Wissensbasis: Zeilen, die wie eine Abschnittsüberschrift („# …“ / „## …“) aussehen, zu „### …“ entschärfen – sonst entstünden falsche Abschnitte. */
+function assistant_kb_text(string $s): string { return (string)(preg_replace('/^[ \t]*#{1,2}(?=[ \t]|$)/mu','###',$s) ?? $s); }
 function assistant_kb_section_get(string $kb, string $title): ?string {
     $t=preg_quote(assistant_section_title($title),'/');
     if(!preg_match('/^##[ \t]+'.$t.'[ \t]*$/miu',$kb,$m,PREG_OFFSET_CAPTURE)) return null;
@@ -789,7 +802,7 @@ function assistant_suggestions(array $items, array $mem): array {
 }
 
 /* ======================================================================= Systemprompt */
-function assistant_system(int $acc, array $pr, array $ov, array $items, int $progress, array $mem, bool $voice): string {
+function assistant_system(int $acc, array $pr, array $ov, array $items, int $progress, array $mem, bool $voice, bool $toolsReady=true): string {
     $f=$pr['gender']!=='m'; $n=$pr['name']; $sie=$pr['personality']['address']==='sie'; $pe=$pr['personality'];
     $s="Du bist {$n}, ".($f ? 'die persönliche Assistentin' : 'der persönliche Assistent')." des Inhabers bzw. der Inhaberin dieses Kontos im ChatHelp Studio. ChatHelp vermietet KI-Agenten für kleine und mittlere Betriebe (Website-Chat, Telefon, WhatsApp, Termine, Bestellungen, Taxi, Hotel, Rückrufe). Du bist kein Kundenservice für Endkunden, sondern die rechte Hand des Inhabers: Du hörst zu, lernst seinen Betrieb kennen und richtest seine Agenten mit ihm ein.";
     $s.="\n\nPERSONA\n• Du bist ".($f ? 'eine Frau. Sprich über dich in weiblichen Formen („ich bin deine Assistentin“, „deine Ansprechpartnerin“).' : 'ein Mann. Sprich über dich in männlichen Formen („ich bin dein Assistent“, „dein Ansprechpartner“).');
@@ -798,7 +811,9 @@ function assistant_system(int $acc, array $pr, array $ov, array $items, int $pro
     $s.="\n• Humor: ".[0=>'kein Humor, freundlich-sachlich.',1=>'ab und zu ein leichtes Augenzwinkern, nie albern.',2=>'gern humorvoll und schlagfertig, aber nie auf Kosten anderer und nie bei ernsten Themen.'][(int)$pe['humor']];
     $s.="\n• Antwortlänge: ".($pe['detail']==='kurz' ? 'kurz – meist 1 bis 3 Sätze.' : 'ausführlicher – bis 6 Sätze, mit kurzer Erklärung, wo es hilft.');
     $s.="\n• Ehrlichkeit: Fragt dich jemand, ob du ein Mensch bist, sagst du freundlich, dass du eine KI-".($f ? 'Assistentin' : 'Assistent')." bist. Behaupte nie, ein Mensch zu sein oder Dinge außerhalb des Studios getan zu haben.";
-    $s.="\n• Sprache: ".($pr['lang']==='de' ? 'Deutsch' : strtoupper($pr['lang'])).", außer der Inhaber schreibt erkennbar in einer anderen Sprache – dann antwortest du in seiner Sprache.";
+    $ln=assistant_lang_name($pr['lang']);
+    $s.="\n• Sprache: Antworte auf ".$ln.", außer der Inhaber schreibt oder spricht erkennbar in einer anderen Sprache – dann antwortest du in seiner Sprache, so natürlich wie eine Muttersprachlerin bzw. ein Muttersprachler. Du verstehst und sprichst fließend: "
+        .implode(', ',array_map('assistant_lang_name',ASSISTANT_LANGS)).'. Die Anrede-Regel gilt sinngemäß in jeder Sprache ('.($sie ? 'förmlich, z. B. vous, usted, Lei, siz, вы, u, Te' : 'vertraut, z. B. tu, tú, sen, ты, je, sinä').'). Werkzeug-Eingaben (Abschnitte, FAQ, Leistungen) schreibst du in der Sprache, in der die Kunden des Betriebs bedient werden – im Zweifel Deutsch.';
     $s.=$voice ? "\n• SPRACHAUSGABE IST AN: Deine Antwort wird mit deiner Stimme vorgelesen. Sprich natürlich wie im echten Gespräch: kurze Sätze, Alltagswörter, keine Listen, kein Markdown, keine Emojis, keine Klammern, keine URLs (Links stehen ohnehin im Chat). Zahlen und Uhrzeiten so, wie man sie spricht."
                : "\n• Schreibstil: natürlich und persönlich. Kurze Aufzählungen mit „•“ sind erlaubt, wenn du etwas zusammenfasst; sonst Fließtext. Kein Markdown außer **fett** für einzelne Wörter.";
     $s.="\n\nARBEITSWEISE";
@@ -816,6 +831,7 @@ function assistant_system(int $acc, array $pr, array $ov, array $items, int $pro
     foreach($items as $i) $s.="\n[".($i['done'] ? 'x' : ' ').'] '.$i['label'].($i['done'] ? '' : ' – '.$i['hint']);
     $next=null; foreach($items as $i) if(!$i['done']){ $next=$i; break; }
     $s.="\nNächster offener Punkt: ".($next ? $next['label'] : 'alles erledigt – hilf beim Feinschliff (mehr FAQ, bessere Texte, Testgespräch).');
+    if(!$toolsReady) $s.="\n\nWICHTIG – WERKZEUGE GERADE NICHT VERFÜGBAR: In diesem Gespräch kannst du nichts speichern, merken oder einstellen (keine Werkzeuge). Behaupte NIE, etwas gespeichert, eingetragen, gemerkt oder geändert zu haben. Hilf beim Formulieren und Planen, sag offen, dass das automatische Einrichten gerade nicht verfügbar ist, und nenne den Studio-Bereich, in dem der Inhaber es selbst eintragen kann.";
     $s.="\n\nJetzt (Europe/Berlin): ".assistant_now_text().'.';
     return $s;
 }
@@ -908,9 +924,10 @@ function assistant_exec(int $acc, string $name, array $in, string $channel='stud
                 $ov=assistant_overview($acc); [$items,$pg]=assistant_checklist($acc,$ov);
                 return ['overview'=>assistant_overview_text($ov),'checklist'=>array_map(fn($i)=>['key'=>$i['key'],'label'=>$i['label'],'done'=>$i['done'],'hint'=>$i['hint']],$items),'progress'=>$pg,'summary'=>'Überblick geladen'];
             case 'remember':
-                $r=assistant_remember($acc,(string)($in['topic'] ?? ''),(string)($in['fact'] ?? ''),'chat',!empty($in['replace']));
+                $topic=assistant_line($in['topic'] ?? '',60); $fact=assistant_line($in['fact'] ?? '',500);   // assistant_line: Arrays/Objekte → '' (kein „Array“)
+                $r=assistant_remember($acc,$topic,$fact,'chat',assistant_truthy($in['replace'] ?? null)===true);
                 if(isset($r['error'])) return $r;
-                return ['ok'=>true,'id'=>$r['id'],'new'=>$r['new'],'summary'=>'Gemerkt: '.assistant_line($in['topic'],60).' – '.assistant_line($in['fact'],160)];
+                return ['ok'=>true,'id'=>$r['id'],'new'=>$r['new'],'summary'=>'Gemerkt: '.$topic.' – '.mb_substr($fact,0,160)];
             case 'save_business_profile': return assistant_tool_profile($acc,$in);
             case 'update_agent_knowledge': return assistant_tool_knowledge($acc,$in);
             case 'add_faq': return assistant_tool_faq($acc,$in);
@@ -932,7 +949,7 @@ function assistant_exec(int $acc, string $name, array $in, string $channel='stud
 function assistant_tool_profile(int $acc, array $in): array {
     [$plan,$e]=assistant_resolve_plan($acc,$in['plan'] ?? ''); if($e) return $e;
     $company=assistant_line($in['company'] ?? '',120); if($company==='') return ['error'=>'company_required','hint'=>'Bitte zuerst nach dem Namen des Betriebs fragen.'];
-    $f=['Unternehmen'=>$company,'Adresse'=>assistant_line($in['address'] ?? '',200),'Telefon'=>assistant_line($in['phone'] ?? '',60),'Öffnungszeiten'=>assistant_line($in['hours_text'] ?? '',300),'Über uns'=>assistant_str($in['description'] ?? '',1500)];
+    $f=['Unternehmen'=>$company,'Adresse'=>assistant_line($in['address'] ?? '',200),'Telefon'=>assistant_line($in['phone'] ?? '',60),'Öffnungszeiten'=>assistant_line($in['hours_text'] ?? '',300),'Über uns'=>trim(assistant_kb_text(assistant_str($in['description'] ?? '',1500)))];
     $text=implode("\n",array_map(fn($k,$v)=>$k.': '.$v,array_keys(array_filter($f,fn($v)=>$v!=='')),array_filter($f,fn($v)=>$v!=='')));
     $cur=th_agent_cfg($acc,$plan); $kb=assistant_kb_section_set((string)$cur['kb'],'Betriebsprofil',$text,'replace',true);
     if(mb_strlen($kb)>60000) return ['error'=>'kb_full','hint'=>'Die Wissensbasis ist voll (60.000 Zeichen). Bitte im Training kürzen.'];
@@ -961,7 +978,7 @@ function assistant_sync_modules(int $acc, string $company, string $address, stri
 }
 function assistant_tool_knowledge(int $acc, array $in): array {
     [$plan,$e]=assistant_resolve_plan($acc,$in['plan'] ?? ''); if($e) return $e;
-    $sec=assistant_section_title(assistant_str($in['section'] ?? '')); $text=assistant_str($in['text'] ?? '',8000);
+    $sec=assistant_section_title(assistant_str($in['section'] ?? '')); $text=trim(assistant_kb_text(assistant_str($in['text'] ?? '',8000)));
     if($sec==='' || $text==='') return ['error'=>'section_and_text_required','hint'=>'Bitte Überschrift und Inhalt angeben.'];
     $mode=($in['mode'] ?? 'append')==='replace_section' ? 'replace' : 'append';
     $cur=th_agent_cfg($acc,$plan); $kb=assistant_kb_section_set((string)$cur['kb'],$sec,$text,$mode,false);
@@ -1001,9 +1018,10 @@ function assistant_tool_faq(int $acc, array $in): array {
 function assistant_tool_tone(int $acc, array $in): array {
     [$plan,$e]=assistant_resolve_plan($acc,$in['plan'] ?? ''); if($e) return $e;
     $tone=assistant_str($in['tone'] ?? ''); if(!in_array($tone,ASSISTANT_AGENT_TONES,true)) return ['error'=>'tone_invalid','hint'=>'Erlaubt: '.implode(', ',ASSISTANT_AGENT_TONES)];
-    $d=['tone'=>$tone]; $lang=assistant_str($in['lang'] ?? ''); if($lang!==''){ if(!in_array($lang,ASSISTANT_LANGS,true)) return ['error'=>'lang_invalid','hint'=>'Erlaubt: '.implode(', ',ASSISTANT_LANGS)]; $d['lang']=$lang; }
+    $d=['tone'=>$tone]; $lang=strtolower(assistant_str($in['lang'] ?? '')); if($lang==='nb') $lang='no';
+    if($lang!==''){ if(!in_array($lang,ASSISTANT_LANGS,true)) return ['error'=>'lang_invalid','hint'=>'Erlaubt: '.implode(', ',ASSISTANT_LANGS)]; $d['lang']=$lang; }
     assistant_cfg_save($acc,$plan,$d);
-    $lname=['de'=>'Deutsch','en'=>'Englisch','tr'=>'Türkisch','fr'=>'Französisch','es'=>'Spanisch','it'=>'Italienisch','nl'=>'Niederländisch','pl'=>'Polnisch','ru'=>'Russisch'][$d['lang'] ?? th_agent_cfg($acc,$plan)['lang']] ?? 'Deutsch';
+    $lname=assistant_lang_name((string)($d['lang'] ?? th_agent_cfg($acc,$plan)['lang']));
     assistant_remember($acc,'Ton & Sprache',assistant_plan_name($plan).': '.$tone.', '.$lname,'tool',true);
     return ['ok'=>true,'plan'=>$plan,'tab'=>'agents','summary'=>'Ton „'.$tone.'“, Sprache '.$lname.' für '.assistant_plan_name($plan)];
 }
