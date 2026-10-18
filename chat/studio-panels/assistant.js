@@ -106,7 +106,10 @@
   }
 
   /* ======================================================================= Sprachausgabe */
-  var SPK = { gen: 0, el: null, url: null, serverOk: true, noLang: {} };
+  /* gen = Abbruchzähler, pv = gerade laufende Hörprobe (Voreinstellung oder „main“), trouble = Browser gibt nachweislich keinen Ton aus,
+     why = warum die Server-Stimme ausfällt (balance = kein Guthaben), voicesReady = Browserstimmen geladen (oder lange genug gewartet) */
+  var SPK = { gen: 0, el: null, url: null, serverOk: true, noLang: {}, pv: null, trouble: false, why: '', voicesReady: false, voicesWait: [] };
+  var NO_VOICE_TXT = 'Kein Ton möglich – dieser Browser hat keine nutzbare Stimme. Natürliche Stimmen brauchen einen Sprachdienst-Schlüssel, den der Betreiber hinterlegt.';
   function audioEl() { if (!SPK.el) { SPK.el = new Audio(); SPK.el.preload = 'auto'; } return SPK.el; }
   /** Im Klick-Handler aufrufen: entsperrt Audio (Safari/iOS) und die Browserstimme. */
   function unlockAudio() {
@@ -120,6 +123,18 @@
     if (SPK.url) { try { URL.revokeObjectURL(SPK.url); } catch (e) { /* egal */ } SPK.url = null; }
     try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { /* egal */ }
     if (state === 'speaking') setState('idle');
+    if (SPK.pv) { SPK.pv = null; markPlaying(); }
+  }
+  /** Hörprobe-Knöpfe ([data-play]) und Stimm-Chips zeigen, was gerade klingt. */
+  function markPlaying() {
+    document.querySelectorAll('#' + PANEL + ' [data-play]').forEach(function (b) {
+      var on = !!SPK.pv && b.dataset.play === SPK.pv;
+      b.classList.toggle('playing', on);
+      if (b.classList.contains('pl') || b.classList.contains('as-cho-play')) b.textContent = on ? '■ Stopp' : '▶ Hörprobe';
+      else if (b.id === 'asFPreview') b.textContent = on ? '■ Hörprobe stoppen' : '▶ Hörprobe mit diesen Einstellungen';
+      var base = b.getAttribute('data-label') || 'Hörprobe';
+      b.setAttribute('aria-label', on ? base + ' stoppen' : base);
+    });
   }
   function presetOf(id, gender) {
     var p = null; VOICES.forEach(function (v) { if (v.id === id) p = v; });
@@ -127,56 +142,117 @@
     var f = null; VOICES.forEach(function (v) { if (!f && v.gender === (gender || 'f')) f = v; });
     return f;
   }
-  var NAMES_F = ['katja', 'seraphina', 'amala', 'anna', 'petra', 'helena', 'hedda', 'marlene', 'vicki', 'louisa', 'elke', 'gisela', 'klarissa', 'maja', 'tanja', 'ingrid', 'sabine', 'female', 'frau', 'aria', 'jenny', 'samantha', 'ava', 'emma', 'libby', 'sonia', 'zira', 'hazel', 'susan', 'karen', 'moira', 'tessa', 'fiona', 'serena', 'denise', 'elsa', 'isabella', 'paulina', 'milena', 'zosia', 'yelda', 'filiz', 'emel', 'amelie', 'audrey', 'marie', 'alice', 'federica', 'fenna', 'colette', 'dariya', 'svetlana'];
-  var NAMES_M = ['conrad', 'florian', 'killian', 'markus', 'yannick', 'stefan', 'martin', 'hans', 'bernd', 'christoph', 'kasper', 'ralf', 'klaus', 'jonas', 'viktor', 'male', 'mann', 'guy', 'davis', 'andrew', 'brian', 'ryan', 'thomas', 'george', 'daniel', 'alex', 'fred', 'david', 'mark', 'oliver', 'henri', 'remy', 'diego', 'alvaro', 'cosimo', 'maarten', 'marek', 'dmitry', 'ahmet', 'xander', 'giuseppe', 'pavel'];
+  /** Sprechweise zur Voreinstellung (vom Server mitgeliefert; Ersatz wie ASSISTANT_TONE_PRESET). */
+  function toneOf(id) {
+    var p = null; VOICES.forEach(function (v) { if (v.id === id) p = v; });
+    if (p && p.tone) return p.tone;
+    return { f_warm: 'warm', f_sanft: 'ruhig', f_frisch: 'energisch', f_klar: 'sachlich', m_freundlich: 'warm', m_ruhig: 'ruhig', m_tief: 'ruhig', m_souveraen: 'sachlich' }[id] || null;
+  }
+  function shortLabel(v) { return String((v && v.label) || '').split(/\s*&\s*/)[0]; }
+  var NAMES_F = ['katja', 'seraphina', 'amala', 'anna', 'petra', 'helena', 'hedda', 'marlene', 'vicki', 'louisa', 'elke', 'gisela', 'klarissa', 'maja', 'tanja', 'ingrid', 'sabine', 'female', 'frau', 'aria', 'jenny', 'samantha', 'ava', 'emma', 'libby', 'sonia', 'zira', 'hazel', 'susan', 'karen', 'moira', 'tessa', 'fiona', 'serena', 'denise', 'elsa', 'isabella', 'paulina', 'milena', 'zosia', 'yelda', 'filiz', 'emel', 'amelie', 'audrey', 'marie', 'alice', 'federica', 'fenna', 'colette', 'dariya', 'svetlana', 'kyoko', 'nanami', 'alva', 'nora', 'satu', 'sara', 'ellen', 'carmit', 'monica', 'luciana', 'joana', 'mariska', 'laura', 'kate', 'victoria', 'allison', 'nicky', 'catherine', 'veena', 'lekha'];
+  var NAMES_M = ['conrad', 'florian', 'killian', 'markus', 'yannick', 'stefan', 'martin', 'hans', 'bernd', 'christoph', 'kasper', 'ralf', 'klaus', 'jonas', 'viktor', 'male', 'mann', 'guy', 'davis', 'andrew', 'brian', 'ryan', 'thomas', 'george', 'daniel', 'alex', 'fred', 'david', 'mark', 'oliver', 'henri', 'remy', 'diego', 'alvaro', 'cosimo', 'maarten', 'marek', 'dmitry', 'ahmet', 'xander', 'giuseppe', 'pavel', 'otoya', 'keita', 'jorge', 'juan', 'luca', 'reed', 'aaron', 'arthur', 'gordon', 'rishi', 'tom', 'lee', 'jacques', 'yuri', 'magnus', 'onni', 'cem', 'tolga'];
   function voiceGender(name) {
     var n = name.toLowerCase(), f = false, m = false;
     NAMES_F.forEach(function (x) { if (new RegExp('\\b' + x + '\\b').test(n)) f = true; });
     NAMES_M.forEach(function (x) { if (new RegExp('\\b' + x + '\\b').test(n)) m = true; });
-    if (/google deutsch|google us english|google uk english female/.test(n)) f = true;
+    if (/google deutsch|google us english|google uk english female|google français|google español|google italiano|google nederlands|google русский|google 日本語/.test(n)) f = true;
     if (/google uk english male/.test(n)) { m = true; f = false; }
     return f && !m ? 'f' : (m && !f ? 'm' : '');
   }
-  /** Beste Browserstimme: Sprache passend, Geschlecht passend, Natural/Online/Neural/Premium/Enhanced/Google bevorzugt, Wunschnamen der Voreinstellung zuerst. */
-  function pickVoice(gender, presetId, tag) {
-    if (!window.speechSynthesis) return null;
-    tag = tag || lang();
-    var all = speechSynthesis.getVoices() || [], l2 = normLang(tag), pre = presetOf(presetId, gender), want = l2 === 'de' ? ((pre && pre.browser) || []) : [];   // Wunschnamen sind deutsche Stimmen
-    var best = null, bestS = -1e9;
-    all.forEach(function (v) {
-      var vl = String(v.lang || '').toLowerCase().replace('_', '-');
-      if (normLang(vl) !== l2) return;
-      var n = String(v.name || ''), s = 0, vg = voiceGender(n);
-      if (vl === tag.toLowerCase()) s += 6;
-      if (vg === gender) s += 40; else if (vg) s -= 120;
-      want.forEach(function (w, i) { if (n.toLowerCase().indexOf(String(w).toLowerCase()) >= 0) s += 30 - i * 3; });
-      if (/natural/i.test(n)) s += 34; if (/online/i.test(n)) s += 12; if (/neural/i.test(n)) s += 26;
-      if (/premium/i.test(n)) s += 30; if (/enhanced|erweitert/i.test(n)) s += 22; if (/google/i.test(n)) s += 16; if (/siri/i.test(n)) s += 18;
-      if (/espeak|compact|eloquence|grandpa|grandma|bad news|bells|bubbles|jester|organ|superstar|whisper|wobble|zarvox|trinoids|albert|bahh|boing|cellos|good news/i.test(n)) s -= 80;
-      if (s > bestS) { bestS = s; best = v; }
-    });
-    return best;
+  function voicesNow() { try { return (window.speechSynthesis && speechSynthesis.getVoices()) || []; } catch (e) { return []; } }
+  /** Chrome lädt die Stimmen asynchron: kurz nach dem Laden höchstens ~1 s auf „voiceschanged“ warten, danach nie wieder. */
+  function voicesReady() { if (SPK.voicesReady) return; SPK.voicesReady = true; var w = SPK.voicesWait; SPK.voicesWait = []; w.forEach(function (f) { try { f(); } catch (e) { /* egal */ } }); }
+  function whenVoices(cb) { if (SPK.voicesReady || voicesNow().length) { SPK.voicesReady = true; cb(); } else SPK.voicesWait.push(cb); }
+  function scoreVoice(v, gender, want, tag, anyLang) {
+    var vl = String(v.lang || '').toLowerCase().replace('_', '-'), n = String(v.name || ''), s = 0, vg = voiceGender(n);
+    if (vl === String(tag).toLowerCase()) s += 6;
+    if (vg === gender) s += 40; else if (vg) s -= 120;
+    want.forEach(function (w, i) { if (n.toLowerCase().indexOf(String(w).toLowerCase()) >= 0) s += 30 - i * 3; });
+    if (/natural/i.test(n)) s += 34; if (/online/i.test(n)) s += 12; if (/neural/i.test(n)) s += 26;
+    if (/premium/i.test(n)) s += 30; if (/enhanced|erweitert/i.test(n)) s += 22; if (/google/i.test(n)) s += 16; if (/siri/i.test(n)) s += 18;
+    if (/espeak|compact|eloquence|grandpa|grandma|bad news|bells|bubbles|jester|organ|superstar|whisper|wobble|zarvox|trinoids|albert|bahh|boing|cellos|good news/i.test(n)) s -= 80;
+    if (anyLang) { if (v['default']) s += 12; if (/^en/.test(vl)) s += 4; }   // fremde Sprache: Standardstimme, sonst Englisch bevorzugen
+    return s;
   }
+  /**
+   * Beste Browserstimme in drei Stufen – Hauptsache, es klingt:
+   * lang = Stimme der Sprache (Geschlecht, Wunschnamen der Voreinstellung, Natural/Neural/Premium bevorzugt),
+   * any  = keine Stimme der Sprache → irgendeine Stimme (Standardstimme bevorzugt),
+   * none = Browser meldet keine Stimmen → Standardstimme über utterance.lang.
+   * adj = Tonhöhen-Ausgleich, wenn nur eine Stimme des anderen Geschlechts da ist.
+   */
+  function pickVoiceEx(gender, presetId, tag) {
+    var out = { v: null, level: 'none', adj: 1 };
+    if (!window.speechSynthesis) return out;
+    tag = tag || lang();
+    var all = voicesNow(), l2 = normLang(tag), pre = presetOf(presetId, gender), want = l2 === 'de' ? ((pre && pre.browser) || []) : [];   // Wunschnamen sind deutsche Stimmen
+    var inLang = all.filter(function (v) { return normLang(String(v.lang || '').replace('_', '-')) === l2; });
+    var pool = inLang.length ? inLang : all, bestS = -1e9;
+    out.level = inLang.length ? 'lang' : (all.length ? 'any' : 'none');
+    pool.forEach(function (v) { var s = scoreVoice(v, gender, want, tag, !inLang.length); if (s > bestS) { bestS = s; out.v = v; } });
+    if (out.v) { var vg = voiceGender(String(out.v.name || '')); if (vg && vg !== gender) out.adj = gender === 'm' ? 0.72 : 1.3; }
+    return out;
+  }
+  function pickVoice(gender, presetId, tag) { return pickVoiceEx(gender, presetId, tag).v; }
+  /** Tempo/Tonhöhe für die Browserstimme. Die Voreinstellungen unterscheiden sich nur fein – im Browser verstärkt (×2,5), damit man die Sprechweise hört. */
   function browserParams(over, tag) {
     var gender = (over && over.gender) || PROF.gender, pid = (over && over.preset) || (PROF.voice && PROF.voice.preset), pre = presetOf(pid, gender) || {};
-    var rate = Number((over && over.rate) || (PROF.voice && PROF.voice.rate) || 1) * Number(pre.rate || 1);
-    var pitch = Number((over && over.pitch) || (PROF.voice && PROF.voice.pitch) || 1) * Number(pre.pitch || 1);
-    return { voice: pickVoice(gender, pid, tag), rate: Math.max(0.6, Math.min(1.5, rate)), pitch: Math.max(0.5, Math.min(1.6, pitch)) };
+    var pk = pickVoiceEx(gender, pid, tag), k = 2.5;
+    var rate = Number((over && over.rate) || (PROF.voice && PROF.voice.rate) || 1) * (1 + (Number(pre.rate || 1) - 1) * k);
+    var pitch = Number((over && over.pitch) || (PROF.voice && PROF.voice.pitch) || 1) * (1 + (Number(pre.pitch || 1) - 1) * k) * pk.adj;
+    return { voice: pk.v, level: pk.level, rate: Math.max(0.6, Math.min(1.5, rate)), pitch: Math.max(0.5, Math.min(1.6, pitch)) };
   }
+  /** Browser gibt keinen Ton aus → ehrlich sagen (Statuszeilen + einmal als Hinweis), nie still scheitern. */
+  function voiceTrouble() {
+    var first = !SPK.trouble; SPK.trouble = true; voiceInfo();
+    if (first && !D) note(h(NO_VOICE_TXT), 'err');
+  }
+  function voiceFine() { if (SPK.trouble) { SPK.trouble = false; voiceInfo(); } }
+  /**
+   * Satz für Satz über die Browserstimme. Scheitert ein Satz (Fehler oder 7 s ohne jedes Ereignis), wird er einmal mit der
+   * Standardstimme wiederholt; klingt dann gar nichts, meldet voiceTrouble() das ehrlich.
+   */
   function speakBrowser(list, gen, done, over, tag) {
-    if (!window.speechSynthesis || !list.length) { done(); return; }
-    tag = tag || lang();
-    var p = browserParams(over, tag), i = 0;
-    function next() {
+    if (!window.speechSynthesis) { voiceTrouble(); done(); return; }
+    if (!list.length) { done(); return; }
+    whenVoices(function () {
       if (gen !== SPK.gen) return;
-      if (i >= list.length) { done(); return; }
-      var u = new SpeechSynthesisUtterance(list[i++]);
-      u.lang = p.voice ? p.voice.lang : tag; if (p.voice) u.voice = p.voice; u.rate = p.rate; u.pitch = p.pitch;   // ohne passende Stimme: Standardstimme der Sprache
-      u.onend = function () { next(); };
-      u.onerror = function (e) { if (e && (e.error === 'interrupted' || e.error === 'canceled')) return; next(); };
-      speechSynthesis.speak(u);
-    }
-    next();
+      tag = tag || lang();
+      var p = browserParams(over, tag), i = 0, anyOk = false;
+      try { if (speechSynthesis.paused) speechSynthesis.resume(); } catch (e) { /* egal */ }
+      function next() {
+        if (gen !== SPK.gen) return;
+        if (i >= list.length) { done(); return; }
+        say(list[i++], false);
+      }
+      function say(text, plain) {
+        var u, ended = false, wd = 0;
+        try { u = new SpeechSynthesisUtterance(text); } catch (e) { voiceTrouble(); done(); return; }
+        if (plain) u.lang = p.level === 'any' && p.voice ? p.voice.lang : tag;   // Wiederholung: Standardstimme
+        else { u.lang = p.voice ? p.voice.lang : tag; if (p.voice) { try { u.voice = p.voice; } catch (e) { /* egal */ } } }
+        u.rate = p.rate; u.pitch = p.pitch;
+        var fin = function (good) {
+          if (ended) return; ended = true; clearTimeout(wd);
+          if (gen !== SPK.gen) return;
+          if (good) { anyOk = true; voiceFine(); next(); return; }
+          if (!plain) { say(text, true); return; }
+          if (!anyOk) { voiceTrouble(); done(); return; }   // nichts klingt → aufhören statt jeden Satz einzeln scheitern zu lassen
+          next();
+        };
+        u.onstart = function () { clearTimeout(wd); anyOk = true; voiceFine(); };
+        u.onend = function () { fin(true); };
+        u.onerror = function (e) { if (e && (e.error === 'interrupted' || e.error === 'canceled')) { ended = true; clearTimeout(wd); return; } fin(false); };
+        wd = setTimeout(function () {
+          if (ended || gen !== SPK.gen) return;
+          var busyNow = false; try { busyNow = speechSynthesis.speaking && !speechSynthesis.pending; } catch (e) { /* egal */ }
+          if (busyNow) return;   // spricht bereits (manche Browser melden onstart nicht)
+          ended = true; try { speechSynthesis.cancel(); } catch (e) { /* egal */ }
+          ended = false; fin(false);
+        }, 7000);
+        try { speechSynthesis.speak(u); } catch (e) { fin(false); }
+      }
+      next();
+    });
   }
   /** Server liest nur eigene Sätze vor: {mid,i} = Satz i der Assistenten-Nachricht mid, {preview} = Hörprobe (Text baut der Server). */
   function ttsFetch(src, idx) {
@@ -197,7 +273,8 @@
     function fail(e, from) {
       if (gen !== SPK.gen) return;
       if (e && e.code === 'tts_lang_unavailable') SPK.noLang[normLang(src.lang)] = true;   // nur diese Sprache über den Browser
-      else if (e && (e.status === 501 || e.status === 429 || e.status === 401 || e.status === 402)) SPK.serverOk = false;
+      else if (e && (e.status === 501 || e.status === 429 || e.status === 401 || e.status === 402)) { SPK.serverOk = false; SPK.why = e.status === 402 ? 'balance' : (e.status === 429 ? 'limit' : ''); }
+      voiceInfo();
       speakBrowser(list.slice(from), gen, done, over, tag);   // Rest mit der Browserstimme
     }
     function step() {
@@ -218,7 +295,8 @@
     }
     step();
   }
-  function serverCan(lng) { lng = normLang(lng); return TTS && SPK.serverOk && !SPK.noLang[lng] && (!TTS_LANGS.length || TTS_LANGS.indexOf(lng) >= 0); }
+  function serverLangOk(lng) { lng = normLang(lng); return !SPK.noLang[lng] && (!TTS_LANGS.length || TTS_LANGS.indexOf(lng) >= 0); }
+  function serverCan(lng) { return TTS && SPK.serverOk && serverLangOk(lng); }
   /**
    * Sätze vorlesen. src = {mid, lang} (Antwort aus dem Verlauf) oder {preview:{…}, lang} (Hörprobe); ohne mid/preview nur Browserstimme.
    * onend läuft nur, wenn die Ausgabe nicht unterbrochen wurde.
@@ -235,13 +313,25 @@
     else speakBrowser(list, gen, done, over, tagOf(lng));
   }
   function speakMsg(m, onend) { if (m) speakList(m.speech && m.speech.length ? m.speech : sentences(m.content), onend, null, { mid: m.speech && m.speech.length ? m.id : 0, lang: m.lang }); }
+  /** Ehrliche Statuszeile: KI-Stimme nur, wenn der Server sie wirklich liefert – sonst sagen, dass es die Systemstimme ist und warum. */
+  function voiceStatus(lng) {
+    var L = LANGS.filter(function (l) { return l.code === normLang(lng); })[0];
+    if (serverCan(lng)) return { k: 'ok', t: 'Natürliche KI-Stimme aktiv' };
+    if (!window.speechSynthesis || SPK.trouble) return { k: 'warn', t: NO_VOICE_TXT };
+    if (TTS && SPK.serverOk && !serverLangOk(lng)) return { k: 'info', t: 'Systemstimme des Browsers – die natürliche KI-Stimme spricht ' + (L ? L.name : 'diese Sprache') + ' noch nicht' };
+    if (TTS && SPK.why === 'balance') return { k: 'info', t: 'Systemstimme des Browsers – die natürliche KI-Stimme braucht Guthaben oder einen aktiven Agenten' };
+    if (TTS && SPK.why === 'limit') return { k: 'info', t: 'Systemstimme des Browsers – das Tageslimit der KI-Stimme ist erreicht' };
+    return { k: 'info', t: 'Systemstimme des Browsers – natürliche Stimmen schaltet der Betreiber frei' };
+  }
+  function paintStatus(el, gender, preset, lng) {
+    if (!el) return;
+    var st = voiceStatus(lng), v = st.k === 'info' ? pickVoice(gender, preset, tagOf(lng)) : null;
+    el.textContent = st.t; el.setAttribute('data-k', st.k);
+    if (v) el.title = 'Browserstimme: ' + String(v.name || '').replace(/^Microsoft\s+/, ''); else el.removeAttribute('title');
+  }
   function voiceInfo() {
-    var el = g('asVoiceInfo'); if (!el || !PROF) return;
-    var pre = presetOf(PROF.voice && PROF.voice.preset, PROF.gender);
-    if (serverCan(PROF.lang)) { el.textContent = 'Stimme: natürliche Studio-Stimme' + (pre ? ' · ' + pre.label : '') + (voiceOn ? '' : ' – zum Vorlesen „Stimme“ einschalten.'); return; }
-    if (!window.speechSynthesis) { el.textContent = 'Dieser Browser kann nicht vorlesen – Antworten erscheinen als Text.'; return; }
-    var v = pickVoice(PROF.gender, PROF.voice && PROF.voice.preset);
-    el.textContent = v ? 'Browserstimme: ' + v.name.replace(/^Microsoft\s+/, '').replace(/\s*-\s*[^-]+$/, '') : 'Keine passende Browserstimme gefunden – Antworten erscheinen als Text.';
+    if (PROF) paintStatus(g('asVoiceInfo'), PROF.gender, PROF.voice && PROF.voice.preset, PROF.lang);
+    if (D) paintStatus(g(D.mode === 'cho' ? 'asCVoiceStat' : 'asFPrevInfo'), D.gender, D.voice.preset, D.lang);
   }
 
   /* ======================================================================= Spracheingabe */
@@ -302,8 +392,10 @@
     g('asHeadInfo').textContent = !TOOLS ? T('Gerade kann ich nur beraten – Einstellungen trägst du im jeweiligen Bereich selbst ein.', 'Gerade kann ich nur beraten – Einstellungen tragen Sie im jeweiligen Bereich selbst ein.')
       : (sie ? 'Ich ändere nichts, ohne Sie vorher zu fragen.' : 'Ich ändere nichts, ohne dich vorher zu fragen.');
     g('asHeadInfo').classList.toggle('as-warn', !TOOLS);
-    g('asTip').innerHTML = T('Tipp: Unter <b>Anpassen</b> legst du Aussehen, Stimme, Sprache und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.',
-      'Tipp: Unter <b>Anpassen</b> legen Sie Aussehen, Stimme, Sprache und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.');
+    g('asTip').innerHTML = T('Tipp: Unter <b>Person &amp; Stimme ändern</b> legst du Aussehen, Stimme, Sprache und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.',
+      'Tipp: Unter <b>Person &amp; Stimme ändern</b> legen Sie Aussehen, Stimme, Sprache und Persönlichkeit fest – Frau oder Mann, du oder Sie, herzlich oder sachlich.');
+    g('asTonesL').innerHTML = 'Stimme<span>' + T('antippen = sofort wechseln', 'antippen = sofort wechseln') + '</span>';
+    renderToneChips();
     micLangUi();
     g('asMemTitle').textContent = sie ? 'Was ich über Sie weiß' : 'Was ich über dich weiß';
     g('asMemEmpty').textContent = sie ? 'Noch nichts – erzählen Sie mir von Ihrem Betrieb, ich merke mir das Wichtigste.' : 'Noch nichts – erzähl mir von deinem Betrieb, ich merke mir das Wichtigste.';
@@ -312,6 +404,38 @@
     var sec = document.querySelector('#' + PANEL + ' .as-chat'); if (sec) sec.setAttribute('aria-label', 'Gespräch mit ' + PROF.name + ' (' + (f ? 'Assistentin' : 'Assistent') + ')');
     document.querySelectorAll('#' + PANEL + ' .as-av').forEach(function (a) { a.src = url; });
     voiceBtn(); voiceInfo();
+  }
+  /** Stimm-Chips auf der Karte: alle Voreinstellungen des Geschlechts, aktive markiert – Antippen wechselt sofort (gespeichert) und spielt eine Hörprobe. */
+  function renderToneChips() {
+    var box = g('asTones'); if (!box || !PROF) return;
+    box.innerHTML = VOICES.filter(function (v) { return v.gender === PROF.gender; }).map(function (v) {
+      var on = PROF.voice && PROF.voice.preset === v.id;
+      return '<button type="button" data-v="' + h(v.id) + '" data-play="chip:' + h(v.id) + '" data-label="Stimme ' + h(v.label) + (on ? ' (aktiv) – Hörprobe' : ' wählen und anhören') + '" aria-pressed="' + (on ? 'true' : 'false') + '" title="' + h(v.label + (v.desc ? ' – ' + v.desc : '')) + '" aria-label="Stimme ' + h(v.label) + '">' + h(shortLabel(v)) + '</button>';
+    }).join('');
+    markPlaying();
+  }
+  /** Profilwerte als Hörprobe-Beschreibung. */
+  function profVoice(p, preset) {
+    return { name: p.name, gender: p.gender, address: p.personality.address, lang: p.lang || 'de', tone: toneOf(preset) || p.voice.tone, rate: Number(p.voice.rate) || 1, pitch: Number(p.voice.pitch) || 1, preset: preset };
+  }
+  var toneBusy = 0;
+  function quickTone(id) {
+    if (!PROF || !id) return;
+    unlockAudio();
+    var pre = presetOf(id, PROF.gender); if (!pre || pre.id !== id) return;
+    if (PROF.voice.preset === id) { playPreview(profVoice(PROF, id), 'chip:' + id); return; }   // aktive Stimme: nur anhören
+    var old = { preset: PROF.voice.preset, tone: PROF.voice.tone }, tone = toneOf(id) || PROF.voice.tone, my = ++toneBusy;
+    PROF.voice.preset = id; PROF.voice.tone = tone; renderToneChips(); voiceInfo();
+    playPreview(profVoice(PROF, id), 'chip:' + id);
+    api('/assistant/profile', { method: 'POST', body: JSON.stringify({ voice: { preset: id, tone: tone } }) }).then(function (j) {
+      if (my !== toneBusy) return;
+      takeProfile(j); renderToneChips(); voiceInfo();
+      note('Stimme gewechselt: ' + h(pre.label) + ' – gespeichert.', 'ok');
+    }).catch(function (e) {
+      if (my !== toneBusy) return;
+      PROF.voice.preset = old.preset; PROF.voice.tone = old.tone; renderToneChips(); voiceInfo();
+      note(h(((e && e.data && e.data.message) || (e && e.message) || 'Die Stimme konnte nicht gespeichert werden.')), 'err');
+    });
   }
   /** Auswahl „Sprache der Spracheingabe“ (Auto = Sprache des Gesprächs) und Sprachliste im Anpassen-Dialog aus derselben Tabelle. */
   function langOptions(sel, withAuto) {
@@ -460,6 +584,7 @@
       var st = r[0];
       HIST = histFrom(st);
       applyProfile(); renderHistory(); applyState(st); micLangUi();
+      if (r[1]) { if (PROF && PROF.chosen === false) showChooser(); else if (D && D.mode === 'cho') hideChooser(); }
       if (!TOOLS) sysMsg(h(T('Hinweis: Das automatische Einrichten ist gerade nicht verfügbar. Ich kann dich beraten und Texte vorschlagen – eintragen musst du sie im jeweiligen Bereich selbst.',
         'Hinweis: Das automatische Einrichten ist gerade nicht verfügbar. Ich kann Sie beraten und Texte vorschlagen – eintragen müssen Sie sie im jeweiligen Bereich selbst.')));
       lastLoad = Date.now();
@@ -470,47 +595,96 @@
   }
   function takeProfile(j) {
     PROF = j.profile; PORTRAITS = j.portraits || []; VOICES = j.voices || []; TTS = !!j.tts; if (j.photo_max) PHOTO_MAX = j.photo_max;
+    if (TTS && j.tts_active === false && SPK.serverOk) { SPK.serverOk = false; SPK.why = 'balance'; }   // eingerichtet, aber ohne Guthaben/Agent nicht nutzbar
+    else if (TTS && j.tts_active === true && SPK.why === 'balance') { SPK.serverOk = true; SPK.why = ''; }
     if (j.tts_langs) TTS_LANGS = j.tts_langs.map(normLang);
     if (typeof j.tools_ready === 'boolean') TOOLS = j.tools_ready;
     if (j.langs && j.langs.length) { LANGS = j.langs; LANG_TAG = {}; LANGS.forEach(function (l) { LANG_TAG[l.code] = l.tag; }); }
     langOptions(g('asFLang'), false);
   }
 
-  /* ======================================================================= Anpassen (Drawer) */
+  /* ======================================================================= Entwurf (Auswahl beim ersten Besuch + „Person & Stimme ändern“) */
+  /* D = ungespeicherter Entwurf; D.mode = 'cho' (Auswahl im Panel) oder 'drawer' (Seitenleiste). Beide nutzen dieselben Funktionen. */
   var D = null, lastFocus = null;
   function draftFrom(p) {
     return { name: p.name, gender: p.gender, portrait: p.portrait, photo: null, remove_photo: false, photoUrl: p.portrait === 'custom' ? p.portrait_url : (p.photo_url || null),
       voice: { tone: p.voice.tone, rate: Number(p.voice.rate) || 1, pitch: Number(p.voice.pitch) || 1, preset: p.voice.preset },
-      personality: { address: p.personality.address, mood: p.personality.mood, humor: Number(p.personality.humor), detail: p.personality.detail }, lang: p.lang || 'de', autoName: true };
+      personality: { address: p.personality.address, mood: p.personality.mood, humor: Number(p.personality.humor), detail: p.personality.detail }, lang: p.lang || 'de', autoName: true, mode: 'drawer' };
   }
+  function isCho() { return !!D && D.mode === 'cho'; }
+  function nameEl() { return g(isCho() ? 'asCName' : 'asFName'); }
+  function msgEl() { return g(isCho() ? 'asCMsg' : 'asFMsg'); }
+  function redraw() { if (!D) return; if (isCho()) drawChooser(); else drawDrawer(); }
   function portraitById(id) { var x = null; PORTRAITS.forEach(function (p) { if (p.id === id) x = p; }); return x; }
   function draftImg() { if (D.portrait === 'custom' && D.photoUrl) return imgUrl(D.photoUrl); var p = portraitById(D.portrait); return p ? imgUrl(p.url) : avatar(); }
   function seg(id, val) { document.querySelectorAll('#' + id + ' button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.v) === String(val) ? 'true' : 'false'); }); }
   function fx(n) { return (Math.round(Number(n) * 100) / 100).toFixed(2).replace('.', ',') + '×'; }
-  function drawDrawer() {
-    var f = D.gender !== 'm';
-    g('asDrImg').src = draftImg();
-    g('asDrTitle').textContent = (D.name || (f ? 'Assistentin' : 'Assistent')) + ' anpassen';
-    g('asDrSub').textContent = f ? (D.personality.address === 'sie' ? 'Ihre persönliche Assistentin' : 'Deine persönliche Assistentin') : (D.personality.address === 'sie' ? 'Ihr persönlicher Assistent' : 'Dein persönlicher Assistent');
-    seg('asFGender', D.gender); seg('asFTone', D.voice.tone); seg('asFAddress', D.personality.address); seg('asFMood', D.personality.mood); seg('asFHumor', D.personality.humor); seg('asFDetail', D.personality.detail);
+  function draftRole() { var f = D.gender !== 'm', sie = D.personality.address === 'sie'; return f ? (sie ? 'Ihre persönliche Assistentin' : 'Deine persönliche Assistentin') : (sie ? 'Ihr persönlicher Assistent' : 'Dein persönlicher Assistent'); }
+  function draftName() { return (D.name || '').replace(/\s+/g, ' ').trim() || (D.gender !== 'm' ? 'Assistentin' : 'Assistent'); }
+  /** Porträt-Kacheln (eigenes Foto zuerst, Hochladen zuletzt) – gleiche Kacheln in Auswahl und Seitenleiste. */
+  function portraitTiles(upId) {
     var tiles = PORTRAITS.filter(function (p) { return p.gender === D.gender; }).map(function (p) {
       return '<button type="button" data-p="' + h(p.id) + '" aria-pressed="' + (D.portrait === p.id ? 'true' : 'false') + '" aria-label="Porträt ' + h(p.label) + '"><img src="' + h(imgUrl(p.url)) + '" alt="" loading="lazy"><span class="lb">' + h(p.label) + '</span></button>';
     });
     if (D.photoUrl) tiles.unshift('<button type="button" data-p="custom" aria-pressed="' + (D.portrait === 'custom' ? 'true' : 'false') + '" aria-label="Eigenes Foto"><img src="' + h(imgUrl(D.photoUrl)) + '" alt=""><span class="lb">Eigenes Foto</span></button>');
-    tiles.push('<button type="button" class="up" id="asFUp" aria-label="Eigenes Foto hochladen">＋<br>Eigenes Foto</button>');
-    g('asFPortraits').innerHTML = tiles.join('');
-    g('asFPhotoRm').classList.toggle('hidden', !D.photoUrl);
-    g('asFVoices').innerHTML = VOICES.filter(function (v) { return v.gender === D.gender; }).map(function (v) {
-      return '<button type="button" data-v="' + h(v.id) + '" aria-pressed="' + (D.voice.preset === v.id ? 'true' : 'false') + '"><b>' + h(v.label) + '</b>' + h(v.desc || '') + '</button>';
+    tiles.push('<button type="button" class="up"' + (upId ? ' id="' + upId + '"' : '') + ' aria-label="Eigenes Foto hochladen"><i aria-hidden="true">＋</i>Eigenes Foto</button>');
+    return tiles.join('');
+  }
+  /** Stimmkarten: Auswahl-Knopf (data-v, aria-pressed) + eigener ▶-Hörprobe-Knopf (data-play) je Voreinstellung. */
+  function toneCards() {
+    return VOICES.filter(function (v) { return v.gender === D.gender; }).map(function (v) {
+      var on = D.voice.preset === v.id;
+      return '<div class="as-tcard' + (on ? ' on' : '') + '"><button type="button" class="sel" data-v="' + h(v.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '"><b>' + h(v.label) + '</b>' + h(v.desc || '') + '</button>' +
+        '<button type="button" class="pl" data-play="' + h(v.id) + '" data-label="Hörprobe: ' + h(v.label) + '" aria-label="Hörprobe: ' + h(v.label) + '">▶ Hörprobe</button></div>';
     }).join('');
+  }
+  function drawDrawer() {
+    var f = D.gender !== 'm';
+    g('asDrImg').src = draftImg();
+    g('asDrTitle').textContent = (D.name || (f ? 'Assistentin' : 'Assistent')) + ' · Person & Stimme';
+    g('asDrSub').textContent = draftRole();
+    seg('asFGender', D.gender); seg('asFTone', D.voice.tone); seg('asFAddress', D.personality.address); seg('asFMood', D.personality.mood); seg('asFHumor', D.personality.humor); seg('asFDetail', D.personality.detail);
+    g('asFPortraits').innerHTML = portraitTiles('asFUp');
+    g('asFPhotoRm').classList.toggle('hidden', !D.photoUrl);
+    g('asFVoices').innerHTML = toneCards();
     g('asFRate').value = String(D.voice.rate); g('asFRateO').textContent = fx(D.voice.rate);
     g('asFPitch').value = String(D.voice.pitch); g('asFPitchO').textContent = fx(D.voice.pitch);
     g('asFLang').value = D.lang;
-    g('asFPrevInfo').textContent = serverCan(D.lang) ? 'natürliche Studio-Stimme' : (window.speechSynthesis ? 'Browserstimme' : 'Vorlesen nicht verfügbar');
     var sie = D.personality.address === 'sie';
     g('asFGenderL').textContent = sie ? 'Wer soll Sie begleiten?' : 'Wer soll dich begleiten?';
     g('asFRights').textContent = sie ? 'Nur Fotos verwenden, für die Sie die Rechte haben.' : 'Nur Fotos verwenden, für die du die Rechte hast.';
     g('asFLangHint').textContent = (sie ? 'Schreiben oder sprechen Sie' : 'Schreibst oder sprichst du') + ' in einer anderen Sprache, antwortet ' + (f ? 'die Assistentin' : 'der Assistent') + ' automatisch darin – in allen ' + LANGS.length + ' Sprachen.';
+    voiceInfo(); markPlaying();
+  }
+  function drawChooser() {
+    var f = D.gender !== 'm', sie = D.personality.address === 'sie', nm = draftName(), pre = presetOf(D.voice.preset, D.gender);
+    var img = g('asChoImg'), u = draftImg(); if (img.getAttribute('src') !== u) img.src = u;
+    img.alt = 'Porträt von ' + nm;
+    g('asChoName').textContent = nm; g('asChoRole').textContent = draftRole();
+    g('asChoWho').textContent = f ? 'sie' : 'er';
+    g('asChoVoice').textContent = pre ? pre.label : '';
+    g('asChoTitle').textContent = sie ? 'Wer soll Sie begleiten?' : 'Wer soll dich begleiten?';
+    g('asChoLead').textContent = sie ? 'Wählen Sie Person, Stimme und Art – so, wie es zu Ihnen passt. Alles lässt sich später jederzeit ändern.' : 'Wähle Person, Stimme und Art – so, wie es zu dir passt. Alles lässt sich später jederzeit ändern.';
+    g('asCHint').textContent = (sie ? 'Sie können' : 'Du kannst') + ' Person und Stimme jederzeit unter „Person & Stimme ändern“ wechseln.';
+    seg('asCGender', D.gender); seg('asCAddress', D.personality.address); seg('asCMood', D.personality.mood);
+    g('asCPortraits').innerHTML = portraitTiles('');
+    g('asCTones').innerHTML = toneCards();
+    g('asCStartName').textContent = nm;
+    g('asCStart').setAttribute('aria-label', 'Mit ' + nm + ' starten – Auswahl speichern');
+    voiceInfo(); markPlaying();
+  }
+  function showChooser() {
+    if (!PROF) return;
+    D = draftFrom(PROF); D.mode = 'cho';
+    g('asCName').value = D.name; msg(g('asCMsg'), '');
+    g('asCho').classList.remove('hidden');
+    document.querySelectorAll('#' + PANEL + ' .as-grid, #' + PANEL + ' .as-titlerow').forEach(function (el) { el.classList.add('hidden'); });
+    drawChooser();
+  }
+  function hideChooser() {
+    stopSpeaking();
+    g('asCho').classList.add('hidden'); if (isCho()) D = null;
+    document.querySelectorAll('#' + PANEL + ' .as-grid, #' + PANEL + ' .as-titlerow').forEach(function (el) { el.classList.remove('hidden'); });
   }
   function openDrawer() {
     if (!PROF) return;
@@ -523,7 +697,7 @@
   }
   function closeDrawer() {
     stopSpeaking();
-    g('asDrawer').classList.add('hidden'); D = null;
+    g('asDrawer').classList.add('hidden'); if (D && !isCho()) D = null;
     document.removeEventListener('keydown', drawerKey, true);
     if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) { /* egal */ } }
   }
@@ -540,79 +714,95 @@
     var map = { f: { warm: 'f_warm', ruhig: 'f_sanft', energisch: 'f_frisch', sachlich: 'f_klar' }, m: { warm: 'm_freundlich', ruhig: 'm_ruhig', energisch: 'm_freundlich', sachlich: 'm_souveraen' } };   // wie ASSISTANT_TONE_PRESET; fehlt eine Stimme, nimmt presetOf die erste passende
     var id = (map[gender] || map.f)[tone]; return presetOf(id, gender) ? presetOf(id, gender).id : (presetOf('', gender) || {}).id;
   }
+  function pickPreset(id) { var v = presetOf(id, D.gender); if (!v || v.id !== id) return false; D.voice.preset = id; D.voice.tone = toneOf(id) || D.voice.tone; return true; }
   function setGender(gd) {
     if (D.gender === gd) return;
     var oldP = portraitById(D.portrait);
     D.gender = gd;
     if (D.portrait !== 'custom') {
       var first = PORTRAITS.filter(function (p) { return p.gender === gd; })[0];
-      if (first) { if (D.autoName && oldP && (D.name === oldP.label || D.name === 'Lea')) { D.name = first.label; g('asFName').value = D.name; } D.portrait = first.id; }
+      if (first) { if (D.autoName && oldP && (D.name === oldP.label || D.name === 'Lea')) { D.name = first.label; nameEl().value = D.name; } D.portrait = first.id; }
     }
     var cur = VOICES.filter(function (v) { return v.id === D.voice.preset; })[0];   // exakt nachschlagen – presetOf fiele auf die erste Stimme des neuen Geschlechts zurück
     if (!cur || cur.gender !== gd) D.voice.preset = toneToPreset(gd, D.voice.tone);
-    drawDrawer();
+    stopSpeaking(); redraw();
   }
   function pickPortrait(id) {
-    if (id === 'custom') { D.portrait = 'custom'; drawDrawer(); return; }
+    if (id === 'custom') { D.portrait = 'custom'; redraw(); return; }
     var p = portraitById(id), old = portraitById(D.portrait); if (!p) return;
-    if (D.autoName && (!D.name || (old && D.name === old.label) || D.name === 'Lea' || D.name === 'Assistent')) { D.name = p.label; g('asFName').value = D.name; }
-    D.portrait = id; drawDrawer();
+    if (D.autoName && (!D.name || (old && D.name === old.label) || D.name === 'Lea' || D.name === 'Assistent')) { D.name = p.label; nameEl().value = D.name; }
+    D.portrait = id; redraw();
   }
   /** Foto im Browser quadratisch zuschneiden, auf 512 px verkleinern und als JPEG ≤ 350 KB kodieren. */
   function handleFile(file) {
-    if (!file) return;
-    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { msg(g('asFMsg'), 'Bitte ein Foto als JPEG, PNG oder WebP wählen.', 'err'); return; }
-    if (file.size > 15 * 1024 * 1024) { msg(g('asFMsg'), 'Das Foto ist zu groß (höchstens 15 MB vor dem Verkleinern).', 'err'); return; }
-    msg(g('asFMsg'), 'Foto wird vorbereitet …', 'info');
+    if (!file || !D) return;
+    var box = msgEl();
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { msg(box, 'Bitte ein Foto als JPEG, PNG oder WebP wählen.', 'err'); return; }
+    if (file.size > 15 * 1024 * 1024) { msg(box, 'Das Foto ist zu groß (höchstens 15 MB vor dem Verkleinern).', 'err'); return; }
+    msg(box, 'Foto wird vorbereitet …', 'info');
     var url = URL.createObjectURL(file), im = new Image();
     im.onload = function () {
       try {
+        if (!D) return;
         var w = im.naturalWidth, hh = im.naturalHeight;
-        if (w < 64 || hh < 64) { msg(g('asFMsg'), 'Das Foto ist zu klein (mindestens 64 × 64 Pixel).', 'err'); return; }
+        if (w < 64 || hh < 64) { msg(box, 'Das Foto ist zu klein (mindestens 64 × 64 Pixel).', 'err'); return; }
         var s = Math.min(w, hh), sx = (w - s) / 2, sy = Math.max(0, (hh - s) * 0.35), out = Math.min(512, s);
         var c = document.createElement('canvas'); c.width = out; c.height = out;
         var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, out, out); x.imageSmoothingQuality = 'high';
         x.drawImage(im, sx, sy, s, s, 0, 0, out, out);
         var q = 0.88, d = c.toDataURL('image/jpeg', q);
         while (Math.floor((d.length - d.indexOf(',') - 1) * 3 / 4) > PHOTO_MAX && q > 0.4) { q -= 0.08; d = c.toDataURL('image/jpeg', q); }
-        if (Math.floor((d.length - d.indexOf(',') - 1) * 3 / 4) > PHOTO_MAX) { msg(g('asFMsg'), 'Das Foto ließ sich nicht klein genug speichern – bitte ein anderes wählen.', 'err'); return; }
+        if (Math.floor((d.length - d.indexOf(',') - 1) * 3 / 4) > PHOTO_MAX) { msg(box, 'Das Foto ließ sich nicht klein genug speichern – bitte ein anderes wählen.', 'err'); return; }
         D.photo = d; D.photoUrl = d; D.portrait = 'custom'; D.remove_photo = false;
-        msg(g('asFMsg'), 'Foto übernommen – mit „Speichern“ bestätigen.', 'ok'); drawDrawer();
-      } catch (e) { msg(g('asFMsg'), 'Das Foto konnte nicht gelesen werden.', 'err'); }
+        msg(box, isCho() ? 'Foto übernommen.' : 'Foto übernommen – mit „Speichern“ bestätigen.', 'ok'); redraw();
+      } catch (e) { msg(box, 'Das Foto konnte nicht gelesen werden.', 'err'); }
       finally { URL.revokeObjectURL(url); }
     };
-    im.onerror = function () { URL.revokeObjectURL(url); msg(g('asFMsg'), 'Das Foto konnte nicht gelesen werden – bitte JPEG, PNG oder WebP verwenden.', 'err'); };
+    im.onerror = function () { URL.revokeObjectURL(url); msg(box, 'Das Foto konnte nicht gelesen werden – bitte JPEG, PNG oder WebP verwenden.', 'err'); };
     im.src = url;
   }
-  function preview() {
-    if (!D) return;
-    unlockAudio();
-    var sie = D.personality.address === 'sie', f = D.gender !== 'm';
-    var nm = (g('asFName').value || '').replace(/\s+/g, ' ').trim() || (f ? (sie ? 'Ihre Assistentin' : 'deine Assistentin') : (sie ? 'Ihr Assistent' : 'dein Assistent'));
-    var L = LANGS.filter(function (l) { return l.code === D.lang; })[0];
-    var tpl = L && L.preview ? L.preview[sie ? 'sie' : 'du'][f ? 'f' : 'm'] : (D.lang === 'de' ? 'Hallo, ich bin {name}. So klinge ich – passt das für ' + (sie ? 'Sie' : 'dich') + '?' : 'Hello, I\'m {name}. This is how I sound – does that suit you?');
-    var txt = tpl.split('{name}').join(nm);
-    var over = { gender: D.gender, tone: D.voice.tone, rate: D.voice.rate, pitch: D.voice.pitch, preset: D.voice.preset };
-    var pv = { name: nm, lang: D.lang, gender: D.gender, address: D.personality.address, tone: D.voice.tone, rate: D.voice.rate, pitch: D.voice.pitch, preset: D.voice.preset };
-    var btn = g('asFPreview'); btn.disabled = true;
-    speakList([txt], function () { btn.disabled = false; }, over, { preview: pv, lang: D.lang });
-    setTimeout(function () { btn.disabled = false; }, 6000);
+  /** Hörprobe: Text in der gewählten Sprache (vom Server: {preview}, sonst Browser). Erneutes Antippen desselben Knopfs stoppt. */
+  function previewText(o) {
+    var sie = o.address === 'sie', f = o.gender !== 'm';
+    var nm = o.name || (f ? (sie ? 'Ihre Assistentin' : 'deine Assistentin') : (sie ? 'Ihr Assistent' : 'dein Assistent'));
+    var L = LANGS.filter(function (l) { return l.code === o.lang; })[0];
+    var tpl = L && L.preview ? L.preview[sie ? 'sie' : 'du'][f ? 'f' : 'm'] : (o.lang === 'de' ? 'Hallo, ich bin {name}. So klinge ich – passt das für ' + (sie ? 'Sie' : 'dich') + '?' : 'Hello, I\'m {name}. This is how I sound – does that suit you?');
+    return { text: tpl.split('{name}').join(nm), name: nm };
   }
-  function saveDrawer() {
+  function playPreview(o, pvId) {
+    unlockAudio();
+    if (pvId && SPK.pv === pvId && speaking()) { stopSpeaking(); return; }
+    var t = previewText(o);
+    var over = { gender: o.gender, tone: o.tone, rate: o.rate, pitch: o.pitch, preset: o.preset };
+    var pv = { name: t.name, lang: o.lang, gender: o.gender, address: o.address, tone: o.tone, rate: o.rate, pitch: o.pitch, preset: o.preset };
+    speakList([t.text], function () { SPK.pv = null; markPlaying(); }, over, { preview: pv, lang: o.lang });
+    if (pvId && speaking()) { SPK.pv = pvId; markPlaying(); }
+  }
+  function draftVoice() {
+    var nm = (nameEl().value || '').replace(/\s+/g, ' ').trim();
+    return { name: nm, gender: D.gender, address: D.personality.address, lang: D.lang, tone: D.voice.tone, rate: D.voice.rate, pitch: D.voice.pitch, preset: D.voice.preset };
+  }
+  function preview(pvId) { if (D) playPreview(draftVoice(), pvId || 'main'); }
+  /** Entwurf speichern – aus der Auswahl („Mit … starten“) oder der Seitenleiste („Speichern“). */
+  function saveDraft() {
     if (!D) return;
-    var name = (g('asFName').value || '').replace(/\s+/g, ' ').trim();
+    var cho = isCho(), box = msgEl(), inp = nameEl();
+    var name = (inp.value || '').replace(/\s+/g, ' ').trim();
     var ok = false; try { ok = new RegExp('^\\p{L}[\\p{L}\\p{M} \\-]*$', 'u').test(name); } catch (e) { ok = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ \-]*$/.test(name); }
-    if (!name || name.length > 30 || !ok) { msg(g('asFMsg'), 'Name: 1–30 Zeichen, nur Buchstaben, Leerzeichen und Bindestrich.', 'err'); g('asFName').focus(); return; }
+    if (!name || name.length > 30 || !ok) { msg(box, 'Name: 1–30 Zeichen, nur Buchstaben, Leerzeichen und Bindestrich.', 'err'); inp.focus(); return; }
     var body = { name: name, gender: D.gender, voice: D.voice, personality: D.personality, lang: D.lang };
     if (D.photo) body.photo = D.photo; else body.portrait = D.portrait;
     if (D.remove_photo && !D.photo) body.remove_photo = 1;
-    var btn = g('asFSave'); btn.disabled = true; msg(g('asFMsg'), 'Wird gespeichert …', 'info');
+    var btn = g(cho ? 'asCStart' : 'asFSave'); btn.disabled = true; msg(box, 'Wird gespeichert …', 'info');
+    unlockAudio();
     var onlyGreeting = HIST.length === 1 && HIST[0].greeting;
     var changedIntro = PROF.name !== name || PROF.gender !== D.gender || PROF.personality.address !== D.personality.address || PROF.personality.mood !== D.personality.mood || PROF.lang !== D.lang;
     api('/assistant/profile', { method: 'POST', body: JSON.stringify(body) }).then(function (j) {
-      takeProfile(j); applyProfile();
-      closeDrawer();
-      note('Gespeichert – ' + h(PROF.name) + ' ist bereit.', 'ok');
+      takeProfile(j);
+      if (cho) hideChooser(); else closeDrawer();
+      applyProfile();
+      if (cho) { try { window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' }); } catch (e) { window.scrollTo(0, 0); } }
+      note(cho ? h(PROF.name) + ' ist für ' + T('dich', 'Sie') + ' da – los geht’s.' : 'Gespeichert – ' + h(PROF.name) + ' ist bereit.', 'ok');
       /* Nur die Begrüßung im Verlauf? Dann neu begrüßen – mit neuem Namen, neuer Anrede (kostenlos, ohne KI). */
       if (onlyGreeting && changedIntro) return api('/assistant/reset', { method: 'POST', body: '{}' }).then(function (st) {
         HIST = histFrom(st);
@@ -622,9 +812,10 @@
       renderHistory();
     }).catch(function (e) {
       var d = (e && e.data) || {};
-      msg(g('asFMsg'), h(d.message || (e && e.message) || 'Speichern fehlgeschlagen.'), 'err');
+      msg(box, h(d.message || (e && e.message) || 'Speichern fehlgeschlagen.'), 'err');
     }).then(function () { btn.disabled = false; });
   }
+  function saveDrawer() { saveDraft(); }
 
   /* ======================================================================= Ereignisse */
   function bind() {
@@ -647,6 +838,34 @@
       voiceBtn(); voiceInfo();
     });
     g('asCustomize').addEventListener('click', openDrawer);
+    g('asTones').addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b) quickTone(b.dataset.v); });
+    /* Auswahl beim ersten Besuch */
+    g('asCGender').addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b && isCho()) setGender(b.dataset.v); });
+    g('asCPortraits').addEventListener('click', function (e) {
+      if (!isCho()) return;
+      if (e.target.closest('.up')) { g('asFFile').value = ''; g('asFFile').click(); return; }
+      var b = e.target.closest('button[data-p]'); if (b) pickPortrait(b.dataset.p);
+    });
+    g('asCTones').addEventListener('click', function (e) {
+      if (!isCho()) return;
+      var pl = e.target.closest('button[data-play]');
+      if (pl) { var id = pl.dataset.play; if (SPK.pv === id && speaking()) { stopSpeaking(); return; } if (pickPreset(id)) { drawChooser(); preview(id); } return; }
+      var b = e.target.closest('button[data-v]'); if (b && pickPreset(b.dataset.v)) { stopSpeaking(); drawChooser(); }
+    });
+    g('asChoPlay').addEventListener('click', function () { if (isCho()) preview('main'); });
+    g('asCName').addEventListener('input', function () {
+      if (!isCho()) return; D.name = g('asCName').value.replace(/\s+/g, ' ').trim(); D.autoName = false;
+      var nm = draftName(); g('asCStartName').textContent = nm; g('asChoName').textContent = nm; g('asCStart').setAttribute('aria-label', 'Mit ' + nm + ' starten – Auswahl speichern');
+    });
+    g('asCName').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); saveDraft(); } });
+    ['asCAddress', 'asCMood'].forEach(function (id) {
+      g(id).addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-v]'); if (!b || !isCho()) return;
+        if (id === 'asCAddress') D.personality.address = b.dataset.v; else D.personality.mood = b.dataset.v;
+        drawChooser();
+      });
+    });
+    g('asCStart').addEventListener('click', saveDraft);
     g('asReset').addEventListener('click', function () {
       if (busy) return;
       if (!window.confirm('Gespräch neu beginnen? Der Verlauf wird geleert – was ' + (PROF ? PROF.name : 'der Assistent') + ' über ' + (isSie() ? 'Sie' : 'dich') + ' weiß, bleibt erhalten.')) return;
@@ -677,11 +896,11 @@
     g('asDrClose').addEventListener('click', closeDrawer);
     g('asFCancel').addEventListener('click', closeDrawer);
     g('asFSave').addEventListener('click', saveDrawer);
-    g('asFPreview').addEventListener('click', preview);
-    g('asFName').addEventListener('input', function () { if (!D) return; D.name = g('asFName').value.trim(); D.autoName = false; g('asDrTitle').textContent = (D.name || 'Assistent') + ' anpassen'; });
-    g('asFGender').addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b && D) setGender(b.dataset.v); });
+    g('asFPreview').addEventListener('click', function () { preview('main'); });
+    g('asFName').addEventListener('input', function () { if (!D || isCho()) return; D.name = g('asFName').value.trim(); D.autoName = false; g('asDrTitle').textContent = (D.name || 'Assistent') + ' · Person & Stimme'; });
+    g('asFGender').addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b && D && !isCho()) setGender(b.dataset.v); });
     g('asFPortraits').addEventListener('click', function (e) {
-      if (!D) return;
+      if (!D || isCho()) return;
       if (e.target.closest('#asFUp')) { g('asFFile').value = ''; g('asFFile').click(); return; }
       var b = e.target.closest('button[data-p]'); if (b) pickPortrait(b.dataset.p);
     });
@@ -691,8 +910,13 @@
       if (D.portrait === 'custom') { var f = PORTRAITS.filter(function (p) { return p.gender === D.gender; })[0]; D.portrait = f ? f.id : ''; }
       drawDrawer();
     });
-    g('asFVoices').addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b && D) { D.voice.preset = b.dataset.v; drawDrawer(); } });
-    var segBind = function (id, fn) { g(id).addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b && D) { fn(b.dataset.v); drawDrawer(); } }); };
+    g('asFVoices').addEventListener('click', function (e) {
+      if (!D || isCho()) return;
+      var pl = e.target.closest('button[data-play]');
+      if (pl) { var id = pl.dataset.play; if (SPK.pv === id && speaking()) { stopSpeaking(); return; } if (pickPreset(id)) { drawDrawer(); preview(id); } return; }
+      var b = e.target.closest('button[data-v]'); if (b && pickPreset(b.dataset.v)) { stopSpeaking(); drawDrawer(); }
+    });
+    var segBind = function (id, fn) { g(id).addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b && D && !isCho()) { fn(b.dataset.v); drawDrawer(); } }); };
     segBind('asFTone', function (v) { D.voice.tone = v; D.voice.preset = toneToPreset(D.gender, v); });
     segBind('asFAddress', function (v) { D.personality.address = v; });
     segBind('asFMood', function (v) { D.personality.mood = v; });
@@ -703,10 +927,12 @@
     g('asFLang').addEventListener('change', function () { if (D) { D.lang = this.value; drawDrawer(); } });
     g('asMicLang').addEventListener('change', function () { micLangPick = this.value; LS.set('ch_as_miclang', micLangPick); micLangUi(); if (REC.on) abortListen(); });
     /* Browserstimmen laden asynchron */
-    if (window.speechSynthesis) { try { speechSynthesis.addEventListener('voiceschanged', voiceInfo); } catch (e) { speechSynthesis.onvoiceschanged = voiceInfo; } }
+    var onVoices = function () { voicesReady(); voiceInfo(); };
+    if (window.speechSynthesis) { try { speechSynthesis.addEventListener('voiceschanged', onVoices); } catch (e) { speechSynthesis.onvoiceschanged = onVoices; } }
+    if (voicesNow().length) voicesReady(); else setTimeout(voicesReady, 1000);   // keine Meldung → nach 1 s ohne Liste weiter (Standardstimme)
     /* Panel verlassen → Ausgabe und Zuhören beenden (kein Geister-Mikrofon im Hintergrund) */
     var panel = g(PANEL);
-    if (panel && window.MutationObserver) new MutationObserver(function () { if (!visible()) { stopSpeaking(); abortListen(); if (D) closeDrawer(); } }).observe(panel, { attributes: true, attributeFilter: ['class'] });
+    if (panel && window.MutationObserver) new MutationObserver(function () { if (!visible()) { stopSpeaking(); abortListen(); if (D && !isCho()) closeDrawer(); } }).observe(panel, { attributes: true, attributeFilter: ['class'] });
     document.addEventListener('visibilitychange', function () { if (document.hidden) abortListen(); });
   }
 

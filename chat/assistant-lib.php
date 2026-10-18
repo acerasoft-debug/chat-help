@@ -400,9 +400,14 @@ function assistant_preset_for(string $gender, string $tone): string {
     foreach(ASSISTANT_TONE_PRESET[$g][$tone] ?? [] as $id) if(isset($pre[$id]) && $pre[$id]['gender']===$g) return $id;
     return $g==='m' ? 'm_freundlich' : 'f_warm';
 }
-/** Liste fürs Panel (ohne Anbieter-Stimmnamen). */
+/** Sprechweise (warm/ruhig/energisch/sachlich) zu einer Voreinstellung – Umkehrung von ASSISTANT_TONE_PRESET, erste Zuordnung gewinnt. */
+function assistant_preset_tone(string $id): ?string {
+    foreach(ASSISTANT_TONE_PRESET as $tones) foreach($tones as $tone=>$ids) if(in_array($id,$ids,true)) return $tone;
+    return null;
+}
+/** Liste fürs Panel (ohne Anbieter-Stimmnamen). tone = passende Sprechweise, damit Stimmkarte und Server-Sprechanweisung zusammenpassen. */
 function assistant_voice_presets_public(): array {
-    $o=[]; foreach(assistant_voice_presets() as $id=>$v) $o[]=['id'=>$id,'gender'=>$v['gender'],'label'=>$v['title'],'desc'=>$v['desc'],'rate'=>$v['rate'],'pitch'=>$v['pitch'],'browser'=>$v['browser']];
+    $o=[]; foreach(assistant_voice_presets() as $id=>$v) $o[]=['id'=>$id,'gender'=>$v['gender'],'label'=>$v['title'],'desc'=>$v['desc'],'rate'=>$v['rate'],'pitch'=>$v['pitch'],'browser'=>$v['browser'],'tone'=>assistant_preset_tone($id)];
     return $o;
 }
 function assistant_profile(int $acc): array {
@@ -435,7 +440,7 @@ function assistant_profile_public(array $pr): array {
     return ['name'=>$pr['name'],'gender'=>$pr['gender'],'portrait'=>$pr['portrait'],'portrait_url'=>assistant_portrait_url($pr),'has_photo'=>!empty($pr['portrait_data']),
         'photo_url'=>!empty($pr['portrait_data']) && $pr['portrait']!=='custom' ? (string)$pr['portrait_data'] : null,'voice_label'=>$pre ? $pre['title'] : '',
         'voice'=>$pr['voice'],'personality'=>$pr['personality'],'lang'=>$pr['lang'],'lang_tag'=>assistant_lang_tag($pr['lang']),'lang_name'=>assistant_lang_name($pr['lang']),
-        'role'=>assistant_role_label($pr),'saved'=>$pr['saved']];
+        'role'=>assistant_role_label($pr),'saved'=>$pr['saved'],'chosen'=>(bool)$pr['saved']];   // chosen: Person & Stimme schon einmal gewählt (jedes gespeicherte Profil) – sonst zeigt das Panel die Auswahl
 }
 /**
  * Profil speichern (nur übergebene Felder ändern sich). Felder: name, gender, portrait, photo (data-URL), remove_photo,
@@ -470,7 +475,9 @@ function assistant_profile_save(int $acc, array $d, ?array &$err=null): array {
                 /* Geschlecht wird gerade gewechselt und die alte Stimme mitgeschickt → passende Stimme zum Ton wählen statt abzulehnen */
                 if($v['gender']===$c['gender']) return $bad('voice.preset','Die Stimme passt nicht zum gewählten Geschlecht.');
                 $pid=assistant_preset_for($v['gender'],$v['voice']['tone']); }
-            $v['voice']['preset']=$pid; }
+            $v['voice']['preset']=$pid;
+            /* Nur die Stimme gewählt (Stimm-Chip im Panel)? Dann folgt die Sprechweise der Stimme – sonst widersprächen sich Stimme und Sprechanweisung */
+            if(!isset($vo['tone']) && $v['gender']===$c['gender'] && ($t=assistant_preset_tone($pid))!==null) $v['voice']['tone']=$t; }
     }
     $pre=assistant_voice_presets(); $pid=(string)($v['voice']['preset'] ?? '');
     if(!isset($pre[$pid]) || $pre[$pid]['gender']!==$v['gender']) $v['voice']['preset']=assistant_preset_for($v['gender'],$v['voice']['tone']);
@@ -1256,7 +1263,8 @@ function assistant_api(string $route, string $method, int $aid, array $body, arr
     if($route!=='assistant' && !str_starts_with($route,'assistant/')) return null;
     if($aid<=0) return [403,['error'=>'forbidden']];
     assistant_bootstrap();
-    $pub=fn()=>['profile'=>assistant_profile_public(assistant_profile($aid)),'portraits'=>array_map(fn($p)=>['id'=>$p['id'],'url'=>$p['url'],'gender'=>$p['gender'],'label'=>$p['label']],assistant_portraits()),
+    /* tts_active: Server-Stimme eingerichtet UND nutzbar (Guthaben oder aktiver Agent, wie bei /speak) – für die ehrliche Statuszeile im Panel */
+    $pub=fn()=>['profile'=>assistant_profile_public(assistant_profile($aid)),'tts_active'=>assistant_tts_ready() && (th_balance($aid)>0 || (bool)assistant_active_plans($aid)),'portraits'=>array_map(fn($p)=>['id'=>$p['id'],'url'=>$p['url'],'gender'=>$p['gender'],'label'=>$p['label']],assistant_portraits()),
         'voices'=>assistant_voice_presets_public(),'langs'=>assistant_langs_public(),'tts'=>assistant_tts_ready(),'tts_langs'=>assistant_tts_langs(),'tools_ready'=>assistant_tools_ready(),'photo_max'=>ASSISTANT_PHOTO_MAX];
     switch(true){
         case $route==='assistant/profile' && $method==='GET': return [200,$pub()];

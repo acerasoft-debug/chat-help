@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ChatHelp — KI-Agenten für Telefon, Website & Backoffice · Inkasso, Kanzleien, Steuerberater, Praxen, Shops</title>
-<meta name="description" content="Fertige KI-Agenten, die Anrufe annehmen, Kunden beantworten und Akten vorbereiten – 24/7, nur mit deinen Fakten. Für Taxi-Zentralen, Hotels, Immobilienmakler, Inkasso, Rechtsanwälte, Steuerberater, Versicherungsmakler, Hausverwaltungen, Autohäuser, Praxen und Shops. Plus ChatHelp Recht: geprüfte Rechtsschreiben. Made in Europe, DSGVO-konform.">
+<meta name="description" content="Fertige KI-Agenten, die Anrufe annehmen, Kunden beantworten und Akten vorbereiten – 24/7, nur mit deinen Fakten. Für Taxi-Zentralen, Hotels, Immobilienmakler, Inkasso, Rechtsanwälte, Steuerberater, Versicherungsmakler, Hausverwaltungen, Autohäuser, Praxen, Banken, Behörden und Shops – Telefon, WhatsApp und Chat in einem. Plus Assistenten für dich privat: Behördengänge, Bank, Reise, Briefe und Anrufe. Made in Europe, DSGVO-konform.">
 <link rel="canonical" href="https://chat-help.com/">
 <meta property="og:title" content="ChatHelp — KI-Agenten, die für dich arbeiten. 24/7.">
 <meta property="og:description" content="Telefon-Agent, Support-Agent, Kanzlei-, Inkasso- und Steuer-Agent: in 10 Minuten mit deiner Wissensbasis startklar. Live testen, mieten oder kaufen.">
@@ -261,15 +261,77 @@ section{padding:100px 0;scroll-margin-top:84px}@media(max-width:720px){section{p
 .how .st{padding:26px;display:flex;flex-direction:column}.how .n{font:800 13px var(--sans);color:var(--gold);letter-spacing:.1em}.how h3{font-size:24px;margin:10px 0 8px}.how p{color:var(--ink2);font-size:14.5px}
 .ill{height:150px;border-radius:18px;background:var(--sur2);border:1px solid var(--line);margin-top:18px;position:relative;overflow:hidden}
 .ill svg{width:100%;height:100%}
-/* recht */
-.recht{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:start}@media(max-width:960px){.recht{grid-template-columns:1fr}}
-.why{display:grid;gap:12px;margin-top:26px}.why .it{display:flex;gap:14px;padding:16px 18px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line);box-shadow:var(--sh1)}
-.why .it i{width:34px;height:34px;border-radius:11px;background:var(--goldl);color:var(--gold);display:grid;place-items:center;font-style:normal;font-weight:800;flex:0 0 auto}
-.why .it b{display:block;font:700 15px var(--sans);margin-bottom:3px}.why .it span{color:var(--ink2);font-size:14px}
-.docs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}@media(max-width:520px){.docs{grid-template-columns:1fr}}
-.doc{display:flex;align-items:center;gap:12px;padding:14px 15px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line);transition:.18s}.doc:hover{border-color:var(--gold2);box-shadow:var(--sh1);transform:translateY(-2px)}
-.doc .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:18px;background:var(--sur2);flex:0 0 auto}.doc b{display:block;font:600 14.5px var(--sans)}.doc small{color:var(--mute);font-size:12.5px}
-.flags{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.flags a{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border-radius:999px;border:1px solid var(--line2);background:var(--sur);font:600 13.5px var(--sans)}
+/* hero: Umschalter Unternehmen / privat – beide Fassungen liegen übereinander im selben Rasterfeld (kein Layout-Sprung) */
+.hsw{display:inline-flex;gap:2px;padding:4px;border:1px solid var(--line2);border-radius:999px;background:rgba(255,255,255,.92);box-shadow:var(--sh1);max-width:100%}
+.hsw button{border:0;background:transparent;border-radius:999px;padding:9px 16px;min-height:42px;font:600 13.5px var(--sans);color:var(--ink2);white-space:nowrap;transition:background .2s,color .2s,box-shadow .2s}
+.hsw button:hover{color:var(--ink)}.hsw button[aria-selected="true"]{background:var(--ink);color:#fff;box-shadow:0 6px 16px rgba(15,18,34,.18)}.hsw button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.hswap{display:grid;margin-top:16px}.hswap>.hv{grid-area:1/1;min-width:0;transition:opacity .35s ease,transform .35s ease}
+.hswap>.hv.off{opacity:0;visibility:hidden;transform:translateY(6px);pointer-events:none}
+.hero .hv h1{margin:16px 0 20px}
+@media(max-width:400px){.hsw button{padding:9px 12px;font-size:13px}}
+/* Agenten-Finder: Suche + Kategorie-Chips + Karten mit Kanal-Chips */
+.fbar{display:flex;flex-direction:column;gap:14px;margin-top:32px}
+.fsrch{position:relative;display:block;max-width:560px}
+.fsrch input{width:100%;min-height:50px;border:1px solid var(--line2);border-radius:999px;padding:13px 48px 13px 46px;font:15px var(--sans);background:#fff;color:var(--ink);outline:0;box-shadow:var(--sh1);transition:border-color .18s,box-shadow .18s}
+.fsrch input:focus{border-color:var(--gold2);box-shadow:0 0 0 4px rgba(212,168,74,.18)}
+.fsrch svg{position:absolute;left:17px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--mute2);pointer-events:none}
+.fsrch .fx{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;border:0;background:var(--sur3);color:var(--ink2);font-size:13px;display:none}.fsrch.has .fx{display:grid;place-items:center}
+.fchips{display:flex;gap:8px;flex-wrap:wrap}
+.fchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:#fff;border-radius:999px;padding:7px 14px 7px 8px;min-height:44px;font:600 13.5px var(--sans);color:var(--ink2);white-space:nowrap;transition:border-color .18s,background .18s,color .18s}
+.fchip i{font-style:normal;width:28px;height:28px;border-radius:50%;background:var(--sur2);display:grid;place-items:center;font-size:14px;flex:0 0 auto}
+.fchip small{font:700 11px var(--sans);color:var(--mute2)}
+.fchip:hover{border-color:var(--gold2);background:#fffaf0;color:var(--ink)}.fchip:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.fchip.pv{border-color:#eadbb0;background:linear-gradient(160deg,#fffaf0,#fff)}
+.fchip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}.fchip[aria-pressed="true"] i{background:rgba(255,255,255,.16)}.fchip[aria-pressed="true"] small{color:#c6c9d9}
+@media(max-width:720px){.fchips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -20px;padding:2px 20px 6px;scroll-snap-type:x proximity}.fchips::-webkit-scrollbar{display:none}.fchip{flex:0 0 auto;scroll-snap-align:start}}
+.fmeta{display:flex;align-items:center;justify-content:space-between;gap:6px 16px;flex-wrap:wrap;color:var(--mute);font-size:13.5px;min-height:24px}
+.fmeta .fall{border:0;background:transparent;color:var(--gold);font:600 13.5px var(--sans);padding:6px 0}.fmeta .fall[hidden]{display:none}
+#pgrid{margin-top:22px}
+.fgh{grid-column:1/-1;display:flex;align-items:baseline;gap:4px 12px;flex-wrap:wrap;margin-top:18px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.fgh:first-child{margin-top:0}.fgh b{font:600 23px/1.2 var(--serif);color:var(--ink)}.fgh span{color:var(--mute);font-size:13.5px}
+.fnone{grid-column:1/-1;text-align:center;padding:34px 18px;border:1px dashed var(--line2);border-radius:var(--r2);color:var(--ink2);background:#fff}
+.fnone button{margin-top:12px}
+.pro .ccat{display:block;margin-top:14px;font:700 11px/1.3 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.pro .ccat+h3{margin-top:4px}
+.chn{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.chn span{display:inline-flex;align-items:center;gap:5px;font:600 12px/1.2 var(--sans);padding:6px 10px;border-radius:999px;background:var(--okl);color:#137a46;border:1px solid #cdebd9}
+.chn.web span{background:var(--sur2);color:var(--ink2);border-color:var(--line)}
+.two{display:block;color:var(--mute);font-size:12.5px;line-height:1.45;margin-top:7px}
+.qrs{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.qr{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:8px 13px;min-height:40px;font:500 13px/1.3 var(--sans);color:var(--ink2);text-align:left;transition:border-color .18s,background .18s}
+.qr:hover,.qr:focus-visible{border-color:var(--gold2);background:#fffaf0;color:var(--ink);outline:0}.qr.hum{border-style:dashed}
+.pro .acts .btn{min-height:46px}
+/* Für dich privat */
+.pvhd{display:grid;grid-template-columns:1.15fr .85fr;gap:26px 50px;align-items:end}@media(max-width:900px){.pvhd{grid-template-columns:1fr}}
+.pvsteps{list-style:none;display:grid;gap:8px}
+.pvsteps li{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line);font-size:14px;color:var(--ink2)}
+.pvsteps li b{color:var(--ink)}.pvsteps li i{font-style:normal;flex:0 0 auto;width:32px;height:32px;border-radius:10px;background:var(--goldl);color:var(--gold);display:grid;place-items:center;font:800 12px var(--sans)}
+.pvgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:36px}@media(max-width:1000px){.pvgrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:640px){.pvgrid{grid-template-columns:1fr}}
+.pro .lim{display:flex;gap:9px;margin-top:4px;padding:10px 12px;border-radius:12px;background:var(--sur2);border:1px solid var(--line);font-size:12.5px;color:var(--ink2);line-height:1.45}.pro .lim i{font-style:normal;color:var(--gold);font-weight:800;flex:0 0 auto}
+.pro.feat{border-color:#eadbb0;background:linear-gradient(160deg,#fffaf0,#fff)}
+.pvnote{margin-top:22px;color:var(--mute);font-size:13px}
+#privat{background:linear-gradient(180deg,#fffaf0,rgba(251,251,253,0) 70%);border-bottom:1px solid var(--line)}
+.hlead{min-width:0}
+/* Kanal-Bündel (Preise) */
+.bund{margin:30px auto 0;max-width:1040px;text-align:left;padding:26px 28px;border-radius:var(--r2);border:1px solid #eadbb0;background:linear-gradient(160deg,#fffaf0,#fff);box-shadow:var(--sh1)}
+.bund .bh{display:flex;align-items:center;gap:14px 18px;flex-wrap:wrap}
+.bund .bic{display:flex;flex:0 0 auto}.bund .bic i{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:18px;background:#fff;border:1px solid #eadbb0;box-shadow:var(--sh1)}.bund .bic i+i{margin-left:-8px}
+.bund h3{font-size:clamp(20px,2.2vw,26px);flex:1 1 300px;min-width:0}
+.bund ul{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+.bund li{padding:14px 16px;border-radius:var(--r);background:#fff;border:1px solid var(--line);font-size:13.5px;color:var(--ink2);line-height:1.5}.bund li b{display:block;font:700 14.5px var(--sans);color:var(--ink);margin-bottom:3px}
+.bund small{display:block;margin-top:14px;color:var(--mute);font-size:12.5px}
+@media(max-width:860px){.bund{padding:22px 18px}.bund ul{grid-template-columns:1fr}}
+/* Demo: Kundenkomfort – Fortschritt, Schnellwahl, Mensch */
+.cmf{display:grid;gap:10px;padding:14px 16px;border-radius:var(--r);background:var(--sur);border:1px solid var(--line)}
+.cmf .cmp{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.cmf .cmp b{font:700 11.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--gold);white-space:nowrap}
+.cmf .cbar{flex:1 1 110px;min-width:80px;height:6px;border-radius:6px;background:var(--sur3);overflow:hidden}.cmf .cbar i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,#d4a84a,#b8862b);transition:width .5s}
+.cmf .qrs{margin-top:0}.cmf small{color:var(--mute);font-size:12px;line-height:1.4}
+/* Demo-Reiter nach Hauptkategorie gruppiert (gleiche Reihenfolge wie der Finder) */
+.dtabs{gap:10px 20px}
+.dgrp{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.dgrp .dgl{font:600 10.5px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--mute2);margin-right:2px;white-space:nowrap}
+.dgrp .dtab{padding:9px 14px;font-size:13.5px}
+@media(max-width:720px){.dtabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-left:-20px;margin-right:-20px;padding:2px 20px 6px;gap:0 18px}.dtabs::-webkit-scrollbar{display:none}.dgrp{flex-wrap:nowrap}.dgrp .dtab{flex:0 0 auto}}
 /* pricing */
 .ptabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:34px;justify-content:center}
 .ptab{font:600 14px var(--sans);padding:11px 16px;border-radius:999px;border:1px solid var(--line2);color:var(--ink2);background:var(--sur);transition:.18s}.ptab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -320,18 +382,30 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
 
 <nav class="nav"><div class="wrap">
   <a class="logo" href="/"><span class="em"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp</a>
-  <div class="menu" id="menu"><a href="#demo">Demo</a><a href="#berufe">Berufe</a><a href="#telefon">Telefon</a><a href="#termine">Termine</a><a href="#bestellen">Bestellen</a><a href="#taxi">Taxi</a><a href="#hotel">Hotel</a><a href="#rueckruf">Rückruf &amp; Training</a><a href="#how">Ablauf</a><a href="#recht">Recht</a><a href="#preise">Preise</a></div>
-  <div class="navr"><a class="btn s hide-m" href="/chat/">Recht-App</a><a class="btn s p" href="/chat/studio.php">Studio starten</a>
+  <div class="menu" id="menu"><a href="#demo">Demo</a><a href="#agenten">Agenten</a><a href="#privat">Privat</a><a href="#telefon">Telefon</a><a href="#termine">Termine</a><a href="#bestellen">Bestellen</a><a href="#taxi">Taxi</a><a href="#hotel">Hotel</a><a href="#rueckruf">Rückruf &amp; Training</a><a href="#how">Ablauf</a><a href="#preise">Preise</a></div>
+  <div class="navr"><a class="btn s hide-m" href="#agenten">Agent finden</a><a class="btn s p" href="/chat/studio.php">Studio starten</a>
     <button class="burger" id="burger" aria-label="Menü"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button></div>
 </div></nav>
 
 <header class="hero"><div class="wrap">
-  <div>
-    <span class="tag gold">KI-Agenten für Unternehmen · Made in Europe · DSGVO</span>
-    <h1>Dein Team arbeitet 8 Stunden.<br>Dein <span class="g">Agent 24.</span></h1>
-    <p class="sub">Fertige KI-Agenten, die <b style="color:var(--ink)">Anrufe annehmen, Termine buchen, Bestellungen und Fahrten aufnehmen, Kunden beantworten und Akten vorbereiten</b> – für Praxen, Salons, Restaurants, Taxi-Zentralen, Hotels, Immobilienmakler, Inkasso, Kanzleien, Steuerberater, Versicherungsmakler, Hausverwaltungen, Autohäuser und Shops. Nur mit deinen Fakten. In 10 Minuten startklar.</p>
-    <div class="cta"><a class="btn gold" href="/chat/studio.php">Studio starten – 300 Tokens gratis</a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('phone',true),300)">▶ Telefon-Agent live hören</a></div>
-    <div class="trust"><span><i>✓</i> Antwortet nur aus deiner Wissensbasis</span><span><i>✓</i> Übergabe an Menschen</span><span><i>✓</i> Transkripte &amp; Audit-Log</span><span><i>✓</i> Monatlich kündbar</span></div>
+  <div class="hlead">
+    <div class="hsw" id="hsw" role="tablist" aria-label="Für wen ist ChatHelp?"><button type="button" role="tab" id="hswB" data-v="b" aria-selected="true" aria-controls="hvB">🏢 Für Unternehmen</button><button type="button" role="tab" id="hswP" data-v="p" aria-selected="false" aria-controls="hvP" tabindex="-1">🙂 Für dich privat</button></div>
+    <div class="hswap">
+      <div class="hv" id="hvB" role="tabpanel" aria-labelledby="hswB">
+        <span class="tag gold">KI-Agenten für Unternehmen · Made in Europe · DSGVO</span>
+        <h1>Dein Team arbeitet 8 Stunden.<br>Dein <span class="g">Agent 24.</span></h1>
+        <p class="sub">Fertige KI-Agenten, die <b style="color:var(--ink)">Anrufe annehmen, WhatsApp beantworten, Termine buchen, Bestellungen und Fahrten aufnehmen und Akten vorbereiten</b> – für Praxen, Salons, Restaurants, Taxi-Zentralen, Hotels, Banken, Behörden &amp; Stadtwerke, Immobilienmakler, Inkasso, Kanzleien, Steuerberater, Hausverwaltungen und Shops. Telefon, WhatsApp und Chat in einem Agenten. Nur mit deinen Fakten. In 10 Minuten startklar.</p>
+        <div class="cta"><a class="btn gold" href="/chat/studio.php">Studio starten – 300 Tokens gratis</a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('phone',true),300)">▶ Telefon-Agent live hören</a></div>
+        <div class="trust"><span><i>✓</i> Antwortet nur aus deiner Wissensbasis</span><span><i>✓</i> Übergabe an Menschen</span><span><i>✓</i> Transkripte &amp; Audit-Log</span><span><i>✓</i> Monatlich kündbar</span></div>
+      </div>
+      <div class="hv off" id="hvP" role="tabpanel" aria-labelledby="hswP" aria-hidden="true" inert>
+        <span class="tag gold">Für dich privat · einfach erklärt · DSGVO</span>
+        <h1>Amt, Bank, Hotel –<br>dein Agent <span class="g">erledigt’s.</span></h1>
+        <p class="sub">Dein persönlicher KI-Assistent <b style="color:var(--ink)">sagt dir, welches Amt zuständig ist und welche Unterlagen du brauchst, erklärt Kontoauszug, Gebühren und Stornobedingungen</b>, schreibt Kündigungen, Briefe und Hotelanfragen – und ruft auf Wunsch für dich beim Arzt, Friseur oder Hotel an. Per WhatsApp, Telefon oder Chat, in einfacher Sprache. Ab 9 €/Monat, monatlich kündbar.</p>
+        <div class="cta"><a class="btn gold" href="#privat">Privat-Assistenten ansehen – ab 9 €</a><a class="btn p" href="#demo" onclick="setTimeout(()=>demoSelect('p-amt',true),300)">▶ Beispiel: Behördengang</a></div>
+        <div class="trust"><span><i>✓</i> Du bestätigst jeden Schritt</span><span><i>✓</i> Erklärt – handelt nicht heimlich</span><span><i>✓</i> Mit Mensch sprechen jederzeit</span><span><i>✓</i> Monatlich kündbar</span></div>
+      </div>
+    </div>
   </div>
   <div class="vid reveal in" id="heroVid">
     <video autoplay muted loop playsinline poster="/media/hero-poster.jpg" preload="metadata"><source src="/media/hero.webm" type="video/webm"><source src="/media/hero.mp4" type="video/mp4"></video>
@@ -353,18 +427,41 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
     <div class="explain">
       <div class="hd"><span class="tag indigo" id="exTag">Telefon-Agent</span><h3 id="exTitle" style="margin-top:12px">Nimmt jeden Anruf an – auch um 23 Uhr.</h3><p id="exText"></p></div>
       <div class="stepl" id="exSteps"></div>
+      <div class="cmf" id="cmf"><div class="cmp"><b id="cmfStep" aria-live="polite">Schritt 1 von 4</b><i class="cbar" aria-hidden="true"><i id="cmfBar"></i></i><span id="cmfName"></span></div><div class="qrs" id="cmfQr" role="group" aria-label="Schnellwahl – startet den Live-Test"></div><small>Ein Schritt pro Nachricht, Zusammenfassung vor jeder verbindlichen Aktion – und jederzeit „Mit Mensch sprechen“.</small></div>
       <div class="dctl"><button class="btn" id="btnReplay">↻ Demo abspielen</button><button class="btn p" id="btnLive">Selbst testen – live</button><a class="btn ghost" id="btnRent" href="/chat/tokens-checkout.php?plan=agent-phone">Agent mieten →</a></div>
-      <div class="live" id="live"><div class="lhd"><span class="lst"><i class="eq" aria-hidden="true"><b></b><b></b><b></b></i><span id="liveWho" aria-live="polite">Live</span></span><div class="vbar"><button type="button" class="vtg" id="liveVoice" aria-pressed="false" title="Antworten vorlesen">🔇 Stimme aus</button><button type="button" class="vpb" id="vpBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="vpop" title="Stimme wählen"><span aria-hidden="true">🎙</span><span id="vpLbl">Stimme</span><span class="vpc" aria-hidden="true">▾</span></button></div></div><small class="tth" id="ttsHint" hidden>Natürliche KI-Stimme wird gerade vorbereitet – du hörst die Systemstimme deines Browsers</small><div class="vpop" id="vpop" role="dialog" aria-label="Stimme wählen" hidden><div class="vph"><div><b>Stimme wählen</b><small>Gilt für alle Demos auf dieser Seite – je eine Frauen- und eine Männerstimme; Frau/Mann gilt nur für diese Persona. Im Studio stellst du Stimme und Sprache für deinen Agenten ein.</small></div><button type="button" class="vpx" id="vpClose" aria-label="Schließen">✕</button></div><div class="vseg" role="radiogroup" aria-label="Geschlecht" id="vpGender"><button type="button" role="radio" aria-checked="true" data-g="f">Frau</button><button type="button" role="radio" aria-checked="false" data-g="m" tabindex="-1">Mann</button></div><div class="vlist" role="radiogroup" aria-label="Stimmen" id="vpList"></div><div class="vpf"><button type="button" class="btn s" id="vpPlay">▶ Hörprobe</button><button type="button" class="vreset" id="vpReset" hidden>↺ Stimme der Persona</button></div></div><form id="liveForm"><input id="liveIn" placeholder="Schreib dem Agenten …" maxlength="800" autocomplete="off" aria-label="Nachricht an den Agenten"><button type="button" class="mic" id="liveMic" title="Sprechen" aria-label="Sprechen" style="display:none">🎙️</button><button class="send" type="submit">Senden</button></form><div class="lchips" id="liveChips" role="group" aria-label="Vorschläge" hidden></div><small id="liveNote">Echter Agent, Beispiel-Firma. Deine eigene Wissensbasis fügst du im Studio ein.</small></div>
+      <div class="live" id="live"><div class="lhd"><span class="lst"><i class="eq" aria-hidden="true"><b></b><b></b><b></b></i><span id="liveWho" aria-live="polite">Live</span></span><div class="vbar"><button type="button" class="vtg" id="liveVoice" aria-pressed="false" title="Antworten vorlesen">🔇 Stimme aus</button><button type="button" class="vpb" id="vpBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="vpop" title="Stimme wählen"><span aria-hidden="true">🎙</span><span id="vpLbl">Stimme</span><span class="vpc" aria-hidden="true">▾</span></button></div></div><small class="tth" id="ttsHint" hidden>Natürliche KI-Stimme wird gerade vorbereitet – du hörst die Systemstimme deines Browsers</small><small class="tth" id="liveSoon" role="status" hidden></small><div class="vpop" id="vpop" role="dialog" aria-label="Stimme wählen" hidden><div class="vph"><div><b>Stimme wählen</b><small>Gilt für alle Demos auf dieser Seite – je eine Frauen- und eine Männerstimme; Frau/Mann gilt nur für diese Persona. Im Studio stellst du Stimme und Sprache für deinen Agenten ein.</small></div><button type="button" class="vpx" id="vpClose" aria-label="Schließen">✕</button></div><div class="vseg" role="radiogroup" aria-label="Geschlecht" id="vpGender"><button type="button" role="radio" aria-checked="true" data-g="f">Frau</button><button type="button" role="radio" aria-checked="false" data-g="m" tabindex="-1">Mann</button></div><div class="vlist" role="radiogroup" aria-label="Stimmen" id="vpList"></div><div class="vpf"><button type="button" class="btn s" id="vpPlay">▶ Hörprobe</button><button type="button" class="vreset" id="vpReset" hidden>↺ Stimme der Persona</button></div></div><form id="liveForm"><input id="liveIn" placeholder="Schreib dem Agenten …" maxlength="800" autocomplete="off" aria-label="Nachricht an den Agenten"><button type="button" class="mic" id="liveMic" title="Sprechen" aria-label="Sprechen" style="display:none">🎙️</button><button class="send" type="submit">Senden</button></form><div class="lchips" id="liveChips" role="group" aria-label="Vorschläge" hidden></div><small id="liveNote">Echter Agent, Beispiel-Firma. Deine eigene Wissensbasis fügst du im Studio ein.</small></div>
     </div>
   </div>
 </div></section>
 
-<section id="berufe" class="alt"><div class="wrap">
-  <span class="eyebrow">Agenten nach Beruf</span>
-  <h2 style="margin-top:12px">Gebaut für deine Branche – <span class="g">mit ihren Regeln.</span></h2>
-  <p class="sub">Kein allgemeiner Chatbot: Jeder Agent kennt die Pflichten seines Berufs (RDG, RVG, VVG, StBerG, BGB …), arbeitet nur mit deiner Wissensbasis und übergibt an Menschen, wenn es darauf ankommt. Klick auf einen Agenten für Aufgaben, Beispiel-Dialog und Einrichtung.</p>
+<section id="agenten" class="alt"><div class="wrap"><span id="berufe" style="display:block;scroll-margin-top:84px" aria-hidden="true"></span>
+  <span class="eyebrow">Agenten finden</span>
+  <h2 style="margin-top:12px">Finde deinen Agenten – <span class="g">nach Branche.</span></h2>
+  <p class="sub">Wähle eine Kategorie oder such nach deinem Beruf. Jeder Agent mit Kundenkontakt kommt mit <b style="color:var(--ink)">Telefon, WhatsApp und Website-Chat</b> – Kunden schreiben oder rufen an, du antwortest aus dem Studio. Jeder Agent kennt die Regeln seines Berufs, arbeitet nur mit deiner Wissensbasis und übergibt an Menschen, wenn es darauf ankommt.</p>
+  <div class="fbar">
+    <label class="fsrch" id="fSrch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></svg><input id="fSearch" type="text" inputmode="search" enterkeyhint="search" placeholder="Beruf oder Aufgabe suchen – z. B. Pizzeria, Sparkasse, Rathaus …" aria-label="Agenten suchen" autocomplete="off" aria-controls="pgrid"><button type="button" class="fx" id="fClear" aria-label="Suche löschen">✕</button></label>
+    <div class="fchips" id="fChips" role="group" aria-label="Kategorien"></div>
+    <div class="fmeta"><span id="fCount" aria-live="polite"></span><button type="button" class="fall" id="fAll" hidden>Alle Kategorien durchsuchen →</button></div>
+  </div>
   <div class="pgrid" id="pgrid"></div>
-  <p style="color:var(--mute);font-size:13.5px;margin-top:22px">Weitere fertige Agenten: Gastro-Buchung, HR-Screening, Mahnwesen, Logistik-Support, Content &amp; Website – siehe <a href="#preise" style="color:var(--gold);font-weight:600">Preise</a>. Dein Beruf fehlt? <a href="mailto:support@chat-help.com?subject=Individueller%20Agent" style="color:var(--gold);font-weight:600">Wir bauen ihn</a> – meist in 48 Stunden.</p>
+  <p style="color:var(--mute);font-size:13.5px;margin-top:22px">Content-Pakete (Social Media, SEO, Exposés, Stellenanzeigen …) findest du unter <a href="#preise" onclick="setTimeout(()=>renderPrice('abo'),60)" style="color:var(--gold);font-weight:600">Preise</a>. Dein Beruf fehlt? <a href="mailto:support@chat-help.com?subject=Individueller%20Agent" style="color:var(--gold);font-weight:600">Wir bauen ihn</a> – meist in 48 Stunden.</p>
+</div></section>
+
+<section id="privat"><div class="wrap">
+  <div class="pvhd">
+    <div>
+      <span class="eyebrow">Für dich privat</span>
+      <h2 style="margin-top:12px">Nicht nur für Firmen: <span class="g">dein Alltags-Agent.</span></h2>
+      <p class="sub">Behördengang, Bankbrief, Hotelbuchung, Kündigung oder der Anruf, den du seit Tagen aufschiebst: Dein Agent erklärt in einfacher Sprache, bereitet alles vor und erledigt es – <b style="color:var(--ink)">immer erst nach deinem Okay</b>. Per WhatsApp, Telefon oder Chat.</p>
+    </div>
+    <ol class="pvsteps" aria-label="So läuft es">
+      <li><i>1/3</i><span><b>Schreib oder schick ein Foto</b> – Brief, Bescheid, Kontoauszug, Buchung.</span></li>
+      <li><i>2/3</i><span><b>Du bekommst Erklärung + Entwurf</b> – kurz, verständlich, mit Fristen.</span></li>
+      <li><i>3/3</i><span><b>Du bestätigst</b> – erst dann wird gesendet oder angerufen.</span></li>
+    </ol>
+  </div>
+  <div class="pvgrid" id="pvgrid"></div>
+  <p class="pvnote">Ehrliche Grenzen: keine Rechts-, Steuer- oder Finanzberatung im Einzelfall, keine Bankgeschäfte und keine Behördenanträge in deinem Namen ohne deine Freigabe. Bei komplexen Fällen sagt dir der Agent, wer weiterhilft – Beratungsstelle, Anwalt oder Verbraucherzentrale. Privat-Tarife sind monatlich kündbar; den genauen Endpreis siehst du vor dem Abschluss.</p>
 </div></section>
 
 <section id="telefon"><div class="wrap">
@@ -545,41 +642,19 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
   <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px"><a class="btn gold" href="/chat/studio.php">Studio starten – kostenlos testen</a><a class="btn" href="mailto:support@chat-help.com?subject=Einrichtung%20durch%20ChatHelp">Einrichtung durch uns anfragen</a></div>
 </div></section>
 
-<section id="recht" class="alt"><div class="wrap">
-  <div class="recht">
-    <div>
-      <span class="eyebrow">ChatHelp Recht · für Privatpersonen &amp; Betriebe</span>
-      <h2 style="margin-top:12px">Rechtsschreiben, die <span class="g">halten.</span></h2>
-      <p class="sub">Widerspruch, Kündigung, Mieterhöhung, Behördenanträge, Visum-Unterlagen: Standard-KI erfindet Paragrafen. ChatHelp Recht prüft jedes Dokument mit einer zweiten KI, belegt jede Rechtsgrundlage – und verschickt das Schreiben direkt per Post, Einschreiben oder Fax.</p>
-      <div class="why">
-        <div class="it"><i>2</i><div><b>Zwei unabhängige KI-Prüfungen pro Dokument</b><span>Ein Modell schreibt, ein zweites prüft Rechtsgrundlagen, Fristen und Form – erst dann ist das Schreiben freigegeben.</span></div></div>
-        <div class="it"><i>§</i><div><b>Nur echte Gesetze, jeder § mit Quelle</b><span>Zitiert werden ausschließlich geltende Normen (BGB, VwGO, AufenthG …) mit Fundstelle.</span></div></div>
-        <div class="it"><i>✓</i><div><b>Vielfach getestet, auf den neuesten Spitzenmodellen</b><span>Laufend gegen Standard-KI-Antworten getestet – mit den jeweils leistungsstärksten verfügbaren Modellen.</span></div></div>
-        <div class="it"><i>✉</i><div><b>Versandfertig aus der App</b><span>PDF &amp; Word, Fristen-Erinnerung, Versand als Brief, Einschreiben oder Fax – DE · AT · CH · FR · TR.</span></div></div>
-      </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px"><a class="btn gold" href="/chat/">Zu ChatHelp Recht →</a><a class="btn" href="/chat/?plan=basic">Recht Basic · 13,99 €/Monat</a></div>
-      <div class="flags"><a href="/chat/?cc=DE">🇩🇪 Deutschland</a><a href="/chat/?cc=AT">🇦🇹 Österreich</a><a href="/chat/?cc=CH">🇨🇭 Schweiz</a><a href="/chat/?cc=FR">🇫🇷 France</a><a href="/chat/?cc=TR">🇹🇷 Türkiye · Vize</a></div>
-    </div>
-    <div>
-      <div class="docs">
-        <a class="doc" href="/chat/?cat=miete"><div class="ic">🏠</div><div><b>Mieterhöhung &amp; Mängel</b><small>Widerspruch, Mietminderung, Kaution</small></div></a>
-        <a class="doc" href="/chat/?cat=vertraege"><div class="ic">📄</div><div><b>Verträge kündigen</b><small>Fitness, Mobilfunk, Versicherung, Abo</small></div></a>
-        <a class="doc" href="/chat/?cat=behoerde"><div class="ic">🏛️</div><div><b>Behörden &amp; Bescheide</b><small>Widerspruch, Antrag, Fristverlängerung</small></div></a>
-        <a class="doc" href="/chat/?cat=arbeit"><div class="ic">💼</div><div><b>Arbeit</b><small>Abmahnung, Zeugnis, Kündigungsschutz</small></div></a>
-        <a class="doc" href="/chat/?cat=geld"><div class="ic">💶</div><div><b>Forderungen &amp; Mahnung</b><small>Mahnung, Rückforderung, Inkasso-Abwehr</small></div></a>
-        <a class="doc" href="/chat/?cc=TR"><div class="ic">🛂</div><div><b>Visum &amp; Aufenthalt</b><small>Unterlagen, Einladung, Anträge (TR/DE)</small></div></a>
-      </div>
-      <div class="dossier" style="margin-top:16px;max-width:none"><div class="dh"><b>Beispiel · Widerspruch Mieterhöhung</b><span>geprüft von 2 KIs</span></div>
-        <div class="out"><div class="row"><b>Rechtsgrundlage</b><span>§ 558 BGB (Kappungsgrenze 15 % in 3 Jahren, § 558 Abs. 3), § 558a BGB (Begründung)</span></div><div class="row"><b>Frist</b><span>Zustimmung bis Ende des 2. Monats nach Zugang (§ 558b Abs. 2 BGB)</span></div><div class="row"><b>Prüfung</b><span>Mietspiegel-Vergleich, Kappungsgrenze, Formfehler → 2 Beanstandungen gefunden</span></div><div class="row"><b>Versand</b><span>Einschreiben mit Rückschein, Fristen-Erinnerung aktiv</span></div><span class="stamp">✓ Rechtsgrundlagen belegt · versandfertig</span></div></div>
-      <p style="color:var(--mute);font-size:13px;margin-top:14px">Einzeldokumente ab 1,99 € · Abos Basic 13,99 € / Pro 29,99 € pro Monat · Keine Rechtsberatung im Einzelfall – bei komplexen Fällen empfehlen wir einen Anwalt.</p>
-    </div>
-  </div>
-</div></section>
-
 <section id="preise"><div class="wrap center">
   <span class="eyebrow">Preise</span>
   <h2 style="margin-top:12px">Mieten, kaufen oder <span class="g">nach Verbrauch.</span></h2>
   <p class="sub">Jeder Agent enthält Studio, Wissensbasis, Website-Widget und ein monatliches Token-Guthaben. Mieten: monatlich kündbar. Kaufen: einmal zahlen, dauerhaft nutzen. Tokens: ein Guthaben für alles, verfällt nicht.</p>
+  <div class="bund" id="bundle">
+    <div class="bh"><div class="bic" aria-hidden="true"><i>☎</i><i>💬</i><i>🗨</i></div><h3>Telefon + WhatsApp immer zusammen – ein Verlauf pro Kunde, in beide Richtungen</h3></div>
+    <ul>
+      <li><b>Ein Agent, drei Kanäle</b>Kunden rufen an, schreiben per WhatsApp oder im Website-Chat – gleiche Wissensbasis, gleiche Regeln, ein Preis.</li>
+      <li><b>Ein Verlauf pro Kunde</b>Gleiche Nummer = gleiche Person: Der Agent kennt die letzte Bestellung, den offenen Termin oder die laufende Fahrt.</li>
+      <li><b>In beide Richtungen</b>Bestätigungen und Status gehen auf dem Kanal raus, über den der Kunde kam – und du antwortest direkt aus dem Studio.</li>
+    </ul>
+    <small>Gilt für jeden Agenten mit Kundenkontakt. Ausnahme: reine Website-Bots (Support-, Shop-Support-, Logistik-Support-, Website- und Content-Agent sowie Content-Pakete) laufen nur im Website-Chat.</small>
+  </div>
   <div class="ptabs" id="ptabs"></div>
   <div id="pbody" style="text-align:left"></div>
 </div></section>
@@ -623,13 +698,13 @@ footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
     <span class="eyebrow" style="color:#e9cc83">Loslegen</span>
     <h2 style="margin-top:12px">Dein erster Agent arbeitet heute noch.</h2>
     <p class="sub" style="margin:14px auto 0">Studio öffnen, E-Mail bestätigen, Wissensbasis einfügen – fertig. 300 Tokens geschenkt, keine Zahlungsdaten.</p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px"><a class="btn gold" href="/chat/studio.php">Studio starten</a><a class="btn" style="background:#fff;color:var(--ink)" href="#berufe">Agenten ansehen</a><a class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.3)" href="/chat/">ChatHelp Recht</a></div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px"><a class="btn gold" href="/chat/studio.php">Studio starten</a><a class="btn" style="background:#fff;color:var(--ink)" href="#agenten">Agenten finden</a><a class="btn" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.3)" href="#privat">Für dich privat</a></div>
   </div>
 </div></section>
 
 <footer><div class="wrap">
-  <div><a class="logo" href="/" style="font-size:18px"><span class="em" style="width:30px;height:30px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp</a><div style="margin-top:10px;max-width:40ch">KI-Agenten für Telefon, Website und Backoffice. ChatHelp Recht für geprüfte Rechtsschreiben. Made in Europe.</div></div>
-  <div class="cols"><div><a href="#berufe">Agenten nach Beruf</a><br><a href="#telefon">Telefon-Agent</a><br><a href="#termine">Termin-Agent</a><br><a href="#bestellen">Bestell-Agent</a><br><a href="#taxi">Taxi-Agent</a><br><a href="#hotel">Hotel-Agent</a><br><a href="#rueckruf">Rückruf &amp; Training</a><br><a href="#recht">ChatHelp Recht</a><br><a href="/chat/studio.php">Studio</a></div><div><a href="/impressum.html">Impressum</a><br><a href="/chat/?view=datenschutz">Datenschutz</a><br><a href="/chat/?view=agb">AGB</a><br><a href="/chat/tokens-api.php/v1/sectors">API</a></div><div><a href="https://instagram.com/chathelpp" rel="noopener" target="_blank">Instagram</a><br><a href="mailto:support@chat-help.com">support@chat-help.com</a><br><a href="mailto:support@chat-help.com">support@chat-help.com</a></div></div>
+  <div><a class="logo" href="/" style="font-size:18px"><span class="em" style="width:30px;height:30px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp</a><div style="margin-top:10px;max-width:40ch">KI-Agenten für Telefon, WhatsApp, Website und Backoffice – für Unternehmen und für dich privat. Made in Europe.</div></div>
+  <div class="cols"><div><a href="#agenten">Agenten finden</a><br><a href="#privat">Für dich privat</a><br><a href="#telefon">Telefon-Agent</a><br><a href="#termine">Termin-Agent</a><br><a href="#bestellen">Bestell-Agent</a><br><a href="#taxi">Taxi-Agent</a><br><a href="#hotel">Hotel-Agent</a><br><a href="#rueckruf">Rückruf &amp; Training</a><br><a href="/chat/studio.php">Studio</a></div><div><a href="/impressum.html">Impressum</a><br><a href="/chat/?view=datenschutz">Datenschutz</a><br><a href="/chat/?view=agb">AGB</a><br><a href="/chat/tokens-api.php/v1/sectors">API</a></div><div><a href="https://instagram.com/chathelpp" rel="noopener" target="_blank">Instagram</a><br><a href="mailto:support@chat-help.com">support@chat-help.com</a></div></div>
 </div></footer>
 
 <!-- Beruf-Detail -->
@@ -648,6 +723,13 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 (function(){const b=$('#burger'),m=$('#menu');b.onclick=()=>m.classList.toggle('open');m.addEventListener('click',()=>m.classList.remove('open'));
  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
  document.addEventListener('click',e=>{const a=e.target.closest('a[href*="tokens-checkout.php"]');if(!a)return;try{const u=new URL(a.getAttribute('href'),location.origin);u.searchParams.set('_',Date.now().toString(36));a.href=u.pathname+u.search;}catch(_){}},true);})();
+
+/* ===== Hero: Für Unternehmen / Für dich privat – beide Fassungen liegen übereinander, nur die Sichtbarkeit wechselt (kein Layout-Sprung) ===== */
+(function(){const bs=[...document.querySelectorAll('#hsw [role="tab"]')];if(!bs.length)return;
+ const set=(v,focus)=>{bs.forEach(b=>{const on=b.dataset.v===v;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;if(on&&focus)b.focus();const p=document.getElementById(b.getAttribute('aria-controls'));if(!p)return;
+   p.classList.toggle('off',!on);if(on){p.removeAttribute('aria-hidden');p.removeAttribute('inert');}else{p.setAttribute('aria-hidden','true');p.setAttribute('inert','');}});};
+ bs.forEach(b=>{b.onclick=()=>set(b.dataset.v);b.onkeydown=e=>{if(!/^(ArrowLeft|ArrowRight|Home|End)$/.test(e.key))return;e.preventDefault();const i=bs.indexOf(b),n=e.key==='Home'?0:e.key==='End'?bs.length-1:(i+(e.key==='ArrowRight'?1:bs.length-1))%bs.length;set(bs[n].dataset.v,true);};});
+ try{if(new URLSearchParams(location.search).get('fuer')==='privat'||location.hash==='#privat')set('p');}catch(e){}})();
 
 /* ===== Berufe (Detail-Daten) ===== */
 const PRO=[
@@ -700,6 +782,13 @@ const PRO=[
   ex:{q:'Ich hätte gern einen Termin zur Zahnreinigung.',a:'Gern. Eine professionelle Zahnreinigung dauert etwa 60 Minuten und kostet 89 Euro. Passt Ihnen Dienstag 9:30 oder Donnerstag 15:00 Uhr? Für die Bestätigung brauche ich Ihren Namen und Ihre Telefonnummer – und bitte bringen Sie Ihre Versichertenkarte mit.'},
   setup:'Öffnungszeiten, Terminarten, Leistungen/Preise, Unterlagen, Notdienst und Team in die Wissensbasis. Telefon-Agent als Rezeption außerhalb der Zeiten.',
   comp:'Keine medizinischen Auskünfte oder Diagnosen; Notfälle → 112/116117; keine Gesundheitsdaten über Chat erfragen.'},
+ {id:'agent-bank',ic:'🏦',col:'indigo',n:'Bank-Agent',who:'Banken · Sparkassen · Volks- &amp; Raiffeisenbanken · Filialen',p:149,tk:40000,
+  tag:'Karte sperren, Filialtermin, allgemeine Kontofragen – rund um die Uhr am Telefon, per WhatsApp und im Chat. Fragt nie nach Kontodaten.',
+  does:['Karten-Sperr-Lotse: Sperr-Notruf 116 116 und Weg zur Ersatzkarte','Beratungs- und Filialtermine mit Unterlagenliste','Allgemeine Fragen: Öffnungszeiten, Preisaushang, Online-Banking-Hilfe','Betrugswarnung: Phishing erkennen, nie PIN/TAN weitergeben','Übergabe an Berater mit Rückrufwunsch'],
+  rules:['Nie PIN/TAN','116 116','Keine Anlageberatung','DSGVO'],ch:['Telefon','WhatsApp','Website'],
+  ex:{q:'Ich habe meine Girocard verloren!',a:'Das klären wir sofort. Bitte sperren Sie die Karte jetzt über den Sperr-Notruf 116 116 – rund um die Uhr, kostenfrei. Ich frage Sie hier bewusst nicht nach Karten- oder Kontonummer.\nEine Ersatzkarte bestellen Sie danach im Online-Banking unter „Karten“ oder in der Filiale; sie kommt in etwa 5 Werktagen. Soll ich Ihnen einen Termin in der Filiale Köln-Ehrenfeld vorschlagen – zum Beispiel morgen um 10 Uhr?'},
+  setup:'Filialen, Öffnungszeiten, Preisaushang, Terminarten, Sperr- und Notfallnummern sowie Berater-Teams in die Wissensbasis; Rufnummer und WhatsApp-Business verbinden.',
+  comp:'Fragt nie nach PIN, TAN, Passwörtern oder vollständigen Kontodaten; keine Anlage- oder Kreditberatung – die bleibt beim Berater; keine Auskunft zu Kontoständen; bei Betrugsverdacht sofort Sperr-Notruf bzw. Bank-Hotline.'},
  {id:'agent-versicherung',ic:'☂',col:'rose',n:'Versicherungsmakler-Agent',who:'Makler · Agenturen · Assekuradeure',p:129,tk:32000,
   tag:'Schadenaufnahme in zwei Minuten, Vertragsfragen aus dem Bestand, Termine – 24/7 erreichbar.',
   does:['Schadenaufnahme als vollständiges Protokoll (Sparte, Hergang, Beteiligte, Fotos)','Obliegenheiten erklären: unverzüglich melden, Schaden mindern','Vertragsfragen aus dem Bestand: Deckung, SB, Laufzeit, Kündigungsfrist','Unterlagenlisten je Vorgang (Kündigung, Fahrzeugwechsel, Umzug)','Beratungstermin statt Produktverkauf – dokumentationskonform'],
@@ -748,21 +837,185 @@ const PRO=[
   rules:['Widerruf 14 Tage','Gewährleistung 2 J.','EU-Recht'],ch:['Website','E-Mail'],
   ex:{q:'Die Jacke ist zu klein – kann ich tauschen?',a:'Klar. Der schnellste Weg: Jacke innerhalb von 30 Tagen kostenlos über unser Retourenportal zurückschicken (Label oder QR-Code) und die passende Größe direkt neu bestellen – so ist sie sofort unterwegs. Die Rückerstattung kommt innerhalb von 5 Werktagen nach Eingang. Tipp: Die Größentabelle auf der Produktseite hilft bei der Wahl. Soll ich dir den Retourenlink senden? Dann brauche ich deine Bestellnummer.'},
   setup:'Versand-, Retouren-, Zahlungs- und Garantieregeln plus Produktdaten in die Wissensbasis. Widget in einer Minute eingebunden.',
-  comp:'EU-Verbraucherrecht korrekt; keine Zusagen zu Lieferterminen ohne Grundlage; Beschwerden deeskalieren und übergeben.'}
+  comp:'EU-Verbraucherrecht korrekt; keine Zusagen zu Lieferterminen ohne Grundlage; Beschwerden deeskalieren und übergeben.'},
+ {id:'agent-behoerde',ic:'🏛',col:'teal',n:'Bürgerservice-Agent (Behörde &amp; Stadtwerke)',who:'Rathäuser · Bürgerämter · Landratsämter · Stadtwerke · Zweckverbände',p:129,tk:32000,
+  tag:'Termine, Unterlagenlisten, Zuständigkeiten und Formulare verständlich erklärt – für Bürgerinnen und Bürger, rund um die Uhr und mehrsprachig.',
+  does:['Welches Amt ist zuständig? Weg zur richtigen Stelle','Unterlagenlisten je Anliegen: Ausweis, Ummeldung, Gewerbe, Wohngeld','Termine im Bürgerbüro buchen, umbuchen, absagen','Formulare in einfacher Sprache erklären – auch auf Englisch, Türkisch, Ukrainisch','Stadtwerke: Zählerstand, Abschlag, Störung melden, Umzug'],
+  rules:['Keine Rechtsberatung','Einfache Sprache','Mehrsprachig','DSGVO'],ch:['Telefon','WhatsApp','Website'],
+  ex:{q:'Ich bin umgezogen – was brauche ich für die Ummeldung?',a:'Willkommen in Havelbogen! Für die Ummeldung haben Sie 2 Wochen ab Einzug Zeit. Bitte mitbringen:\n• Personalausweis oder Reisepass\n• Wohnungsgeberbestätigung (vom Vermieter unterschrieben)\n• bei Familien: Ausweise aller Personen, die mit umziehen\nDie Ummeldung ist kostenlos. Im Bürgerbüro Rathausplatz habe ich Donnerstag 8:30 oder 11:15 Uhr frei – soll ich einen Termin reservieren?'},
+  setup:'Leistungen mit Unterlagen, Gebühren und Zuständigkeiten, Terminkalender des Bürgerbüros, Formular-Links und Störungsnummern der Stadtwerke in die Wissensbasis; Telefon und WhatsApp verbinden.',
+  comp:'Keine Rechtsberatung und keine Bescheide; Auskünfte nur aus der Wissensbasis der Verwaltung; Fristen mit Quelle; keine Ausweis- oder Steuer-IDs im Chat; Sonderfälle gehen an die Sachbearbeitung.'},
+ {id:'privat-behoerde',ic:'📋',col:'gold',priv:1,n:'Behördengänge',who:'Für dich privat · Ummeldung, Ausweis, Kindergeld, Wohngeld, Bescheide',p:9,tk:4000,
+  tag:'Welches Amt, welche Unterlagen, welche Frist? Erklärt Anträge und Bescheide verständlich und hilft beim Ausfüllen.',
+  does:['Welches Amt ist zuständig – und wie komme ich an einen Termin?','Unterlagenliste für dein Anliegen, als Checkliste','Anträge Feld für Feld erklärt','Fristen aus Bescheiden erkennen und erinnern','Entwurf für Anschreiben oder Fristverlängerung – du sendest selbst'],
+  rules:['Keine Rechtsberatung','Fristen-Erinnerung','Einfache Sprache'],ch:['Telefon','WhatsApp','Chat'],
+  lim:'Erklärt und bereitet vor – keine Rechtsberatung, stellt keine Anträge in deinem Namen.',
+  ex:{q:'Ich habe einen Bescheid vom Jobcenter bekommen und verstehe ihn nicht.',a:'Kein Problem – schick mir ein Foto der ersten Seite. Ich erkläre dir in einfachen Worten: Was wurde entschieden? Bis wann musst du etwas tun? Welche Unterlagen fehlen?\nWichtig: Steht unten eine „Rechtsbehelfsbelehrung“, hast du meist 1 Monat Zeit für einen Widerspruch. Ob er sinnvoll ist, klärt eine Beratungsstelle oder ein Anwalt – ich sage dir, wo du in deiner Nähe Hilfe findest.'},
+  setup:'Nichts einzurichten: WhatsApp oder Chat öffnen, Anliegen schreiben oder Foto schicken. Erinnerungen stellst du mit einem Satz ein.',
+  comp:'Keine Rechtsberatung im Einzelfall; erklärt allgemein und verweist an Beratungsstellen; stellt keine Anträge ohne deine Freigabe; Fotos löschst du jederzeit.'},
+ {id:'privat-bank',ic:'💶',col:'indigo',priv:1,n:'Bank &amp; Geld',who:'Für dich privat · Kontoauszug, Gebühren, Kündigung, Kontowechsel',p:9,tk:4000,
+  tag:'Versteht Kontoauszug und Gebühren mit dir, formuliert Kündigungen und begleitet den Kontowechsel – führt selbst keine Bankgeschäfte aus.',
+  does:['Kontoauszug und Abbuchungen verständlich erklären','Gebühren prüfen: Was kostet mein Konto wirklich?','Kündigungen von Konto, Karte oder Abo formulieren','Kontowechsel Schritt für Schritt mit Kontowechselhilfe','Phishing-Check: Ist diese SMS oder E-Mail echt?'],
+  rules:['Nie PIN/TAN','Keine Überweisungen','Keine Anlageberatung'],ch:['Telefon','WhatsApp','Chat'],
+  lim:'Führt keine Bankgeschäfte aus und fragt nie nach PIN, TAN oder Passwörtern.',
+  ex:{q:'Was ist „Kontoführung 8,90 €“ auf meinem Auszug?',a:'Das ist der monatliche Grundpreis deines Girokontos – rund 107 € im Jahr. Viele Banken bieten Konten für 0–5 € an, oft mit Bedingungen wie Gehaltseingang.\nWechseln geht in 3 Schritten: 1) neues Konto eröffnen, 2) Kontowechselhilfe beauftragen – die neue Bank informiert Arbeitgeber und Lastschriften, 3) altes Konto kündigen. Soll ich die Kündigung schon vorbereiten?'},
+  setup:'Nichts einzurichten: Frage stellen oder Foto vom Auszug schicken – Kontonummern kannst du schwärzen.',
+  comp:'Keine Anlage-, Kredit- oder Steuerberatung; keine Überweisungen und keine Logins; fragt nie nach PIN, TAN oder Passwörtern; bei Betrugsverdacht sofort Sperr-Notruf 116 116 bzw. Bank-Hotline.'},
+ {id:'privat-reise',ic:'🧳',col:'teal',priv:1,n:'Hotel &amp; Reise',who:'Für dich privat · Hotelanfrage, Buchungsmail, Storno, Packliste',p:9,tk:4000,
+  tag:'Schreibt Hotelanfragen und Buchungsmails in jeder Sprache, erklärt Stornobedingungen und hilft bei Verspätung oder Ausfall.',
+  does:['Hotelanfrage oder Buchungsmail – auf Deutsch, Englisch, Türkisch …','Stornobedingungen verständlich: bis wann kostenlos?','Fluggastrechte bei Verspätung erklären (EU-Verordnung 261)','Packliste und Reise-Checkliste','Rückfragen ans Hotel: Early Check-in, Parken, Haustier'],
+  rules:['Du bestätigst','Mehrsprachig','Kein Bezahlen'],ch:['Telefon','WhatsApp','Chat'],
+  lim:'Bucht und bezahlt nichts – Buchung und Zahlung machst du selbst, der Agent bereitet vor.',
+  ex:{q:'Schreib dem Hotel in Lissabon, ob wir am 12.5. früher einchecken können.',a:'Gern, hier dein Entwurf auf Englisch:\n„Dear Hotel Team, we have a reservation (no. 48213) for 12–15 May. Our flight lands at 9:30 – would an early check-in be possible, or could we leave our luggage with you? Thank you very much, Anna Becker“\nSoll ich ihn so lassen oder kürzer machen? Du schickst ihn danach einfach per E-Mail ab.'},
+  setup:'Nichts einzurichten: Reisewunsch oder Buchungsbestätigung schicken – der Agent schreibt in der Sprache des Hotels.',
+  comp:'Bucht, zahlt und storniert nichts selbst; Stornobedingungen nur aus deiner Buchung; Fluggastrechte allgemein erklärt, keine Rechtsberatung.'},
+ {id:'privat-assistent',ic:'✉',col:'gold',priv:1,n:'Briefe &amp; Kündigungen',who:'Für dich privat · Briefe, Mails, Kündigungen, Termine vorbereiten',p:12,tk:6000,
+  tag:'Formuliert Briefe, Mails und Kündigungen, behält Fristen im Blick und bereitet Termine vor – du prüfst und sendest.',
+  does:['Kündigungen: Fitnessstudio, Handy, Strom, Versicherung – mit Frist','Briefe und Mails an Vermieter, Arbeitgeber, Schule','Termine vorbereiten: Fragenliste für Arzt oder Bank','Fristen und Erinnerungen per WhatsApp','Texte vereinfachen oder übersetzen'],
+  rules:['Du sendest selbst','Fristen-Check','Keine Rechtsberatung'],ch:['Telefon','WhatsApp','Chat'],
+  lim:'Schreibt Entwürfe – versendet nur, was du freigibst. Keine Rechtsberatung.',
+  ex:{q:'Kündige mein Fitnessstudio zum nächstmöglichen Termin.',a:'Mach ich. Ich brauche noch: Name des Studios, deine Mitgliedsnummer und seit wann du Mitglied bist. Nach der Mindestlaufzeit gilt meist eine Kündigungsfrist von 1 Monat.\nDanach bekommst du den fertigen Brief zum Prüfen – mit Bitte um schriftliche Bestätigung. Senden kannst du ihn per E-Mail, über den Kündigungsbutton des Studios oder als Einschreiben.'},
+  setup:'Nichts einzurichten: Sag, was du brauchst – der Agent fragt nur nach, was wirklich fehlt.',
+  comp:'Entwürfe statt Versand ohne Freigabe; Fristen „bitte prüfen“, wenn Vertragsdaten fehlen; keine Rechtsberatung im Einzelfall.'},
+ {id:'privat-anruf',ic:'📞',col:'rose',priv:1,feat:1,n:'„Lass anrufen“',who:'Für dich privat · ruft für dich beim Arzt, Friseur oder Hotel an',p:19,tk:5000,
+  tag:'Der Agent ruft für dich an und fragt einen Termin an – beim Arzt, Friseur oder Hotel. Nur nach deiner Bestätigung, und er sagt immer, dass er eine KI ist.',
+  does:['Du sagst, was du brauchst: „Friseur, Donnerstag nach 17 Uhr“','Der Agent fasst zusammen und fragt: „Soll ich jetzt anrufen?“','Er ruft beim Unternehmen an und stellt sich als KI-Assistent vor','Ergebnis per WhatsApp: Termin, Uhrzeit, Hinweise','Kein Anruf ohne dein Ja – jeder Anruf einzeln bestätigt'],
+  rules:['Nur mit deinem Ja','KI-Hinweis','Nur Unternehmen'],ch:['Telefon','WhatsApp','Chat'],
+  lim:'Ruft nur Unternehmen an, jeden Anruf erst nach deiner Bestätigung – mit Ansage „Ich bin der KI-Assistent von …“.',
+  ex:{q:'Ruf bitte beim Salon Luna an, ich brauche Donnerstag nach 17 Uhr einen Herrenschnitt.',a:'Gern. Zusammenfassung: Anruf bei Salon Luna, Herrenschnitt, Donnerstag ab 17 Uhr, auf den Namen Jonas Weber. Ich stelle mich als dein KI-Assistent vor.\nSoll ich jetzt anrufen? (Ja / Nein)\n\n(nach dem Anruf) Erledigt: Donnerstag, 17:30 Uhr, Herrenschnitt 32 €. Der Salon bittet, 5 Minuten früher da zu sein.'},
+  setup:'Einmal Namen und Rückrufnummer hinterlegen. Dann per WhatsApp oder Chat sagen, wen der Agent anrufen soll – er fragt vor jedem Anruf nach.',
+  comp:'Ruft ausschließlich Unternehmen an, nie Privatpersonen; jeder Anruf nur nach ausdrücklicher Bestätigung; Ansage „Ich bin der KI-Assistent von …“ zu Beginn; keine Verträge oder Zahlungen am Telefon; Gesprächsnotiz für dich.'}
 ];
 const COL={teal:['var(--teall)','var(--teal)'],gold:['var(--goldl)','var(--gold)'],indigo:['var(--indigol)','var(--indigo)'],rose:['var(--rosel)','var(--rose)']};
-(function(){const g=$('#pgrid');PRO.forEach((p,i)=>{const c=document.createElement('div');c.className='card pro reveal';c.style.transitionDelay=(i%3)*0.08+'s';const [bg,fg]=COL[p.col];
-  c.innerHTML=`<div class="top"><div class="ic" style="background:${bg};color:${fg}">${p.ic}</div><span class="tag ${p.col}">${p.ch.join(' · ')}</span></div><h3>${p.n}</h3><div class="who">${p.who}</div><p>${p.tag}</p>
-   <ul>${p.does.slice(0,3).map(x=>`<li>${x}</li>`).join('')}</ul><div class="rules">${p.rules.slice(0,4).map(r=>`<span>${r}</span>`).join('')}</div>
-   <div class="pr"><b>${p.p} €</b><small>/ Monat</small></div><div class="inc">inkl. ${de(p.tk)} Tokens · Studio · Widget${p.ch.includes('Telefon')?' · Telefon':''} · monatlich kündbar</div>
-   <div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${p.id}" onclick="event.stopPropagation()">Mieten</a><button class="btn" type="button" onclick="event.stopPropagation();openPro('${p.id}')">Details &amp; Beispiel</button></div>
-   <span class="more">Aufgaben · Beispiel-Dialog · Regeln · Einrichtung →</span>`;c.onclick=()=>openPro(p.id);g.appendChild(c);});
-  document.querySelectorAll('#pgrid .reveal').forEach(el=>new IntersectionObserver((es,o)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');o.unobserve(e.target);}}),{threshold:.1}).observe(el));})();
+/* ===== Hauptkategorien – eine Reihenfolge für Finder, Demo-Reiter und Preise (GET /v1/categories, sonst eingebaute Liste) ===== */
+const CAT_API='/chat/tokens-api.php/v1/categories';
+const CATS_FALLBACK=[
+ ['bestellung','Bestellung & Lieferung','🛵','Pizzeria, Restaurant, Lieferdienst – Bestellungen per WhatsApp, Telefon und Chat.',['agent-bestellung']],
+ ['gastro','Gastronomie & Hotel','🛎','Hotel-Rezeption, Tischreservierung und Gästewünsche – in der Sprache des Gastes.',['agent-hotel','gastro-agent']],
+ ['dienstleistung','Dienstleistung & Termine','📅','Empfang am Telefon, echte Terminbuchung, Werkstatt und Salon.',['agent-phone','agent-termine','agent-autohaus']],
+ ['mobilitaet','Taxi & Mobilität','🚕','Fahrtannahme, Live-Board, Fahrer-App und Sendungsfragen.',['agent-taxi','log-support']],
+ ['gesundheit','Praxis & Gesundheit','⚕','Rezeption für Arzt-, Zahnarzt- und Therapiepraxen – ohne Diagnosen.',['praxis-agent']],
+ ['finanzen','Bank, Finanzen & Versicherung','🏦','Bankfiliale, Versicherungsmakler, Mahnwesen und Backoffice.',['agent-bank','agent-versicherung','agent-backoffice','fin-mahnung']],
+ ['recht','Kanzlei, Steuer & Inkasso','§','Mandantenaufnahme, Belege, Forderungen – Entscheidungen bleiben beim Berufsträger.',['agent-kanzlei','agent-steuer','agent-inkasso']],
+ ['immobilien','Immobilien & Hausverwaltung','⌂','Schadensmeldungen, Nebenkosten, Objektanfragen und Besichtigungen.',['agent-hausverwaltung','immo-agent']],
+ ['handel','Shop & Kundenservice','◎','Lieferung, Retouren und Kundenfragen – als Widget auf deiner Website.',['ec-support','agent-support']],
+ ['oeffentlich','Behörden, Stadtwerke & Verwaltung','🏛','Bürgerservice: Zuständigkeit, Unterlagen, Termine und Stadtwerke-Fragen.',['agent-behoerde']],
+ ['marketing','Marketing & Inhalte','✎','Vertrieb, Website-Texte und Redaktionsplan.',['agent-sales','agent-website','agent-content']],
+ ['team','Personal & Bildung','👥','Bewerber-Vorauswahl und faire Kommunikation.',['hr-screening']],
+ ['privat','Für dich privat','🙂','Behördengänge, Bank, Reise, Briefe – und Anrufe, die der Agent für dich erledigt.',['privat-behoerde','privat-bank','privat-reise','privat-assistent','privat-anruf']]
+].map(c=>({id:c[0],name:c[1],icon:c[2],sub:c[3],plans:c[4].map(id=>({id}))}));
+let CATS=CATS_FALLBACK,catSrc='builtin';
+const API_PLAN=new Map();
+/* Reine Website-Bots: nur Widget/Chat – alle anderen Agenten haben Telefon + WhatsApp + Chat im Bündel */
+const WEBBOT=new Set(['agent-support','ec-support','log-support','agent-website','agent-content']);
+/* Karteninfos für Agenten ohne Detail-Eintrag in PRO (Texte aus AG) */
+const FX={'agent-support':{ic:'💬',col:'indigo',who:'Websites · Online-Shops · SaaS · Dienstleister'},'agent-backoffice':{ic:'📑',col:'teal',who:'Handwerk · Agenturen · KMU-Buchhaltung'},
+ 'fin-mahnung':{ic:'€',col:'gold',who:'KMU · Handwerk · Vermieter'},'gastro-agent':{ic:'🍽',col:'gold',who:'Restaurants · Bars · Cafés · Eventlocations'},
+ 'log-support':{ic:'🚚',col:'teal',who:'Speditionen · Kurierdienste · Lager'},'agent-sales':{ic:'📈',col:'indigo',who:'Vertrieb · Agenturen · B2B-Dienstleister'},
+ 'agent-website':{ic:'🌐',col:'teal',who:'Selbstständige · KMU · Vereine'},'agent-content':{ic:'🗓',col:'rose',who:'Marken · Agenturen · Creator'},'hr-screening':{ic:'👥',col:'rose',who:'Personalabteilungen · Recruiter · KMU'}};
+/* Schnellwahl je Plan (Karten) – „Mit Mensch sprechen“ kommt bei Betriebs-Agenten immer dazu */
+const QR={'agent-phone':['Termin vereinbaren','Öffnungszeiten?'],'agent-bestellung':['Pizza bestellen','Wie lange dauert die Lieferung?'],'agent-taxi':['Taxi sofort','Fahrt zum Flughafen'],
+ 'agent-hotel':['Zimmer frei?','Late Check-out'],'gastro-agent':['Tisch reservieren','Habt ihr vegane Gerichte?'],'agent-termine':['Termin buchen','Termin verschieben'],
+ 'agent-autohaus':['Werkstatttermin','Warnleuchte leuchtet'],'praxis-agent':['Rezept bestellen','Termin vereinbaren'],'agent-bank':['Karte verloren','Beratungstermin'],
+ 'agent-versicherung':['Schaden melden','Frage zum Vertrag'],'agent-backoffice':['Zahlungserinnerung schreiben','Fristen im Monat'],'fin-mahnung':['1. Mahnung schreiben','Verzugszinsen?'],
+ 'agent-kanzlei':['Neues Mandat','Frist prüfen lassen'],'agent-steuer':['Welche Belege fehlen?','Bescheid erklären'],'agent-inkasso':['Forderung aufstellen','Ratenzahlung anbieten'],
+ 'agent-hausverwaltung':['Schaden melden','Frage zur Nebenkostenabrechnung'],'immo-agent':['Ist die Wohnung noch frei?','Besichtigung'],'ec-support':['Wo ist meine Bestellung?','Retoure'],
+ 'agent-support':['Wo ist meine Bestellung?','Retoure starten'],'log-support':['Wo ist meine Sendung?','Abholung planen'],'agent-behoerde':['Ummeldung','Zählerstand melden'],
+ 'agent-sales':['Angebot anfragen','Rückruf vom Vertrieb'],'agent-website':['Neue Website-Texte','SEO-Check'],'agent-content':['Posts für nächste Woche','Redaktionsplan'],'hr-screening':['Bewerbung prüfen','Interviewfragen'],
+ 'privat-behoerde':['Personalausweis abgelaufen','Bescheid verstehen','Welches Amt?'],'privat-bank':['Gebühren verstehen','Konto wechseln','Ist diese SMS echt?'],
+ 'privat-reise':['Hotelanfrage schreiben','Storno erklären','Packliste'],'privat-assistent':['Fitnessstudio kündigen','Brief an Vermieter','Termin vorbereiten'],'privat-anruf':['Friseur anrufen lassen','Arzttermin anfragen','Hotel anrufen']};
+const HUMAN_Q='Ich möchte bitte mit einem Menschen sprechen.';
+/* Suchbegriffe (Synonyme) je Plan */
+const KW={'agent-bestellung':'pizza pizzeria restaurant lieferdienst imbiss döner sushi burger essen bestellen lieferung küche','agent-hotel':'hotel pension apartment ferienwohnung rezeption zimmer übernachtung gast',
+ 'gastro-agent':'restaurant tisch reservierung bar café gastro event','agent-phone':'telefon anrufe empfang hotline zentrale sekretariat rezeption büro',
+ 'agent-termine':'termin friseur salon kosmetik nagelstudio physio massage coach studio fitness tattoo kalender buchung','agent-autohaus':'auto autohaus werkstatt kfz reifen tüv hu au probefahrt',
+ 'agent-taxi':'taxi mietwagen shuttle fahrdienst chauffeur fahrt flughafen','log-support':'logistik spedition kurier lager paket sendung',
+ 'praxis-agent':'arzt ärztin praxis zahnarzt hausarzt physio mvz rezept patient tierarzt apotheke gesundheit','agent-bank':'bank sparkasse volksbank raiffeisenbank filiale konto karte girocard sperren',
+ 'agent-versicherung':'versicherung makler schaden agentur','agent-backoffice':'rechnung buchhaltung mahnung fristen backoffice büro','fin-mahnung':'mahnung zahlungserinnerung forderung',
+ 'agent-kanzlei':'anwalt rechtsanwalt kanzlei notar jurist mandant','agent-steuer':'steuer steuerberater buchhaltung lohnbüro finanzamt datev','agent-inkasso':'inkasso forderung mahnung schuldner factoring',
+ 'agent-hausverwaltung':'hausverwaltung weg verwalter mieter vermieter nebenkosten wohnung','immo-agent':'immobilien makler wohnung haus vermietung besichtigung exposé',
+ 'ec-support':'shop onlineshop e-commerce retoure versand shopify','agent-support':'support kundenservice faq website widget saas',
+ 'agent-behoerde':'behörde amt rathaus bürgeramt bürgerbüro stadt gemeinde verwaltung landratsamt stadtwerke strom wasser zähler ausweis ummeldung öffentlich','agent-sales':'vertrieb sales leads crm',
+ 'agent-website':'website homepage texte seo wordpress','agent-content':'content social media posts instagram redaktionsplan','hr-screening':'hr personal bewerbung recruiting bewerber',
+ 'privat-behoerde':'privat behörde amt ausweis reisepass ummeldung kindergeld wohngeld bescheid formular antrag jobcenter','privat-bank':'privat bank konto kontoauszug gebühren kündigung kontowechsel phishing geld',
+ 'privat-reise':'privat hotel reise urlaub buchung storno flug verspätung packliste','privat-assistent':'privat brief briefe mail kündigung kündigen vertrag fitnessstudio handy termin',
+ 'privat-anruf':'privat anrufen anruf telefonieren arzt friseur hotel termin lass anrufen'};
+const catOf=id=>{for(const c of CATS)if(c.plans.some(p=>p.id===id))return c;return null;};
+const catIdx=id=>{const c=catOf(id);return c?CATS.indexOf(c):CATS.length;};
+const fFold=s=>String(s).toLowerCase().replace(/&amp;/g,'&').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').normalize('NFD').replace(/[̀-ͯ]/g,'');
+/* Preis vom Server: Cent (CH_PLANS) oder Euro – kein Agent kostet ≥ 500 €/Monat */
+function apiPrice(v){const n=typeof v==='number'?v:typeof v==='string'?parseFloat(v.replace(/[^\d.,]/g,'').replace(',','.')):typeof v==='object'&&v?apiPrice(v.month??v.monthly??v.amount??v.eur):NaN;if(!isFinite(n)||n<=0)return null;return n>=500?Math.round(n)/100:n;}
+/* Kanäle: vom Server (channels[]), sonst Regel – Website-Bots nur Chat, alle anderen Telefon + WhatsApp + Chat */
+function chanOf(id){const a=API_PLAN.get(id);if(a&&Array.isArray(a.channels)&&a.channels.length){const s=a.channels.map(x=>fFold(typeof x==='string'?x:(x&&(x.id||x.name))||''));
+  const tel=s.some(x=>/phone|tel|voice|anruf/.test(x)),wa=s.some(x=>/whats|^wa$/.test(x));if(tel||wa)return {web:false,tel,wa};return {web:true};}
+  return WEBBOT.has(id)?{web:true}:{web:false,tel:true,wa:true};}
+function chanHtml(id,priv){const c=chanOf(id);if(c.web)return `<div class="chn web" aria-label="Kanäle"><span>🗨 Website-Chat</span></div><span class="two">Widget auf deiner Website – eine Zeile Code, sofort live.</span>`;
+  const ch=[c.tel?'<span>☎ Telefon</span>':'',c.wa?'<span>💬 WhatsApp</span>':'','<span>🗨 Chat</span>'].join('');
+  return `<div class="chn" aria-label="Kanäle">${ch}</div><span class="two">${priv?'Schreib oder sprich, wie es dir passt – der Agent antwortet auf demselben Weg.':'Zweiseitig: Kunden schreiben oder rufen an – du antwortest aus dem Studio.'}</span>`;}
+function chanText(id){const c=chanOf(id);return c.web?'Website-Chat':[c.tel?'Telefon':'',c.wa?'WhatsApp':'','Chat'].filter(Boolean).join(' · ');}
+/* Einheitliche Karteninfo aus PRO (Details), AG (Preise), FX (Karte) und Server */
+function pInfo(id){const p=PRO.find(x=>x.id===id),a=AG.find(x=>x.id===id),f=FX[id]||{},s=API_PLAN.get(id);if(!p&&!a&&!s)return null;const c=catOf(id);
+  const price=(s&&apiPrice(s.price))||(p&&p.p)||(a&&a.p)||null;
+  return {id,pro:!!p,priv:!!(p&&p.priv)||(c&&c.id==='privat')||/^privat-/.test(id),feat:!!(p&&p.feat),n:p?p.n:a?esc(a.n):esc(s.name||id),ic:p?p.ic:f.ic||(c&&c.icon)||'✦',col:p?p.col:f.col||'gold',
+   who:p?p.who:f.who||'',tag:p?p.tag:a?esc(a.d):esc(s.desc||s.description||''),p:price,tk:(p&&p.tk)||(a&&a.tk)||0,lim:p&&p.lim||'',does:p?p.does:[],cat:c};}
+function priceOf(id,def){const s=API_PLAN.get(id),v=s&&apiPrice(s.price);return v||def;}
+/* Demo je Plan: eigene Demo, sonst die nächstliegende Text-Demo derselben Kategorie (nie ungefragt die Telefon-Demo mit Mikrofon) */
+const CAT_DEMO={bestellung:'bestellung',gastro:'hotel',dienstleistung:'termine',mobilitaet:'taxi',gesundheit:'praxis',finanzen:'bank',recht:'kanzlei',immobilien:'hausverwaltung',handel:'support',oeffentlich:'behoerde',marketing:'support',team:'support',privat:'p-brief'};
+const fmtEur=v=>(Math.round(v*100)%100?v.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}):de(v))+' €';
+function cardHtml(i,mode){const [bg,fg]=COL[i.col]||COL.gold;const dm=demoFor(i.id);const q=(QR[i.id]||[]).slice(0,i.priv?3:2);
+  const qrs=q.map(t=>`<button type="button" class="qr" data-q="${esc(t)}">${esc(t)}</button>`).join('')+(i.priv?'':`<button type="button" class="qr hum" data-q="${esc(HUMAN_Q)}">👤 Mit Mensch sprechen</button>`);
+  const steps=mode==='pv'?'':`<span class="ccat">${esc(i.cat?i.cat.name:'')}</span>`;
+  return `<div class="top"><div class="ic" style="background:${bg};color:${fg}">${i.ic}</div><span class="tag ${dm.exact?'teal':''}">${dm.exact?'● Live-Demo':'Ähnliche Demo'}</span></div>${steps}<h3>${i.n}</h3>${i.who?`<div class="who">${i.who}</div>`:''}<p>${i.tag}</p>
+   ${mode==='pv'&&i.does.length?`<ul>${i.does.slice(0,3).map(x=>`<li>${x}</li>`).join('')}</ul>`:''}${i.lim?`<div class="lim"><i>ⓘ</i><span>${i.lim}</span></div>`:''}
+   ${chanHtml(i.id,i.priv)}<div class="qrs" role="group" aria-label="Schnellwahl – startet den Live-Test">${qrs}</div>
+   <div class="pr">${i.p?`<b>${i.priv?'ab ':''}${fmtEur(i.p)}</b><small>/ Monat</small>`:'<b style="font-size:20px">Preis im Studio</b>'}</div><div class="inc">${i.tk?'inkl. '+de(i.tk)+' Tokens · ':''}${i.priv?'Privat-Tarif':'Studio · Wissensbasis'} · monatlich kündbar</div>
+   <div class="acts"><button class="btn" type="button" data-live>▶ Live testen</button><a class="btn p" href="${CHECKOUT}?plan=${encodeURIComponent(i.id)}">Mieten</a></div>
+   ${i.pro?`<span class="more">Aufgaben · Beispiel-Dialog · Regeln →</span>`:''}`;}
+function cardEl(i,mode){const c=document.createElement('div');c.className='card pro'+(i.feat?' feat':'');c.dataset.plan=i.id;if(i.cat)c.dataset.cat=i.cat.id;c.innerHTML=cardHtml(i,mode);
+  if(!i.pro)c.style.cursor='default';
+  c.addEventListener('click',e=>{const t=e.target;if(t.closest('a'))return;const q=t.closest('.qr');if(q){e.stopPropagation();tryPlan(i.id,q.dataset.q);return;}
+    if(t.closest('[data-live]')){e.stopPropagation();tryPlan(i.id);return;}if(i.pro)openPro(i.id);});return c;}
+/* Live testen: eigene Demo öffnen (oder die nächstliegende), Live-Modus starten; Schnellwahl schickt den Text gleich mit */
+function tryPlan(id,text){const dm=demoFor(id);closePro();vUnlock();const s=$('#demo');if(s)try{s.scrollIntoView({behavior:V_RM?'auto':'smooth',block:'start'});}catch(e){s.scrollIntoView();}
+  demoSelect(dm.key,true);const d=cur;goLive(!text).then(()=>{if(text&&liveOn&&cur===d)liveSend(text);});}
+let fCat='all',fQ='';
+const fItems=()=>{const out=[];CATS.forEach(c=>c.plans.forEach(p=>{const s=API_PLAN.get(p.id);if(s&&(s.kind==='buy'||s.kind==='tokens'||(s.kind==='abo'&&c.id!=='privat')))return;const i=pInfo(p.id);if(i&&!out.some(x=>x.id===i.id))out.push(i);}));return out;};
+const fText=i=>fFold([i.n,i.who,i.tag,i.does.join(' '),i.cat?i.cat.name:'',KW[i.id]||'',chanText(i.id)].join(' ').replace(/<[^>]+>/g,' '));
+function fMatch(i,q){if(!q)return true;const t=fText(i);return q.split(/\s+/).filter(Boolean).every(w=>t.includes(w));}
+function finderChips(){const w=$('#fChips');if(!w)return;const all=fItems();w.textContent='';
+  const mk=(id,label,icon,n)=>{const b=document.createElement('button');b.type='button';b.className='fchip'+(id==='privat'?' pv':'');b.dataset.c=id;b.setAttribute('aria-pressed',String(fCat===id));b.innerHTML=`<i aria-hidden="true">${icon}</i>${esc(label)} <small>${n}</small>`;b.onclick=()=>{fCat=id;finderRender();};w.appendChild(b);};
+  mk('all','Alle','✦',all.length);CATS.forEach(c=>{const n=all.filter(i=>i.cat===c).length;if(n)mk(c.id,c.name,c.icon,n);});}
+function finderRender(){const g=$('#pgrid');if(!g)return;const q=fFold(fQ.trim()),all=fItems();if(fCat!=='all'&&!CATS.some(c=>c.id===fCat&&all.some(i=>i.cat===c)))fCat='all';
+  document.querySelectorAll('#fChips .fchip').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===fCat)));
+  const hits=all.filter(i=>(fCat==='all'||(i.cat&&i.cat.id===fCat))&&fMatch(i,q)),elsewhere=q&&fCat!=='all'?all.filter(i=>fMatch(i,q)).length-hits.length:0;
+  g.textContent='';const groups=CATS.filter(c=>hits.some(i=>i.cat===c));
+  groups.forEach(c=>{const h=document.createElement('div');h.className='fgh';h.innerHTML=`<b>${esc(c.icon)} ${esc(c.name)}</b><span>${esc(c.sub||'')}</span>`;g.appendChild(h);hits.filter(i=>i.cat===c).forEach(i=>g.appendChild(cardEl(i,'f')));});
+  if(!hits.length){const n=document.createElement('div');n.className='fnone';n.innerHTML=`<b>Kein Agent gefunden${fQ.trim()?' für „'+esc(fQ.trim())+'“':''}.</b><br>Probier „Pizzeria“, „Sparkasse“, „Rathaus“ oder „Friseur“ – oder <a href="mailto:support@chat-help.com?subject=Individueller%20Agent" style="color:var(--gold);font-weight:600">frag uns nach deinem Agenten</a>.`;g.appendChild(n);}
+  const cn=$('#fCount');if(cn)cn.textContent=hits.length?(hits.length===1?'1 Agent':hits.length+' Agenten')+(fCat==='all'?' in '+groups.length+(groups.length===1?' Kategorie':' Kategorien'):' · '+(CATS.find(c=>c.id===fCat)||{}).name)+(q?' für „'+fQ.trim()+'“':''):'Keine Treffer';
+  const fa=$('#fAll');if(fa){fa.hidden=!(elsewhere>0);fa.textContent='In allen Kategorien: '+elsewhere+' weitere'+(elsewhere===1?'r Treffer':' Treffer')+' →';}
+  const l=$('#fSrch');if(l)l.classList.toggle('has',!!fQ);}
+function privatRender(){const g=$('#pvgrid');if(!g)return;g.textContent='';const c=CATS.find(x=>x.id==='privat');(c?c.plans:[]).forEach(p=>{const i=pInfo(p.id);if(i)g.appendChild(cardEl(i,'pv'));});}
+function catNorm(j){const a=Array.isArray(j)?j:j&&Array.isArray(j.categories)?j.categories:null;if(!a)return null;const out=[];
+  a.forEach(c=>{if(!c||typeof c!=='object')return;const id=String(c.id||c.key||'').trim().toLowerCase();if(!/^[a-z0-9_-]{2,40}$/.test(id))return;const fb=CATS_FALLBACK.find(x=>x.id===id);
+    const plans=(Array.isArray(c.plans)?c.plans:[]).map(p=>typeof p==='string'?{id:p}:p&&typeof p==='object'?p:null).filter(p=>p&&/^[a-z0-9-]{2,40}$/.test(String(p.id||'')));
+    plans.forEach(p=>{p.id=String(p.id);API_PLAN.set(p.id,{name:vText(p.name),price:p.price,kind:typeof p.kind==='string'?p.kind:'',channels:p.channels,demo:p.demo,desc:vText(p.desc||p.description||'')});});
+    out.push({id,name:vText(c.name||c.label).trim()||(fb&&fb.name)||id,icon:vText(c.icon).trim()||(fb&&fb.icon)||'✦',sub:vText(c.short||c.text||c.desc).trim()||(fb&&fb.sub)||'',plans:plans.map(p=>({id:p.id}))});});
+  return out.length>=4?out:null;}
+async function catsLoad(){try{const ac=window.AbortController?new AbortController():null,to=setTimeout(()=>ac&&ac.abort(),5000);
+    const r=await fetch(CAT_API,{cache:'no-store',signal:ac?ac.signal:undefined});clearTimeout(to);if(!r.ok)throw 0;const l=catNorm(await r.json());if(!l)throw 0;
+    CATS=l;catSrc='api';}catch(e){API_PLAN.clear();CATS=CATS_FALLBACK;catSrc='builtin';}
+  finderChips();finderRender();privatRender();dtabsRender();{const pt=$('.ptab.on');if(pt&&/^(agents|privat)$/.test(pt.dataset.k))renderPrice(pt.dataset.k);}}
+function finderInit(){finderChips();finderRender();privatRender();
+  const i=$('#fSearch');i.addEventListener('input',e=>{fQ=e.target.value;finderRender();});
+  i.addEventListener('keydown',e=>{if(e.key==='Escape'&&i.value){i.value='';fQ='';finderRender();}});
+  $('#fClear').onclick=()=>{i.value='';fQ='';finderRender();i.focus();};$('#fAll').onclick=()=>{fCat='all';finderRender();};
+  catsLoad();}
 /* Plan-ID → Demo-Key; ohne eigene Demo die nächstliegende Text-Demo (nie ungefragt die Telefon-Demo mit Mikrofon) */
-const DEMO_NEAR={'fin-mahnung':'backoffice','gastro-agent':'bestellung'},DEMO_SAME={'ec-support':'support'};
-function demoFor(plan){const d=DEMOS.find(x=>x.plan===plan)||(DEMO_SAME[plan]&&DEMOS.find(x=>x.key===DEMO_SAME[plan]));if(d)return {key:d.key,exact:true,tab:d.tab};const k=DEMO_NEAR[plan],n=DEMOS.find(x=>x.key===k)||DEMOS.find(x=>x.key==='support');return {key:n.key,exact:false,tab:n.tab};}
+const DEMO_NEAR={'fin-mahnung':'backoffice','gastro-agent':'bestellung','log-support':'support','agent-sales':'support','agent-website':'support','agent-content':'support','hr-screening':'support'},DEMO_SAME={'ec-support':'support'};
+function demoFor(plan){const s=API_PLAN.get(plan),sk=s&&typeof s.demo==='string'?s.demo:'';const d=DEMOS.find(x=>x.plan===plan)||(sk&&DEMOS.find(x=>x.key===sk))||(DEMO_SAME[plan]&&DEMOS.find(x=>x.key===DEMO_SAME[plan]));if(d)return {key:d.key,exact:true,tab:d.tab};
+  const c=catOf(plan),k=DEMO_NEAR[plan]||(c&&CAT_DEMO[c.id]),n=DEMOS.find(x=>x.key===k)||DEMOS.find(x=>x.key==='support');return {key:n.key,exact:false,tab:n.tab};}
 function openPro(id){const p=PRO.find(x=>x.id===id);if(!p)return;const [bg,fg]=COL[p.col];const dm=demoFor(p.id),demoId=dm.key;
-  $('#mbox').innerHTML=`<div class="mh"><div><div style="display:flex;gap:10px;align-items:center"><div class="ic" style="width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font:700 22px var(--sans);background:${bg};color:${fg}">${p.ic}</div><span class="tag ${p.col}">${p.ch.join(' · ')}</span></div><h3 style="margin-top:12px">${p.n}</h3><div class="who">${p.who}</div></div><button class="x" onclick="closePro()">✕</button></div>
+  $('#mbox').innerHTML=`<div class="mh"><div><div style="display:flex;gap:10px;align-items:center"><div class="ic" style="width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font:700 22px var(--sans);background:${bg};color:${fg}">${p.ic}</div><span class="tag ${p.col}">${chanText(p.id)}</span></div><h3 style="margin-top:12px">${p.n}</h3><div class="who">${p.who}</div></div><button class="x" onclick="closePro()">✕</button></div>
   <div class="mb"><div>
     <p style="color:var(--ink2);font-size:16px">${p.tag}</p>
     <h4>Was der Agent übernimmt</h4><ul>${p.does.map(x=>`<li>${x}</li>`).join('')}</ul>
@@ -770,9 +1023,9 @@ function openPro(id){const p=PRO.find(x=>x.id===id);if(!p)return;const [bg,fg]=C
     <h4>Berufsrecht &amp; Grenzen (eingebaut)</h4><p style="color:var(--ink2);font-size:14.5px">${p.comp}</p><div class="chips">${p.rules.map(r=>`<span>${r}</span>`).join('')}</div>
     <h4>Einrichtung</h4><p style="color:var(--ink2);font-size:14.5px">${p.setup}</p>
   </div><div class="side">
-    <span class="tag gold">Mieten · monatlich kündbar</span><div class="pr" style="margin-top:10px"><b>${p.p} €</b><small>/ Monat</small></div><div style="color:var(--mute);font-size:13px">inkl. ${de(p.tk)} Tokens/Monat ≈ ${de(Math.round(p.tk/6))} Chat- oder ${de(Math.round(p.tk/8))} Telefon-Antworten</div>
+    <span class="tag gold">${p.priv?'Für dich privat · monatlich kündbar':'Mieten · monatlich kündbar'}</span><div class="pr" style="margin-top:10px"><b>${p.priv?'ab ':''}${fmtEur(priceOf(p.id,p.p))}</b><small>/ Monat</small></div><div style="color:var(--mute);font-size:13px">inkl. ${de(p.tk)} Tokens/Monat ≈ ${de(Math.round(p.tk/6))} Chat- oder ${de(Math.round(p.tk/8))} Telefon-Antworten</div>
     <a class="btn gold" href="${CHECKOUT}?plan=${p.id}">Agent mieten →</a>
-    <button class="btn p" type="button" onclick="closePro();location.hash='#demo';setTimeout(()=>{demoSelect('${demoId}');goLive(true);},200)">${dm.exact?'Live testen (Demo)':'Ähnliche Demo testen · '+esc(dm.tab)}</button>
+    ${p.lim?`<div class="buy" style="margin-top:0">ⓘ ${p.lim}</div>`:''}<button class="btn p" type="button" onclick="tryPlan('${p.id}')">${dm.exact?'Live testen (Demo)':'Ähnliche Demo testen · '+esc(dm.tab)}</button>
     <a class="btn" href="${STUDIO}">Im Studio mit eigener Wissensbasis testen</a>
     ${p.buy?`<div class="buy">Einmal kaufen: <b>${de(p.buy.p)} €</b> · dauerhaft, inkl. ${de(p.buy.tk)} Tokens, Einrichtung durch uns · <a href="${CHECKOUT}?plan=${p.buy.id}" style="color:var(--indigo);font-weight:700">Kaufen →</a></div>`:''}
     <div style="color:var(--mute);font-size:12.5px;margin-top:14px">Alle Preise zzgl. MwSt. · Tokens verfallen nicht · AVV auf Anfrage · Einrichtung durch uns: support@chat-help.com</div>
@@ -800,6 +1053,9 @@ const DEMOS=[
   script:[[0,'a','Hallo und willkommen bei Salon Luna! Ich bin Mia. Möchtest du einen Termin buchen – Schnitt, Farbe, Kosmetik?'],[0,'u','Ja, Herrenschnitt, am liebsten Donnerstag nachmittags.'],[1,'sys','⚙ Freie Termine geprüft ✓ · Donnerstag · Herren Schnitt (30 Min)'],[1,'a','Donnerstag habe ich für dich 15:00, 15:30 oder 17:00 Uhr frei – was passt?'],[2,'u','15:30 bitte. Jonas Weber, 0170 555 12 34.'],[2,'a','Super. Also: Herrenschnitt (32 €, 30 Min), Donnerstag um 15:30, für Jonas Weber. Soll ich das so buchen?'],[2,'u','Ja.'],[3,'sys','⚙ Termin gebucht ✓ · Code LX7Q3M'],[3,'a','Gebucht! Dein Code ist LX7Q3M – die Bestätigung mit Kalenderdatei kommt per E-Mail, eine Erinnerung am Vortag. Bis Donnerstag, Jonas! ✓']]},
  {"key":"autohaus","plan":"agent-autohaus","tab":"⚙ Autohaus & Werkstatt","tag":"Telefon · Serviceannahme","title":"Werkstatttermine, Warnleuchten und Reparaturstatus – sofort beantwortet.","text":"Beispiel: Autohaus Brandt. Lukas ordnet Warnleuchten sicher ein, bucht den Werkstatttermin mit Fahrzeugdaten und nennt Status und Abholzeit. Im Live-Modus fragst du selbst.","device":"phone","company":"Autohaus Brandt","role":"Lukas · Serviceannahme","steps":[["Anliegen klären","Termin, laufende Reparatur oder Fahrzeuganfrage."],["Sicherheit zuerst","Rote oder blinkende Leuchte → sofort anhalten, Pannendienst."],["Termin mit Fahrzeugdaten","Kennzeichen, Kilometerstand, Ersatzwagen – ins Werkstattsystem."],["Bestätigen","Termin, Richtpreis „nach Prüfung“ und Abholung klar wiederholt."]],"script":[[0,"a","Autohaus Brandt, Serviceannahme, guten Tag – hier ist Lukas, der digitale Assistent. Geht es um einen Werkstatttermin, eine laufende Reparatur oder um ein Fahrzeug?"],[0,"u","Gelbe Motorkontrollleuchte – kann ich noch fahren?"],[1,"a","Bei Gelb dürfen Sie in der Regel vorsichtig und mit reduzierter Leistung weiterfahren – bitte aber zeitnah zur Diagnose. Leuchtet sie rot oder blinkt sie, sofort sicher anhalten und den Abschleppdienst rufen. Welches Fahrzeug fahren Sie?"],[1,"u","VW Golf, 2019, 84.000 km."],[2,"a","Danke. Zum Auslesen des Fehlerspeichers kann ich Ihnen Mittwoch um 9 Uhr oder Freitag um 13:30 Uhr anbieten – passt einer davon?"],[2,"u","Mittwoch 9 Uhr. Kennzeichen S-MK 4410."],[3,"a","Notiert: Mittwoch, 9 Uhr, VW Golf S-MK 4410, Diagnose Motorkontrollleuchte. Bitte Fahrzeugschein und Serviceheft mitbringen – bis Mittwoch!"],[3,"sys","Werkstatttermin eingetragen ✓ · Bestätigung per E-Mail"]]},
  {"key":"praxis","plan":"praxis-agent","tab":"⚕ Praxis-Agent","tag":"Telefon · Praxis-Rezeption","title":"Rezepte, Termine und Fragen – die Praxis-Rezeption rund um die Uhr.","text":"Beispiel: Hausarztpraxis Dr. Sommer & Kollegen, Berlin. Paula nimmt Rezept- und Terminwünsche auf, erklärt Sprechzeiten und schickt im Notfall sofort zur 112 – ohne Diagnosen. Im Live-Modus fragst du selbst.","device":"phone","company":"Hausarztpraxis Dr. Sommer & Kollegen · Berlin","role":"Paula · Praxis-Rezeption","steps":[["Anliegen erkennen","Rezept, Termin, Krankschreibung oder Frage – Notfälle sofort zur 112."],["Patient identifizieren","Name und Geburtsdatum, Versichertenkarte im Quartal."],["Wunsch aufnehmen","Folgerezept, Terminwunsch oder Rückruf – sauber fürs Praxisteam notiert."],["Bestätigen","E-Rezept-Zeitpunkt, Termin oder Rückruf klar wiederholt."]],"script":[[0,"sys","Eingehender Anruf · +49 30 … · 8:05 Uhr"],[0,"a","Hausarztpraxis Dr. Sommer und Kollegen, guten Tag, Sie sprechen mit Paula, der digitalen Assistentin. Wie kann ich Ihnen helfen?"],[0,"u","Hallo, ich bräuchte ein neues Rezept für mein Ramipril, die Packung ist bald leer."],[1,"a","Das nehme ich gern für Sie auf. Wie ist Ihr Name, und wann sind Sie geboren?"],[1,"u","Werner Lange, 14. März 1958."],[1,"a","Danke, Herr Lange. Also Ramipril wie bisher – waren Sie in diesem Quartal schon mit Ihrer Karte bei uns?"],[2,"u","Ja, im Oktober zur Blutabnahme."],[2,"sys","⚙ request callback ✓ · Folgerezept Ramipril · Praxisteam (nur bei Rückfragen)"],[2,"a","Prima, dann ist alles notiert. Das E-Rezept liegt ab morgen 12 Uhr auf Ihrer Karte, Sie können es in jeder Apotheke einlösen. Hat die Ärztin noch Fragen, ruft das Team Sie kurz an."],[3,"u","Wunderbar, danke Ihnen."],[3,"a","Sehr gern, Herr Lange. Einen schönen Tag noch!"],[3,"sys","Gespräch beendet · 0:58 · Rezeptwunsch an das Praxisteam ✓"]]},
+ {key:'bank',plan:'agent-bank',tab:'🏦 Bank-Agent',tag:'Telefon · Bank & Sparkasse',title:'Karte sperren, Termin, Kontofrage – sofort geklärt.',text:'Beispiel: Domstadt Bank, Filiale Köln-Ehrenfeld. Daniel lotst beim Kartenverlust sofort zum Sperr-Notruf, fragt nie nach Kontodaten und bucht den Termin in der Filiale. Im Live-Modus fragst du selbst.',device:'phone',company:'Domstadt Bank · Filiale Köln-Ehrenfeld',role:'Daniel · Kundenservice',fresh:1,fb:'bank',qr:['Karte verloren','Beratungstermin'],
+  steps:[['Anliegen erkennen','Karte, Termin, Konto- oder Online-Banking-Frage.'],['Sicherheit zuerst','Kartenverlust → Sperr-Notruf 116 116; nie PIN, TAN oder Kontodaten.'],['Termin mit Unterlagen','Filiale, Thema, Uhrzeit – mit Unterlagenliste.'],['Übergabe an Berater','Rückruf oder Termin, Notiz im Studio.']],
+  script:[[0,'sys','Eingehender Anruf · +49 221 … · 21:47 Uhr'],[0,'a','Domstadt Bank, Filiale Köln-Ehrenfeld, guten Abend – hier ist Daniel, der digitale Assistent. Wie kann ich helfen?'],[0,'u','Ich glaube, meine Girocard wurde mir gestohlen!'],[1,'a','Das klären wir sofort. Bitte lassen Sie die Karte jetzt über den Sperr-Notruf 116 116 sperren – rund um die Uhr und kostenfrei. Ich frage Sie bewusst nicht nach Karten- oder Kontonummer.'],[1,'u','Okay, mache ich. Und wie bekomme ich eine neue Karte?'],[2,'a','Eine Ersatzkarte bestellen Sie im Online-Banking unter „Karten“ oder bei uns in der Filiale – sie kommt in etwa fünf Werktagen. Soll ich Ihnen für morgen einen kurzen Termin reservieren, zum Beispiel um zehn Uhr?'],[2,'u','Ja, zehn Uhr passt. Petra Schulz.'],[3,'sys','⚙ Termin gebucht ✓ · morgen 10:00 · Filiale Köln-Ehrenfeld'],[3,'a','Notiert, Frau Schulz: morgen um zehn Uhr in der Filiale Köln-Ehrenfeld. Bitte bringen Sie Ihren Personalausweis mit. Und denken Sie an den Sperr-Notruf – gute Nacht!'],[3,'sys','Gespräch beendet · 1:02 · Termin angelegt ✓ · keine Kontodaten erfragt']]},
  {"key":"versicherung","plan":"agent-versicherung","tab":"☂ Versicherungs-Agent","tag":"Telefon · Versicherungsmakler","title":"Schadenaufnahme in zwei Minuten – vollständig und ruhig.","text":"Beispiel: Hansen Versicherungsmakler. Maren fragt zuerst nach Verletzten, nimmt den Schaden vollständig auf, erklärt Obliegenheiten und vereinbart den Rückruf des Maklers. Im Live-Modus fragst du selbst.","device":"phone","company":"Hansen Versicherungsmakler","role":"Maren · Schadenservice","steps":[["Sicherheit zuerst","Verletzte? Dann 112 – erst danach die Aufnahme."],["Schaden vollständig aufnehmen","Sparte, Datum, Ort, Hergang, Beteiligte, Fotos."],["Obliegenheiten erklären","Unverzüglich melden, Schaden mindern, nichts anerkennen."],["Weitergabe an den Makler","Protokoll im Studio, Rückruf zur Wunschzeit."]],"script":[[0,"a","Hansen Versicherungsmakler, guten Tag, hier ist Maren, die digitale Service-Assistentin. Möchten Sie einen Schaden melden, oder haben Sie eine Frage zu Ihrem Vertrag?"],[0,"u","Ich hatte gestern einen Auffahrunfall, der andere ist mir hinten drauf gefahren."],[1,"a","Oh, das tut mir leid. Sind Sie und alle Beteiligten unverletzt?"],[1,"u","Ja, zum Glück nur Blechschaden. Die Polizei war da."],[2,"a","Gut, das ist das Wichtigste. Dann nehme ich den Schaden jetzt Schritt für Schritt auf: Haben Sie das Kennzeichen und die Versicherung des Unfallgegners?"],[2,"u","HH-AB 1234, versichert bei der Nordsee Versicherung. Das Aktenzeichen der Polizei habe ich auch."],[3,"a","Danke. Da der andere aufgefahren ist, reguliert in der Regel seine Haftpflichtversicherung – wir melden den Schaden dort für Sie an. Bitte schicken Sie uns Fotos und das Aktenzeichen an schaden@hansen-beispiel.de und lassen Sie noch nichts reparieren."],[3,"sys","Schadenprotokoll erstellt ✓ · Kfz-Haftpflicht Gegner · Rückruf Schadenabteilung"]]},
  {key:'kanzlei',plan:'agent-kanzlei',tab:'§ Kanzlei-Agent',tag:'Kanzlei · Mandantenaufnahme',title:'Nimmt Mandanten auf und erkennt Fristen.',text:'Beispiel: Kanzlei Berger & Partner. Der Agent erkennt Dringlichkeit, erhebt den Sachverhalt, nennt den Honorarrahmen – und schreibt die Aktennotiz für den Anwalt.',device:'dossier',company:'Kanzlei Berger & Partner',
   steps:[['Dringlichkeit erkennen','Kündigung → 3 Wochen § 4 KSchG: sofort priorisiert.'],['Sachverhalt strukturiert erheben','Gegenseite, Daten, Unterlagen – für den Konfliktcheck.'],['Honorarrahmen & Termin','Erstberatung nach § 34 RVG, Rechtsschutz-Deckungsanfrage.'],['Aktennotiz für den Anwalt','Fristberechnung mit Rechtsgrundlage, „zu prüfen“.']],
@@ -824,13 +1080,41 @@ const DEMOS=[
  {key:'backoffice',plan:'agent-backoffice',tab:'📑 Backoffice-Agent',tag:'Backoffice · Mahnwesen & Fristen',title:'Rechnungen, Mahnungen, Fristen – in deinem Ton.',text:'Beispiel: Meyer Elektrotechnik. Zahlungserinnerung mit korrekten Verzugszinsen aus deinen Zahlungsbedingungen, Fristenliste für den Monat.',device:'dossier',company:'Meyer Elektrotechnik',
   steps:[['Zahlungsbedingungen kennen','14 Tage netto, Skonto, Bankverbindung.'],['Mahnstufe wählen','Erinnerung → Mahnung → letzte Mahnung, § 288 BGB.'],['Text in deinem Ton','Sachlich, höflich, bestimmt – versandfertig.'],['Fristen im Blick','USt-VA, Lohnsteuer, SV – mit Erinnerungen.']],
   script:[[0,'u','Zahlungserinnerung für Rechnung 2026-0142 über 1.840 €, 10 Tage überfällig, Kunde Firma Schulz GmbH.'],[2,'a','Hier die Zahlungserinnerung (Stufe 1): „Sehr geehrte Damen und Herren, zu unserer Rechnung 2026-0142 vom 20.09.2026 über 1.840,00 € konnten wir bislang keinen Zahlungseingang feststellen. Sicher ist das nur übersehen worden – wir bitten um Ausgleich bis 23.10.2026 auf IBAN DE12 4405 0199 0000 1234 56. Sollte sich die Zahlung überschnitten haben, betrachten Sie dieses Schreiben als gegenstandslos. Mit freundlichen Grüßen, Meyer Elektrotechnik GmbH“'],[3,'a','Bleibt die Zahlung aus, erstelle ich am 24.10. die 1. Mahnung mit Verzugszinsen (9 Pp. über Basiszins, B2B) und 40 € Pauschale nach § 288 Abs. 5 BGB.'],[3,'sys','Erinnerung erstellt · Wiedervorlage 24.10. ✓']],
-  dossier:{title:'Fristen November · Meyer Elektrotechnik',rows:[['10.11.','Umsatzsteuer-Voranmeldung Oktober'],['10.11.','Lohnsteuer-Anmeldung Oktober'],['15.11.','Gewerbesteuer-Vorauszahlung Q4'],['26.11.','Sozialversicherung (drittletzter Bankarbeitstag)'],['24.10.','Wiedervorlage: Mahnung Re. 2026-0142']],hot:[4],stamp:'Erinnerungen 14/7/1 Tage aktiv'}}
+  dossier:{title:'Fristen November · Meyer Elektrotechnik',rows:[['10.11.','Umsatzsteuer-Voranmeldung Oktober'],['10.11.','Lohnsteuer-Anmeldung Oktober'],['15.11.','Gewerbesteuer-Vorauszahlung Q4'],['26.11.','Sozialversicherung (drittletzter Bankarbeitstag)'],['24.10.','Wiedervorlage: Mahnung Re. 2026-0142']],hot:[4],stamp:'Erinnerungen 14/7/1 Tage aktiv'}},
+ {key:'behoerde',plan:'agent-behoerde',tab:'🏛 Bürgerservice-Agent',tag:'WhatsApp · Bürgerservice & Stadtwerke',title:'Welches Amt, welche Unterlagen, welcher Termin – sofort beantwortet.',text:'Beispiel: Bürgerservice der Stadt Havelbogen mit Stadtwerken. Der Agent nennt Zuständigkeit und Unterlagen, bucht den Termin im Bürgerbüro und erklärt Formulare in einfacher Sprache – auch auf Englisch oder Türkisch. Im Live-Modus fragst du selbst.',device:'wa',avatar:'🏛',role:'Bürgerservice · online · antwortet sofort',company:'Stadt Havelbogen · Bürgerservice',fresh:1,fb:'stadtwerke',qr:['Ummeldung','Zählerstand melden'],
+  steps:[['Anliegen verstehen','Ummeldung, Ausweis, Gewerbe, Stadtwerke – auch mehrsprachig.'],['Zuständigkeit & Unterlagen','Richtiges Amt, Checkliste und Gebühren aus der Wissensbasis.'],['Termin buchen','Freie Zeiten im Bürgerbüro – mit Bestätigung.'],['Übergabe an Sachbearbeitung','Sonderfälle mit Notiz an das Team.']],
+  script:[[0,'u','Hallo, ich bin nach Havelbogen gezogen. Was brauche ich für die Ummeldung?'],[0,'a','Willkommen in Havelbogen! 🏛 Für die Ummeldung haben Sie 2 Wochen ab Einzug Zeit. Bitte mitbringen: Personalausweis oder Reisepass und die Wohnungsgeberbestätigung vom Vermieter. Die Ummeldung ist kostenlos. Ziehen weitere Personen mit um?'],[1,'u','Ja, meine Frau und unsere Tochter.'],[1,'a','Dann bitte auch deren Ausweise mitbringen – für Ihre Tochter Kinderreisepass oder Geburtsurkunde. Alle drei werden an einem Termin umgemeldet.'],[2,'sys','⚙ Freie Termine geprüft ✓ · Bürgerbüro Rathausplatz'],[2,'a','Im Bürgerbüro Rathausplatz habe ich Donnerstag 8:30 oder 11:15 Uhr frei (ca. 20 Minuten). Welche Zeit passt Ihnen?'],[2,'u','8:30 bitte. Familie Yilmaz.'],[3,'sys','⚙ Termin gebucht ✓ · BH-2817'],[3,'a','Gebucht: Donnerstag, 8:30 Uhr, Bürgerbüro Rathausplatz, Ummeldung für 3 Personen – Code BH-2817. Tipp: Ihren Stromzähler melden Sie direkt hier bei den Stadtwerken. ✓']]},
+ {key:'p-amt',plan:'privat-behoerde',tab:'📋 Behördengänge',tag:'Privat · Behördengänge',title:'Welches Amt, welche Unterlagen, welche Frist – einfach erklärt.',text:'Beispiel: Dein Personalausweis läuft ab. Der Agent sagt dir Schritt für Schritt, wo du hinmusst, was du mitbringst und was es kostet – und erinnert dich rechtzeitig. Keine Rechtsberatung, keine Anträge in deinem Namen.',device:'wa',avatar:'📋',role:'Dein Behörden-Lotse · privat',company:'Behördengänge',fresh:1,priv:1,qr:['Personalausweis abgelaufen','Bescheid verstehen'],
+  steps:[['Anliegen oder Foto','Bescheid, Formular oder Frage – einfach schicken.'],['Zuständigkeit & Unterlagen','Welches Amt, welche Unterlagen, welche Frist.'],['Schritt für Schritt','Termin-Weg, Checkliste, Erinnerung.'],['Ehrliche Grenze','Keine Rechtsberatung – Hinweis auf Beratungsstellen.']],
+  script:[[0,'u','Mein Personalausweis läuft ab. Was muss ich tun?'],[0,'a','Das ist schnell erledigt – in 3 Schritten. Schritt 1 von 3: Termin im Bürgeramt deiner Stadt buchen. Wo wohnst du?'],[1,'u','In Köln.'],[1,'a','Dann ist das Kundenzentrum der Stadt Köln zuständig, Termine gibt es online. Schritt 2 von 3 – mitbringen: alten Ausweis, ein biometrisches Foto (digital vom Fotostudio oder direkt vor Ort) und die Gebühr, ab 24 Jahren 37 €.'],[2,'u','Wie lange dauert das?'],[2,'a','Meist 3–4 Wochen. Schritt 3 von 3: Abholen mit dem PIN-Brief. Soll ich dich 2 Wochen vor Ablauf erinnern und dir die Checkliste schicken?'],[2,'u','Ja bitte 👍'],[3,'sys','⚙ Erinnerung gespeichert ✓ · Checkliste gesendet'],[3,'a','Erledigt! Die Checkliste ist oben angeheftet, die Erinnerung kommt per WhatsApp. Soll ich dir den Antrag auch Feld für Feld erklären? ✓']]},
+ {key:'p-bank',plan:'privat-bank',tab:'💶 Bank & Geld',tag:'Privat · Bank & Geld',title:'Kontoauszug, Gebühren, Kontowechsel – verständlich statt kompliziert.',text:'Beispiel: Eine Gebühr auf dem Kontoauszug. Der Agent erklärt sie, zeigt den Weg zum Kontowechsel und bereitet die Kündigung vor – er führt selbst keine Bankgeschäfte aus und fragt nie nach PIN oder TAN.',device:'wa',avatar:'💶',role:'Bank & Geld · privat',company:'Bank & Geld',fresh:1,priv:1,qr:['Gebühren verstehen','Ist diese SMS echt?'],
+  steps:[['Frage oder Foto','Kontoauszug, Gebührenbrief, verdächtige SMS.'],['Verständlich erklärt','Was ist das, was kostet es, was kannst du tun?'],['Entwurf statt Bankgeschäft','Kündigung oder Wechsel vorbereitet – du entscheidest.'],['Sicherheit','Nie PIN/TAN, Phishing-Check, Sperr-Notruf 116 116.']],
+  script:[[0,'u','Was ist „Kontoführung 8,90 €“ auf meinem Kontoauszug?'],[0,'a','Das ist der monatliche Grundpreis deines Girokontos – rund 107 € im Jahr. Viele Banken bieten Konten für 0–5 € an, oft mit Bedingungen wie einem Gehaltseingang.'],[1,'u','Kann ich einfach wechseln?'],[1,'a','Ja, in 3 Schritten: 1) neues Konto eröffnen, 2) Kontowechselhilfe beauftragen – die neue Bank informiert Arbeitgeber und Lastschriften, 3) altes Konto kündigen. Ich selbst führe dabei keine Bankgeschäfte aus.'],[2,'u','Bereite die Kündigung vor.'],[2,'sys','⚙ Entwurf erstellt ✓ · Kündigung Girokonto'],[3,'a','Fertig – dein Kündigungsschreiben liegt zum Prüfen bereit. Tipp: erst kündigen, wenn die Kontowechselhilfe durch ist. Und: Ich frage dich nie nach PIN oder TAN. ✓']]},
+ {key:'p-reise',plan:'privat-reise',tab:'🧳 Hotel & Reise',tag:'Privat · Hotel & Reise',title:'Hotelanfrage in jeder Sprache – und Storno verstanden.',text:'Beispiel: Früher einchecken in Lissabon. Der Agent schreibt die Mail auf Englisch, erklärt die Stornobedingungen deiner Buchung – und du schickst sie selbst ab. Er bucht und bezahlt nichts ohne dich.',device:'dossier',company:'Hotel & Reise',fresh:1,priv:1,qr:['Hotelanfrage schreiben','Storno erklären'],
+  steps:[['Wunsch verstehen','Hotel, Datum, Buchungsnummer – in deiner Sprache.'],['Mail in Landessprache','Englisch, Spanisch, Türkisch … höflich und kurz.'],['Storno im Blick','Bis wann kostenlos? Was kostet es danach?'],['Du sendest','Kein Buchen, kein Bezahlen ohne dich.']],
+  script:[[0,'u','Schreib dem Hotel in Lissabon, ob wir am 12.5. früher einchecken können. Buchung 48213.'],[1,'a','Gern – ich schreibe auf Englisch, freundlich und kurz. Wann landet euer Flug?'],[1,'u','Um 9:30.'],[2,'a','Dann frage ich nach Early Check-in und alternativ nach Gepäckaufbewahrung. Laut deiner Buchung kannst du übrigens bis 10.05., 18 Uhr kostenlos stornieren – danach kostet es eine Nacht.'],[3,'sys','Entwurf erstellt ✓ · du sendest selbst']],
+  dossier:{title:'Entwurf · E-Mail an das Hotel',rows:[['Betreff','Early check-in – reservation 48213'],['Text','Dear Hotel Team, we have a reservation (no. 48213) for 12–15 May. Our flight lands at 9:30 – would an early check-in be possible, or could we leave our luggage with you? Kind regards, Anna Becker'],['Storno','kostenlos bis 10.05., 18 Uhr – danach 1 Nacht'],['Status','Entwurf · du prüfst und sendest']],hot:[2],stamp:'Bucht und zahlt nichts ohne dich'}},
+ {key:'p-brief',plan:'privat-assistent',tab:'✉ Briefe & Kündigungen',tag:'Privat · Alltags-Assistent',title:'Kündigung, Brief, Mail – fertig formuliert, Frist im Blick.',text:'Beispiel: Fitnessstudio kündigen. Der Agent fragt nur, was fehlt, berechnet den nächstmöglichen Termin und schreibt die Kündigung mit Bitte um Bestätigung – du prüfst und sendest.',device:'dossier',company:'Briefe & Kündigungen',fresh:1,priv:1,qr:['Fitnessstudio kündigen','Brief an Vermieter'],
+  steps:[['Was soll raus?','Kündigung, Brief oder Mail – ein Satz reicht.'],['Nur fragen, was fehlt','Vertragspartner, Nummer, Beginn – Schritt für Schritt.'],['Frist berechnet','Nächstmöglicher Termin, „bitte prüfen“ bei Unklarheit.'],['Du sendest','Entwurf zum Prüfen, Erinnerung an die Bestätigung.']],
+  script:[[0,'u','Kündige mein Fitnessstudio zum nächstmöglichen Termin. FitPoint Köln, Mitgliedsnummer 20417.'],[1,'a','Mach ich. Seit wann bist du Mitglied? Nach der Mindestlaufzeit gilt meist eine Kündigungsfrist von einem Monat.'],[1,'u','Seit März 2023.'],[2,'a','Dann ist die Mindestlaufzeit vorbei – nächstmöglicher Termin voraussichtlich 30.11.2026. Ich schreibe die Kündigung mit Bitte um schriftliche Bestätigung.'],[3,'sys','Kündigung erstellt ✓ · Erinnerung 07.11.']],
+  dossier:{title:'Kündigung · Fitnessstudio',rows:[['An','FitPoint Köln GmbH · Mitgliederservice'],['Mitglied','Nr. 20417 · seit 03/2023'],['Kündigung zum','30.11.2026 · bitte prüfen'],['Versand','Kündigungsbutton oder E-Mail – Bestätigung anfordern'],['Erinnerung','07.11.: Bestätigung da?']],hot:[2],stamp:'Entwurf fertig · du prüfst und sendest'}},
+ {key:'p-anruf',plan:'privat-anruf',tab:'📞 Lass anrufen',tag:'Privat · Lass anrufen',title:'Der Agent ruft für dich an – nur nach deinem Ja.',text:'Beispiel: Friseurtermin anfragen. Du schreibst, was du brauchst, bestätigst – und der Agent ruft beim Salon an, stellt sich als KI-Assistent vor und schickt dir das Ergebnis per WhatsApp. Er ruft nur Unternehmen an.',device:'phone',company:'Anruf an Salon Luna',role:'Dein KI-Assistent · ausgehend',fresh:1,priv:1,qr:['Friseur anrufen lassen','Arzttermin anfragen'],
+  steps:[['Du sagst, was du brauchst','„Friseur, Donnerstag nach 17 Uhr“ – per WhatsApp oder Chat.'],['Zusammenfassung & dein Ja','Kein Anruf ohne deine ausdrückliche Bestätigung.'],['Anruf mit KI-Hinweis','„Ich bin der KI-Assistent von …“ – nur bei Unternehmen.'],['Ergebnis per WhatsApp','Termin, Uhrzeit, Hinweise – als Notiz für dich.']],
+  script:[[0,'sys','Auftrag per WhatsApp: Salon Luna, Herrenschnitt, Do ab 17 Uhr · von dir bestätigt ✓'],[1,'sys','Ausgehender Anruf · Salon Luna · 0221 …'],[1,'u','Salon Luna, hier ist Mia, hallo!'],[2,'a','Guten Tag, ich bin der KI-Assistent von Jonas Weber und rufe in seinem Auftrag an. Er hätte gern einen Herrenschnitt am Donnerstag ab 17 Uhr – haben Sie etwas frei?'],[2,'u','Donnerstag … 17:30 Uhr ginge.'],[2,'a','Wunderbar, dann bitte 17:30 Uhr auf den Namen Jonas Weber. Muss er noch etwas beachten?'],[3,'u','Gern fünf Minuten früher da sein. Bis Donnerstag!'],[3,'a','Danke, ich gebe es weiter. Auf Wiederhören!'],[3,'sys','Gespräch beendet · 0:46 · Ergebnis per WhatsApp an dich ✓']]}
 ];
 let cur=null,playId=0,liveHist=[],liveOn=false;
-(function(){const w=$('#dtabs');DEMOS.forEach(d=>{const b=document.createElement('button');b.type='button';b.className='dtab';b.dataset.k=d.key;b.textContent=d.tab;b.onclick=()=>{vUnlock();demoSelect(d.key,true);};w.appendChild(b);});})();
+/* Demo-Reiter nach Hauptkategorie gruppiert – gleiche Reihenfolge wie Finder und Preise (innerhalb einer Kategorie: Reihenfolge von DEMOS) */
+function dtabsRender(){const w=$('#dtabs');if(!w)return;w.textContent='';const gs=[];
+  DEMOS.forEach(d=>{const c=catOf(d.plan),id=c?c.id:'_';let g=gs.find(x=>x.id===id);if(!g){g={id,c,i:c?CATS.indexOf(c):CATS.length,items:[]};gs.push(g);}g.items.push(d);});
+  gs.sort((a,b)=>a.i-b.i).forEach(g=>{const e=document.createElement('div');e.className='dgrp';e.setAttribute('role','group');e.setAttribute('aria-label',g.c?g.c.name:'Weitere');e.innerHTML=`<span class="dgl" aria-hidden="true">${esc(g.c?g.c.name:'Weitere')}</span>`;
+    g.items.forEach(d=>{const b=document.createElement('button');b.type='button';b.className='dtab'+(cur&&cur.key===d.key?' on':'');b.dataset.k=d.key;b.textContent=d.tab;b.onclick=()=>{vUnlock();demoSelect(d.key,true);};e.appendChild(b);});w.appendChild(e);});}
+/* mobil: gewählten Reiter im Band sichtbar rollen (nur horizontal) */
+function dtabShow(){const w=$('#dtabs'),b=w&&w.querySelector('.dtab.on');if(!b||w.scrollWidth<=w.clientWidth+2)return;const wr=w.getBoundingClientRect(),br=b.getBoundingClientRect(),x=Math.max(0,w.scrollLeft+(br.left-wr.left)-(wr.width-br.width)/2);try{w.scrollTo({left:x,behavior:V_RM?'auto':'smooth'});}catch(e){w.scrollLeft=x;}}
+dtabsRender();
 /* gesture=true: der Wechsel kam durch Klick/Taste – dann darf der Demo-Anruf (Telefon-Gerät) vorgelesen werden, wenn die Stimme an ist */
 function demoSelect(key,gesture){const d=DEMOS.find(x=>x.key===key)||DEMOS.find(x=>x.key==='support')||DEMOS[0];liveLeave();cur=d;liveHist=[];VP.g='';
-  document.querySelectorAll('.dtab').forEach(b=>b.classList.toggle('on',b.dataset.k===d.key));
+  document.querySelectorAll('.dtab').forEach(b=>b.classList.toggle('on',b.dataset.k===d.key));dtabShow();cmfQr(d);{const ls=$('#liveSoon');if(ls)ls.hidden=true;}
+  if(d.fresh)demoReady(d).then(m=>{if(cur===d&&!liveOn){const b=$('#btnLive');if(b)b.textContent=m==='soon'?'Live-Test folgt in Kürze':'Selbst testen – live';}});
   const sp=$('#secpick');if(sp)sp.classList.toggle('on',!!d.sectors);
   $('#exTag').textContent=d.tag;$('#exTitle').textContent=d.title;$('#exText').textContent=d.text;$('#btnRent').href=CHECKOUT+'?plan='+d.plan;
   $('#exSteps').innerHTML=d.steps.map((s,i)=>`<div class="it" data-i="${i}"><i>0${i+1}</i><div><b>${s[0]}</b><span>${s[1]}</span></div></div>`).join('');
@@ -851,15 +1135,24 @@ function buildDevice(d){const st=$('#stage');
 function dmsg(role,text,typing){const tr=$('#dTr');if(!tr)return null;const m=document.createElement('div');m.className='m '+role;if(typing)m.classList.add('typing');m.textContent=text;tr.appendChild(m);tr.scrollTop=tr.scrollHeight;if(!typing)stamp(m,role);return m;}
 /* WhatsApp-Optik: Uhrzeit + Haken unter jeder Nachricht */
 function stamp(m,role){if(!cur||cur.device!=='wa'||role==='sys'||!m)return;const s=document.createElement('span');s.className='tm';s.textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+(role==='u'?' ✓✓':'');m.appendChild(s);}
-function stepOn(i){document.querySelectorAll('#exSteps .it').forEach(el=>el.classList.toggle('on',+el.dataset.i<=i));}
+function stepOn(i){document.querySelectorAll('#exSteps .it').forEach(el=>el.classList.toggle('on',+el.dataset.i<=i));cmfStep(i);}
+/* Kundenkomfort: sichtbarer Fortschritt „Schritt x von y“ */
+function cmfStep(i){const d=cur;if(!d)return;const n=d.steps.length,k=Math.max(0,Math.min(n-1,i)),s=$('#cmfStep'),b=$('#cmfBar'),m=$('#cmfName');
+  if(liveOn){if(s)s.textContent='Live-Test';if(b)b.style.width='100%';if(m)m.textContent='Ein Schritt pro Nachricht – du bestimmst das Tempo.';return;}
+  if(s)s.textContent='Schritt '+(k+1)+' von '+n;if(b)b.style.width=(i<0?0:Math.round((k+1)/n*100))+'%';if(m)m.textContent=d.steps[k][0];}
+/* Schnellwahl unter der Erklärung: startet den Live-Modus und schickt den Text; „Mit Mensch sprechen“ zeigt die Übergabe */
+function cmfQr(d){const w=$('#cmfQr');if(!w)return;w.textContent='';
+  const add=(label,text,cls)=>{const b=document.createElement('button');b.type='button';b.className='qr'+(cls?' '+cls:'');b.textContent=label;b.onclick=()=>cmfAsk(text);w.appendChild(b);};
+  (d.qr||QR[d.plan]||[]).slice(0,2).forEach(t=>add(t,t));if(d.priv)add('ⓘ Was machst du nicht?','Was machst du nicht – wo sind deine Grenzen?','hum');else add('👤 Mit Mensch sprechen',HUMAN_Q,'hum');}
+function cmfAsk(t){vUnlock();const d=cur;if(liveOn){liveSend(t);return;}goLive().then(()=>{if(liveOn&&cur===d)liveSend(t);});}
 /* Demo-Gespräch abspielen; beim Telefon-Agenten das Skript der gewählten Branche (GET ?agent=agent-phone&sector=…). opt.voice: Agent-Sätze vorlesen, wenn die Stimme an ist (nur nach einer Geste) */
 async function playDemo(opt){const d=cur,my=++playId;const tr=$('#dTr');if(tr)tr.innerHTML='';stepOn(-1);const out=$('#dOut');if(out)out.style.opacity=0;
   let script=d.script,srvScript=false;
   if(d.sectors){const k=secCur,j=await secData(k);if(my!==playId||liveOn||cur!==d)return;
     if(j){secApply(j,k);liveWho=[phoneSec.persona,phoneSec.persona];secHeader();liveApply(j);const sc=secScript(j.script,j.script_speech);if(sc.length){script=sc;srvScript=true;}}
     else{V.gender=phoneSec.gender;V.preset=phoneSec.preset||'';V.rate=1;V.pitch=1;V.sector=k;V.demo='agent-phone';V.greet=[];vpLabel();if(k!==SEC_DEF)script=secFallbackScript(phoneSec);}}
-  else if(d.device==='phone'){const j=await demoData(d.plan);if(my!==playId||liveOn||cur!==d)return;   /* Taxi & Co.: Skript vom Server nur, wenn es signierte Sätze mitbringt */
-    if(j){liveApply(j);const sc=secScript(j.script,j.script_speech);if(sc.some(r=>r[1]==='a'&&r[3])){script=sc;srvScript=true;}}}
+  else if(d.device==='phone'){const m=await demoReady(d);if(my!==playId||liveOn||cur!==d)return;const j=m==='own'?await demoData(d.plan):m==='fb'?await secData(d.fb):null;if(my!==playId||liveOn||cur!==d)return;   /* Taxi & Co.: Skript vom Server nur, wenn es signierte Sätze mitbringt; Ersatz-Branche (fb): nur Persona/Stimme, eigenes Skript */
+    if(j){liveApply(j);const sc=m==='own'?secScript(j.script,j.script_speech):[];if(sc.some(r=>r[1]==='a'&&r[3])){script=sc;srvScript=true;}}}
   /* Eine Stimme für den ganzen Anruf: Server-Stimme nur, wenn JEDE Agenten-Zeile signierte Sätze hat (Begrüßung = erste Agenten-Zeile); sonst durchgehend Browser-Stimme */
   const aRows=script.filter(r=>r[1]==='a');let firstA=true;
   const items=script.map(r=>{if(r[1]!=='a')return null;let it=r[3]||null;if(!it&&firstA&&srvScript&&V.greet.length)it=V.greet;firstA=false;return it;});
@@ -886,15 +1179,21 @@ const demoCache=new Map();
 function demoData(plan){const c=demoCache.get(plan);if(c&&c.j&&Date.now()-c.ts<SEC_TTL)return Promise.resolve(c.j);if(c&&c.p)return c.p;
   const p=(async()=>{try{const r=await fetch(DEMO_API+'?agent='+encodeURIComponent(plan)+'&channel=phone',{cache:'no-store'});const j=await r.json();if(!j||typeof j!=='object'||!vText(j.greeting).trim())throw 0;demoCache.set(plan,{j,ts:Date.now()});return j;}catch(e){demoCache.delete(plan);return null;}})();
   demoCache.set(plan,{p,ts:0});return p;}
+/* Neue Agenten (Bank, Behörde, privat): eigener Server-Agent, sobald der Server ihn kennt (GET ?agent=<plan> nennt demo=<plan>);
+   bis dahin Bank/Behörde live über die passende Branche des Telefon-Agenten (fb), Privat-Agenten als Beispiel-Gespräch */
+const demoOwn=new Map();
+async function demoReady(d){if(!d||!d.fresh)return 'own';if(!demoOwn.has(d.plan)){const j=await demoData(d.plan);demoOwn.set(d.plan,!!(j&&j.demo===d.plan));}return demoOwn.get(d.plan)?'own':d.fb?'fb':'soon';}
+const dFb=d=>!!(d&&d.fresh&&d.fb&&demoOwn.get(d.plan)===false);
+function liveSoon(d){const n=$('#liveSoon');if(!n)return;n.textContent='Der Live-Test für „'+d.tab.replace(/^\S+\s+/,'')+'“ wird gerade freigeschaltet – das Beispiel-Gespräch zeigt dir den Ablauf. Fragen beantwortet dir der Assistent unten rechts.';n.hidden=false;}
 $('#btnLive').onclick=()=>{vUnlock();goLive();};
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 /* ===== Live-Modus: Persona, Stimme (Server-TTS → Browser-Stimme), Füllsätze, Barge-in, Vorschläge ===== */
 const TTS_API='/chat/tts.php',LIVE_FALLBACK='Hallo! Was kann ich für Sie tun?',VKEY='chLiveVoice';
 /* Ansprechpartner je Demo, bis der Server die Persona nennt: [Nominativ, Dativ] */
-const LIVE_WHO={praxis:['Paula','Paula'],autohaus:['Lukas','Lukas'],hausverwaltung:['Tobias','Tobias'],versicherung:['Maren','Maren'],phone:['Lea','Lea'],termine:['Mia','Mia'],bestellung:['Luca','Luca'],taxi:['Kai','Kai'],hotel:['Sophie','Sophie'],immo:['Clara','Clara'],kanzlei:['die Kanzlei','der Kanzlei'],steuer:['die Kanzlei','der Kanzlei']},LIVE_WHO_DEF=['der Assistent','dem Assistenten'];
+const LIVE_WHO={praxis:['Paula','Paula'],autohaus:['Lukas','Lukas'],hausverwaltung:['Tobias','Tobias'],versicherung:['Maren','Maren'],phone:['Lea','Lea'],termine:['Mia','Mia'],bestellung:['Luca','Luca'],taxi:['Kai','Kai'],hotel:['Sophie','Sophie'],immo:['Clara','Clara'],bank:['Daniel','Daniel'],behoerde:['der Bürgerservice','dem Bürgerservice'],kanzlei:['die Kanzlei','der Kanzlei'],steuer:['die Kanzlei','der Kanzlei']},LIVE_WHO_DEF=['der Assistent','dem Assistenten'];
 /* Geschlecht und Stimm-Voreinstellung der Persona je Demo, bis der Server sie nennt (voice.gender / voice.preset) */
-const LIVE_G={taxi:'m',bestellung:'m',autohaus:'m',hausverwaltung:'m'},LIVE_PRESET={praxis:'f_klar',autohaus:'m_freundlich',hausverwaltung:'m_ruhig',versicherung:'f_sanft',phone:'f_warm',termine:'f_frisch',bestellung:'m_freundlich',taxi:'m_souveraen',hotel:'f_klar',immo:'f_klar'};
-const LIVE_BASE={phone:'Echter Telefon-Agent (Beispiel-Praxis).',termine:'Echter Termin-Agent mit echtem Demo-Kalender (Salon Luna). Buche ruhig – Demo-Termine werden nach 2 Tagen gelöscht.',bestellung:'Echter Bestell-Agent (Pizzeria Napoli, Köln). Gib eine Demo-Bestellung auf – nichts wird geliefert, keine Nachricht verschickt.',taxi:'Echter Taxi-Agent (Taxi Rheinland, Köln). Bestell eine Demo-Fahrt – es kommt kein Taxi, keine SMS wird verschickt.',hotel:'Echte Hotel-Rezeption (Hotel Alster Residenz, Hamburg). Frag nach einem Zimmer oder äußere einen Wunsch – Demo, es wird nichts gebucht.',immo:'Echter Immobilien-Agent (Lindqvist Immobilien, Köln). Frag zur Wohnung LQ-2041 oder bitte um Rückruf – Demo, es ruft niemand an.'};
+const LIVE_G={taxi:'m',bestellung:'m',autohaus:'m',hausverwaltung:'m',bank:'m',behoerde:'m'},LIVE_PRESET={bank:'m_souveraen',behoerde:'m_tief',praxis:'f_klar',autohaus:'m_freundlich',hausverwaltung:'m_ruhig',versicherung:'f_sanft',phone:'f_warm',termine:'f_frisch',bestellung:'m_freundlich',taxi:'m_souveraen',hotel:'f_klar',immo:'f_klar'};
+const LIVE_BASE={phone:'Echter Telefon-Agent (Beispiel-Praxis).',bank:'Echter Bank-Agent (Beispiel: Domstadt Bank, Köln). Frag nach Karte, Termin oder Online-Banking – Demo, es werden keine Kontodaten abgefragt.',behoerde:'Echter Bürgerservice-Agent (Beispiel: Stadt Havelbogen). Frag nach Ummeldung, Ausweis oder Stadtwerken – Demo, es wird nichts gebucht.',termine:'Echter Termin-Agent mit echtem Demo-Kalender (Salon Luna). Buche ruhig – Demo-Termine werden nach 2 Tagen gelöscht.',bestellung:'Echter Bestell-Agent (Pizzeria Napoli, Köln). Gib eine Demo-Bestellung auf – nichts wird geliefert, keine Nachricht verschickt.',taxi:'Echter Taxi-Agent (Taxi Rheinland, Köln). Bestell eine Demo-Fahrt – es kommt kein Taxi, keine SMS wird verschickt.',hotel:'Echte Hotel-Rezeption (Hotel Alster Residenz, Hamburg). Frag nach einem Zimmer oder äußere einen Wunsch – Demo, es wird nichts gebucht.',immo:'Echter Immobilien-Agent (Lindqvist Immobilien, Köln). Frag zur Wohnung LQ-2041 oder bitte um Rückruf – Demo, es ruft niemand an.'};
 /* sector: Branche des Telefon-Agenten (geht an tts.php mit), preset: Stimm-Voreinstellung der Persona, greet: Begrüßungssätze mit Token (Hörprobe), auto: Demo-Anruf wird gerade vorgelesen, ttsKnown/spoken: für den Hinweis zur Browser-Stimme */
 const V={on:false,brw:false,turn:0,demo:'',sector:'',gender:'f',preset:'',rate:1,pitch:1,tts:false,ttsKnown:false,ttsDead:false,ttsPause:0,fillers:[],greet:[],lastF:-1,fcache:new Map(),audio:null,ac:window.AbortController?new AbortController():null,end:null,utter:null,busy:false,auto:false,spoken:false,unlocked:false,voices:[],vTried:false};
 /* 50 ms Stille (WAV) – entsperrt Audio auf iOS innerhalb der ersten Geste */
@@ -1130,7 +1429,7 @@ function liveRecStop(){micWanted=false;if(rec){const r=rec;rec=null;try{r.onresu
 /* Live-Modus verlassen (Demo-Wechsel, „Demo abspielen“) */
 function liveLeave(){vStop();liveRecStop();liveTimerStop();liveOn=false;V.auto=false;V.brw=false;liveSt='';liveSeq++;const l=$('#live');if(l)l.classList.remove('on','spk','lis','thk','aut');const b=$('#btnLive');if(b)b.textContent='Selbst testen – live';
   const w=$('#dWave');if(w)w.classList.remove('idle','talk','lis');const c=$('#liveChips');if(c){c.textContent='';c.hidden=true;}vpClose(false);ttsHintUI();}
-async function goLive(voice){if(liveOn&&!voice)return;vUnlock();vStop();liveRecStop();
+async function goLive(voice){if(liveOn&&!voice)return;vUnlock();const d0=cur;if(d0&&d0.fresh){const m=await demoReady(d0);if(cur!==d0||(liveOn&&!voice))return;if(m==='soon'){liveSoon(d0);return;}}vStop();liveRecStop();
   liveOn=true;V.auto=false;playId++;liveSeq++;liveHist=[];liveUser=0;liveChips=[];liveSt='';const d=cur;$('#live').classList.add('on');$('#live').classList.remove('aut');$('#btnLive').textContent='Live-Modus aktiv';
   const tr=$('#dTr');if(tr)tr.innerHTML='';stepOn(3);const out=$('#dOut');if(out)out.style.opacity=0;
   V.demo=d.plan;V.sector=d.sectors?secCur:'';V.gender=d.sectors?phoneSec.gender:(LIVE_G[d.key]||'f');V.preset=d.sectors?(phoneSec.preset||''):(LIVE_PRESET[d.key]||'');V.rate=1;V.pitch=1;V.tts=false;V.fillers=[];V.lastF=-1;V.greet=[];liveWho=d.sectors?[phoneSec.persona,phoneSec.persona]:(LIVE_WHO[d.key]||LIVE_WHO_DEF).slice();
@@ -1139,7 +1438,7 @@ async function goLive(voice){if(liveOn&&!voice)return;vUnlock();vStop();liveRecS
   dmsg('sys','Live-Modus · echter Agent · Beispiel-Firma '+demoCo(d));
   /* Telefon-Agent: Branchen-Daten (gecacht, GET ?agent=agent-phone&sector=…); andere Demos: GET ?agent=<plan> */
   const my=playId,turn=V.turn;let g=d.sectors?secGreeting(phoneSec):LIVE_FALLBACK,sp=null,j=null;
-  try{if(d.sectors)j=await secData(secCur);else{const r=await fetch(DEMO_API+'?agent='+encodeURIComponent(d.plan));j=await r.json();}}catch(e){j=null;}
+  try{if(d.sectors)j=await secData(secCur);else if(dFb(d))j=await secData(d.fb);else{const r=await fetch(DEMO_API+'?agent='+encodeURIComponent(d.plan));j=await r.json();}}catch(e){j=null;}
   if(my!==playId||cur!==d)return;
   if(j&&typeof j==='object'){if(d.sectors){secApply(j,secCur);secHeader();}liveApply(j);const jg=vText(j.greeting).trim();if(jg)g=jg;sp=j.speech;}
   dmsg('a',g);if(!liveHist.length&&(d.sectors||g!==LIVE_FALLBACK))histPush('assistant',g);
@@ -1156,7 +1455,7 @@ async function liveSend(text){text=String(text||$('#liveIn').value||'').trim();i
   const st={answered:false,started:false};let fp=null,ft=0;
   if(V.on&&V.fillers.length){const f=vFillerPick();if(f){vFillerAudio(f);ft=setTimeout(()=>{if(!st.answered&&turn===V.turn&&V.on)fp=vFiller(f,turn,st);},1300);}}
   let j=null;
-  const body={agent:d.plan};if(d.sectors)body.sector=secCur;body.channel=d.device==='phone'?'phone':'chat';body.messages=liveHist.slice(-10);body.lang='de';   /* sector nur beim Telefon-Agenten */
+  const fbm=dFb(d),body={agent:fbm?'agent-phone':d.plan};if(d.sectors)body.sector=secCur;else if(fbm)body.sector=d.fb;body.channel=d.device==='phone'?'phone':'chat';body.messages=liveHist.slice(-10);body.lang='de';   /* sector nur beim Telefon-Agenten */
   try{const r=await fetch(DEMO_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});j=await r.json();}catch(e){j=null;}
   st.answered=true;clearTimeout(ft);
   if(d!==cur||play!==playId||!liveOn)return;
@@ -1270,6 +1569,7 @@ const AG=[
  {id:'agent-termine',n:'Termin-Agent (Praxis, Salon, Studio)',p:99,tk:25000,s:'beauty',d:'Echte Terminbuchung: Kalender, Leistungen, Bestätigung, Erinnerung, Buchungsseite.',buy:{id:'buy-termine',p:990,tk:150000}},
  {id:'agent-autohaus',n:'Autohaus & Werkstatt-Agent',p:119,tk:30000,s:'automotive',d:'Werkstatttermine, Status, Bestand, Probefahrten.'},
  {id:'praxis-agent',n:'Praxis-Agent (Rezeption)',p:129,tk:32000,s:'praxis',d:'Organisatorische Fragen 24/7 – ohne Medizin.'},
+ {id:'agent-bank',n:'Bank-Agent (Bank & Sparkasse)',p:149,tk:40000,s:'finanzen',d:'Karten-Sperr-Lotse, Filialtermine, allgemeine Kontofragen – fragt nie nach Kontodaten.'},
  {id:'agent-versicherung',n:'Versicherungsmakler-Agent',p:129,tk:32000,s:'versicherung',d:'Schadenaufnahme, Vertragsfragen, Unterlagen, Termine.'},
  {id:'agent-kanzlei',n:'Kanzlei-Agent',p:169,tk:45000,s:'kanzlei',d:'Mandantenaufnahme, Fristen-Vorprüfung, Aktennotizen, Entwürfe.',buy:{id:'buy-kanzlei',p:1690,tk:250000}},
  {id:'agent-steuer',n:'Steuerkanzlei-Agent',p:149,tk:40000,s:'steuer',d:'Belegabfrage, Fristen, Bescheide erklären, Onboarding.',buy:{id:'buy-steuer',p:1490,tk:200000}},
@@ -1278,6 +1578,7 @@ const AG=[
  {id:'immo-agent',n:'Immobilien-Agent (Makler & Verwaltung)',p:119,tk:30000,s:'immobilien',d:'Objektfragen 24/7, Qualifizierung, Besichtigungen und Lead-Sofortrückruf in 60 Sekunden – mit Lead-Zusammenfassung.'},
  {id:'agent-support',n:'Support-Agent 24/7',p:99,tk:25000,s:'ecommerce',d:'Kundenfragen aus deiner Wissensbasis – Widget, E-Mail, Chat.',buy:{id:'buy-support',p:990,tk:150000}},
  {id:'ec-support',n:'Shop-Support-Agent',p:99,tk:25000,s:'ecommerce',d:'Lieferung, Retouren, Gewährleistung – EU-Recht korrekt.'},
+ {id:'agent-behoerde',n:'Bürgerservice-Agent (Behörde & Stadtwerke)',p:129,tk:32000,s:'oeffentlich',d:'Zuständigkeiten, Unterlagenlisten, Termine im Bürgerbüro und Stadtwerke-Fragen – in einfacher Sprache.'},
  {id:'agent-backoffice',n:'Backoffice-Agent',p:89,tk:22000,s:'finanzen',d:'Rechnungstexte, Mahnwesen, Fristen, Belege.'},
  {id:'agent-sales',n:'Vertriebs-Agent',p:119,tk:30000,s:'marketing',d:'Lead-Qualifizierung (BANT), Follow-ups, CRM-Notizen.'},
  {id:'agent-website',n:'Website-Agent',p:129,tk:30000,s:'marketing',d:'Komplette Website-Texte, Struktur, SEO, WordPress-Checkliste.',buy:{id:'buy-website',p:490,tk:60000}},
@@ -1298,10 +1599,12 @@ const ABO=[
  {id:'gastro-reviews',n:'Bewertungs-Antworten Gastro',p:39,tk:10000,d:'Google/Tripadvisor/Booking professionell beantwortet.'},
  {id:'edu-kurs',n:'Kurs-Generator',p:49,tk:12000,d:'Lernziele, Module, Übungen, Quizze.'}
 ];
-const PT=[['agents','Agenten mieten'],['buy','Einmal kaufen'],['tokens','Tokens'],['abo','Content-Pakete'],['recht','ChatHelp Recht']];
+const PT=[['agents','Agenten mieten'],['privat','Für dich privat'],['buy','Einmal kaufen'],['tokens','Tokens'],['abo','Content-Pakete']];
 (function(){const w=$('#ptabs');PT.forEach(([k,l])=>{const b=document.createElement('button');b.type='button';b.className='ptab';b.dataset.k=k;b.textContent=l;b.onclick=()=>renderPrice(k);w.appendChild(b);});renderPrice('agents');})();
+finderInit();
 function renderPrice(k){document.querySelectorAll('.ptab').forEach(b=>b.classList.toggle('on',b.dataset.k===k));const el=$('#pbody');
-  if(k==='agents'){el.innerHTML=`<div class="pgrid2">${AG.map(a=>`<div class="card pk"><span class="tag indigo">Agent</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Studio · Wissensbasis · Widget${a.s==='service'||['inkasso','kanzlei','steuer','versicherung','hausverwaltung','automotive','praxis','beauty','gastro','taxi','hotel','immobilien'].includes(a.s)?' · Telefon':''}${['gastro','beauty','taxi','hotel'].includes(a.s)?' · WhatsApp':''}</li><li>${de(a.tk)} Tokens / Monat inklusive</li><li>Monatlich kündbar</li></ul><div class="pr"><b>${a.p} €</b><small>/ Monat</small></div><div class="inc">zzgl. MwSt.${a.buy?' · Einmalkauf '+de(a.buy.p)+' €':''}</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Mieten</a>${PRO.find(p=>p.id===a.id)?`<button class="btn" type="button" onclick="openPro('${a.id}')">Details</button>`:`<a class="btn" href="${STUDIO}">Testen</a>`}</div></div>`).join('')}</div>`;}
+  if(k==='agents'){el.innerHTML=`<div class="pgrid2">${AG.slice().sort((x,y)=>catIdx(x.id)-catIdx(y.id)).map(a=>{const c=catOf(a.id),pr=priceOf(a.id,a.p);return `<div class="card pk"><span class="tag indigo">${esc(c?c.name:'Agent')}</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Studio · Wissensbasis · ${chanText(a.id)}</li><li>${de(a.tk)} Tokens / Monat inklusive</li><li>Monatlich kündbar</li></ul><div class="pr"><b>${fmtEur(pr)}</b><small>/ Monat</small></div><div class="inc">zzgl. MwSt.${a.buy?' · Einmalkauf '+de(a.buy.p)+' €':''}</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Mieten</a>${PRO.find(p=>p.id===a.id)?`<button class="btn" type="button" onclick="openPro('${a.id}')">Details</button>`:`<button class="btn" type="button" onclick="tryPlan('${a.id}')">Live testen</button>`}</div></div>`;}).join('')}</div>`;}
+  else if(k==='privat'){const c=CATS.find(x=>x.id==='privat');el.innerHTML=`<p class="sub center" style="margin:26px auto 0">Für dich privat: günstige Assistenten für Behördengänge, Bank, Reise, Briefe und Anrufe – per WhatsApp, Telefon und Chat. Monatlich kündbar, du bestätigst jeden Schritt.</p><div class="pgrid2">${(c?c.plans:[]).map(x=>pInfo(x.id)).filter(Boolean).map(i=>`<div class="card pk${i.feat?' feat':''}"><span class="tag gold">Privat</span><h3>${i.n}</h3><p class="d">${i.tag}</p><ul><li>${chanText(i.id)}</li>${i.tk?`<li>${de(i.tk)} Tokens / Monat inklusive</li>`:''}<li>${i.lim||'Monatlich kündbar'}</li></ul><div class="pr"><b>${i.p?'ab '+fmtEur(i.p):'–'}</b><small>/ Monat</small></div><div class="inc">monatlich kündbar</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${encodeURIComponent(i.id)}">Mieten</a><button class="btn" type="button" onclick="tryPlan('${i.id}')">Live testen</button></div></div>`).join('')}</div>`;}
   else if(k==='buy'){el.innerHTML=`<p class="sub center" style="margin:26px auto 0">Einmal zahlen, dauerhaft nutzen: Agent + großes Token-Guthaben + Einrichtung durch uns. Keine Monatsgebühr; weitere Tokens kaufst du bei Bedarf nach.</p><div class="pgrid2">${AG.filter(a=>a.buy).map(a=>`<div class="card pk feat"><span class="tag gold">Lifetime</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>Dauerhafter Zugang, keine Monatsgebühr</li><li>${de(a.buy.tk)} Tokens inklusive</li><li>Einrichtung durch uns (Video-Call)</li></ul><div class="pr"><b>${de(a.buy.p)} €</b><small>einmalig</small></div><div class="inc">zzgl. MwSt. · Rechnung</div><div class="acts"><a class="btn gold" href="${CHECKOUT}?plan=${a.buy.id}">Kaufen</a><a class="btn" href="${CHECKOUT}?plan=${a.id}">lieber mieten · ${a.p} €/M</a></div></div>`).join('')}</div>`;}
   else if(k==='tokens'){el.innerHTML=`<div class="pgrid2">
     <div class="card pk"><span class="tag">Starter</span><div class="pr" style="margin-top:12px"><b>49 €</b></div><div style="font:700 16px var(--sans)">10.000 Tokens</div><div class="inc">0,0049 € / Token</div><ul><li>Alle Agenten, Studio & API</li><li>Verfallen nicht</li></ul><a class="btn" href="${CHECKOUT}?pack=10k" style="margin-top:auto">Kaufen</a></div>
@@ -1310,11 +1613,8 @@ function renderPrice(k){document.querySelectorAll('.ptab').forEach(b=>b.classLis
     <div class="calc" id="calc"><div><h3>Beliebige Menge kaufen</h3><p style="color:var(--ink2);margin-top:6px">Schiebe oder tippe die Menge – der Preis fällt automatisch mit der Staffel.</p><input type="range" id="tkRange" min="1000" max="500000" step="1000" value="25000"><div class="num"><input type="number" id="tkNum" min="1000" max="5000000" step="1000" value="25000"><span style="color:var(--mute)">Tokens (ab 1.000)</span></div><div class="tiers"><span>&lt; 10k: 0,0055 €</span><span>10k+: 0,0049 €</span><span>50k+: 0,0040 €</span><span>200k+: 0,00345 €</span><span>1 Mio+: 0,0025 €</span></div></div><div class="out"><b id="tkPrice">122,50 €</b><small id="tkUnit">0,0049 € / Token · zzgl. MwSt.</small><a class="btn gold" id="tkBuy" style="margin-top:16px" href="${CHECKOUT}?tokens=25000">Jetzt kaufen →</a></div></div>
     <p style="color:var(--mute);font-size:13px;margin-top:14px">Richtwerte: Chat-Antwort 6 Tokens · Telefon-Antwort 8 · Social-Post 5 · YouTube-Skript 50 · Übersetzung 2 je 100 Wörter · API-Pro 249 €/Monat (50.000 Tokens, Webhooks, SLA) · Enterprise ab 990 €/Monat.</p>`;
     $('#tkRange').addEventListener('input',e=>tkSet(+e.target.value));$('#tkNum').addEventListener('change',e=>tkSet(+e.target.value));tkSet(25000);}
-  else if(k==='abo'){el.innerHTML=`<div class="pgrid2">${ABO.map(a=>`<div class="card pk"><span class="tag teal">Paket</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>${de(a.tk)} Tokens / Monat inklusive</li><li>Studio mit Vorlagen · API</li><li>Monatlich kündbar</li></ul><div class="pr"><b>${a.p} €</b><small>/ Monat</small></div><div class="inc">zzgl. MwSt.</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Abonnieren</a><a class="btn" href="${STUDIO}">Testen</a></div></div>`).join('')}</div>`;}
-  else {el.innerHTML=`<div class="pgrid2">
-    <div class="card pk"><span class="tag gold">Einzeldokument</span><h3>Widerspruch / Einspruch / Antrag</h3><p class="d">Ein geprüftes, versandfertiges Schreiben – mit §§, Frist und Form.</p><ul><li>Zwei KI-Prüfungen</li><li>Versand: Brief · Einschreiben · Fax</li><li>PDF + Word</li></ul><div class="pr"><b>ab 1,99 €</b><small>/ Dokument</small></div><div class="acts"><a class="btn" href="/chat/">Starten</a></div></div>
-    <div class="card pk feat"><span class="tag gold">Abo</span><h3>Recht Basic</h3><p class="d">Für Mieter, Arbeitnehmer, Familien: alle Standard-Schreiben.</p><ul><li>Unbegrenzt Dokumente ansehen</li><li>5 Versände / Monat inklusive</li><li>Fristen-Erinnerungen</li></ul><div class="pr"><b>13,99 €</b><small>/ Monat</small></div><div class="acts"><a class="btn gold" href="/chat/?plan=basic">Abonnieren</a></div></div>
-    <div class="card pk"><span class="tag gold">Abo</span><h3>Recht Pro</h3><p class="d">Für Vielnutzer, Vermieter, kleine Betriebe: alles unbegrenzt.</p><ul><li>Unbegrenzt Dokumente & Versand</li><li>Vertrags-Check & Formulare (DE/FR/TR)</li><li>Priorisierte Prüfung</li></ul><div class="pr"><b>29,99 €</b><small>/ Monat</small></div><div class="acts"><a class="btn p" href="/chat/?plan=pro">Abonnieren</a></div></div></div>`;}}
+  else if(k==='abo'){el.innerHTML=`<div class="pgrid2">${ABO.map(a=>`<div class="card pk"><span class="tag teal">Paket</span><h3>${a.n}</h3><p class="d">${a.d}</p><ul><li>${de(a.tk)} Tokens / Monat inklusive</li><li>Studio mit Vorlagen · API · Website-Chat</li><li>Monatlich kündbar</li></ul><div class="pr"><b>${a.p} €</b><small>/ Monat</small></div><div class="inc">zzgl. MwSt.</div><div class="acts"><a class="btn p" href="${CHECKOUT}?plan=${a.id}">Abonnieren</a><a class="btn" href="${STUDIO}">Testen</a></div></div>`).join('')}</div>`;}
+}
 function tkUnit(n){return n>=1e6?0.0025:n>=200000?0.00345:n>=50000?0.0040:n>=10000?0.0049:0.0055;}
 function tkSet(n){n=Math.max(1000,Math.min(5e6,Math.round(n/1000)*1000));const r=$('#tkRange'),m=$('#tkNum');if(!r)return;r.value=Math.min(n,500000);m.value=n;const u=tkUnit(n);$('#tkPrice').textContent=(n*u).toLocaleString('de-DE',{style:'currency',currency:'EUR'});$('#tkUnit').textContent=u.toLocaleString('de-DE',{minimumFractionDigits:4})+' € / Token · zzgl. MwSt.';$('#tkBuy').href=CHECKOUT+'?tokens='+n;}
 
@@ -1324,7 +1624,7 @@ function linkify(t){return esc(t).replace(/(https?:\/\/[^\s)]+)/g,u=>`<a href="$
 function aiMsg(role,text){const d=document.createElement('div');d.className='m '+role;if(role==='a')d.innerHTML=linkify(text);else d.textContent=text;$('#aiMs').appendChild(d);$('#aiMs').scrollTop=$('#aiMs').scrollHeight;return d;}
 async function aiOpen(){$('#ai').classList.add('open');$('#fab').style.display='none';if(aiInit)return;aiInit=true;
   try{const r=await fetch(DEMO_API+'?lang=de');const j=await r.json();aiMsg('a',j.greeting);const c=$('#aiChips');(j.chips||[]).forEach(t=>{const b=document.createElement('button');b.type='button';b.className='chip';b.textContent=t;b.onclick=()=>aiSend(t);c.appendChild(b);});}
-  catch(e){aiMsg('a','Hallo! Frag mich zu Agenten, Telefon-Agent, Preisen oder ChatHelp Recht.');}}
+  catch(e){aiMsg('a','Hallo! Frag mich zu Agenten, Telefon-Agent, Preisen oder zur privaten Nutzung.');}}
 async function aiSend(text){text=(text||$('#aiIn').value).trim();if(!text)return;$('#aiIn').value='';aiMsg('u',text);aiHist.push({role:'user',content:text});const t=aiMsg('t','…');$('#aiSend').disabled=true;
   try{const r=await fetch(DEMO_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:aiHist.slice(-10),lang:'de'})});const j=await r.json();t.remove();const a=j.reply||j.message||'Gerade nicht erreichbar – bitte gleich erneut versuchen oder support@chat-help.com.';aiMsg('a',a);if(j.reply)aiHist.push({role:'assistant',content:a});}
   catch(e){t.remove();aiMsg('a','Verbindungsfehler – bitte erneut versuchen.');}$('#aiSend').disabled=false;$('#aiIn').focus();}

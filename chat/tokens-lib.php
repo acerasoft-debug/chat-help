@@ -7,6 +7,7 @@
  * Gerekli: db.php (db() PDO). İsteğe bağlı: BREVO_KEY (mail), STRIPE_SK.
  */
 require_once __DIR__ . '/db.php';
+if(is_file(__DIR__.'/billing-lib.php')) require_once __DIR__.'/billing-lib.php';   // Lizenz/Betrieb, eigener KI-Schlüssel, KI-Verbrauch (bl_…)
 
 function th_db(): PDO { static $p=null; if(!$p){ $p = function_exists('db') ? db() : $GLOBALS['pdo']; $p->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION); } return $p; }
 
@@ -141,12 +142,25 @@ function th_plan_upsert(int $acc, string $plan, string $sub, string $status, ?st
 function th_plan_status(string $sub, string $status, ?string $periodEnd=null): void {
     th_db()->prepare("UPDATE token_plans SET status=?, period_end=COALESCE(?,period_end), updated_at=NOW() WHERE stripe_sub=?")->execute([$status,$periodEnd,$sub]);
 }
-/** Hesabın aktif paketleri (active/trialing/past_due → kullanılabilir). */
+/** Pakete des Kontos (alle Zustände). Abgelaufener Inklusiv-Betrieb eines Einmalkaufs steht als status 'license' darin. */
 function th_plans(int $acc): array {
+    if(function_exists('bl_expire_licenses')) bl_expire_licenses($acc);
     $s=th_db()->prepare("SELECT plan,status,period_end,stripe_sub FROM token_plans WHERE account_id=? ORDER BY created_at DESC"); $s->execute([$acc]); return $s->fetchAll(PDO::FETCH_ASSOC);
 }
+/**
+ * Ist der Agent bzw. das Paket nutzbar (active/trialing/past_due)? Zählt jede Variante desselben Agenten (Monatsplan, Einmalkauf im Inklusiv-Zeitraum
+ * bzw. Bestandskauf, Betrieb, eigener Schlüssel – ch_plan_variants); Betrieb/BYOK nur zusammen mit der Lizenz.
+ */
 function th_plan_active(int $acc, string $plan): bool {
-    $s=th_db()->prepare("SELECT COUNT(*) FROM token_plans WHERE account_id=? AND plan=? AND status IN ('active','trialing','past_due')"); $s->execute([$acc,$plan]); return (int)$s->fetchColumn()>0;
+    if(function_exists('bl_expire_licenses')) bl_expire_licenses($acc);
+    $ids=function_exists('ch_plan_variants') ? ch_plan_variants($plan) : [$plan];
+    $s=th_db()->prepare("SELECT DISTINCT plan FROM token_plans WHERE account_id=? AND plan IN (".implode(',',array_fill(0,count($ids),'?')).") AND status IN ('active','trialing','past_due')");
+    $s->execute(array_merge([$acc],$ids));
+    foreach($s->fetchAll(PDO::FETCH_COLUMN) as $id){
+        if(preg_match('/^(?:betrieb|byok)-([a-z0-9-]+)$/',(string)$id,$m) && function_exists('bl_license_owned') && !bl_license_owned($acc,'buy-'.$m[1])) continue;
+        return true;
+    }
+    return false;
 }
 /* ---------- Agent ayarları / widget ---------- */
 function th_agent_cfg(int $acc, string $plan): array {
@@ -184,8 +198,18 @@ function th_account(string $email): array {
     $p->prepare("INSERT INTO token_accounts(email) VALUES(?)")->execute([$email]);
     return ['id'=>(int)$p->lastInsertId(),'email'=>$email];
 }
-function th_balance(int $acc): int {
+/** Echtes Guthaben laut Token-Buch (für Anzeige und Abrechnung). */
+function th_balance_ledger(int $acc): int {
     $s=th_db()->prepare("SELECT COALESCE(SUM(delta),0) FROM token_ledger WHERE account_id=?"); $s->execute([$acc]); return (int)$s->fetchColumn();
+}
+/**
+ * Guthaben für die Bereitschafts-Prüfungen der Kanäle („reicht es für eine Antwort?“). Nutzt das Konto seinen eigenen KI-Schlüssel (BYOK, aktives Paket),
+ * gilt es mit mindestens BL_BYOK_GATE als bereit – abgebucht wird dabei nichts (th_charge/th_debit lesen immer das echte Buch).
+ */
+function th_balance(int $acc): int {
+    $b=th_balance_ledger($acc);
+    if($acc>0 && defined('BL_BYOK_GATE') && $b<BL_BYOK_GATE && function_exists('bl_byok_usable') && bl_byok_usable($acc)) return BL_BYOK_GATE;
+    return $b;
 }
 /** Yükleme; aynı (reason,ref) ikinci kez gelirse sessizce yok sayılır (idempotent). */
 function th_credit(int $acc, int $amount, string $reason, ?string $ref=null): bool {
@@ -208,6 +232,9 @@ function th_debit(int $acc, int $amount, string $reason, ?string $ref=null): boo
  */
 function th_charge(int $acc, int $amount, string $reason, ?string $ref=null): int {
     if($amount<=0) return 0;
+    /* Letzte KI-Antwort lief über den eigenen Schlüssel dieses Kontos → keine Tokens (nur die Plattformgebühr des Pakets). Einmal je KI-Aufruf. */
+    $inf=$GLOBALS['__th_ai_info'] ?? null;
+    if(is_array($inf) && !empty($inf['byok']) && (int)($inf['account'] ?? 0)===$acc && empty($inf['billed'])){ $GLOBALS['__th_ai_info']['billed']=$amount; return 0; }
     $p=th_db(); $p->beginTransaction();
     try{
         $s=$p->prepare("SELECT COALESCE(SUM(delta),0) FROM token_ledger WHERE account_id=? FOR UPDATE"); $s->execute([$acc]);
@@ -238,8 +265,8 @@ function th_secrets_table(): void {
     th_db()->exec("CREATE TABLE IF NOT EXISTS acct_secrets (account_id INT NOT NULL, k VARCHAR(40) NOT NULL, v TEXT NOT NULL,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(account_id,k)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
-/** Zulässige Schlüssel: twilio_sid, twilio_token, twilio_from, meta_app_secret */
-const TH_SECRET_KEYS=['twilio_sid','twilio_token','twilio_from','meta_app_secret'];
+/** Zulässige Schlüssel: twilio_sid, twilio_token, twilio_from, meta_app_secret, claude_key, deepseek_key (eigene KI-Schlüssel, billing-lib) */
+const TH_SECRET_KEYS=['twilio_sid','twilio_token','twilio_from','meta_app_secret','claude_key','deepseek_key'];
 function th_secret(int $acc, string $k): string {
     if($acc<=0 || !in_array($k,TH_SECRET_KEYS,true)) return '';
     if(isset($GLOBALS['__th_sec'][$acc][$k])) return $GLOBALS['__th_sec'][$acc][$k];
@@ -332,12 +359,35 @@ function th_ai_models(): array {
     $m = (defined('CLAUDE_MODEL') && CLAUDE_MODEL) ? [CLAUDE_MODEL] : [];
     return array_values(array_unique(array_merge($m, ['claude-sonnet-5-5','claude-sonnet-4-6','claude-sonnet-4-5'])));
 }
-/** Son th_ai() çağrısının bilgisi: provider, model, errors[] */
+/** Son th_ai() çağrısının bilgisi: provider, model, errors[], tool_calls[], byok (eigener Schlüssel benutzt), account, channel, usage */
 function th_ai_info(): array { return $GLOBALS['__th_ai_info'] ?? []; }
 /**
- * KI sohbet: Claude (model zinciri; model bulunamazsa sıradakine geçer), olmazsa DeepSeek. Metin ya da null döner.
- * messages = [{role:user|assistant, content}]  — son mesaj user olmalı.
+ * KI-Kontext des Requests: Konto (eigener KI-Schlüssel, Verbrauch) und Kanal (Kostenübersicht). Ohne Argumente nur lesen.
+ * Wird von ch_agent_system() (Konto aus der Agent-Konfiguration) und ch_toolkit() (Konto + Kanal) gesetzt; Konto 0 = Plattform (Demo).
  */
+function th_ai_context(?int $acc=null, ?string $channel=null): array {
+    $c=$GLOBALS['__th_ai_ctx'] ?? ['acc'=>0,'channel'=>''];
+    if($acc!==null){ $acc=max(0,$acc); if($acc!==(int)$c['acc']) $c['channel']=''; $c['acc']=$acc; }
+    if($channel!==null) $c['channel']=substr(preg_replace('/[^a-z0-9-]/','',strtolower($channel)) ?? '',0,16);
+    return $GLOBALS['__th_ai_ctx']=$c;
+}
+function th_ai_channel(): string {
+    $c=(string)(th_ai_context()['channel'] ?? ''); if($c!=='') return $c;
+    $r=function_exists('ch_req_channel') ? (string)ch_req_channel() : ''; return $r!=='' ? $r : 'other';
+}
+/**
+ * HTTP-POST (JSON) an einen KI-Anbieter → [HTTP-Code, Antwort-Array|null, curl-Fehler].
+ * Tests (nur Kommandozeile): $GLOBALS['__th_ai_http_mock'] = function(string $url, array $headers, array $payload): [code, array, err].
+ */
+function th_ai_http(string $url, array $headers, array $payload, int $timeout): array {
+    if(PHP_SAPI==='cli' && isset($GLOBALS['__th_ai_http_mock']) && is_callable($GLOBALS['__th_ai_http_mock'])){
+        $r=($GLOBALS['__th_ai_http_mock'])($url,$headers,$payload); return [(int)($r[0] ?? 0), is_array($r[1] ?? null) ? $r[1] : null, (string)($r[2] ?? '')];
+    }
+    $ch=curl_init($url);
+    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>$timeout,CURLOPT_POSTFIELDS=>json_encode($payload,JSON_UNESCAPED_UNICODE),CURLOPT_HTTPHEADER=>$headers]);
+    $raw=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $cerr=curl_error($ch); curl_close($ch);
+    $r=json_decode((string)$raw,true); return [$code, is_array($r) ? $r : null, $cerr];
+}
 /**
  * Verlauf für die KI aufbereiten: leere Nachrichten raus, gleiche Rollen hintereinander zusammenfassen,
  * und beginnt der Verlauf mit der Begrüßung des Agenten, eine neutrale Nutzer-Zeile davor (Claude verlangt user zuerst).
@@ -351,97 +401,132 @@ function th_ai_msgs(array $messages, bool $allowBlocks=false): array {
     if($o && $o[0]['role']==='assistant') array_unshift($o,['role'=>'user','content'=>'(Gespräch beginnt)']);
     return $o;
 }
-function th_ai(string $system, array $messages, int $maxTokens=1200, int $timeout=60): ?string {
-    $msgs=th_ai_msgs($messages);
-    if(!$msgs || end($msgs)['role']!=='user') return null;
-    $info=['provider'=>null,'model'=>null,'errors'=>[]];
-    $cacheF = is_writable(__DIR__) ? __DIR__.'/.ai_model.json' : sys_get_temp_dir().'/ch_ai_model.json';
-    $models = th_ai_models();
-    $cached = @json_decode((string)@file_get_contents($cacheF), true);
-    if(!empty($cached['model']) && (time()-(int)($cached['t']??0)) < 21600 && in_array($cached['model'],$models,true)){
-        $models = array_values(array_unique(array_merge([$cached['model']], $models)));
-    }
-    if(defined('CLAUDE_KEY') && CLAUDE_KEY){
-        foreach($models as $model){
-            $ch=curl_init('https://api.anthropic.com/v1/messages');
-            curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>$timeout,
-                CURLOPT_POSTFIELDS=>json_encode(['model'=>$model,'max_tokens'=>$maxTokens,'system'=>$system,'messages'=>$msgs]),
-                CURLOPT_HTTPHEADER=>['x-api-key: '.CLAUDE_KEY,'anthropic-version: 2023-06-01','content-type: application/json']]);
-            $raw=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $cerr=curl_error($ch); curl_close($ch);
-            $r=json_decode((string)$raw,true);
-            /* Metin blokları birleştirilir: yeni modeller ilk blokta 'thinking' döndürebilir, metin sonraki blokta olur */
-            $txt=''; foreach((array)($r['content'] ?? []) as $blk){ if(is_array($blk) && ($blk['type'] ?? 'text')==='text') $txt.=(string)($blk['text'] ?? ''); }
-            if(trim($txt)!==''){
-                $info['provider']='claude'; $info['model']=$model; $GLOBALS['__th_ai_info']=$info;
-                if(($cached['model']??null)!==$model) @file_put_contents($cacheF, json_encode(['model'=>$model,'t'=>time()]));
-                return $txt;
-            }
-            if($code===200){ $info['errors'][]=$model.': 200 leer (stop_reason '.($r['stop_reason']??'?').')'; continue; }
-            $et=(string)($r['error']['type']??''); $em=(string)($r['error']['message']??$cerr);
-            $info['errors'][]=$model.': '.($code?:'curl').' '.$et.' '.mb_substr($em,0,120);
-            if($code===401 || $et==='authentication_error' || $et==='permission_error') break; // anahtar sorunu: başka model denemenin anlamı yok
-            // bulunamayan model, aşırı yük (529), limit (429), geçici hata → sıradaki modeli dene
+/**
+ * Ein Endpunkt im Anthropic-Messages-Format (Plattform-Claude, eigener Claude- oder DeepSeek-Schlüssel).
+ * $route = [provider, url, key, models[], byok, extra[] (z. B. thinking aus)]. Mit $tools: Werkzeug-Schleife (höchstens $maxRounds Runden).
+ * $st sammelt model, errors[], auth (Schlüssel abgelehnt), auth_msg, ran (Werkzeuge wurden ausgeführt → nie auf einem anderen Weg wiederholen), usage, tool_calls[].
+ */
+function th_ai_route(array $route, string $system, array $msgs, ?array $tools, ?callable $exec, int $maxTokens, int $timeout, int $maxRounds, array &$st): ?string {
+    $st+=['model'=>null,'errors'=>[],'auth'=>false,'auth_msg'=>'','ran'=>false,'usage'=>['in'=>0,'out'=>0,'cache_read'=>0,'cache_write'=>0],'tool_calls'=>[]];
+    $hdr=['x-api-key: '.$route['key'],'anthropic-version: 2023-06-01','content-type: application/json'];
+    $model=null; $text='';
+    for($round=0;$round<max(1,$maxRounds);$round++){
+        $resp=null;
+        foreach($model ? [$model] : (array)$route['models'] as $m){
+            $pl=['model'=>$m,'max_tokens'=>$maxTokens,'system'=>$system,'messages'=>$msgs]+(array)($route['extra'] ?? []);
+            if($tools) $pl['tools']=$tools;
+            [$code,$r,$cerr]=th_ai_http((string)$route['url'],$hdr,$pl,$timeout);
+            if($code===200 && is_array($r) && is_array($r['usage'] ?? null) && function_exists('bl_usage_norm')){ foreach(bl_usage_norm($r['usage']) as $k=>$v) $st['usage'][$k]+=$v; }
+            $useful=false;
+            if($code===200 && is_array($r) && !empty($r['content'])) foreach((array)$r['content'] as $blk){ $ty=is_array($blk) ? ($blk['type'] ?? 'text') : ''; if(($ty==='text' && trim((string)($blk['text'] ?? ''))!=='') || $ty==='tool_use'){ $useful=true; break; } }
+            if($useful){ $resp=$r; $model=$m; break; }
+            if($code===200){ $st['errors'][]=$route['provider'].'/'.$m.': 200 leer (stop_reason '.($r['stop_reason'] ?? '?').')'; if($model) break; continue; }   // z. B. nur „thinking“ → nächstes Modell
+            $et=(string)($r['error']['type'] ?? ''); $em=(string)($r['error']['message'] ?? $cerr);
+            $st['errors'][]=$route['provider'].'/'.$m.': '.($code ?: 'curl').' '.$et.' '.mb_substr($em,0,120);
+            if(in_array($code,[401,402,403],true) || in_array($et,['authentication_error','permission_error'],true)){   // Schlüsselproblem: kein weiteres Modell auf diesem Weg
+                $st['auth']=true; $st['auth_msg']=$code===402 ? 'Guthaben beim Anbieter aufgebraucht' : mb_substr(trim($em) ?: 'HTTP '.$code,0,160); break 2; }
+            if($model) break;   // bekanntes Modell mitten im Gespräch: nicht wechseln
+            // Modell nicht gefunden, Überlast (529), Limit (429), vorübergehender Fehler → nächstes Modell
         }
+        if(!$resp) break;
+        $st['model']=$model;
+        $toolUses=[]; $t='';
+        foreach((array)$resp['content'] as $blk){ if(!is_array($blk)) continue; if(($blk['type'] ?? 'text')==='text') $t.=(string)($blk['text'] ?? ''); elseif(($blk['type'] ?? '')==='tool_use') $toolUses[]=$blk; }
+        if(trim($t)!=='') $text=$t;
+        if(!$tools || !$exec || ($resp['stop_reason'] ?? '')!=='tool_use' || !$toolUses) return trim($text)!=='' ? $text : null;
+        $results=[]; $st['ran']=true;
+        foreach($toolUses as $tu){
+            $in=is_array($tu['input'] ?? null) ? $tu['input'] : [];
+            try{ $out=$exec((string)$tu['name'],$in); }catch(Throwable $e){ $out=['error'=>$e->getMessage()]; }
+            $ref=null; if(is_array($out)){ $ref=$out['code'] ?? null; if($ref===null) foreach($out as $v){ if(is_array($v) && isset($v['code']) && is_scalar($v['code'])){ $ref=$v['code']; break; } } }
+            $st['tool_calls'][]=['name'=>$tu['name'],'input'=>$in,'ok'=>empty($out['error']),'ref'=>is_scalar($ref) ? mb_substr((string)$ref,0,40) : null];
+            $results[]=['type'=>'tool_result','tool_use_id'=>$tu['id'],'content'=>json_encode($out,JSON_UNESCAPED_UNICODE)];
+        }
+        $msgs[]=['role'=>'assistant','content'=>$resp['content']]; $msgs[]=['role'=>'user','content'=>$results];
     }
+    return trim($text)!=='' ? $text : null;
+}
+/**
+ * Gemeinsamer Ablauf für th_ai()/th_ai_tools():
+ *   1) eigener KI-Schlüssel des Kontos (billing-lib: bl_byok_routes – Claude Sonnet 5.5 bzw. DeepSeek Flash; Werkzeuge werden unterstützt),
+ *      abgelehnter Schlüssel → Status „invalid“ + Push; Ersatz über die Plattform nur, wenn das Konto echtes Guthaben hat,
+ *   2) Plattform-Claude (Modellkette, letzter Treffer 6 h gemerkt), 3) Plattform-DeepSeek (ohne Werkzeuge).
+ * Haben Werkzeuge bereits etwas ausgeführt (Bestellung, Buchung …), wird nie auf einem anderen Weg wiederholt.
+ */
+function th_ai_run(string $system, array $msgs, ?array $tools, ?callable $exec, int $maxTokens, int $timeout, int $maxRounds): ?string {
+    $acc=(int)(th_ai_context()['acc'] ?? 0); $channel=th_ai_channel();
+    $info=['provider'=>null,'model'=>null,'errors'=>[],'tool_calls'=>[],'byok'=>false,'account'=>$acc,'channel'=>$channel,'usage'=>null];
+    $done=function(?string $txt, array $st, array $rt) use(&$info,$acc,$channel){
+        $info['tool_calls']=array_merge($info['tool_calls'],$st['tool_calls'] ?? []); $info['errors']=array_merge($info['errors'],$st['errors'] ?? []);
+        $info['provider']=(string)$rt['provider']; $info['model']=$st['model']; $info['byok']=!empty($rt['byok']); $info['usage']=$st['usage'] ?? null;
+        if(function_exists('bl_usage_log') && $st['model']) bl_usage_log($acc,$channel,(string)$rt['provider'],(string)$st['model'],!empty($rt['byok']),$st['usage']);
+        $GLOBALS['__th_ai_info']=$info; return $txt;
+    };
+    /* 1) eigener Schlüssel */
+    $routes=($acc>0 && function_exists('bl_byok_routes')) ? bl_byok_routes($acc) : [];
+    foreach($routes as $rt){
+        $st=[]; $txt=th_ai_route($rt,$system,$msgs,$tools,$exec,$maxTokens,$timeout,$maxRounds,$st);
+        if($txt!==null || $st['ran']){ if(function_exists('bl_byok_ok')) bl_byok_ok($acc,(string)$rt['provider']); return $done($txt,$st,$rt); }
+        $info['errors']=array_merge($info['errors'],$st['errors']);
+        if($st['model'] && function_exists('bl_usage_log')) bl_usage_log($acc,$channel,(string)$rt['provider'],(string)$st['model'],true,$st['usage']);
+        if($st['auth'] && function_exists('bl_byok_invalid')) bl_byok_invalid($acc,(string)$rt['provider'],(string)$st['auth_msg']);
+    }
+    if($routes){
+        if(!(function_exists('bl_platform_fallback_ok') && bl_platform_fallback_ok($acc))){
+            $info['errors'][]='byok: eigener KI-Schlüssel nicht nutzbar, kein ChatHelp-Guthaben für den Ersatzbetrieb'; $info['byok_failed']=true;
+            $GLOBALS['__th_ai_info']=$info; error_log('CH th_ai: '.json_encode($info['errors'])); return null;
+        }
+        $info['byok_fallback']=true;
+    }
+    /* 2) Plattform-Claude */
+    if(defined('CLAUDE_KEY') && CLAUDE_KEY){
+        $cacheF = is_writable(__DIR__) ? __DIR__.'/.ai_model.json' : sys_get_temp_dir().'/ch_ai_model.json';
+        $models=th_ai_models(); $cached=@json_decode((string)@file_get_contents($cacheF),true);
+        if(!empty($cached['model']) && (time()-(int)($cached['t'] ?? 0))<21600 && in_array($cached['model'],$models,true)) $models=array_values(array_unique(array_merge([$cached['model']],$models)));
+        $rt=['provider'=>'claude','url'=>'https://api.anthropic.com/v1/messages','key'=>(string)CLAUDE_KEY,'models'=>$models,'byok'=>false,'extra'=>[]];
+        $st=[]; $txt=th_ai_route($rt,$system,$msgs,$tools,$exec,$maxTokens,$timeout,$maxRounds,$st);
+        if($txt!==null || $st['ran']){ if($st['model'] && ($cached['model'] ?? null)!==$st['model']) @file_put_contents($cacheF,json_encode(['model'=>$st['model'],'t'=>time()])); return $done($txt,$st,$rt); }
+        $info['errors']=array_merge($info['errors'],$st['errors']);
+        if($tools){ $GLOBALS['__th_ai_info']=$info; return null; }   // wie bisher: Werkzeug-Gespräche nicht ohne Werkzeuge fortsetzen
+    }
+    /* 3) Plattform-DeepSeek (OpenAI-Format, nur Text) */
     if(defined('DEEPSEEK_KEY') && DEEPSEEK_KEY){
-        $ch=curl_init('https://api.deepseek.com/chat/completions');
-        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>$timeout,
-            CURLOPT_POSTFIELDS=>json_encode(['model'=>'deepseek-chat','max_tokens'=>$maxTokens,'messages'=>array_merge([['role'=>'system','content'=>$system]],$msgs)]),
-            CURLOPT_HTTPHEADER=>['Authorization: Bearer '.DEEPSEEK_KEY,'content-type: application/json']]);
-        $r=json_decode((string)curl_exec($ch),true); curl_close($ch);
-        if(!empty($r['choices'][0]['message']['content'])){ $info['provider']='deepseek'; $info['model']='deepseek-chat'; $GLOBALS['__th_ai_info']=$info; return $r['choices'][0]['message']['content']; }
-        $info['errors'][]='deepseek-chat: '.mb_substr((string)($r['error']['message']??'yanıt yok'),0,120);
+        $plain=th_ai_msgs(array_values(array_filter($msgs,fn($m)=>is_string($m['content'] ?? null))));
+        if($plain && end($plain)['role']==='user'){
+            [$code,$r,$cerr]=th_ai_http('https://api.deepseek.com/chat/completions',['Authorization: Bearer '.DEEPSEEK_KEY,'content-type: application/json'],
+                ['model'=>'deepseek-chat','max_tokens'=>$maxTokens,'messages'=>array_merge([['role'=>'system','content'=>$system]],$plain)],$timeout);
+            $txt=(string)($r['choices'][0]['message']['content'] ?? '');
+            if(trim($txt)!==''){ $u=(function_exists('bl_usage_norm') && is_array($r['usage'] ?? null)) ? bl_usage_norm($r['usage']) : ['in'=>0,'out'=>0,'cache_read'=>0,'cache_write'=>0];
+                return $done($txt,['model'=>'deepseek-chat','usage'=>$u],['provider'=>'deepseek','byok'=>false]); }
+            $info['errors'][]='deepseek-chat: '.mb_substr((string)($r['error']['message'] ?? ($cerr ?: 'yanıt yok')),0,120);
+        }
     }
     $GLOBALS['__th_ai_info']=$info; error_log('CH th_ai: '.json_encode($info['errors']));
     return null;
+}
+/**
+ * KI sohbet: eigener Schlüssel des Kontos → Claude (model zinciri) → DeepSeek. Metin ya da null döner.
+ * messages = [{role:user|assistant, content}]  — son mesaj user olmalı.
+ */
+function th_ai(string $system, array $messages, int $maxTokens=1200, int $timeout=60): ?string {
+    $msgs=th_ai_msgs($messages);
+    if(!$msgs || end($msgs)['role']!=='user') return null;
+    return th_ai_run($system,$msgs,null,null,$maxTokens,$timeout,1);
 }
 
 /**
  * KI mit Werkzeugen (Anthropic tool use): Modell darf Funktionen aufrufen (z. B. freie Termine lesen, Termin buchen).
  * $tools = [['name','description','input_schema'],…]  $exec(name, input) → array (wird als JSON zurückgegeben).
- * Gibt den finalen Text zurück (null bei Fehler). Infos: th_ai_info() → provider, model, tool_calls[].
+ * Gibt den finalen Text zurück (null bei Fehler). Infos: th_ai_info() → provider, model, tool_calls[], byok.
+ * Ohne Anthropic-Weg (weder eigener Schlüssel noch CLAUDE_KEY) bzw. ohne Werkzeuge: th_ai() ohne Werkzeuge.
  */
 function th_ai_tools(string $system, array $messages, array $tools, callable $exec, int $maxTokens=900, int $timeout=60, int $maxRounds=5): ?string {
-    if(!(defined('CLAUDE_KEY') && CLAUDE_KEY) || !$tools) return th_ai($system,$messages,$maxTokens,$timeout);
+    $acc=(int)(th_ai_context()['acc'] ?? 0);
+    $anthropic=(defined('CLAUDE_KEY') && CLAUDE_KEY) || ($acc>0 && function_exists('bl_byok_routes') && bl_byok_routes($acc));
+    if(!$anthropic || !$tools) return th_ai($system,$messages,$maxTokens,$timeout);
     $msgs=th_ai_msgs($messages,true);
     if(!$msgs || $msgs[0]['role']!=='user' || end($msgs)['role']!=='user') return null;
-    $info=['provider'=>null,'model'=>null,'errors'=>[],'tool_calls'=>[]];
-    $cacheF = is_writable(__DIR__) ? __DIR__.'/.ai_model.json' : sys_get_temp_dir().'/ch_ai_model.json';
-    $models = th_ai_models(); $cached=@json_decode((string)@file_get_contents($cacheF),true);
-    if(!empty($cached['model']) && (time()-(int)($cached['t']??0))<21600 && in_array($cached['model'],$models,true)) $models=array_values(array_unique(array_merge([$cached['model']],$models)));
-    $model=null; $text='';
-    for($round=0;$round<$maxRounds;$round++){
-        $resp=null;
-        foreach($model ? [$model] : $models as $m){
-            $ch=curl_init('https://api.anthropic.com/v1/messages');
-            curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>$timeout,
-                CURLOPT_POSTFIELDS=>json_encode(['model'=>$m,'max_tokens'=>$maxTokens,'system'=>$system,'messages'=>$msgs,'tools'=>$tools],JSON_UNESCAPED_UNICODE),
-                CURLOPT_HTTPHEADER=>['x-api-key: '.CLAUDE_KEY,'anthropic-version: 2023-06-01','content-type: application/json']]);
-            $raw=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $cerr=curl_error($ch); curl_close($ch);
-            $r=json_decode((string)$raw,true);
-            if($code===200 && !empty($r['content'])){ $resp=$r; if($model!==$m){ $model=$m; if(($cached['model']??null)!==$m) @file_put_contents($cacheF,json_encode(['model'=>$m,'t'=>time()])); } break; }
-            $info['errors'][]=$m.': '.($code?:'curl').' '.($r['error']['type']??'').' '.mb_substr((string)($r['error']['message']??$cerr),0,120);
-            if($code===401 || ($r['error']['type']??'')==='authentication_error') break 2;
-            if($model) break; // bekannter Modell-Fehler mitten im Gespräch: nicht wechseln
-        }
-        if(!$resp) break;
-        $info['provider']='claude'; $info['model']=$model;
-        $toolUses=[]; $t='';
-        foreach((array)$resp['content'] as $blk){ if(($blk['type']??'')==='text') $t.=(string)($blk['text']??''); elseif(($blk['type']??'')==='tool_use') $toolUses[]=$blk; }
-        if(trim($t)!=='') $text=$t;
-        if(($resp['stop_reason']??'')!=='tool_use' || !$toolUses){ $GLOBALS['__th_ai_info']=$info; return trim($text)!=='' ? $text : null; }
-        $results=[];
-        foreach($toolUses as $tu){
-            $in=is_array($tu['input']??null)?$tu['input']:[];
-            try{ $out=$exec((string)$tu['name'],$in); }catch(Throwable $e){ $out=['error'=>$e->getMessage()]; }
-            $ref=null; if(is_array($out)){ $ref=$out['code'] ?? null; if($ref===null) foreach($out as $v){ if(is_array($v) && isset($v['code']) && is_scalar($v['code'])){ $ref=$v['code']; break; } } }
-            $info['tool_calls'][]=['name'=>$tu['name'],'input'=>$in,'ok'=>empty($out['error']),'ref'=>is_scalar($ref)?mb_substr((string)$ref,0,40):null];
-            $results[]=['type'=>'tool_result','tool_use_id'=>$tu['id'],'content'=>json_encode($out,JSON_UNESCAPED_UNICODE)];
-        }
-        $msgs[]=['role'=>'assistant','content'=>$resp['content']]; $msgs[]=['role'=>'user','content'=>$results];
-    }
-    $GLOBALS['__th_ai_info']=$info;
-    return trim($text)!=='' ? $text : null;
+    return th_ai_run($system,$msgs,$tools,$exec,$maxTokens,$timeout,$maxRounds);
 }
 
 /** E-posta: Brevo HTTPS API varsa onunla, yoksa mail(). */
