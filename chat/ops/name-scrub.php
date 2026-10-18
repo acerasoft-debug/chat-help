@@ -40,12 +40,20 @@ define('NS_TITLE', "/(?:\\bHerrn?|\\bHr\\.)$SEP$FULLNAME/iu");   // „vertreten
 define('NS_FULL',  "/$FULLNAME/iu");
 define('NS_ANY',   "/\\b$f\\b|\\b$m\\b|$l$CCs|\\b{$l}c\\b/iu");
 define('NS_NEW', 'Management');
+$NS_PARTIAL = !empty($_GET['partial']); $NS_RX_TN = "/(?:\\bHerrn?|\\bHr\\.)$SEP(?:$l$CC|$f)\\b/iu";
 $NS_RX_V = "/\\b$f\\b/iu"; $NS_RX_Z = "/\\b$m\\b/iu"; $NS_RX_N = "/$l$CCs|\\b{$l}c\\b/iu";
 
 function ns_rep(string $s, int &$n): string {
     $s = preg_replace(NS_TITLE, 'das '.NS_NEW, $s, -1, $a) ?? $s;
     $s = preg_replace(NS_FULL, NS_NEW, $s, -1, $b) ?? $s;
-    $n += $a + $b; return $s;
+    $n += $a + $b;
+    if (!empty($GLOBALS['NS_PARTIAL'])) {   // partial=1: einzelner Vor-/Nachname in ÖFFENTLICHEN Inhalten
+        $s = preg_replace($GLOBALS['NS_RX_TN'], 'das '.NS_NEW, $s, -1, $c) ?? $s;
+        $s = preg_replace([$GLOBALS['NS_RX_V'], $GLOBALS['NS_RX_Z'], $GLOBALS['NS_RX_N']], NS_NEW, $s, -1, $d) ?? $s;
+        if ($c + $d) $s = preg_replace('/'.NS_NEW.'(?:(?:\s|&nbsp;)+'.NS_NEW.')+/u', NS_NEW, $s) ?? $s;
+        $n += $c + $d;
+    }
+    return $s;
 }
 function ns_count(string $s): array {               // [voller Name, übrige Teil-Treffer]
     $full = preg_match_all(NS_FULL, $s);
@@ -97,7 +105,7 @@ foreach ($it as $x) {
     if ($isDoc) { $docs++; $docDirs[dirname($rel)] = $rel; continue; }
     echo "  · ".ns_mask($rel)." — voller Name: $full, Teil-Treffer: $part".($part ? ns_kinds($t) : '')."\n";
     if (preg_match('/\.(bak|prev|GOOD|old|orig)\b|\.php\.[A-Za-z]/', $bn) && !preg_match('/\.php$/', $bn)) $bakSamples[] = $rel;
-    if (!$apply || !$full) continue;
+    if (!$apply || (!$full && !($NS_PARTIAL && $part))) continue;
     $n = 0; $new = ns_rep($t, $n);
     if (!$n || $new === $t) continue;
     if (!ns_bak($bakDir, 'files/'.$rel, $t)) { echo "      ✗ Sicherung fehlgeschlagen – Datei unverändert\n"; continue; }
@@ -171,7 +179,7 @@ foreach ($dbs as $dbn => [$label, $pdo]) {
             if ($identityCol && !$prot && !empty($pks[$t])) $policy = ($short === 'usermeta') ? 'Autorenname (Vor-/Nachname, Spitzname) – wird ersetzt, übrige Metadaten nur gemeldet' : 'Autorenname – wird ersetzt';
             elseif ($isMeta && !$identityCol && !$prot) $policy = 'Nutzer-Metadaten – nur gemeldet';
             echo "  · $t.$col — Zeilen: ".count($hit).", voller Name: $full, Teil-Treffer: $part$kinds  [$policy]\n";
-            if (!$apply || strpos($policy, 'wird ersetzt') === false) continue;
+            if (!$apply || strpos($policy, 'wird ersetzt') === false || (!$full && !($NS_PARTIAL && $part && !$identityCol))) continue;
             foreach ($hit as $row) {
                 $old = (string)$row[$col]; $n = 0;
                 if ($identityCol) {
