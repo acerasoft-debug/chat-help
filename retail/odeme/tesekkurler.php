@@ -18,8 +18,9 @@ $tok = trim((string)($_GET['t'] ?? ''));
 $order = ($id !== '' && $tok !== '') ? vr_order_get($id, $tok) : null;
 if ($order !== null) {
     // OxaPay'den dönüş: webhook henüz gelmediyse (gecikme/engel) durumu şimdi
-    // sor — müşteri sipariş sayfasını doğru durumla ("ödendi") görsün.
-    vr_oxapay_sync($order, 0);
+    // sor — müşteri sipariş sayfasını doğru durumla ("ödendi") görsün. İlk
+    // soruda eşik yok; tekrar yüklemelerde 5 sn (bağlantıyla API dövülemesin).
+    vr_oxapay_sync($order, 5);
     vr_redirect('order.php', ['id' => $id, 'token' => $tok, 'paid' => 1]);
 }
 // Token yoksa/eşleşmezse sipariş arama ekranına.

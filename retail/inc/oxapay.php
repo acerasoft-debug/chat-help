@@ -278,10 +278,11 @@ function vr_oxapay_sync(array $order, int $minInterval = 20): ?array
  * bu kadar sipariş (her biri bir API çağrısı). Dönüş: durumu değişen sayısı.
  * Çağıranın inc/orders.php'yi yüklemiş olması gerekir.
  */
-function vr_oxapay_sweep(int $minEvery = 300, int $minAge = 120, int $max = 10): int
+function vr_oxapay_sweep(int $minEvery = 300, int $minAge = 120, int $max = 10, int $budgetSec = 20): int
 {
     if (!vr_oxapay_ready()) return 0;
     $now = time();
+    $t0  = microtime(true);                            // süre bütçesi: sayfa/deploy kilitlenmesin
     if ($minEvery > 0) {
         $run = false;
         vr_store_mutate('oxapay-sync-state.json', static function ($s) use ($now, $minEvery, &$run) {
@@ -301,6 +302,7 @@ function vr_oxapay_sweep(int $minEvery = 300, int $minAge = 120, int $max = 10):
         if ((string)($o['oxapay']['track_id'] ?? '') === '') continue;
         if ($now - (int)($o['created_at'] ?? 0) < $minAge) continue;
         if ($asked++ >= $max) break;
+        if (microtime(true) - $t0 > $budgetSec) break;  // kalanlar bir sonraki turda
         $u = vr_oxapay_sync($o, 0);
         if ($u !== null && (string)($u['status'] ?? '') !== 'pending') $changed++;
     }

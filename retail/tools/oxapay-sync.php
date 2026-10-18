@@ -32,7 +32,7 @@ foreach (vr_orders() as $o) {
         $before[(string)$o['id']] = (string)($o['number'] ?? $o['id']);
     }
 }
-$changed = vr_oxapay_sweep(0, $minAge, 200);        // admin ile aynı yol, eşiksiz
+$changed = vr_oxapay_sweep(0, $minAge, 200, 100);   // admin ile aynı yol, eşiksiz, 100 sn bütçe
 $after   = [];
 foreach (vr_orders() as $o) {
     if (is_array($o) && isset($before[(string)$o['id']]) && (string)($o['status'] ?? '') !== 'pending') {

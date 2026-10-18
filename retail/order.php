@@ -47,15 +47,20 @@ if ($order === null && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 // bekleyen kripto siparişi OxaPay'e sorulur (dönüşte hemen, sonra 20 sn'de bir).
 if ($order !== null && (string)($order['payment_method'] ?? '') === 'crypto' && (string)$order['status'] === 'pending') {
     require_once __DIR__ . '/inc/oxapay.php';
-    $synced = vr_oxapay_sync($order, !empty($_GET['paid']) ? 0 : 20);
+    // İlk soruda eşik yok (synced_at boş); tekrar yüklemelerde 5 / 20 sn.
+    $synced = vr_oxapay_sync($order, !empty($_GET['paid']) ? 5 : 20);
     if ($synced !== null) $order = $synced;
 }
 // Ödenmiş kripto siparişi, siparişi veren oturumdan görüntüleniyorsa sepeti
-// boşalt (kartta bunu Stripe dönüşü yapıyor; kriptoda webhook oturuma erişemez).
-// Oturum eşlemesi: bağlantıyı açan başka bir ziyaretçinin sepeti silinmesin.
+// BİR KEZ boşalt (kartta bunu Stripe dönüşü yapıyor; kriptoda webhook oturuma
+// erişemez). Tek seferlik: müşteri alışverişe devam edip onay e-postasındaki
+// bağlantıyı tekrar açınca yeni sepeti silinmesin. Oturum eşlemesi: bağlantıyı
+// açan başka bir ziyaretçinin sepeti silinmesin.
 if ($order !== null && (string)($order['payment_method'] ?? '') === 'crypto'
-    && (string)$order['status'] === 'paid' && (string)($order['session_id'] ?? '') === session_id()) {
+    && (string)$order['status'] === 'paid' && empty($order['cart_cleared_at'])
+    && (string)($order['session_id'] ?? '') === session_id()) {
     vr_cart_clear(false);
+    vr_order_update((string)$order['id'], ['cart_cleared_at' => time()]);
 }
 
 // ----------------------------------------------- Stripe'tan dönüş doğrulaması
