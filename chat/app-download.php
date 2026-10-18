@@ -69,7 +69,7 @@ h1{font:600 clamp(32px,6vw,52px)/1.06 Fraunces,Georgia,serif;letter-spacing:-.02
 h1 em{font-style:normal;color:var(--gold)}
 .lead{font-size:17px;color:var(--ink2);margin:0 0 22px;max-width:44ch}
 .tabs{display:inline-flex;gap:4px;padding:4px;border-radius:15px;background:var(--sur2);border:1px solid var(--line);max-width:100%;overflow-x:auto}
-.tabs button{border:0;background:none;min-height:42px;padding:8px 14px;border-radius:12px;font:700 14px Inter;color:var(--mute);cursor:pointer;white-space:nowrap;display:inline-flex;gap:7px;align-items:center}
+.tabs button{border:0;background:none;min-height:42px;padding:8px 12px;flex:0 0 auto;border-radius:12px;font:700 14px Inter;color:var(--mute);cursor:pointer;white-space:nowrap;display:inline-flex;gap:7px;align-items:center}
 .tabs button.on{background:var(--sur);color:var(--ink);box-shadow:0 1px 3px rgba(15,18,34,.12)}
 .tabs svg{width:17px;height:17px}
 .pane{display:none}.pane.on{display:block;animation:fi .25s ease}@keyframes fi{from{opacity:0;transform:translateY(6px)}}
@@ -117,8 +117,9 @@ details[open] summary::after{content:"–"}
 details p{margin:0 0 14px;color:var(--ink2);font-size:14.5px}
 footer{padding:30px 0 calc(30px + env(safe-area-inset-bottom));color:var(--mute);font-size:13px;text-align:center}
 footer a{color:var(--ink2)}
-@media (max-width:900px){.hero{grid-template-columns:1fr;gap:18px;padding-top:18px}.shot{order:-1}.phone{width:210px}.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.feat{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:900px){.hero{grid-template-columns:minmax(0,1fr);gap:18px;padding-top:18px}.shot{order:-1}.phone{width:210px}.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.feat{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:560px){.steps{grid-template-columns:1fr}.feat{grid-template-columns:1fr}.step .ill{height:262px}.nav .btn{display:none}.qrbox{padding:18px}.qr{width:180px;height:180px}}
+@media (max-width:400px){.tabs{display:flex;width:100%}.tabs button{flex:1 1 auto;padding:8px 6px;font-size:13px;justify-content:center}.tabs svg{display:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
@@ -203,9 +204,9 @@ footer a{color:var(--ink2)}
       <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:#e9e9ee"><div style="position:absolute;left:0;right:0;bottom:0;top:46px;background:#f2f2f7;border-radius:12px 12px 0 0;padding:8px">
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px"><span style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#f3dfa6,#c9972f)"></span><span><b style="display:block;font-size:8.5px">ChatHelp Business</b><span style="font-size:7px;color:#6b7083">chat-help.com</span></span></div>
         <div style="background:#fff;border-radius:8px;overflow:hidden"><div style="padding:6px 8px;border-bottom:1px solid #eee">Kopieren</div><div style="padding:6px 8px;border-bottom:1px solid #eee">Zur Leseliste</div><div style="padding:6px 8px;border-bottom:1px solid #eee">Lesezeichen</div>
-        <div class="hl" style="padding:6px 8px;display:flex;justify-content:space-between;background:#fff">Zum Home-Bildschirm <span style="border:1.4px solid #0f1222;border-radius:3px;width:11px;height:11px;display:grid;place-items:center;font-size:9px;line-height:1">+</span></div></div></div></div></div></div>
+        <div class="hl" style="padding:6px 8px;display:flex;justify-content:space-between;align-items:center;gap:4px;background:#fff;white-space:nowrap;font-size:8px">Zum Home-Bildschirm <span style="border:1.4px solid #0f1222;border-radius:3px;width:11px;height:11px;display:grid;place-items:center;font-size:9px;line-height:1">+</span></div></div></div></div></div></div>
         <h3><i>2</i>„Zum Home-Bildschirm“</h3><p>In der Liste etwas nach unten wischen und den Eintrag wählen.</p></div>
-      <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:#f2f2f7"><div style="display:flex;justify-content:space-between;padding:22px 8px 8px;font-size:8.5px"><span style="color:#2f6fde">Abbrechen</span><b>Zum Home-Bildschirm</b><span class="hl" style="color:#2f6fde;font-weight:800;padding:1px 3px">Hinzufügen</span></div>
+      <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:#f2f2f7"><div style="display:flex;justify-content:space-between;align-items:center;gap:4px;padding:24px 7px 8px;font-size:7.5px;white-space:nowrap"><span style="color:#2f6fde">Abbrechen</span><b style="font-size:7px">Home-Bildschirm</b><span class="hl" style="color:#2f6fde;font-weight:800;padding:1px 3px">Hinzufügen</span></div>
         <div style="margin:4px 8px;background:#fff;border-radius:10px;padding:8px;display:flex;gap:8px;align-items:center"><span style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#f3dfa6,#c9972f);display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span><span><b style="display:block;font-size:10px">ChatHelp</b><span style="font-size:7.5px;color:#6b7083">chat-help.com</span></span></div>
         <div style="margin:10px 10px;font-size:7.5px;color:#6b7083;font-weight:500">Ein Symbol wird zum Home-Bildschirm hinzugefügt, damit du schnell auf die Website zugreifen kannst.</div></div></div></div>
         <h3><i>3</i>„Hinzufügen“</h3><p>Oben rechts bestätigen – der Name „ChatHelp“ ist schon eingetragen.</p></div>

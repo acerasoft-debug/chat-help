@@ -2,7 +2,7 @@
   "id": "/chat/app.php",
   "name": "ChatHelp Business",
   "short_name": "ChatHelp",
-  "description": "Deine KI-Agenten, Aufträge und Benachrichtigungen – Bestellungen, Taxifahrten, Termine und Rückrufe sofort auf dem Handy.",
+  "description": "Deine KI-Agenten, Aufträge und Benachrichtigungen – Bestellungen, Taxifahrten, Termine, Hotel und Rückrufe sofort auf dem Handy.",
   "lang": "de",
   "dir": "ltr",
   "start_url": "/chat/app.php?src=pwa",
@@ -10,7 +10,7 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
-  "theme_color": "#ffffff",
+  "theme_color": "#f6f7fb",
   "background_color": "#f6f7fb",
   "categories": ["business", "productivity"],
   "prefer_related_applications": false,
@@ -22,25 +22,31 @@
     { "src": "/chat/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "/chat/icons/badge-96.png", "sizes": "96x96", "type": "image/png", "purpose": "monochrome" }
   ],
+  "screenshots": [
+    { "src": "/chat/icons/screen-heute.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Heute: alle neuen Aufträge live" },
+    { "src": "/chat/icons/screen-auftraege.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Bestellungen mit einem Tipp bestätigen" },
+    { "src": "/chat/icons/screen-meldungen.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Benachrichtigungen mit Ton – je Ereignis einstellbar" },
+    { "src": "/chat/icons/screen-wide.png", "sizes": "1600x1000", "type": "image/png", "form_factor": "wide", "label": "ChatHelp Business auf dem Computer" }
+  ],
   "shortcuts": [
     {
-      "name": "Studio",
-      "short_name": "Studio",
-      "description": "Übersicht, Agenten, Telefon und Aufträge",
-      "url": "/chat/studio.php?src=pwa-shortcut#home",
+      "name": "Heute",
+      "short_name": "Heute",
+      "description": "Live-Feed: neue Bestellungen, Termine, Fahrten und Rückrufe",
+      "url": "/chat/app.php?src=pwa-shortcut#heute",
       "icons": [{ "src": "/chat/icons/sc-studio-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Benachrichtigungen",
       "short_name": "Meldungen",
       "description": "Postfach und Einstellungen für Push-Benachrichtigungen",
-      "url": "/chat/studio.php?src=pwa-shortcut#benachrichtigungen",
+      "url": "/chat/app.php?src=pwa-shortcut#benachrichtigungen",
       "icons": [{ "src": "/chat/icons/sc-bell-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
-      "name": "Assistent",
-      "short_name": "Assistent",
-      "description": "Mit deinem persönlichen Studio-Assistenten sprechen",
+      "name": "Studio & Assistent",
+      "short_name": "Studio",
+      "description": "Agenten, Telefon, Widget und dein persönlicher Studio-Assistent",
       "url": "/chat/studio.php?src=pwa-shortcut#assistant",
       "icons": [{ "src": "/chat/icons/sc-assistant-96.png", "sizes": "96x96", "type": "image/png" }]
     }
