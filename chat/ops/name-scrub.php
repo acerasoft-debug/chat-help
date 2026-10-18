@@ -104,7 +104,10 @@ foreach ($it as $x) {
 echo "  Gespeicherte Nutzerdokumente mit Treffern (nur gemeldet, unverändert): $docs\n";
 foreach ($docDirs as $d => $one) {
     $ht = is_file($root.'/'.$d.'/.htaccess') ? (preg_match('/deny\s+from\s+all|require\s+all\s+denied/i', (string)file_get_contents($root.'/'.$d.'/.htaccess')) ? 'gesperrt' : 'vorhanden, ohne Sperre') : 'FEHLT';
-    echo "    Ordner ".ns_mask($d)."/ — .htaccess: $ht · Web-Abruf eines Dokuments: ".ns_http_status('https://chat-help.com/'.str_replace('%2F', '/', rawurlencode($one)))."\n";
+    $lst = '?';
+    if (function_exists('curl_init')) { $ch = curl_init('https://chat-help.com/'.$d.'/'); curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10, CURLOPT_FOLLOWLOCATION => false]); $body = (string)curl_exec($ch); $lc = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+        $lst = $lc.' · aufgelistete .json-Dateien: '.preg_match_all('/\.json["<]/', $body); unset($body); }
+    echo "    Ordner ".ns_mask($d)."/ — .htaccess: $ht · Web-Abruf eines Dokuments: ".ns_http_status('https://chat-help.com/'.str_replace('%2F', '/', rawurlencode($one)))." · Ordner-URL: $lst\n";
 }
 if ($bakSamples) echo "  Sicherungskopien im Web (Beispiel-Abruf): ".ns_mask($bakSamples[0])." → ".ns_http_status('https://chat-help.com/'.str_replace('%2F', '/', rawurlencode($bakSamples[0])))."\n";
 echo "  Geprüft: $files Textdateien · voller Name: $sumF · Teil-Treffer: $sumP · geändert: $changed Dateien\n\n";
