@@ -29,5 +29,7 @@ foreach(['https://github.com/rhasspy/piper/releases/latest','https://huggingface
     echo "Download-Test $u → HTTP ".curl_getinfo($ch,CURLINFO_HTTP_CODE)." ".curl_error($ch)."\n"; curl_close($ch);
 }
 echo "ffmpeg: ".($f('command -v ffmpeg') ?: '—')." · lame: ".($f('command -v lame') ?: '—')." · python3: ".($f('command -v python3') ?: '—')."\n";
+foreach(array_unique([sys_get_temp_dir(),'/tmp','/var/tmp','/dev/shm']) as $td){ if(!is_dir($td)||!is_writable($td)){ echo "Ausführen in $td: nicht beschreibbar\n"; continue; } $tf=$td.'/.ch_t_'.bin2hex(random_bytes(3)).'.sh'; file_put_contents($tf,"#!/bin/sh\necho EXEC_OK\n"); @chmod($tf,0700); echo "Ausführen in $td: ".$f(escapeshellarg($tf))."\n"; @unlink($tf); }
+echo "mount (noexec?): ".$f("mount | grep -E ' /tmp | /home | /html |/dev/shm' | head -5")."\n";
 @unlink($dir.'/t.sh'); @rmdir($dir);
 echo "\nFERTIG\n";
