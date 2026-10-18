@@ -79,8 +79,11 @@ if($type==='checkout.session.completed'){
         $credited=($pl['tokens']>0 && !($run && $subStatus==='trialing')) ? th_credit($aid,$pl['tokens'],'stripe:plan',$o['id']) : false;
         $newKey=(!th_has_key($aid)) ? th_issue_key($aid,'auto') : null;
         $bal=th_balance_ledger($aid);
-        th_mail($email,'ChatHelp: '.$pl['name'].' ist aktiv ✅', mail_plan($pl,$bal,$newKey,true,$until,$subStatus));
-        if($pl['kind']==='agent') th_mail(defined('SMTP_FROM')?SMTP_FROM:'support@chat-help.com','[ChatHelp] Neuer Agent gebucht: '.$pl['name'],'<p>Kunde: '.htmlspecialchars($email).'<br>Agent: '.$pl['id'].'<br>Subscription: '.$subId.'</p><p>Onboarding innerhalb 24h: Wissensbasis/Konten anbinden.</p>');
+        /* Mails nur beim ersten Eintreffen dieser Checkout-Session (Stripe wiederholt Webhooks) */
+        $firstSeen=true; try{ th_db()->exec("CREATE TABLE IF NOT EXISTS stripe_seen (id VARCHAR(80) PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $ins=th_db()->prepare("INSERT IGNORE INTO stripe_seen(id) VALUES(?)"); $ins->execute(['plan:'.(string)($o['id'] ?? '')]); $firstSeen=$ins->rowCount()>0; }catch(Throwable $e){ $firstSeen=true; }
+        if($firstSeen) th_mail($email,'ChatHelp: '.$pl['name'].' ist aktiv ✅', mail_plan($pl,$bal,$newKey,true,$until,$subStatus));
+        if($firstSeen && $pl['kind']==='agent') th_mail(defined('SMTP_FROM')?SMTP_FROM:'support@chat-help.com','[ChatHelp] Neuer Agent gebucht: '.$pl['name'],'<p>Kunde: '.htmlspecialchars($email).'<br>Agent: '.$pl['id'].'<br>Subscription: '.$subId.'</p><p>Onboarding innerhalb 24h: Wissensbasis/Konten anbinden.</p>');
         /* Einrichtung: Datensatz je Checkout-Session + Einrichtungs-Anleitung (Mail mit „Einrichtung starten“ + App-Download) + Push – Wiederholungen senden nichts doppelt */
         $onb=null; if(is_file(__DIR__.'/onboarding-lib.php')){ try{ require_once __DIR__.'/onboarding-lib.php'; $onb=onb_on_payment($aid,$email,$pl,(string)($o['id'] ?? '')); }catch(Throwable $e){ error_log('CH tokens-webhook onboarding: '.$e->getMessage()); } }
         done(['ok'=>true,'plan'=>$pl['id'],'kind'=>$pl['kind'],'status'=>$pl['kind']==='buy' ? 'active' : $subStatus,'included_until'=>$until,'credited'=>$credited,'balance'=>$bal,'key_issued'=>(bool)$newKey,'onboarding'=>$onb]);

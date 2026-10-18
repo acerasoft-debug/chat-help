@@ -120,3 +120,7 @@ chat/studio-panels/kunden.html chat/studio-panels/kunden.html
 chat/studio-panels/kunden.js chat/studio-panels/kunden.js
 # 13 Sprachen: Erkennung, Anweisung, Formatierung, Kundenseiten-Texte
 chat/i18n.php                chat/i18n.php
+# Einrichtung nach dem Kauf (Frage-Antwort, Einrichtungsanleitung per E-Mail)
+chat/onboarding-lib.php      chat/onboarding-lib.php
+chat/studio-panels/einrichtung.html chat/studio-panels/einrichtung.html
+chat/studio-panels/einrichtung.js chat/studio-panels/einrichtung.js
