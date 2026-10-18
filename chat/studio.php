@@ -81,7 +81,7 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{padding:9px 8px
     <div id="stepCode" class="hidden"><label>Code aus der E-Mail <span class="mute" id="lTo"></span></label><div style="position:relative"><input type="text" id="lCode" class="code" inputmode="numeric" pattern="[0-9 ]*" placeholder="••••••" autocomplete="one-time-code" aria-label="6-stelliger Code" style="padding-right:104px"><button type="button" class="btn ghost s" id="lPaste" style="position:absolute;right:8px;top:50%;transform:translateY(-50%)">📋 Einfügen</button></div><button class="btn p" id="lVerify" style="width:100%;margin-top:14px">Anmelden</button><div class="row" style="justify-content:space-between;margin-top:10px"><button class="btn ghost s" id="lBack">andere E-Mail</button><button class="btn ghost s" id="lResend">Code erneut senden</button></div></div>
     <div id="lMsg"></div>
     <details style="margin-top:18px"><summary class="mute small" style="cursor:pointer">Mit API-Key anmelden (ch_live_…)</summary><label>API-Key</label><input type="text" id="lKey" placeholder="ch_live_…"><button class="btn" id="lKeyGo" style="width:100%;margin-top:10px">Weiter</button></details>
-    <p class="mute small" style="margin-top:16px">Mit der Anmeldung akzeptierst du die <a href="/chat/?view=agb">AGB</a> und <a href="/chat/?view=datenschutz">Datenschutzhinweise</a>. Spam-Ordner prüfen, falls der Code nicht ankommt. · <a href="/impressum.html">Impressum</a></p>
+    <p class="mute small" style="margin-top:16px">Mit der Anmeldung akzeptierst du die <a href="/agb.html">AGB</a> und <a href="/datenschutz.html">Datenschutzhinweise</a>. Spam-Ordner prüfen, falls der Code nicht ankommt. · <a href="/impressum.html">Impressum</a></p>
   </div>
 </div>
 
