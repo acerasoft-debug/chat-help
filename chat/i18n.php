@@ -145,7 +145,7 @@ function ch_reply_lang(array $cfg, string $text, string $prev='', string $hint='
 }
 /** Systemprompt-Baustein Sprache. $detected=true: $lang ist die (erkannte) Sprache des Kunden; false: nur Standardsprache bekannt. */
 function ch_lang_directive(string $lang, array $cfg=[], bool $detected=true): string {
-    $def=ch_cfg_default($cfg); $l=ch_lang_norm($lang) ?: $def; $allowed=ch_cfg_langs($cfg);
+    $def=ch_cfg_default($cfg); $l=$detected ? (ch_lang_norm($lang) ?: $def) : $def; $allowed=ch_cfg_langs($cfg);
     $nm=fn(string $c)=>CH_LANGS[$c]['en'].' ('.CH_LANGS[$c]['native'].')';
     $all=count($allowed)>=count(CH_LANG_CODES);
     $offer=$all ? '' : ' Dieser Betrieb bedient nur: '.implode(', ',array_map(fn($c)=>CH_LANGS[$c]['en'],$allowed)).'; schreibt jemand in einer anderen Sprache, antworte höflich auf '.CH_LANGS[$def]['en'].' und sag kurz, in welchen Sprachen du helfen kannst.';
@@ -229,12 +229,23 @@ function ch_de_phrase(string $s, string $lang): string {
     $l=ch_lang_norm($lang) ?: 'de'; if($l==='de' || $s==='') return $s;
     $W=CH_LANG_FMT['de']['w']; $map=[];
     foreach($W as $i=>$x) $map[$x]=CH_LANG_FMT[$l]['w'][$i];
-    $s=preg_replace_callback('/\b(So|Mo|Di|Mi|Do|Fr|Sa)\b/u',fn($m)=>$map[$m[1]],$s) ?? $s;
-    $s=preg_replace_callback('/\b(keine Anrufzeiten hinterlegt|keine Rückrufe|übermorgen|heute|morgen|sofort|ca\.)\b|(\d)\s*Uhr\b/u',function($m) use($l){
-        if(($m[2] ?? '')!=='') return $m[2];
-        return ['keine Anrufzeiten hinterlegt'=>t('cb.nohours',$l),'keine Rückrufe'=>t('cb.noday',$l),'übermorgen'=>t('dayafter',$l),'heute'=>t('today',$l),'morgen'=>t('tomorrow',$l),'sofort'=>t('r.now',$l),'ca.'=>t('approx',$l)][$m[1]] ?? $m[0];
+    $s=preg_replace_callback('/(*UCP)\b(So|Mo|Di|Mi|Do|Fr|Sa)\b/u',fn($m)=>$map[$m[1]],$s) ?? $s;
+    $s=preg_replace('/(*UCP)(\d)\s*Uhr\b/u','$1',$s) ?? $s;
+    $s=preg_replace_callback('/(*UCP)\b(keine Anrufzeiten hinterlegt|keine Rückrufe|übermorgen|heute|morgen|sofort)\b|\bca\.(?=\s)/iu',function($m) use($l){
+        $k=mb_strtolower($m[1] ?? '','UTF-8'); if($k==='') $k='ca.';
+        $v=['keine anrufzeiten hinterlegt'=>t('cb.nohours',$l),'keine rückrufe'=>t('cb.noday',$l),'übermorgen'=>t('dayafter',$l),'heute'=>t('today',$l),'morgen'=>t('tomorrow',$l),'sofort'=>t('r.now',$l),'ca.'=>t('approx',$l)][$k] ?? $m[0];
+        return preg_match('/^\p{Lu}/u',$m[0]) ? mb_strtoupper(mb_substr($v,0,1)).mb_substr($v,1) : $v;
     },$s) ?? $s;
     return $s;
+}
+/** Zahl + Einheit mit Plural: ch_tn(3,'night1','nights','ru') → „3 ночи“ (Russisch mit drei Formen: …1 / …2–4 / sonst). */
+function ch_tn(int $n, string $one, string $many, string $lang): string {
+    $l=ch_lang_norm($lang) ?: 'de';
+    if($l==='ru'){ $a=$n%10; $b=$n%100;
+        if($a===1 && $b!==11) return $n===1 ? t($one,$l,['n'=>$n]) : t($many.'1',$l,['n'=>$n]);
+        if($a>=2 && $a<=4 && ($b<12 || $b>14)) return t($many.'2',$l,['n'=>$n]);
+        return t($many,$l,['n'=>$n]); }
+    return $n===1 ? t($one,$l,['n'=>$n]) : t($many,$l,['n'=>$n]);
 }
 
 /* ======================================================================= Datenbank (Gesprächssprache, Einstellungen) */
@@ -596,9 +607,9 @@ const CH_I18N = [
  'h.h.checked_out'=>'Ziyaretiniz için teşekkürler!','h.h.cancelled'=>'Rezervasyon iptal edildi','h.h.declined'=>'Talep maalesef mümkün değil','h.h.no_show'=>'Konaklama gerçekleşmedi','h.h.def'=>'Rezervasyonunuz',
  'h.st.requested'=>'Talep alındı','h.st.confirmed'=>'Onaylandı','h.st.declined'=>'Reddedildi','h.st.cancelled'=>'İptal edildi','h.st.checked_in'=>'Giriş yapıldı','h.st.checked_out'=>'Çıkış yapıldı','h.st.no_show'=>'Gelmedi',
  'h.s.requested'=>'Talep','h.s.confirmed'=>'Onaylandı','h.s.checked_in'=>'Giriş','h.s.checked_out'=>'Çıkış','h.code'=>'Rezervasyon kodu','h.cx_ok'=>'Rezervasyonunuz ücretsiz iptal edildi.','h.cx_mail'=>'Onay e-posta ile gönderiliyor.',
- 'h.cx_late'=>'Ücretsiz iptal artık mümkün değil. Lütfen doğrudan resepsiyonla iletişime geçin.','h.in'=>'Giriş','h.out'=>'Çıkış','h.from'=>'saat {time} itibarıyla','h.until'=>'saat {time}’e kadar','h.room'=>'Oda','h.roomno'=>'Oda {no}','h.guests'=>'Misafir','h.bf'=>'Kahvaltı',
+ 'h.cx_late'=>'Ücretsiz iptal artık mümkün değil. Lütfen doğrudan resepsiyonla iletişime geçin.','h.in'=>'Giriş','h.out'=>'Çıkış','h.from'=>'saat {time} itibarıyla','h.until'=>'en geç saat {time}','h.room'=>'Oda','h.roomno'=>'Oda {no}','h.guests'=>'Misafir','h.bf'=>'Kahvaltı',
  'h.bf.inc'=>'Dahil','h.bf.yes'=>'Rezerve edildi','h.bf.no'=>'Kahvaltısız','h.b.req'=>'Resepsiyon talebinizi inceliyor ve kısa süre içinde onaylayacak.','h.b.req_mail'=>'Resepsiyon talebinizi inceliyor ve kısa süre içinde {email} adresine e-postayla onaylayacak.','h.b.req2'=>'Oda sizin için ayrıldı – bu sayfa otomatik güncellenir.',
- 'h.b.conf'=>'Rezervasyonunuz onaylandı. Giriş saat {time} itibarıyla – sizi bekliyoruz!','h.b.in'=>'Hoş geldiniz! Konaklamanız süresince isteklerinizi (havlu, uyandırma, taksi …) resepsiyon her zaman karşılar – sohbetten veya telefonla da. Çıkış saat {time}’e kadar.',
+ 'h.b.conf'=>'Rezervasyonunuz onaylandı. Giriş saat {time} itibarıyla – sizi bekliyoruz!','h.b.in'=>'Hoş geldiniz! Konaklamanız süresince isteklerinizi (havlu, uyandırma, taksi …) resepsiyon her zaman karşılar – sohbetten veya telefonla da. Çıkış en geç saat {time}.',
  'h.b.decl'=>'Maalesef bu tarihler için talebinizi onaylayamıyoruz. Size memnuniyetle başka bir tarih bulalım.','h.b.decl_call'=>'Bizi arayın: {phone}','h.b.cx'=>'Bu rezervasyon iptal edildi.','h.b.out'=>'Konaklamanız için teşekkürler – sizi yeniden görmekten mutluluk duyarız.',
  'h.price'=>'Fiyat','h.weekend'=>'hafta sonu','h.nx'=>'{nights} × {price}','h.bfline'=>'{g} kişi × {nights}','h.inc'=>'dahil','h.tax'=>'Konaklama vergisi','h.cancel_h'=>'İptal','h.can'=>'{date} tarihine kadar ücretsiz iptal.','h.cannot'=>'Ücretsiz iptal süresi {date} tarihinde doldu. Değişiklikler için lütfen doğrudan resepsiyonla iletişime geçin.',
  'h.good'=>'Bilmeniz gerekenler','h.find'=>'Bizi nasıl bulursunuz','h.desk'=>'Resepsiyon','h.call'=>'📞 Resepsiyonu ara','h.route'=>'🗺 Yol tarifi','h.cancel'=>'Ücretsiz iptal et','h.confirm'=>'{code} rezervasyonu gerçekten ücretsiz iptal edilsin mi?','h.foot'=>'{link} ile dijital resepsiyon · Güncelleme {time}','h.deadline'=>'{date}, saat {time}',
@@ -617,11 +628,11 @@ const CH_I18N = [
  'ch.media'=>'Teşekkürler! Resim, sesli mesaj ve dosyaları henüz açamıyorum – lütfen isteğinizi kısaca yazıyla gönderin. 🙂','ch.busy'=>'Birazdan yeniden hizmetinizdeyiz.','ch.busy_call'=>'Birazdan yeniden hizmetinizdeyiz – ya da bizi arayın: {phone}.',
  'ch.glitch'=>'Kusura bakmayın, az önce teknik bir sorun oluştu. Lütfen birazdan tekrar deneyin.','ch.glitch_call'=>'Kusura bakmayın, az önce teknik bir sorun oluştu. Lütfen birazdan tekrar deneyin ya da bizi arayın: {phone}.',
  'ch.greet'=>'Merhaba! {company} asistanıyım. Size nasıl yardımcı olabilirim?','ch.team'=>'Ekibimiz','ch.wait'=>'Lütfen biraz bekleyin.','ch.inactive'=>'Bu asistan şu anda aktif değil.','ch.na'=>'Asistan geçici olarak kullanılamıyor.',
- 'demo.greet'=>'Merhaba, ben {company}’den {persona}. Size nasıl yardımcı olabilirim?','demo.greet0'=>'Merhaba, {company}. Size nasıl yardımcı olabilirim?','demo.chips'=>['Benim için neler yapabilirsiniz?','Çalışma saatleriniz nedir?','Randevu almak istiyorum'],
+ 'demo.greet'=>'Merhaba, ben {company} ekibinden {persona}. Size nasıl yardımcı olabilirim?','demo.greet0'=>'Merhaba, {company}. Size nasıl yardımcı olabilirim?','demo.chips'=>['Benim için neler yapabilirsiniz?','Çalışma saatleriniz nedir?','Randevu almak istiyorum'],
  'demo.fill'=>['Bir saniye, hemen bakıyorum.','Kısa bir an lütfen, kontrol ediyorum.'],'demo.down'=>'Demo şu anda kullanılamıyor – lütfen birazdan tekrar deneyin.',
 ],
 'ru'=>[
- 'lang'=>'Язык','clock'=>'{t}','today'=>'сегодня','tomorrow'=>'завтра','dayafter'=>'послезавтра','approx'=>'ок.','min'=>'{n} мин','person1'=>'1 человек','persons'=>'{n} чел.','night1'=>'1 ночь','nights'=>'ночей: {n}',
+ 'lang'=>'Язык','clock'=>'{t}','today'=>'сегодня','tomorrow'=>'завтра','dayafter'=>'послезавтра','approx'=>'ок.','min'=>'{n} мин','person1'=>'1 человек','persons'=>'{n} человек','persons2'=>'{n} человека','persons1'=>'{n} человек','night1'=>'1 ночь','nights'=>'{n} ночей','nights1'=>'{n} ночь','nights2'=>'{n} ночи',
  'total'=>'Итого','live'=>'онлайн','cal'=>'📅 Добавить в календарь','step'=>'Шаг {n} из {m}','q'=>'Вопросы? {phone}','ordered'=>'заказ в {time}','stand'=>'Обновлено в {time}','netfail'=>'Нет соединения – проверьте подключение к интернету и попробуйте ещё раз.',
  'when.today'=>'сегодня в {time}','when.tomorrow'=>'завтра ({date}) в {time}','when.at'=>'{date} в {time}',
  'pay.bar'=>'Наличные','pay.karte'=>'Банковская карта','pay.app'=>'Приложение / Apple Pay / Google Pay','pay.rechnung'=>'По счёту (для компаний)','pay.paypal'=>'PayPal','pay.online'=>'Оплачено онлайн',
@@ -944,7 +955,7 @@ const CH_I18N = [
  'h.b.decl'=>'Valitettavasti emme voi vahvistaa pyyntöäsi näille päiville. Etsimme sinulle mielellämme muita päiviä.','h.b.decl_call'=>'Soita meille: {phone}','h.b.cx'=>'Tämä varaus on peruttu.','h.b.out'=>'Kiitos vierailustasi – tervetuloa uudelleen.',
  'h.price'=>'Hinta','h.weekend'=>'viikonloppu','h.nx'=>'{nights} × {price}','h.bfline'=>'{g} hlö × {nights}','h.inc'=>'sisältyy','h.tax'=>'Turistivero','h.cancel_h'=>'Peruutus','h.can'=>'Maksuton peruutus {date} asti.','h.cannot'=>'Maksuttoman peruutuksen määräaika päättyi {date}. Ota muutoksista yhteyttä suoraan vastaanottoon.',
  'h.good'=>'Hyvä tietää','h.find'=>'Näin löydät meille','h.desk'=>'Vastaanotto','h.call'=>'📞 Soita vastaanottoon','h.route'=>'🗺 Suunnittele reitti','h.cancel'=>'Peru maksutta','h.confirm'=>'Haluatko varmasti perua varauksen {code} maksutta?','h.foot'=>'Digitaalinen vastaanotto palvelulla {link} · Päivitetty klo {time}','h.deadline'=>'{date} klo {time}',
- 'cb.eb'=>'Pyydä soittopyyntö','cb.f1'=>'Linkki on virheellinen','cb.f1t'=>'Käytä yrityksen verkkosivun soittopyyntölinkkiä.','cb.f2'=>'Soittopyynnöt eivät ole juuri nyt mahdollisia','cb.f2t'=>'Yritys ei tällä hetkellä ota vastaan soittopyyntöjä tällä lomakkeella. Käytä verkkosivun yhteystietoja.',
+ 'cb.eb'=>'Pyydä takaisinsoittoa','cb.f1'=>'Linkki on virheellinen','cb.f1t'=>'Käytä yrityksen verkkosivun soittopyyntölinkkiä.','cb.f2'=>'Soittopyynnöt eivät ole juuri nyt mahdollisia','cb.f2t'=>'Yritys ei tällä hetkellä ota vastaan soittopyyntöjä tällä lomakkeella. Käytä verkkosivun yhteystietoja.',
  'cb.f3'=>'Soittopyyntölomake ei ole käytössä','cb.f3t'=>'Käytä yrityksen verkkosivun yhteystietoja.','cb.h'=>'Soitamme sinulle takaisin','cb.i_fast'=>'Jätä numerosi – soitamme yleensä 60 sekunnin kuluessa.','cb.i'=>'Jätä numerosi – soitamme sinulle haluamaasi aikaan.',
  'cb.demo_b'=>'Live-demo:','cb.demo'=>'Tältä näyttää kiinteistönvälittäjän soittopyyntölomake. Kokeile vapaasti – demossa kenellekään ei soiteta eikä mitään lähetetä.','cb.hours'=>'Soittoajat: {t}','cb.instant'=>'Pikasoitto käytössä','cb.phone'=>'Puhelinnumero','cb.phone_ph'=>'040 123 4567',
  'cb.what'=>'Mistä on kyse?','cb.what_ph'=>'esim. näyttö, kysymys tarjouksesta, ajanvaraus …','cb.when'=>'Milloin voimme soittaa?','cb.asap'=>'Mahdollisimman pian','cb.asap60'=>'Yleensä 60 sekunnin kuluessa','cb.asapq'=>'Otamme yhteyttä mahdollisimman pian','cb.earliest'=>'Aikaisintaan {when}',
@@ -962,3 +973,118 @@ const CH_I18N = [
  'demo.greet'=>'Hei, täällä {persona}, {company}. Miten voin auttaa?','demo.greet0'=>'Hei, täällä {company}. Miten voin auttaa?','demo.chips'=>['Mitä voit tehdä puolestani?','Milloin olette auki?','Haluaisin varata ajan'],
  'demo.fill'=>['Hetkinen, tarkistan.','Pieni hetki, katson asiaa.'],'demo.down'=>'Demo ei ole juuri nyt käytettävissä – yritä hetken päästä uudelleen.',
 ],
+'ja'=>[
+ 'lang'=>'言語','clock'=>'{t}','today'=>'今日','tomorrow'=>'明日','dayafter'=>'明後日','approx'=>'約','min'=>'{n}分','person1'=>'1名','persons'=>'{n}名','night1'=>'1泊','nights'=>'{n}泊',
+ 'total'=>'合計','live'=>'ライブ','cal'=>'📅 カレンダーに追加','step'=>'ステップ {n}/{m}','q'=>'ご質問は {phone} まで','ordered'=>'{time} ご注文','stand'=>'{time} 時点','netfail'=>'接続できません。インターネット接続をご確認のうえ、もう一度お試しください。',
+ 'when.today'=>'今日 {time}','when.tomorrow'=>'明日（{date}）{time}','when.at'=>'{date} {time}',
+ 'pay.bar'=>'現金','pay.karte'=>'デビット／クレジットカード','pay.app'=>'アプリ／Apple Pay／Google Pay','pay.rechnung'=>'請求書払い（法人のお客様）','pay.paypal'=>'PayPal','pay.online'=>'オンライン決済済み',
+ 'f.name'=>'お名前','f.name_ph'=>'姓名','f.phone'=>'電話番号','f.email'=>'メールアドレス','f.opt'=>'（任意）','f.email_ph'=>'name@example.jp',
+ 'b.title'=>'ご予約','b.eb'=>'オンライン予約','b.s1'=>'メニューを選ぶ','b.s2'=>'日時','b.s3'=>'お客様情報','b.email'=>'メールアドレス（確認メール用）','b.note'=>'備考（任意）','b.note_ph'=>'例：担当者のご希望、アレルギー、ご質問',
+ 'b.done'=>'ご予約が確定しました','b.manage'=>'予約を確認・変更','b.back'=>'← 戻る','b.next'=>'次へ →','b.book'=>'この内容で予約する','b.chat_t'=>'チャットでのご予約もできます。アシスタントにお尋ねください。','b.chat_ph'=>'例：「木曜の午後にメンズカット」','b.send'=>'送信',
+ 'b.foot'=>'{link} による予約 · お客様の情報はこのご予約にのみ使用します。','b.unavail'=>'現在ご予約いただけません','b.na'=>'ご利用いただけません。','b.nosvc'=>'メニューがまだ登録されていません。チャットでご予約ください。',
+ 'b.chat_hi'=>'こんにちは！ご予約のお手伝いをいたします。ご希望のメニューと、ご都合のよい日時をお聞かせください。','b.nodays'=>'今後14日間に空きがありません。チャットでお問い合わせください。','b.closed'=>'この日は休業日です。','b.free'=>'空き {n}件','b.nofree'=>'この日は空きがありません。',
+ 'b.at'=>'{date} {time}','b.need'=>'お名前と、電話番号またはメールアドレスをご入力ください。','b.taken'=>'この時間はたった今埋まりました。別の時間をお選びください。','b.gone'=>'このメニューは現在ご予約いただけません。ページを再読み込みして、もう一度お選びください。',
+ 'b.code'=>'予約番号 {code}','b.demo'=>'デモ：実際のご利用では、確認メールと前日のリマインダーが届きます。','b.mailed'=>'{email} に確認メールをお送りしました。前日にリマインダーが届きます。','b.keep'=>'予約番号をお控えください。','b.offline'=>'ただいま接続できません。少し時間をおいてお試しください。',
+ 'o.eb'=>'ご注文状況','o.nf'=>'ご注文が見つかりません','o.nf_txt'=>'注文番号が正しくないか、数日以上前のご注文です。お手数ですが店舗へ直接お問い合わせください。','o.title'=>'ご注文 {code}','o.order'=>'ご注文',
+ 'o.h_cancel'=>'ご注文はキャンセルされました','o.h_picked'=>'お受け取り済み – ごゆっくりお召し上がりください！','o.h_deliv'=>'お届け済み – ごゆっくりお召し上がりください！','o.h_run'=>'{name}様、ありがとうございます！ご注文を承りました。','o.h_run0'=>'ありがとうございます！ご注文を承りました。','o.code'=>'注文番号','o.delivery'=>'デリバリー','o.pickup'=>'お持ち帰り',
+ 'o.cx_done'=>'ご注文をキャンセルしました。店舗にもお知らせ済みです。','o.cx_late'=>'店舗がすでにご注文を受け付けたため、キャンセルできません。','o.callus'=>'お電話ください：{phone}','o.cx_was'=>'このご注文はキャンセルされました。',
+ 'o.eta_d'=>'お届け予定','o.eta_p'=>'お受け取り可能時刻','o.with'=>'担当：{name}','o.disc'=>'お持ち帰り割引','o.fee'=>'配達料','o.pickup_at'=>'お受け取り場所：{addr}','o.call'=>'📞 店舗に電話','o.route'=>'🗺 店舗までの道順','o.cancel'=>'キャンセル','o.confirm'=>'本当にご注文をキャンセルしますか？',
+ 'o.foot'=>'{link} による注文受付 · {time} 更新','o.new'=>'受付済み','o.new_d'=>'ご注文が店舗に届きました。','o.confirmed'=>'確認済み','o.confirmed_d'=>'店舗がご注文を受け付けました。','o.preparing'=>'調理中','o.preparing_d'=>'ただいま心を込めて調理中です。',
+ 'o.ready_p'=>'お受け取り可能','o.ready_p_d'=>'お受け取りいただけます。','o.picked'=>'お受け取り済み','o.enjoy'=>'ごゆっくりお召し上がりください！','o.ready'=>'準備完了','o.ready_d'=>'配達員を待っています。','o.out'=>'配達中','o.out_d'=>'配達員がお客様のもとへ向かっています。','o.delivered'=>'お届け済み',
+ 'r.eb'=>'乗車状況','r.nf'=>'ご乗車が見つかりません','r.nf_txt'=>'この乗車番号は見つからないか、しばらく前のご乗車です。確認メッセージの番号をご確認いただくか、タクシー会社へ直接お電話ください。','r.title'=>'ご乗車 {code}','r.company'=>'タクシー配車センター',
+ 'r.h.new_asap'=>'タクシーを手配しました','r.h.new_pre'=>'ご予約を承りました','r.h.assigned'=>'ドライバーが決まりました','r.h.en_route'=>'タクシーが向かっています','r.h.arrived'=>'タクシーが到着しました！','r.h.onboard'=>'よい旅を！','r.h.completed'=>'ご乗車ありがとうございました','r.h.cancelled'=>'ご乗車はキャンセルされました','r.h.no_show'=>'ご乗車は成立しませんでした','r.h.def'=>'ご乗車',
+ 'r.s.new'=>'ご注文受付','r.s.new_asap'=>'最寄りの空車を探しています。','r.s.new_pre'=>'ご予約が確定しています。','r.s.assigned'=>'ドライバー決定','r.s.assigned_d'=>'担当ドライバーが決まりました。','r.s.en_route'=>'お迎え中','r.s.en_route_d'=>'タクシーがお客様のもとへ向かっています。',
+ 'r.s.arrived'=>'到着','r.s.arrived_d'=>'乗車地でタクシーがお待ちしています。','r.s.onboard'=>'乗車中','r.s.onboard_d'=>'どうぞおくつろぎください。','r.s.completed'=>'到着済み','r.s.completed_d'=>'ご利用ありがとうございました。',
+ 'r.hello'=>'{name}様','r.code'=>'乗車番号','r.cx_ok'=>'ご乗車をキャンセルしました。配車センターにもお知らせ済みです。ご連絡ありがとうございました。','r.cx_late'=>'タクシーがすでに到着しているか乗車中のため、キャンセルできません。','r.callz'=>'配車センターへお電話ください：{phone}',
+ 'r.cx_was'=>'このご乗車はキャンセルされました。','r.cx_you'=>'このご乗車はお客様によりキャンセルされました。','r.noshow'=>'申し訳ありませんが、乗車地でお客様を見つけられませんでした。','r.noshow_call'=>'配車センターへご連絡ください：{phone}',
+ 'r.due'=>'タクシー到着予定','r.in'=>'約{n}分後','r.soon'=>'まもなく','r.around'=>'{time}頃','r.ready'=>'乗車地でお待ちください。','r.pickup'=>'乗車地','r.punctual'=>'時間どおりに乗車地へお越しください。','r.waiting'=>'乗車地でタクシーがお待ちしています','r.here'=>'到着しました','r.come'=>'車両までお越しください。',
+ 'r.taxi'=>'タクシー','r.plate'=>'ナンバー','r.dest'=>'目的地','r.tell'=>'ドライバーにお伝えください','r.vehicle'=>'車両','r.extras'=>'オプション','r.luggage'=>'お荷物','r.price'=>'料金','r.payment'=>'お支払い','r.note'=>'備考',
+ 'r.meter'=>'メーター料金','r.fixed'=>'{p}（定額）','r.approx'=>'約{p}（目安。メーター料金が適用されます）','r.dist'=>'{km} · 所要約{n}分','r.now'=>'今すぐ','r.call'=>'📞 配車センターに電話','r.map'=>'🗺 乗車地を地図で見る','r.cancel'=>'乗車をキャンセル','r.confirm'=>'乗車 {code} を本当にキャンセルしますか？',
+ 'r.foot'=>'{link} によるタクシー受付 · {time} 時点','r.auto'=>'自動更新',
+ 'h.eb'=>'ご滞在','h.nf'=>'ご予約が見つかりません','h.nf_sub'=>'予約番号が正しくないか、ご予約が削除されています。','h.nf_txt'=>'確認メールのリンクをご確認いただくか、ホテルへ直接お問い合わせください。予約番号は確認メールに記載されています（8文字、例：{ex}）。',
+ 'h.title'=>'ご滞在 · {hotel}','h.hotel'=>'ホテル','h.h.requested'=>'ご予約リクエストを承りました','h.h.confirmed'=>'お越しを心よりお待ちしております！','h.h.confirmed_n'=>'{name}様、お越しを心よりお待ちしております！','h.h.checked_in'=>'ようこそ！','h.h.checked_in_n'=>'{name}様、ようこそ！',
+ 'h.h.checked_out'=>'ご滞在ありがとうございました！','h.h.cancelled'=>'ご予約はキャンセルされました','h.h.declined'=>'ご希望に沿えませんでした','h.h.no_show'=>'ご来館がありませんでした','h.h.def'=>'ご予約',
+ 'h.st.requested'=>'リクエスト受付','h.st.confirmed'=>'確定','h.st.declined'=>'お断り','h.st.cancelled'=>'キャンセル','h.st.checked_in'=>'チェックイン済み','h.st.checked_out'=>'チェックアウト済み','h.st.no_show'=>'不泊',
+ 'h.s.requested'=>'リクエスト','h.s.confirmed'=>'確定','h.s.checked_in'=>'チェックイン','h.s.checked_out'=>'チェックアウト','h.code'=>'予約番号','h.cx_ok'=>'ご予約を無料でキャンセルしました。','h.cx_mail'=>'確認メールをお送りしています。',
+ 'h.cx_late'=>'無料キャンセルの期限を過ぎています。フロントへ直接お問い合わせください。','h.in'=>'チェックイン','h.out'=>'チェックアウト','h.from'=>'{time}から','h.until'=>'{time}まで','h.room'=>'お部屋','h.roomno'=>'{no}号室','h.guests'=>'ご人数','h.bf'=>'朝食',
+ 'h.bf.inc'=>'込み','h.bf.yes'=>'予約済み','h.bf.no'=>'朝食なし','h.b.req'=>'フロントがご予約リクエストを確認し、まもなく確定のご連絡をいたします。','h.b.req_mail'=>'フロントがご予約リクエストを確認し、まもなく {email} へメールで確定のご連絡をいたします。','h.b.req2'=>'お部屋はお客様のために確保しています。このページは自動で更新されます。',
+ 'h.b.conf'=>'ご予約が確定しました。チェックインは{time}からです。お待ちしております！','h.b.in'=>'ようこそお越しくださいました！ご滞在中のご要望（タオル、モーニングコール、タクシーなど）はフロントがいつでも承ります。チャットやお電話でもどうぞ。チェックアウトは{time}までです。',
+ 'h.b.decl'=>'申し訳ございませんが、この期間のご予約はお受けできません。別の日程をご提案いたします。','h.b.decl_call'=>'お電話ください：{phone}','h.b.cx'=>'このご予約はキャンセルされました。','h.b.out'=>'ご滞在ありがとうございました。またのお越しをお待ちしております。',
+ 'h.price'=>'料金','h.weekend'=>'週末','h.nx'=>'{nights} × {price}','h.bfline'=>'{g}名 × {nights}','h.inc'=>'込み','h.tax'=>'宿泊税','h.cancel_h'=>'キャンセル','h.can'=>'{date}まで無料でキャンセルできます。','h.cannot'=>'無料キャンセルの期限は{date}に終了しました。変更はフロントへ直接お問い合わせください。',
+ 'h.good'=>'ご案内','h.find'=>'アクセス','h.desk'=>'フロント','h.call'=>'📞 フロントに電話','h.route'=>'🗺 ルートを調べる','h.cancel'=>'無料でキャンセル','h.confirm'=>'予約 {code} を本当に無料でキャンセルしますか？','h.foot'=>'{link} によるデジタルフロント · {time} 時点','h.deadline'=>'{date} {time}',
+ 'cb.eb'=>'折り返し電話のご依頼','cb.f1'=>'このリンクは無効です','cb.f1t'=>'企業のウェブサイトにある折り返し電話用のリンクをご利用ください。','cb.f2'=>'現在、折り返し電話のご依頼を受け付けていません','cb.f2t'=>'この企業は現在、このフォームでの折り返し電話のご依頼を受け付けていません。ウェブサイトの連絡先をご利用ください。',
+ 'cb.f3'=>'このフォームは現在ご利用いただけません','cb.f3t'=>'企業のウェブサイトの連絡先をご利用ください。','cb.h'=>'こちらからお電話します','cb.i_fast'=>'お電話番号をご入力ください。通常60秒以内に折り返しお電話します。','cb.i'=>'お電話番号をご入力ください。ご希望の時間に折り返しお電話します。',
+ 'cb.demo_b'=>'ライブデモ：','cb.demo'=>'不動産会社の折り返し電話フォームの例です。お気軽にお試しください。デモでは電話もメールも送信されません。','cb.hours'=>'折り返し受付時間：{t}','cb.instant'=>'即時折り返し対応中','cb.phone'=>'電話番号','cb.phone_ph'=>'090-1234-5678',
+ 'cb.what'=>'ご用件','cb.what_ph'=>'例：内見、ご提案内容へのご質問、日程のご相談 …','cb.when'=>'ご希望のお電話の時間','cb.asap'=>'できるだけ早く','cb.asap60'=>'通常60秒以内','cb.asapq'=>'できるだけ早くご連絡します','cb.earliest'=>'最短で{when}',
+ 'cb.today'=>'本日の指定時刻','cb.today_d'=>'受付時間内','cb.date'=>'日時を指定','cb.date_d'=>'最大10営業日先まで','cb.ttime'=>'本日の時刻','cb.day'=>'日付','cb.time'=>'時刻',
+ 'cb.consent'=>'{company}から、私の問い合わせについて電話で折り返し連絡を受けることに同意します。この同意はいつでも撤回できます。','cb.consent_ai'=>'{company}から、私の問い合わせについて電話で折り返し連絡を受けること（AI電話アシスタントによる連絡を含む）に同意します。この同意はいつでも撤回できます。','cb.thecompany'=>'当社',
+ 'cb.btn'=>'📞 折り返し電話を依頼','cb.sending'=>'送信中 …','cb.priv'=>'プライバシー：{company}は、お客様の情報（お名前、電話番号、メールアドレス・ご用件〔ご入力の場合〕）を折り返し電話のご依頼への対応にのみ使用します。','cb.priv_ai'=>'折り返しのお電話はAI電話アシスタントが行う場合があり、対応のため通話内容を記録します。',
+ 'cb.priv2'=>'ご同意は日時とともに保存され、いつでも撤回できます（通話中にお申し出いただくだけでも結構です）。お電話は受付時間内にのみおかけします。技術提供：ChatHelp（chat-help.com）。',
+ 'cb.thanks'=>'ありがとうございます！','cb.thanks_n'=>'{name}様、ありがとうございます！','cb.got'=>'折り返し電話のご依頼を承りました。','cb.ring'=>'お電話をお手元にご用意ください。まもなくおかけします。','cb.ring_demo'=>'実際のご利用では、ここでお電話が鳴ります。AIアシスタントが60秒以内にお電話します。',
+ 'cb.to'=>'お電話先','cb.w'=>'日時','cb.who'=>'担当','cb.ref'=>'受付番号','cb.m.ai'=>'AIアシスタント','cb.m.team'=>'スタッフ','cb.asap_l'=>'できるだけ早く','cb.demo_done'=>'ライブデモ：お電話や送信は行っていません。',
+ 'cb.e.name'=>'お名前をご入力ください。','cb.e.phone'=>'市外局番から電話番号をご入力ください。','cb.e.email'=>'メールアドレスが正しくないようです。','cb.e.consent'=>'折り返し電話への同意にチェックを入れてください。','cb.e.odd'=>'予期しない応答です。もう一度お試しください。','cb.e.fail'=>'送信できませんでした。もう一度お試しください。',
+ 'cb.foot'=>'{link} による折り返し電話サービス','cb.nohours'=>'受付時間未設定','cb.noday'=>'受付なし',
+ 'ch.media'=>'ありがとうございます！申し訳ございませんが、画像・音声メッセージ・ファイルはまだ開けません。ご用件を短い文章でお送りください。🙂','ch.busy'=>'まもなく対応を再開いたします。','ch.busy_call'=>'まもなく対応を再開いたします。お急ぎの場合はお電話ください：{phone}。',
+ 'ch.glitch'=>'申し訳ございません、技術的な問題が発生しました。少し時間をおいて、もう一度お試しください。','ch.glitch_call'=>'申し訳ございません、技術的な問題が発生しました。少し時間をおいてお試しいただくか、お電話ください：{phone}。',
+ 'ch.greet'=>'こんにちは！{company}のアシスタントです。どのようなご用件でしょうか？','ch.team'=>'スタッフ','ch.wait'=>'少々お待ちください。','ch.inactive'=>'このアシスタントは現在ご利用いただけません。','ch.na'=>'アシスタントは一時的にご利用いただけません。',
+ 'demo.greet'=>'こんにちは。{company}の{persona}です。ご用件をお伺いします。','demo.greet0'=>'こんにちは。{company}です。ご用件をお伺いします。','demo.chips'=>['何をお願いできますか？','営業時間を教えてください','予約をしたいです'],
+ 'demo.fill'=>['少々お待ちください。確認いたします。','ただいまお調べしております。'],'demo.down'=>'デモは現在ご利用いただけません。少し時間をおいてお試しください。',
+],
+'az'=>[
+ 'lang'=>'Dil','clock'=>'{t}','today'=>'bu gün','tomorrow'=>'sabah','dayafter'=>'birigün','approx'=>'təxm.','min'=>'{n} dəq','person1'=>'1 nəfər','persons'=>'{n} nəfər','night1'=>'1 gecə','nights'=>'{n} gecə',
+ 'total'=>'Cəmi','live'=>'canlı','cal'=>'📅 Təqvimə əlavə et','step'=>'Addım {n}/{m}','q'=>'Sualınız var? {phone}','ordered'=>'sifariş vaxtı {time}','stand'=>'Yenilənmə: {time}','netfail'=>'Bağlantı yoxdur – internet bağlantınızı yoxlayıb yenidən cəhd edin.',
+ 'when.today'=>'bu gün saat {time}','when.tomorrow'=>'sabah ({date}) saat {time}','when.at'=>'{date}, saat {time}',
+ 'pay.bar'=>'Nağd','pay.karte'=>'Bank/kredit kartı','pay.app'=>'Tətbiq / Apple Pay / Google Pay','pay.rechnung'=>'Hesab-faktura (korporativ müştərilər)','pay.paypal'=>'PayPal','pay.online'=>'Onlayn ödənilib',
+ 'f.name'=>'Ad','f.name_ph'=>'Ad və soyad','f.phone'=>'Telefon','f.email'=>'E-poçt','f.opt'=>'(istəyə görə)','f.email_ph'=>'ad@numune.az',
+ 'b.title'=>'Görüş təyin et','b.eb'=>'Onlayn qeydiyyat','b.s1'=>'Xidməti seçin','b.s2'=>'Gün və saat','b.s3'=>'Məlumatlarınız','b.email'=>'E-poçt (təsdiq üçün)','b.note'=>'Qeyd (istəyə görə)','b.note_ph'=>'məs. istədiyiniz əməkdaş, allergiya, suallar',
+ 'b.done'=>'Görüş təsdiqləndi','b.manage'=>'Görüşü idarə et','b.back'=>'← Geri','b.next'=>'İrəli →','b.book'=>'Qəti sifariş et','b.chat_t'=>'Çatda qeydiyyatdan keçmək istəyirsiniz? Assistentimizdən soruşun.','b.chat_ph'=>'məs. “cümə axşamı günorta, kişi saç düzümü”','b.send'=>'Göndər',
+ 'b.foot'=>'{link} vasitəsilə qeydiyyat · Məlumatlarınız yalnız bu görüş üçün istifadə olunur.','b.unavail'=>'Qeydiyyat mümkün deyil','b.na'=>'Mövcud deyil.','b.nosvc'=>'Hələ xidmət əlavə olunmayıb – zəhmət olmasa görüşü çatda istəyin.',
+ 'b.chat_hi'=>'Salam! Görüş təyin etməkdə məmnuniyyətlə kömək edərəm. Hansı xidməti istəyirsiniz və sizə nə vaxt uyğundur?','b.nodays'=>'Növbəti 14 gündə boş vaxt yoxdur – zəhmət olmasa çatda soruşun.','b.closed'=>'Bu gün bağlıyıq.','b.free'=>'{n} boş vaxt','b.nofree'=>'Bu gün üçün boş vaxt yoxdur.',
+ 'b.at'=>'{date}, saat {time}','b.need'=>'Zəhmət olmasa adınızı və telefon və ya e-poçtunuzu yazın.','b.taken'=>'Bu vaxt elə indicə tutuldu – başqa vaxt seçin.','b.gone'=>'Bu xidmət artıq sifariş edilə bilmir – səhifəni yeniləyib xidməti yenidən seçin.',
+ 'b.code'=>'Sifariş kodu {code}','b.demo'=>'Demo: real istifadədə indi e-poçtla təsdiq və bir gün əvvəl xatırlatma alardınız.','b.mailed'=>'Təsdiq {email} ünvanına göndərilir. Xatırlatma bir gün əvvəl gələcək.','b.keep'=>'Zəhmət olmasa sifariş kodunu qeyd edin.','b.offline'=>'Hazırda əlçatan deyil – bir azdan yenidən cəhd edin.',
+ 'o.eb'=>'Sifarişin vəziyyəti','o.nf'=>'Sifariş tapılmadı','o.nf_txt'=>'Sifariş kodu yanlışdır və ya sifariş bir neçə gündən köhnədir. Zəhmət olmasa birbaşa restoranla əlaqə saxlayın.','o.title'=>'Sifariş {code}','o.order'=>'Sifariş',
+ 'o.h_cancel'=>'Sifariş ləğv edildi','o.h_picked'=>'Götürüldü – nuş olsun!','o.h_deliv'=>'Çatdırıldı – nuş olsun!','o.h_run'=>'Təşəkkürlər, {name}! Sifarişiniz hazırlanır.','o.h_run0'=>'Təşəkkürlər! Sifarişiniz hazırlanır.','o.code'=>'Sifariş kodu','o.delivery'=>'Çatdırılma','o.pickup'=>'Gəlib götürmə',
+ 'o.cx_done'=>'Sifarişiniz ləğv edildi. Restorana məlumat verildi.','o.cx_late'=>'Ləğv etmək artıq mümkün deyil – restoran sifarişi artıq qəbul edib.','o.callus'=>'Zəhmət olmasa zəng edin: {phone}','o.cx_was'=>'Bu sifariş ləğv edilib.',
+ 'o.eta_d'=>'Təxmini çatdırılma','o.eta_p'=>'Götürməyə hazır olma vaxtı','o.with'=>'kuryer: {name}','o.disc'=>'Götürmə endirimi','o.fee'=>'Çatdırılma haqqı','o.pickup_at'=>'Götürmə: {addr}','o.call'=>'📞 Restorana zəng et','o.route'=>'🗺 Restorana marşrut','o.cancel'=>'Ləğv et','o.confirm'=>'Sifarişi həqiqətən ləğv edək?',
+ 'o.foot'=>'{link} ilə sifariş qəbulu · Vəziyyət yeniləndi: {time}','o.new'=>'Qəbul edildi','o.new_d'=>'Sifariş restorana çatdı.','o.confirmed'=>'Təsdiqləndi','o.confirmed_d'=>'Restoran sifarişi qəbul etdi.','o.preparing'=>'Hazırlanır','o.preparing_d'=>'İndi təzə hazırlanır.',
+ 'o.ready_p'=>'Götürməyə hazırdır','o.ready_p_d'=>'Gəlib götürə bilərsiniz.','o.picked'=>'Götürüldü','o.enjoy'=>'Nuş olsun!','o.ready'=>'Hazırdır','o.ready_d'=>'Kuryeri gözləyir.','o.out'=>'Yoldadır','o.out_d'=>'Kuryer sizə tərəf yoldadır.','o.delivered'=>'Çatdırıldı',
+ 'r.eb'=>'Səfərin vəziyyəti','r.nf'=>'Səfər tapılmadı','r.nf_txt'=>'Bu səfər kodunu tanımırıq və ya səfər xeyli əvvəl olub. Təsdiqdəki kodu yoxlayın – ya da taksi mərkəzinizə birbaşa zəng edin.','r.title'=>'Səfər {code}','r.company'=>'Taksi mərkəziniz',
+ 'r.h.new_asap'=>'Taksiniz sifariş edildi','r.h.new_pre'=>'Səfəriniz planlaşdırıldı','r.h.assigned'=>'Sürücünüz təyin edildi','r.h.en_route'=>'Taksiniz yoldadır','r.h.arrived'=>'Taksiniz gəldi!','r.h.onboard'=>'Yaxşı yol!','r.h.completed'=>'Səfər üçün təşəkkürlər','r.h.cancelled'=>'Səfər ləğv edildi','r.h.no_show'=>'Səfər baş tutmadı','r.h.def'=>'Səfəriniz',
+ 'r.s.new'=>'Sifariş qəbul edildi','r.s.new_asap'=>'Ən yaxın boş maşını axtarırıq.','r.s.new_pre'=>'Səfəriniz dəqiq planlaşdırılıb.','r.s.assigned'=>'Sürücü təyin edildi','r.s.assigned_d'=>'Sürücünüz təyin edildi.','r.s.en_route'=>'Yoldadır','r.s.en_route_d'=>'Taksi sizə tərəf gəlir.',
+ 'r.s.arrived'=>'Taksi gəldi','r.s.arrived_d'=>'Taksiniz götürmə nöqtəsində gözləyir.','r.s.onboard'=>'Səfər davam edir','r.s.onboard_d'=>'Rahatlayın.','r.s.completed'=>'Çatdınız','r.s.completed_d'=>'Bizimlə getdiyiniz üçün təşəkkürlər.',
+ 'r.hello'=>'Salam, {name}','r.code'=>'Səfər kodu','r.cx_ok'=>'Səfəriniz ləğv edildi. Mərkəzə məlumat verildi – xəbər verdiyiniz üçün təşəkkürlər.','r.cx_late'=>'Taksi artıq gəldiyi və ya səfər başladığı üçün ləğv etmək mümkün deyil.','r.callz'=>'Zəhmət olmasa mərkəzə zəng edin: {phone}',
+ 'r.cx_was'=>'Bu səfər ləğv edilib.','r.cx_you'=>'Bu səfər (sizin tərəfinizdən) ləğv edilib.','r.noshow'=>'Təəssüf ki, sürücü sizi götürmə nöqtəsində tapmadı.','r.noshow_call'=>'Zəhmət olmasa mərkəzlə əlaqə saxlayın: {phone}',
+ 'r.due'=>'Taksinizin təxmini gəlişi','r.in'=>'təxm. {n} dəq sonra','r.soon'=>'tezliklə','r.around'=>'saat {time} radələrində','r.ready'=>'Zəhmət olmasa götürmə nöqtəsində hazır olun.','r.pickup'=>'Götürmə','r.punctual'=>'Zəhmət olmasa götürmə nöqtəsinə vaxtında gəlin.','r.waiting'=>'Taksiniz götürmə nöqtəsində gözləyir','r.here'=>'Taksi gəldi','r.come'=>'Zəhmət olmasa maşına yaxınlaşın.',
+ 'r.taxi'=>'Taksi','r.plate'=>'Dövlət nömrəsi','r.dest'=>'Təyinat','r.tell'=>'sürücüyə deyin','r.vehicle'=>'Avtomobil','r.extras'=>'Əlavələr','r.luggage'=>'Baqaj','r.price'=>'Qiymət','r.payment'=>'Ödəniş','r.note'=>'Qeyd',
+ 'r.meter'=>'taksometrlə','r.fixed'=>'{p} sabit qiymət','r.approx'=>'təxm. {p} (təxmini, taksometr əsasdır)','r.dist'=>'{km} · təxm. {n} dəq yol','r.now'=>'dərhal','r.call'=>'📞 Mərkəzə zəng et','r.map'=>'🗺 Götürmə nöqtəsi xəritədə','r.cancel'=>'Səfəri ləğv et','r.confirm'=>'{code} səfərini həqiqətən ləğv edək?',
+ 'r.foot'=>'{link} ilə taksi sifarişi · Yenilənmə: {time}','r.auto'=>'avtomatik yenilənir',
+ 'h.eb'=>'Qonaqlığınız','h.nf'=>'Rezervasiya tapılmadı','h.nf_sub'=>'Rezervasiya kodu yanlışdır və ya rezervasiya silinib.','h.nf_txt'=>'Təsdiq e-poçtundakı linki yoxlayın və ya birbaşa otelinizlə əlaqə saxlayın. Rezervasiya kodu təsdiqdə göstərilib (8 simvol, məs. {ex}).',
+ 'h.title'=>'Qonaqlığınız · {hotel}','h.hotel'=>'Oteliniz','h.h.requested'=>'Sorğunuz qəbul edildi','h.h.confirmed'=>'Sizi səbirsizliklə gözləyirik!','h.h.confirmed_n'=>'Sizi səbirsizliklə gözləyirik, {name}!','h.h.checked_in'=>'Xoş gəlmisiniz!','h.h.checked_in_n'=>'Xoş gəlmisiniz, {name}!',
+ 'h.h.checked_out'=>'Səfəriniz üçün təşəkkürlər!','h.h.cancelled'=>'Rezervasiya ləğv edildi','h.h.declined'=>'Təəssüf ki, sorğu mümkün deyil','h.h.no_show'=>'Qonaqlıq baş tutmadı','h.h.def'=>'Rezervasiyanız',
+ 'h.st.requested'=>'Sorğu qəbul edildi','h.st.confirmed'=>'Təsdiqləndi','h.st.declined'=>'Rədd edildi','h.st.cancelled'=>'Ləğv edildi','h.st.checked_in'=>'Qeydiyyatdan keçdi','h.st.checked_out'=>'Çıxış edildi','h.st.no_show'=>'Gəlmədi',
+ 'h.s.requested'=>'Sorğu','h.s.confirmed'=>'Təsdiq','h.s.checked_in'=>'Giriş','h.s.checked_out'=>'Çıxış','h.code'=>'Rezervasiya kodu','h.cx_ok'=>'Rezervasiyanız ödənişsiz ləğv edildi.','h.cx_mail'=>'Təsdiq e-poçtla göndərilir.',
+ 'h.cx_late'=>'Ödənişsiz ləğv artıq mümkün deyil. Zəhmət olmasa birbaşa resepşnla əlaqə saxlayın.','h.in'=>'Giriş','h.out'=>'Çıxış','h.from'=>'saat {time} və sonra','h.until'=>'ən gec saat {time}','h.room'=>'Otaq','h.roomno'=>'Otaq {no}','h.guests'=>'Qonaqlar','h.bf'=>'Səhər yeməyi',
+ 'h.bf.inc'=>'Daxildir','h.bf.yes'=>'Sifariş edilib','h.bf.no'=>'Səhər yeməyi olmadan','h.b.req'=>'Resepşn sorğunuzu yoxlayır və tezliklə təsdiqləyəcək.','h.b.req_mail'=>'Resepşn sorğunuzu yoxlayır və tezliklə {email} ünvanına e-poçtla təsdiqləyəcək.','h.b.req2'=>'Otaq sizin üçün ayrılıb – bu səhifə avtomatik yenilənir.',
+ 'h.b.conf'=>'Rezervasiyanız təsdiqləndi. Giriş vaxtı: saat {time} və sonra – sizi gözləyirik!','h.b.in'=>'Xoş gəlmisiniz! Qonaqlıq zamanı istəklərinizi (dəsmal, oyatma zəngi, taksi …) resepşn hər zaman qəbul edir – çatda və ya telefonla da. Çıxış ən gec saat {time}.',
+ 'h.b.decl'=>'Təəssüf ki, bu tarixlər üçün sorğunuzu təsdiqləyə bilmirik. Sizin üçün məmnuniyyətlə başqa tarix taparıq.','h.b.decl_call'=>'Bizə zəng edin: {phone}','h.b.cx'=>'Bu rezervasiya ləğv edilib.','h.b.out'=>'Qonaqlığınız üçün təşəkkürlər – sizi yenidən görməyə şad olarıq.',
+ 'h.price'=>'Qiymət','h.weekend'=>'həftəsonu','h.nx'=>'{nights} × {price}','h.bfline'=>'{g} nəfər × {nights}','h.inc'=>'daxildir','h.tax'=>'Turizm vergisi','h.cancel_h'=>'Ləğvetmə','h.can'=>'{date} tarixinədək ödənişsiz ləğv.','h.cannot'=>'Ödənişsiz ləğv müddəti {date} tarixində bitib. Dəyişikliklər üçün birbaşa resepşnla əlaqə saxlayın.',
+ 'h.good'=>'Bilməyiniz faydalıdır','h.find'=>'Bizi necə tapmaq olar','h.desk'=>'Resepşn','h.call'=>'📞 Resepşna zəng et','h.route'=>'🗺 Marşrut qur','h.cancel'=>'Ödənişsiz ləğv et','h.confirm'=>'{code} rezervasiyasını həqiqətən ödənişsiz ləğv edək?','h.foot'=>'{link} ilə rəqəmsal resepşn · Yenilənmə: {time}','h.deadline'=>'{date}, saat {time}',
+ 'cb.eb'=>'Geri zəng sifarişi','cb.f1'=>'Bu link etibarsızdır','cb.f1t'=>'Zəhmət olmasa şirkətin saytındakı geri zəng linkindən istifadə edin.','cb.f2'=>'Hazırda geri zəng sorğusu qəbul edilmir','cb.f2t'=>'Bu şirkət hazırda bu forma vasitəsilə geri zəng sorğusu qəbul etmir. Zəhmət olmasa saytdakı əlaqə məlumatlarından istifadə edin.',
+ 'cb.f3'=>'Bu geri zəng forması aktiv deyil','cb.f3t'=>'Zəhmət olmasa şirkətin saytındakı əlaqə məlumatlarından istifadə edin.','cb.h'=>'Sizə geri zəng edək','cb.i_fast'=>'Nömrənizi qoyun – adətən 60 saniyə ərzində geri zəng edirik.','cb.i'=>'Nömrənizi qoyun – sizə istədiyiniz vaxt geri zəng edək.',
+ 'cb.demo_b'=>'Canlı demo:','cb.demo'=>'Daşınmaz əmlak agentliyinin geri zəng forması belə görünür. Sınayın – demoda heç kimə zəng edilmir və heç nə göndərilmir.','cb.hours'=>'Geri zəng saatları: {t}','cb.instant'=>'Dərhal geri zəng aktivdir','cb.phone'=>'Telefon nömrəsi','cb.phone_ph'=>'050 123 45 67',
+ 'cb.what'=>'Mövzu nədir?','cb.what_ph'=>'məs. baxış, təklif barədə sual, görüş istəyi …','cb.when'=>'Sizə nə vaxt zəng edə bilərik?','cb.asap'=>'Mümkün qədər tez','cb.asap60'=>'Adətən 60 saniyə ərzində','cb.asapq'=>'Ən qısa zamanda sizinlə əlaqə saxlayacağıq','cb.earliest'=>'Ən tez {when}',
+ 'cb.today'=>'Bu gün müəyyən saatda','cb.today_d'=>'Geri zəng saatlarımız daxilində','cb.date'=>'Gün və saat seçin','cb.date_d'=>'10 geri zəng gününə qədər irəli','cb.ttime'=>'Bu gün saat','cb.day'=>'Gün','cb.time'=>'Saat',
+ 'cb.consent'=>'{company} tərəfindən sorğumla bağlı telefonla geri zəng edilməsinə razıyam. Bu razılığı istənilən vaxt geri götürə bilərəm.','cb.consent_ai'=>'{company} tərəfindən sorğumla bağlı telefonla – rəqəmsal süni intellekt telefon assistenti vasitəsilə də – geri zəng edilməsinə razıyam. Bu razılığı istənilən vaxt geri götürə bilərəm.','cb.thecompany'=>'şirkət',
+ 'cb.btn'=>'📞 Geri zəng sifariş et','cb.sending'=>'Göndərilir …','cb.priv'=>'Məxfilik: {company} məlumatlarınızdan (ad, telefon nömrəsi, varsa e-poçt və sorğu) yalnız geri zəng sorğunuzu icra etmək üçün istifadə edir.','cb.priv_ai'=>'Geri zəngi rəqəmsal süni intellekt telefon assistenti edə bilər; söhbət icra üçün qeydə alınır.',
+ 'cb.priv2'=>'Razılığınız tarix və vaxtla saxlanılır və istənilən vaxt geri götürülə bilər – məsələn, elə söhbət zamanı. Yalnız geri zəng saatlarında zəng edirik. Texniki xidmət təminatçısı: ChatHelp (chat-help.com).',
+ 'cb.thanks'=>'Çox sağ olun!','cb.thanks_n'=>'Çox sağ olun, {name}!','cb.got'=>'Geri zəng sorğunuz qəbul edildi.','cb.ring'=>'Telefonunuzu yanınızda saxlayın – tezliklə zəng gələcək.','cb.ring_demo'=>'Real istifadədə telefonunuz indi zəng çalardı – rəqəmsal assistent 60 saniyə ərzində zəng edir.',
+ 'cb.to'=>'Zəng ediləcək nömrə','cb.w'=>'Nə vaxt','cb.who'=>'Zəng edən','cb.ref'=>'Sorğu nömrəniz','cb.m.ai'=>'Rəqəmsal assistent','cb.m.team'=>'Komandamız','cb.asap_l'=>'mümkün qədər tez','cb.demo_done'=>'Canlı demo: heç kimə zəng edilmədi və heç nə göndərilmədi.',
+ 'cb.e.name'=>'Zəhmət olmasa adınızı yazın.','cb.e.phone'=>'Zəhmət olmasa telefon nömrənizi kodla birlikdə yazın.','cb.e.email'=>'E-poçt ünvanı natamam görünür.','cb.e.consent'=>'Zəhmət olmasa geri zəngə razılığınızı təsdiqləyin.','cb.e.odd'=>'Gözlənilməz cavab – yenidən cəhd edin.','cb.e.fail'=>'Təəssüf ki, alınmadı – yenidən cəhd edin.',
+ 'cb.foot'=>'{link} geri zəng xidməti','cb.nohours'=>'zəng saatları təyin edilməyib','cb.noday'=>'geri zəng yoxdur',
+ 'ch.media'=>'Təşəkkürlər! Şəkil, səsli mesaj və faylları hələ aça bilmirəm – zəhmət olmasa sorğunuzu qısa mətnlə yazın. 🙂','ch.busy'=>'Tezliklə yenidən xidmətinizdəyik.','ch.busy_call'=>'Tezliklə yenidən xidmətinizdəyik – ya da bizə zəng edin: {phone}.',
+ 'ch.glitch'=>'Üzr istəyirik, texniki problem yarandı. Zəhmət olmasa bir azdan yenidən cəhd edin.','ch.glitch_call'=>'Üzr istəyirik, texniki problem yarandı. Bir azdan yenidən cəhd edin və ya bizə zəng edin: {phone}.',
+ 'ch.greet'=>'Salam! Mən {company} assistentiyəm. Sizə necə kömək edə bilərəm?','ch.team'=>'Komandamız','ch.wait'=>'Zəhmət olmasa bir az gözləyin.','ch.inactive'=>'Bu assistent hazırda aktiv deyil.','ch.na'=>'Assistent müvəqqəti olaraq əlçatan deyil.',
+ 'demo.greet'=>'Salam, mən {company} komandasından {persona}. Sizə necə kömək edə bilərəm?','demo.greet0'=>'Salam, {company}. Sizə necə kömək edə bilərəm?','demo.chips'=>['Mənim üçün nə edə bilərsiniz?','İş saatlarınız necədir?','Görüş təyin etmək istəyirəm'],
+ 'demo.fill'=>['Bir saniyə, indi baxıram.','Bir az gözləyin, yoxlayıram.'],'demo.down'=>'Demo hazırda əlçatan deyil – bir azdan yenidən cəhd edin.',
+],
+];

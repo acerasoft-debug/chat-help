@@ -13,11 +13,15 @@
  * Server-Stimme — erste verfügbare (TTS_PROVIDER erzwingt eine, 'off' schaltet ab):
  *   openai      OPENAI_KEY | OPENAI_API_KEY          Modell TTS_OPENAI_MODEL (Standard gpt-4o-mini-tts, mit Sprechstil-Anweisung)
  *   elevenlabs  ELEVENLABS_KEY | ELEVENLABS_API_KEY  Stimme je Voreinstellung, überschreibbar mit ELEVENLABS_VOICE_<ID> (z. B. ELEVENLABS_VOICE_F_WARM)
- *   google      GOOGLE_TTS_KEY                       Chirp 3 HD (de-DE)
- *   azure       AZURE_SPEECH_KEY + AZURE_SPEECH_REGION  Neural (de-DE)
+ *   google      GOOGLE_TTS_KEY                       Chirp 3 HD (<locale>-Chirp3-HD-<Name>, gleiche Stimme in jeder Sprache; az → tr-TR, Google hat keine az-Stimme)
+ *   azure       AZURE_SPEECH_KEY + AZURE_SPEECH_REGION  Neural (<locale>-<Name>Neural, native Stimme je Sprache, xml:lang = Sprache der Stimme)
+ * Sprache: voice['lang'] (BCP-47, z. B. ja-JP, nb-NO) – fehlt sie oder ist voice['lang_auto'] gesetzt, wird sie aus dem Text erkannt (i18n.php).
+ *   OpenAI: Sprechanweisung „native <Sprache> speaker“ statt „native German“; ElevenLabs: Mehrsprachenmodell (erkennt die Sprache selbst).
  * Datei-Cache: sys_get_temp_dir()/ch_tts/<sha256>.mp3 (Ordner 0700); Dateien älter als 14 Tage werden gelegentlich gelöscht.
  * Tests: TTS_TEST_BASE lenkt alle Anbieter-Aufrufe auf einen lokalen Mock – wird NUR beachtet, wenn es auf 127.0.0.1/localhost zeigt.
  */
+
+require_once __DIR__.'/i18n.php';   // 13 Sprachen: Erkennung, Sprachnamen, BCP-47-Tags
 
 const CH_TTS_TTL = 7200;                                   // Token-Laufzeit (2 h)
 const CH_TTS_PROVIDERS = ['openai','elevenlabs','google','azure'];
@@ -25,7 +29,7 @@ const CH_TTS_FALLBACK_SECRET = 'chathelp-tts-fallback-v1';  // nur wenn gar kein
 const CH_SPEECH_MAX = 12;
 const CH_SPEECH_LEN = 220;
 const CH_TTS_MAXLEN = 400;                                 // max. Zeichen je Vertonung (tts.php, Studio-Assistent)
-const CH_SPEECH_AND = ['de'=>'und','en'=>'and','fr'=>'et','es'=>'y','tr'=>'ve','ru'=>'и'];
+const CH_SPEECH_AND = ['de'=>'und','en'=>'and','fr'=>'et','es'=>'y','tr'=>'ve','ru'=>'и','it'=>'e','nl'=>'en','sv'=>'och','no'=>'og','fi'=>'ja','ja'=>'と','az'=>'və'];
 /* Nummerierte Listen am Telefon: „Erstens, …“ */
 const CH_SPEECH_ORD = ['de'=>['Erstens','Zweitens','Drittens','Viertens','Fünftens','Sechstens','Siebtens','Achtens','Neuntens','Zehntens'],
                        'en'=>['First','Second','Third','Fourth','Fifth','Sixth','Seventh','Eighth','Ninth','Tenth']];
@@ -37,7 +41,10 @@ const CH_SPEECH_KEEP = ['COVID-19','USB-C','MP3','MP4','H2O','CO2','B2B','B2C','
 const CH_SPEECH_ORD_NOUNS = 'Obergeschoss|Untergeschoss|Erdgeschoss|Dachgeschoss|Stock|Etage|Stufe|Mahnstufe|Mahnung|Rate|Raten|Klasse|Woche|Kalenderwoche|Quartal|Tag|Platz|Reihe|Mal|Halbjahr|Monat|Jahr|Termin|Versuch|Hälfte|Zimmer|Liga';
 const CH_SPEECH_LINK = ['de'=>['Den Link finden Sie im Chat.','Den Link findest du im Chat.'],'en'=>["You'll find the link in the chat.","You'll find the link in the chat."],
   'tr'=>['Bağlantıyı sohbette bulabilirsiniz.','Bağlantıyı sohbette bulabilirsin.'],'fr'=>['Vous trouverez le lien dans le chat.','Tu trouveras le lien dans le chat.'],
-  'es'=>['Encontrará el enlace en el chat.','Encontrarás el enlace en el chat.'],'ru'=>['Ссылку вы найдёте в чате.','Ссылку ты найдёшь в чате.']];
+  'es'=>['Encontrará el enlace en el chat.','Encontrarás el enlace en el chat.'],'ru'=>['Ссылку вы найдёте в чате.','Ссылку ты найдёшь в чате.'],
+  'it'=>['Trova il link nella chat.','Trovi il link nella chat.'],'nl'=>['U vindt de link in de chat.','Je vindt de link in de chat.'],'sv'=>['Länken hittar du i chatten.','Länken hittar du i chatten.'],
+  'no'=>['Lenken finner du i chatten.','Lenken finner du i chatten.'],'fi'=>['Linkin löydät chatista.','Linkin löydät chatista.'],'ja'=>['リンクはチャットにございます。','リンクはチャットにあるよ。'],
+  'az'=>['Linki çatda tapa bilərsiniz.','Linki çatda tapa bilərsən.']];
 /* Abkürzungen: [Muster, Ersatz, kann am Satzende stehen] – Reihenfolge zählt (kWh vor kW, USt-IdNr vor USt) */
 const CH_SPEECH_ABBR = [
   ['/\bz\.\s?B\./u','zum Beispiel',false], ['/\bZ\.\s?B\./u','Zum Beispiel',false], ['/\bd\.\s?h\./u','das heißt',false], ['/\bu\.\s?a\./u','unter anderem',false],
@@ -100,6 +107,7 @@ function ch_speech_sentences(string $text, string $lang='de', bool $du=false): a
     if(!mb_check_encoding($text,'UTF-8')) $text=mb_scrub($text,'UTF-8');
     if(strlen($text)>20000) $text=mb_strcut($text,0,20000,'UTF-8');   // nie mitten in einem Mehrbyte-Zeichen abschneiden
     $P=[];
+    if($lang==='ja') return ch_speech_ja($text,$lang,$du,$P);
     $s=ch_speech_blocks($text,$lang,$du,$P);
     $s=ch_speech_symbols($s,$lang);
     $s=($lang==='de') ? ch_speech_de($s,$P) : ch_speech_generic($s,$lang,$P);
@@ -107,6 +115,15 @@ function ch_speech_sentences(string $text, string $lang='de', bool $du=false): a
     return ch_speech_split($s,$P);
 }
 
+/** Japanisch: keine Leerzeichen – Markdown/Links wie sonst, dann an 。！？ teilen, lange Teile an 、 kürzen (max. 12 Sätze). */
+function ch_speech_ja(string $text, string $lang, bool $du, array &$P): array {
+    $s=ch_speech_restore(ch_speech_blocks($text,$lang,$du,$P),$P);
+    $s=trim(ch_speech_R('/[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{FE0F}]/u','',ch_speech_R('/\s+/u',' ',$s))); $out=[];
+    foreach(preg_split('/(?<=[。！？!?])\s*/u',$s,-1,PREG_SPLIT_NO_EMPTY) ?: [] as $p){ $p=trim($p);
+        while(mb_strlen($p)>CH_SPEECH_LEN){ $cut=mb_strrpos(mb_substr($p,0,CH_SPEECH_LEN),'、'); if($cut===false || $cut<20) $cut=CH_SPEECH_LEN-1; $out[]=mb_substr($p,0,$cut+1); $p=trim(mb_substr($p,$cut+1)); }
+        if($p!=='' && preg_match('/[\p{L}\p{N}]/u',$p)) $out[]=$p; }
+    return array_slice($out,0,CH_SPEECH_MAX);
+}
 /** Zeilen/Markdown/Links/E-Mail-Adressen → ein Fließtext mit Satzzeichen. */
 function ch_speech_blocks(string $text, string $lang, bool $du, array &$P): string {
     $s=str_replace(["\r\n","\r"],"\n",$text);
@@ -412,7 +429,9 @@ function ch_speech_de(string $s, array &$P): string {
 /* ---------- andere Sprachen (Hotel-Gäste, …): nur sprachneutrale Regeln ---------- */
 function ch_speech_generic(string $s, string $lang, array &$P): string {
     $W=['en'=>['euros','percent','and','or','around the clock'],'tr'=>['Euro','yüzde','ve','veya','7/24'],'fr'=>['euros','pour cent','et','ou','24 heures sur 24'],
-        'es'=>['euros','por ciento','y','o','las 24 horas'],'ru'=>['евро','процентов','и','или','круглосуточно']][$lang] ?? ['Euro','%','&','/','24/7'];
+        'es'=>['euros','por ciento','y','o','las 24 horas'],'ru'=>['евро','процентов','и','или','круглосуточно'],'it'=>['euro','per cento','e','o','24 ore su 24'],
+        'nl'=>['euro','procent','en','of','24 uur per dag'],'sv'=>['euro','procent','och','eller','dygnet runt'],'no'=>['euro','prosent','og','eller','døgnet rundt'],
+        'fi'=>['euroa','prosenttia','ja','tai','ympäri vuorokauden'],'az'=>['avro','faiz','və','və ya','gecə-gündüz']][$lang] ?? ['Euro','%','&','/','24/7'];
     $s=str_replace('24/7',$W[4],$s);
     $s=ch_speech_iban($s,$P);
     $s=ch_speech_phone($s,$P,$lang);
@@ -516,8 +535,9 @@ function ch_speech_tidy(string $s): string {
     return trim($s);
 }
 
-/** Grobe Spracherkennung der Agenten-Antwort (Gast schreibt Englisch → Antwort Englisch). */
+/** Grobe Spracherkennung der Agenten-Antwort (Gast schreibt Englisch → Antwort Englisch). 13 Sprachen über i18n.php, sonst die alte Wortliste. */
 function ch_speech_guess_lang(string $t): string {
+    if(function_exists('ch_detect_lang')){ $sure=false; $l=ch_detect_lang($t,'de',$sure); if($sure) return $l; }
     if(preg_match('/\p{Cyrillic}{3,}/u',$t)) return 'ru';
     $l=' '.mb_strtolower((string)preg_replace('/[^\p{L}\s]+/u',' ',$t)).' '; $l=(string)preg_replace('/\s+/u',' ',$l);
     $sc=function(array $w) use($l): int { $n=0; foreach($w as $x) $n+=substr_count($l,' '.$x.' '); return $n; };
@@ -666,7 +686,7 @@ function ch_tts_voices_public(): array {
  * Stimme für ch_tts_synth aus der Demo-/Branchen-Stimme {preset,gender,rate,pitch,role,instructions} und optional einer anderen Voreinstellung.
  * Eigene Voreinstellung: eigene Sprechstil-Anweisung, Tempo und Tonhöhe der Persona. Andere Voreinstellung: deren Stil + Rolle der Persona.
  */
-function ch_tts_voice_for(array $cfg, ?string $presetId=null): array {
+function ch_tts_voice_for(array $cfg, ?string $presetId=null, string $lang=''): array {
     $g=($cfg['gender'] ?? 'f')==='m' ? 'm' : 'f';
     $own=(string)($cfg['preset'] ?? '');
     if(!ch_tts_preset($own)) $own=CH_TTS_PRESET_DEFAULT[$g];
@@ -675,7 +695,8 @@ function ch_tts_voice_for(array $cfg, ?string $presetId=null): array {
     $role=trim((string)($cfg['role'] ?? ''));
     $ins=$mine && trim((string)($cfg['instructions'] ?? ''))!=='' ? trim((string)$cfg['instructions']) : $p['instructions'].($role!=='' ? ' Role: you are '.$role.'.' : '');
     $num=fn($v,$d)=>is_numeric($v) ? (float)$v : $d;
-    return ['preset'=>$pid,'gender'=>$p['gender'],'lang'=>'de-DE',
+    $ln=ch_lang_norm($lang);   // leer = Sprache aus dem Text (lang_auto, siehe ch_tts_lang_fix)
+    return ['preset'=>$pid,'gender'=>$p['gender'],'lang'=>$ln!=='' ? ch_lang_tag($ln) : 'de-DE','lang_auto'=>$ln==='',
         'rate'=>round(max(0.85,min(1.15,$mine ? $num($cfg['rate'] ?? null,$p['rate']) : $p['rate'])),2),
         'pitch'=>round(max(0.8,min(1.2,$mine ? $num($cfg['pitch'] ?? null,$p['pitch']) : $p['pitch'])),2),
         'openai'=>$p['openai'],'instructions'=>$ins,'google'=>$p['google'],'azure'=>$p['azure'],'elevenlabs'=>$p['elevenlabs'],'eleven'=>$p['eleven']];

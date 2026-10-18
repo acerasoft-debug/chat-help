@@ -7,13 +7,15 @@
  *     POST mit entry[].changes[].value.messages[] → Antwort über Graph API (wa_phone_id + wa_token).
  *   • Twilio WhatsApp: POST (Body, From=whatsapp:+…) → Antwort als TwiML <Message>.
  *   • Gesprächsspeicher je Absender (wa_sessions), Werkzeuge: Bestellung (order_on) + Termine (appt_on). Tokens: 6 je Antwort (+2 je Werkzeug).
+ *   • Sprache: je Nachricht erkannt (i18n.php ch_reply_lang), Gesprächssprache je Absender in ch_conv_lang (Kanal wa) – unsichere kurze Nachrichten
+ *     („ok“, „👍“) behalten die bisherige Sprache; feste Texte (Bild-Hinweis, Störung, kein Guthaben) in der Sprache des Kunden.
  */
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 require_once __DIR__.'/appt-lib.php';
 require_once __DIR__.'/order-lib.php';
 require_once __DIR__.'/agent-tools.php';
-th_nocache(); th_bootstrap();
+th_nocache(); th_bootstrap(); ch_i18n_bootstrap();
 
 $key=(string)($_GET['key'] ?? '');
 $cfg=null; if(preg_match('/^wk_[a-f0-9]{36}$/',$key)){ $s=th_db()->prepare("SELECT c.*, a.email FROM agent_configs c JOIN token_accounts a ON a.id=c.account_id WHERE c.widget_key=?"); $s->execute([$key]); $cfg=$s->fetch(PDO::FETCH_ASSOC) ?: null; }
@@ -74,19 +76,24 @@ $sync=!$async && $provider==='twilio';   // TwiML: Twilio wartet höchstens 15 s
 $replies=[];
 foreach($incoming as $in){
     $from=$in['from']; if($from==='') continue;
-    if($in['media']!=='' && trim($in['text'])===''){ $replies[]=[$from,'Danke! Bilder, Sprachnachrichten und Dateien kann ich leider noch nicht öffnen – schreib mir dein Anliegen bitte kurz als Text. 🙂']; continue; }
+    $prevLang=(string)(ch_conv_lang_get($aid,'wa',$from)['lang'] ?? '');
+    if($in['media']!=='' && trim($in['text'])===''){ $replies[]=[$from,t('ch.media',$prevLang ?: ch_cfg_default($cfg))]; continue; }
     $text=trim(mb_substr($in['text'],0,1500)); if($text==='') continue;
+    /* Antwortsprache: diese Nachricht (sicher erkannt) → bisherige Gesprächssprache → Standardsprache; nur erlaubte Sprachen */
+    $lsure=false; $rl=ch_reply_lang($cfg,str_starts_with($text,'[Standort') ? '' : $text,$prevLang,'',$lsure);
+    if($rl!==$prevLang && ($lsure || $prevLang==='')) ch_conv_lang_set($aid,'wa',$from,$rl);
+    $ph=(string)($os['phone'] ?? '');
     if(!th_rate('wa:'.$aid.':'.$from,25,600) || !th_rate('wad:'.$aid,3000,86400)){ continue; }   // Flut von einer Nummer / Tageslimit je Konto
     /* Eine Unterhaltung je Absender nacheinander: verhindert verlorenen Verlauf und doppelte Bestellungen bei schnellen Folgenachrichten */
     $lk='wa:'.$aid.':'.$from; $locked=th_lock($lk,$sync?8:40);
     try{
         $hist=ord_wa_session($aid,$from); $hist[]=['role'=>'user','content'=>$text];
         $cost=CH_PRICING['widget_turn'];
-        if(th_balance($aid) < $cost){ $replies[]=[$from,'Wir sind gleich wieder für Sie da'.($os['phone']?' – oder rufen Sie uns an: '.$os['phone']:'').'.']; continue; }
-        $sys=ch_agent_system($pl,$cfg,(string)($cfg['lang']?:'de'))."\n\nKANAL: WhatsApp. Schreib wie ein freundlicher Mitarbeiter im Chat: kurze Nachrichten (max. 4–5 Zeilen), Emojis sparsam, Aufzählungen mit „•“, kein Markdown-Fett (WhatsApp zeigt *Sternchen*). Kunde: ".($in['name']?:'unbekannt').". Telefonnummer des Kunden (nicht erfragen): +".$from.". Zeilen „[intern …]“ im Verlauf sind Systemnotizen (z. B. bereits angelegte Bestellung) – beachten, aber nie zitieren und nichts doppelt anlegen.";
+        if(th_balance($aid) < $cost){ $replies[]=[$from,$ph!=='' ? t('ch.busy_call',$rl,['phone'=>$ph]) : t('ch.busy',$rl)]; continue; }
+        $sys=ch_agent_system($pl,$cfg,$rl,true)."\n\nKANAL: WhatsApp. Schreib wie ein freundlicher Mitarbeiter im Chat: kurze Nachrichten (max. 4–5 Zeilen), Emojis sparsam, Aufzählungen mit „•“, kein Markdown-Fett (WhatsApp zeigt *Sternchen*). Kunde: ".($in['name']?:'unbekannt').". Telefonnummer des Kunden (nicht erfragen): +".$from.". Zeilen „[intern …]“ im Verlauf sind Systemnotizen (z. B. bereits angelegte Bestellung) – beachten, aber nie zitieren und nichts doppelt anlegen.";
         $tk=ch_toolkit($aid,'whatsapp',$from); $sys.=$tk['hint'];
         $reply=$tk['tools'] ? th_ai_tools($sys,$hist,$tk['tools'],$tk['exec'],700,$sync?11:60,$sync?2:5) : th_ai($sys,$hist,600,$sync?11:45);
-        if($reply===null){ $replies[]=[$from,'Entschuldigung, gerade gab es ein technisches Problem. Bitte versuchen Sie es gleich noch einmal'.($os['phone']?' oder rufen Sie an: '.$os['phone']:'').'.']; continue; }   // kein Abzug bei KI-Ausfall
+        if($reply===null){ $replies[]=[$from,$ph!=='' ? t('ch.glitch_call',$rl,['phone'=>$ph]) : t('ch.glitch',$rl)]; continue; }   // kein Abzug bei KI-Ausfall
         $reply=preg_replace('/\*\*(.+?)\*\*/u','*$1*',$reply);   // Markdown-Fett → WhatsApp-Fett
         $reply=trim(preg_replace('/\n?\[intern[^\]]*\]/u','',$reply));
         $calls=th_ai_info()['tool_calls'] ?? []; $cost+=2*count($calls);

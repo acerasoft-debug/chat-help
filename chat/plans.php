@@ -8,6 +8,7 @@
  *
  *   id => [ 'name', aylık_cent, aylık_token, 'sector', 'kind' (agent|abo), 'desc' ]
  */
+require_once __DIR__.'/i18n.php';   // 13 Sprachen: Spracherkennung, Sprach-Baustein im Systemprompt (ch_agent_system), Formate
 const CH_PLANS = [
   // Creator
   'creator-social'  => ['KI-Social-Media-Automatisierung', 3900, 10000, 'marketing', 'abo',   'Posts, Captions, Hashtag-Strategie – wöchentlich frisch, 6 Sprachen'],
@@ -279,16 +280,20 @@ const CH_AGENT_RULES = [
 ];
 
 /** Agent/Paket için SYSTEM prompt: sektör + rol + müşteri ayarları (firma, ton, dil, bilgi tabanı). */
-function ch_agent_system(array $pl, array $cfg, string $lang='de'): string {
+/** $detected=true: $lang ist die erkannte Sprache des Kunden (ch_reply_lang, i18n.php) → ausdrückliche Antwortsprache mit Sprachnamen.
+ *  false (ältere Aufrufer): Standardsprache des Agenten (cfg lang, sonst $lang), Antwort folgt der Sprache des Kunden. */
+function ch_agent_system(array $pl, array $cfg, string $lang='de', bool $detected=false): string {
   if(function_exists('th_ai_context')) th_ai_context((int)($cfg['account_id'] ?? 0));   // eigener KI-Schlüssel + Verbrauch dieses Kontos (Demo/ohne Konto: Plattform)
   $sys  = CH_SECTORS[$pl['sector']]['sys'] ?? 'Du bist ein präziser, hilfreicher Business-Assistent.';
   $sys .= "\n\n".($pl['rules'] ?: 'Rolle: '.$pl['name'].'. '.$pl['desc']);
   if(!empty($cfg['company'])) $sys .= "\n\nUnternehmen: ".$cfg['company'].".";
   $sys .= " Tonalität: ".($cfg['tone'] ?: 'freundlich-professionell').".";
-  $sys .= " Antworte in der Sprache: ".strtoupper($cfg['lang'] ?: $lang).", außer der Nutzer schreibt erkennbar in einer anderen Sprache – dann in dessen Sprache.";
+  $lcfg=$cfg; if(trim((string)($cfg['lang'] ?? ''))==='') $lcfg['lang']=$lang;   // ohne Agenten-Sprache: Sprache des Aufrufers als Standard
+  $sys .= "\n\n".trim(ch_lang_directive($lang,$lcfg,$detected));   // Sprachname statt Code („Japanese (日本語)“ statt „JA“), erlaubte Sprachen, Formate
   if(!empty($cfg['kb'])) $sys .= "\n\n=== WISSENSBASIS (einzige verbindliche Quelle für Fakten) ===\n".mb_substr($cfg['kb'],0,40000)."\n=== ENDE WISSENSBASIS ===";
   if(function_exists('train_prompt_addon')) $sys .= train_prompt_addon((int)($cfg['account_id'] ?? 0), (string)($cfg['plan'] ?? $pl['id']));   // FAQ + Verhaltensregeln (Agent-Training)
   $sys .= "\n\nGib nur das Ergebnis, ohne Vorrede. Erfinde keine Fakten, die nicht in der Wissensbasis stehen.";
+  if($detected && (ch_lang_norm($lang) ?: 'de')!=='de') $sys .= " Antwortsprache: ".ch_lang_name($lang,'en')." (".ch_lang_name($lang,'native').").";
   return $sys;
 }
 
@@ -1105,10 +1110,14 @@ const CH_CATEGORIES = [
     'plans'=>['agent-hotel','buy-hotel','gastro-agent','gastro-karte','gastro-reviews']],
   'dienstleistung' => ['label'=>'Dienstleistung & Termine','short'=>'Termine buchen, Anrufe annehmen, Angebote und Rückrufe – für Salon, Studio, Werkstatt und Handwerk.','icon'=>'📅','order'=>30,'home_group'=>'Dienstleistung',
     'plans'=>['agent-termine','buy-termine','agent-phone','buy-phone','agent-autohaus','hw-angebot','hw-kunden','hw-rechnung']],
+  'beauty'         => ['label'=>'Beauty & Ästhetik','short'=>'Kosmetik, Nägel, Wimpern, Spa und ästhetische Medizin: Termine mit echter Dauer, Preise, Gutscheine, Beratungstermine – HWG-vorsichtig.','icon'=>'💅','order'=>45,'home_group'=>'Beauty & Ästhetik',
+    'plans'=>['agent-beauty','buy-beauty','agent-aesthetic','buy-aesthetic']],
   'mobilitaet'     => ['label'=>'Taxi & Mobilität','short'=>'Fahrten annehmen, Richtpreise nennen, Fahrer disponieren – Telefon, WhatsApp und Chat.','icon'=>'🚕','order'=>40,'home_group'=>'Bestellung & Lieferung',
     'plans'=>['agent-taxi','buy-taxi']],
   'gesundheit'     => ['label'=>'Praxis & Gesundheit','short'=>'Rezeption, Rezeptwünsche und Terminkommunikation – organisatorisch, ohne Medizin.','icon'=>'🩺','order'=>50,'home_group'=>'Gesundheit',
     'plans'=>['praxis-agent','praxis-termine','praxis-info']],
+  'medtour'        => ['label'=>'Gesundheitstourismus Türkei · Saç & Diş','short'=>'Haartransplantation und Zahnkliniken: internationale Patienten in ihrer Sprache per WhatsApp und Telefon – Foto-/Röntgen-Upload, Pakete, Reiseplanung, Nachsorge.','icon'=>'✈️','order'=>55,'home_group'=>'Gesundheitstourismus Türkei',
+    'plans'=>['agent-hair-tr','buy-hair-tr','agent-dental-tr','buy-dental-tr']],
   'finanzen'       => ['label'=>'Bank, Finanzen & Versicherung','short'=>'Karten-Sperre lotsen, Beratungstermine, Schadenmeldung, Belege und Mahnwesen.','icon'=>'🏦','order'=>60,'home_group'=>'Finanzen & Recht',
     'plans'=>['agent-bank','agent-versicherung','agent-backoffice','fin-belege','fin-mahnung','fin-fristen']],
   'recht'          => ['label'=>'Kanzlei, Steuer & Inkasso','short'=>'Mandantenaufnahme, Fristen-Vorprüfung, Belegabfrage und Forderungsmanagement nach RDG.','icon'=>'⚖️','order'=>70,'home_group'=>'Finanzen & Recht',
@@ -1123,10 +1132,6 @@ const CH_CATEGORIES = [
     'plans'=>['agent-website','buy-website','agent-content','buy-content','creator-social','creator-youtube','mkt-seo']],
   'team'           => ['label'=>'Personal & Bildung','short'=>'Stellenanzeigen, Bewerber-Vorauswahl, Onboarding, Kurse und Lernmaterial.','icon'=>'🎓','order'=>120,'home_group'=>null,
     'plans'=>['hr-anzeigen','hr-screening','hr-onboarding','edu-kurs','edu-material']],
-  'beauty'         => ['label'=>'Beauty & Ästhetik','short'=>'Kosmetik, Nägel, Wimpern, Spa und ästhetische Medizin: Termine mit echter Dauer, Preise, Gutscheine, Beratungstermine – HWG-vorsichtig.','icon'=>'💅','order'=>45,'home_group'=>'Beauty & Ästhetik',
-    'plans'=>['agent-beauty','buy-beauty','agent-aesthetic','buy-aesthetic']],
-  'medtour'        => ['label'=>'Gesundheitstourismus Türkei · Saç & Diş','short'=>'Haartransplantation und Zahnkliniken: internationale Patienten in ihrer Sprache per WhatsApp und Telefon – Foto-/Röntgen-Upload, Pakete, Reiseplanung, Nachsorge.','icon'=>'✈️','order'=>55,'home_group'=>'Gesundheitstourismus Türkei',
-    'plans'=>['agent-hair-tr','buy-hair-tr','agent-dental-tr','buy-dental-tr']],
   'privat'         => ['label'=>'Für dich privat','short'=>'Briefe und Kündigungen, Behördengänge, Bank & Geld, Hotel & Reise – und Anrufe, die der Assistent nach deiner Bestätigung für dich erledigt.','icon'=>'🙋','order'=>130,'home_group'=>null,
     'plans'=>['privat-assistent','privat-behoerde','privat-bank','privat-reise','privat-anruf']],
 ];
@@ -1196,7 +1201,7 @@ function ch_demo_cfg(string $plan, ?array $raw=null): array {
   $sc = [];
   foreach((array)($d['script'] ?? []) as $row){
     if(!is_array($row) || count($row) < 2) continue; $row = array_values($row); $n = count($row);
-    $r = (string)$row[$n-2]; $t = trim((string)$row[$n-1]);
+    $r = (string)$row[$n-2]; $t = trim(str_replace('\\n', "\n", (string)$row[$n-1]));   // literales \n aus Demo-Texten → Zeilenumbruch
     if(in_array($r, ['a','u','sys'], true) && $t !== '') $sc[] = [$r, $t];
   }
   $d['script'] = $sc ?: ($d['greeting'] !== '' ? [['a', (string)$d['greeting']]] : []);
