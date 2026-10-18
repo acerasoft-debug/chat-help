@@ -388,7 +388,7 @@
   var PIP = { st: {}, pct: {}, js: null };
   function pipLib() {
     if (window.CHVoice || PIP.js) return;
-    PIP.js = document.createElement('script'); PIP.js.src = '/chat/voice/voice.js?v=1'; PIP.js.async = true;
+    PIP.js = document.createElement('script'); PIP.js.src = '/chat/voice/voice.js?v=2'; PIP.js.async = true;
     PIP.js.onload = function () { pipCheck(); voiceInfo(); };
     document.head.appendChild(PIP.js);
   }
@@ -517,7 +517,7 @@
     var pv = serverCan(lng) ? null : pipOf(gender, preset, lng);
     if (pipReady(pv)) {
       if (el) { el.textContent = 'Echte Stimme aktiv – läuft direkt in diesem Browser'; el.setAttribute('data-k', 'ok'); el.title = 'Stimmmodell: ' + pv.name; }
-      if (nameEl) nameEl.innerHTML = '';
+      if (nameEl) nameEl.innerHTML = '<span class="as-vpip">Open-Source-Stimme „' + h(pv.name) + '“ · <a href="/chat/vendor/voice/LICENSES.txt" target="_blank" rel="noopener">Lizenzen</a></span>';
       if (hintEl) { hintEl.textContent = ''; hintEl.classList.add('hidden'); }
       return;
     }
