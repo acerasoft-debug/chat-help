@@ -1,0 +1,31 @@
+{
+    "at": "2026-10-19T01:31:05+00:00",
+    "admin_root": {
+        "code": 303,
+        "redirect": "https://sarvesto.com/admin/login.php?lang=de"
+    },
+    "json_anon": {
+        "code": 303,
+        "redirect": "https://sarvesto.com/admin/login.php?lang=de",
+        "leaks_data": false,
+        "body_bytes": 0
+    },
+    "login_page": {
+        "code": 200,
+        "noindex": true,
+        "form_has_email_field": false,
+        "unconfigured_notice": false
+    },
+    "xff_spoof": {
+        "found_row": true,
+        "recorded_fake_ip": false,
+        "recorded_ip_class": "public"
+    },
+    "account": {
+        "own_account_configured": false,
+        "own_account_source": "",
+        "vestra_password_found": true,
+        "ip_allowlist_active": false,
+        "trusted_proxies_set": false
+    }
+}
