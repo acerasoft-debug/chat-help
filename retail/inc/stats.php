@@ -242,7 +242,11 @@ function vr_stats_live(int $sec = 300): array
 {
     $cut = time() - $sec;
     $by = [];
-    foreach ([gmdate('Y-m-d'), gmdate('Y-m-d', time() - 86400)] as $day) {
+    // Dünün dosyası yalnız pencere gece yarısını (UTC) geçiyorsa okunur —
+    // canlı görünüm 10 sn'de bir soruyor, büyük bir dosyayı boşuna taramasın.
+    $days = [gmdate('Y-m-d')];
+    if (gmdate('Y-m-d', $cut) !== $days[0]) $days[] = gmdate('Y-m-d', $cut);
+    foreach ($days as $day) {
         foreach (vr_stats_rows($day) as $r) {
             if ((int)$r['t'] < $cut || !empty($r['bot'])) continue;
             $k = $r['s'] ?: $r['ip'];

@@ -30,6 +30,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $act = (string)($_POST['action'] ?? '');
     $hist = (array)($o['history'] ?? []);
     $push = function (string $what, string $note = '') use (&$hist, $who) { $hist[] = ['at' => time(), 'who' => $who, 'what' => $what, 'note' => $note]; };
+    $panel = vr_admin_paymethod($o) === 'crypto' ? 'OxaPay-Panel' : 'Stripe-Dashboard';   // geri ödeme nerede yapılır
     if ($act === 'ship') {
         $carrier = mb_substr(trim((string)($_POST['carrier'] ?? '')), 0, 60);
         $tracking = mb_substr(trim((string)($_POST['tracking'] ?? '')), 0, 120);
@@ -51,13 +52,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $push('cancelled', mb_substr(trim((string)($_POST['reason'] ?? '')), 0, 300));
         vr_order_update((string)$o['id'], ['status' => 'cancelled', 'cancelled_at' => time(), 'cancel_reason' => mb_substr(trim((string)($_POST['reason'] ?? '')), 0, 300), 'history' => $hist]);
         vr_admin_audit('order_cancel', ['order' => $o['number']]);
-        vr_flash('Bestellung storniert. Eine Erstattung läuft über das Stripe-Dashboard.', 'ok');
+        vr_flash('Bestellung storniert. Eine Erstattung läuft über das ' . $panel . '.', 'ok');
     } elseif ($act === 'refunded' && (string)$o['status'] === 'paid') {
         $push('refunded', mb_substr(trim((string)($_POST['reason'] ?? '')), 0, 300));
         vr_stock_restore((array)$o['lines']);
         vr_order_update((string)$o['id'], ['status' => 'refunded', 'refunded_at' => time(), 'history' => $hist]);
         vr_admin_audit('order_refunded', ['order' => $o['number']]);
-        vr_flash('Als erstattet vermerkt (Buchung). Die Rückzahlung selbst erfolgt bei Stripe.', 'ok');
+        vr_flash('Als erstattet vermerkt (Buchung). Die Rückzahlung selbst erfolgt im ' . $panel . '.', 'ok');
     } elseif ($act === 'resend' && (string)$o['status'] === 'paid') {
         try { vr_mail_order_buyer($o); $push('mail_resent'); vr_order_update((string)$o['id'], ['history' => $hist]); vr_flash('Bestellbestätigung erneut gesendet.', 'ok'); }
         catch (Throwable $e) { vr_flash('Versand fehlgeschlagen: ' . $e->getMessage(), 'err'); }

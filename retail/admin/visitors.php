@@ -16,6 +16,7 @@ $who = vr_admin_require();
 // Üst çubuktaki canlı sayaç (json=1) ve canlı sayfanın 10 sn'lik akışı
 // (json=live: tablo satırları + harita, sunucuda çizilmiş ve kaçışlanmış HTML).
 if (($_GET['json'] ?? '') !== '') {
+    session_write_close();                              // oturuma yazmıyoruz; diğer sekmeleri bekletme
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
     $live = vr_stats_live(300);
@@ -23,8 +24,14 @@ if (($_GET['json'] ?? '') !== '') {
     if ($_GET['json'] === 'live') {
         $out['rows'] = vr_admin_live_rows($live);
         $out['side'] = vr_admin_live_side($live);
-        ob_start(); vr_admin_worldmap(vr_admin_live_cc($live), fn($k) => vr_url('admin/visitors.php', ['cc' => $k]), 'online');
-        $out['map']  = (string)ob_get_clean();
+        // Harita (~120 KB) yalnız ülke sayıları değiştiyse gönderilir; istemci
+        // son anahtarı mk ile geri yollar.
+        $ccLive = vr_admin_live_cc($live); ksort($ccLive);
+        $out['mk'] = substr(md5(json_encode($ccLive)), 0, 12);
+        if ((string)($_GET['mk'] ?? '') !== $out['mk']) {
+            ob_start(); vr_admin_worldmap($ccLive, fn($k) => vr_url('admin/visitors.php', ['cc' => $k]), 'online');
+            $out['map'] = (string)ob_get_clean();
+        }
         $out['at']   = date('H:i:s');
     }
     echo json_encode($out, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -113,7 +120,8 @@ if ($f === 'live') {
     $live = vr_stats_live(300);
     vr_admin_head('Gerade online', ['sub' => 'Besucher der letzten 5 Minuten · aktualisiert sich alle 10 Sekunden', 'nav' => 'visitors.php']);
     // Canlı akış: admin.js 10 sn'de bir json=live çeker, tabloyu ve haritayı yeniler.
-    echo '<div data-adm-livefeed="10" data-src="' . h(vr_url('admin/visitors.php', ['f' => 'live', 'json' => 'live'])) . '" hidden></div>';
+    $ccLive = vr_admin_live_cc($live); ksort($ccLive);
+    echo '<div data-adm-livefeed="10" data-src="' . h(vr_url('admin/visitors.php', ['f' => 'live', 'json' => 'live'])) . '" data-mk="' . h(substr(md5(json_encode($ccLive)), 0, 12)) . '" hidden></div>';
     vr_admin_tabs($tabs, $f, 'visitors.php');
     echo '<div class="agrid agrid--21">';
     vr_admin_card_open('Woher gerade', '<span class="alive-state"><i class="alive-dot"></i> live · <span data-live-at>' . h(date('H:i:s')) . '</span></span>');
@@ -152,7 +160,8 @@ if ($f === 'blocked') {
 
 $ips = vr_stats_ips($days, $f === 'bots');
 if ($f === 'bots') $ips = array_filter($ips, fn($x) => $x['bot'] > 0);
-if ($cc !== '') $ips = array_filter($ips, fn($x) => strtoupper((string)$x['cc']) === $cc);
+// '??' = bilinmeyen ülke (günlük özetlerde böyle sayılıyor, ham satırda boş).
+if ($cc !== '') { $want = $cc === '??' ? '' : $cc; $ips = array_filter($ips, fn($x) => strtoupper((string)$x['cc']) === $want); }
 if ($q !== '') $ips = array_filter($ips, fn($x) => str_contains($x['ip'], $q) || str_contains(strtolower($x['ua']), strtolower($q)));
 $sort = (string)($_GET['s'] ?? 'last');
 if ($sort === 'hits') uasort($ips, fn($a, $b) => $b['n'] <=> $a['n']);
@@ -164,7 +173,7 @@ if (($_GET['export'] ?? '') === 'csv') {
 
 [$page, $pag] = vr_admin_paginate(array_values($ips), 60);
 $range = vr_stats_range($days);
-vr_admin_head($f === 'bots' ? 'Bots' : 'Besucher & IP-Adressen', ['sub' => count($ips) . ' Adressen in den letzten ' . $days . ' Tagen' . ($cc !== '' ? ' · ' . vr_country_name($cc) : ''), 'actions' => $csv, 'nav' => 'visitors.php']);
+vr_admin_head($f === 'bots' ? 'Bots' : 'Besucher & IP-Adressen', ['sub' => count($ips) . ' Adressen in den letzten ' . $days . ' Tagen' . ($cc !== '' ? ' · ' . ($cc === '??' ? 'Land unbekannt' : vr_country_name($cc)) : ''), 'actions' => $csv, 'nav' => 'visitors.php']);
 vr_admin_tabs($tabs, $f, 'visitors.php');
 if ($f !== 'bots') {
     // Nereden geliyorlar: IP → ülke (yerel tablo). Ülkeye tıklayınca liste o ülkeye süzülür.

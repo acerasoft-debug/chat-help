@@ -38,16 +38,26 @@
     var side = document.querySelector('[data-live-side]');
     var at = document.querySelector('[data-live-at]');
     var busy = false;
+    var mk = feed.getAttribute('data-mk') || '';
+    // Yönetici bölgede bir şeye odaklanmış ya da metin seçmişse (IP kopyalamak
+    // gibi) o bölge bu turda yazılmaz; odak ve seçim kaybolmasın.
+    var hold = function (el) {
+      var a = document.activeElement;
+      var s = window.getSelection ? window.getSelection() : null;
+      return !!(el && ((a && a !== document.body && el.contains(a)) || (s && !s.isCollapsed && s.anchorNode && el.contains(s.anchorNode))));
+    };
     var pull = function () {
       if (busy || document.hidden) return;
       busy = true;
-      fetch(feed.getAttribute('data-src'), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      var src = feed.getAttribute('data-src');
+      fetch(src + (src.indexOf('?') < 0 ? '?' : '&') + 'mk=' + encodeURIComponent(mk), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (j) {
           if (!j) return;
-          if (rows && typeof j.rows === 'string') rows.innerHTML = j.rows;
-          if (map && typeof j.map === 'string') map.innerHTML = j.map;
-          if (side && typeof j.side === 'string') side.innerHTML = j.side;
+          if (rows && typeof j.rows === 'string' && !hold(rows)) rows.innerHTML = j.rows;
+          // Harita yalnız ülke sayıları değiştiyse gelir (j.mk yeni anahtar).
+          if (map && typeof j.map === 'string' && !hold(map)) { map.innerHTML = j.map; mk = j.mk || ''; }
+          if (side && typeof j.side === 'string' && !hold(side)) side.innerHTML = j.side;
           if (typeof j.n === 'number' && live) live.textContent = j.n;
           if (at && j.at) at.textContent = j.at;
         })

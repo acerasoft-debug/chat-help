@@ -239,17 +239,48 @@ function vr_log(string $what, array $ctx = [], string $file = 'retail.log'): voi
 }
 
 // --------------------------------------------------------------- istemci IP
+/**
+ * İstemci adresi: bağlantının kendisi (REMOTE_ADDR).
+ *
+ * X-Forwarded-For yalnız bağlantı GÜVENİLEN bir vekilden geliyorsa okunur
+ * (VR_TRUSTED_PROXIES="203.0.113.7,10.0.0.0/8"); o zaman sağdan ilk güvenilmeyen
+ * adres istemcidir. Önceden ilk XFF girdisi koşulsuz alınıyordu: başlığı
+ * istemci yazdığı için giriş deneme sınırı, IP engeli ve istatistik
+ * sahtelenebiliyordu. Ölçüldü (tools/audit-proxy.php, 19.10.2026): site
+ * doğrudan Apache'ye bağlanıyor, önünde vekil yok.
+ */
 function vr_client_ip(): string
 {
     $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
-    // Proxy arkasındaysak ilk XFF girdisi; doğrulanmış bir değer değil, yalnızca
-    // hız sınırı/kayıt amaçlı kullanıyoruz.
-    $xff = (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
-    if ($xff !== '') {
-        $first = trim(explode(',', $xff)[0]);
-        if (filter_var($first, FILTER_VALIDATE_IP)) $ip = $first;
+    $trusted = array_values(array_filter(array_map('trim', explode(',', (string)getenv('VR_TRUSTED_PROXIES')))));
+    if (!$trusted || !vr_ip_in_list($ip, $trusted)) return $ip;
+
+    $hops = array_reverse(array_map('trim', explode(',', (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''))));
+    foreach ($hops as $h) {
+        if (!filter_var($h, FILTER_VALIDATE_IP)) break;
+        if (!vr_ip_in_list($h, $trusted)) return $h;
+        $ip = $h;
     }
     return $ip;
+}
+
+/** Adres listede mi: tam eşleşme ya da IPv4 CIDR (10.0.0.0/8). */
+function vr_ip_in_list(string $ip, array $list): bool
+{
+    if ($ip === '') return false;
+    $l = ip2long($ip);
+    foreach ($list as $e) {
+        if ($e === $ip) return true;
+        if ($l !== false && str_contains($e, '/')) {
+            [$net, $bits] = explode('/', $e, 2);
+            $n = ip2long($net);
+            $b = (int)$bits;
+            if ($n === false || $b < 0 || $b > 32) continue;
+            $mask = $b === 0 ? 0 : (-1 << (32 - $b)) & 0xFFFFFFFF;
+            if (($l & $mask) === ($n & $mask)) return true;
+        }
+    }
+    return false;
 }
 
 /**

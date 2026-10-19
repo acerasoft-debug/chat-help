@@ -243,7 +243,7 @@
 .amap a:hover path,.amap a:focus path,.amap a:hover circle{opacity:.72}
 .amap__dot{stroke:#fff;stroke-width:1.2}
 .amap__legend{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
-.amap__scale{flex:0 0 120px;height:6px;border-radius:3px;background:linear-gradient(90deg,#efe8d8,#c9a96e 50%,#6e5326)}
+.amap__scale{flex:0 0 120px;height:6px;border-radius:3px;background:linear-gradient(90deg,#e2cd9f,#c9a96e 50%,#6e5326)}
 .amap__n{margin-left:auto}
 
 /* ---- canlı görünüm */

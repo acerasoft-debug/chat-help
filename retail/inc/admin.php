@@ -106,23 +106,18 @@ function vr_admin_unconfigured(): bool
 
 /**
  * İsteğe bağlı IP kısıtı. Liste boşsa herkese açık (kimlik doğrulama yine de
- * şart). Ters vekil arkasındaysa gerçek adres X-Forwarded-For'un İLK
- * girdisidir; bunu yalnızca liste tanımlıysa okuyoruz — tanımsızken sahte
- * başlıkla oynanacak bir karar yok.
+ * şart). Adres vr_client_ip()'ten: X-Forwarded-For yalnız güvenilen vekilden
+ * geliyorsa sayılır — istemcinin yazdığı başlıkla izin listesi aşılamasın.
  */
 function vr_admin_ip_ok(): bool
 {
     $raw = trim((string)getenv('VR_ADMIN_IPS'));
     if ($raw === '') return true;
 
-    $allow = array_filter(array_map('trim', explode(',', $raw)));
+    $allow = array_values(array_filter(array_map('trim', explode(',', $raw))));
     if (!$allow) return true;
 
-    $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
-    $fwd = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
-    if ($fwd !== '') $ip = trim(explode(',', $fwd)[0]);
-
-    return in_array($ip, $allow, true);
+    return vr_ip_in_list(vr_client_ip(), $allow);
 }
 
 /** Giriş. Dönüş: [ok, hata_anahtari] */

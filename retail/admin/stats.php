@@ -58,7 +58,7 @@ vr_admin_tabs($ranges, (string)$days, 'stats.php', 'd');
     <?php vr_admin_worldmap($st['cc'], fn($k) => vr_url('admin/visitors.php', ['d' => in_array($days, [1, 7, 30, 60], true) ? $days : 60, 'cc' => $k]), 'Aufrufe'); ?>
   <?php vr_admin_card_close(); ?>
   <?php vr_admin_card_open('Zahlungsarten', '<span class="asmall">bezahlte Bestellungen</span>'); ?>
-    <?php vr_admin_bars(array_filter(['Karte · Stripe' => $byPm['card'][0], 'Krypto · OxaPay' => $byPm['crypto'][0]]), 2, fn($k) => vr_url('admin/orders.php', ['f' => 'paid', 'pm' => str_starts_with($k, 'Krypto') ? 'crypto' : 'card']), fn($k) => h($k)); ?>
+    <?php vr_admin_bars(array_filter(['Karte · Stripe' => $byPm['card'][0], 'Krypto · OxaPay' => $byPm['crypto'][0]]), 2, fn($k) => vr_url('admin/orders.php', ['f' => 'paid', 'pm' => str_starts_with($k, 'Krypto') ? 'crypto' : 'card', 'from' => date('Y-m-d', time() - $days * 86400)]), fn($k) => h($k)); ?>
     <dl class="adl" style="margin-top:16px">
       <dt>Umsatz Karte</dt><dd><?= h(vr_money($byPm['card'][1])) ?></dd>
       <dt>Umsatz Krypto</dt><dd><?= h(vr_money($byPm['crypto'][1])) ?></dd>

@@ -492,7 +492,7 @@ function vr_admin_worldmap(array $counts, ?callable $href = null, string $unit =
     $max = $c ? max($c) : 0;
     // Üç duraklı renk: kum → altın → bronz. Log ölçek: bir ülke ezici çoğunlukta
     // olsa da ikinci, üçüncü ülke açık gri kalmasın.
-    $stops = [[0xef, 0xe8, 0xd8], [0xc9, 0xa9, 0x6e], [0x6e, 0x53, 0x26]];
+    $stops = [[0xe2, 0xcd, 0x9f], [0xc9, 0xa9, 0x6e], [0x6e, 0x53, 0x26]];
     $fill = static function (int $n) use ($max, $stops): string {
         $t = $max > 1 ? log(1 + $n) / log(1 + $max) : 1.0;
         [$a, $b, $u] = $t < .5 ? [$stops[0], $stops[1], $t * 2] : [$stops[1], $stops[2], ($t - .5) * 2];
@@ -505,7 +505,7 @@ function vr_admin_worldmap(array $counts, ?callable $href = null, string $unit =
     foreach ($m['paths'] as $cc => $d) {
         $n = $c[$cc] ?? 0;
         $title = '<title>' . h(vr_country_name($cc)) . ($n ? ' · ' . $num($n) . ' ' . $unit : '') . '</title>';
-        $path = '<path d="' . $d . '" fill="' . ($n ? $fill($n) : '#e7e3db') . '">' . $title . '</path>';
+        $path = '<path d="' . $d . '" fill="' . ($n ? $fill($n) : '#eeece7') . '">' . $title . '</path>';
         echo ($n && $href) ? '<a href="' . h($href($cc)) . '">' . $path . '</a>' : $path;
     }
     foreach ($m['dots'] as $cc => [$x, $y]) {
