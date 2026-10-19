@@ -73,6 +73,11 @@ if (!defined('VESTRA_OFFER_MIN_BUYER_PCT')) define('VESTRA_OFFER_MIN_BUYER_PCT',
 
 function vestra_offer_ref_price(?array $listing): float {
     if (!$listing) return 0.0;
+    /* 19 Eki 2026: suresi DOLMUS sureli teklif ham kayitta kademeleri hala dusuk tutar (okuma aninda geri alinir,
+       diske yazilmaz). Tavan ham kayittan okununca SH9623'te biten teklifin 100+ €35 basamagi €38'lik karsi teklifi
+       "urun fiyatinin ustunde" diye reddetti -- sayfa o sirada 100+ €42 gosteriyordu. Tavan sayfanin gosterdigi
+       merdivenden okunur. */
+    if (function_exists('vestra_aktion_apply')) $listing = vestra_aktion_apply($listing);
     $ref = (float)vestra_from_price($listing);
     if ($ref <= 0) $ref = (float)($listing['list'] ?? 0);
     return $ref > 0 ? round($ref, 2) : 0.0;

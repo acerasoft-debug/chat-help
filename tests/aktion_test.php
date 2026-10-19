@@ -48,4 +48,11 @@ foreach (glob($root.'/vestra/inc/lang/*.php') as $lf) { $d = require $lf; $l = b
   foreach (['Limited offer','Three days only','from %d pc','lots of %d','Ends in','Offer ends %s','Offer ended','Browse the catalog','days','hours','min','sec'] as $k)
     if (empty($d[$k])) $t("$l: '$k' cevirisi", false);
   $t("$l: 12 anahtar", true); }
+/* 19 Eki 2026: karsi teklif tavani sayfanin gosterdigi merdivenden -- suresi DOLMUS teklifin ham kayitta kalan
+   100+ €35 basamagi SH9623'te €38'lik karsi teklifi reddetti; sayfa 100+ €42 gosteriyordu. */
+require_once $root.'/vestra/inc/offers.php';
+$expired = vestra_aktion_set($p, 35, 100, time() - 60, time() - 3 * 86400);
+$active  = vestra_aktion_set($p, 35, 100, time() + 3600, time() - 60);
+$t('tavan: suresi dolmus teklifte eski merdiven (42), aktif teklifte teklif fiyati (35)', vestra_offer_ref_price($expired) == 42.0 && vestra_offer_ref_price($active) == 35.0);
+$t('karsi teklif: dolmus teklifte €38 GECERLI, aktif teklifte RED', vestra_offer_price_error($expired, 'seller', 38.0) === null && vestra_offer_price_error($active, 'seller', 38.0) !== null);
 printf("\n%d gecti, %d KALDI\n", $ok, $bad); exit($bad?1:0);
