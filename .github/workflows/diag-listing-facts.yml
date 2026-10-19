@@ -69,6 +69,25 @@ jobs:
               $out['desc'] = preg_replace($pii, '[…]', mb_substr($d, 0, 900));
               echo "------------------------------------------------------------\n";
               echo json_encode($out, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)."\n";
+              /* Bu ilana bagli teklif ve siparisler (paket adimi degisirse etkilenebilecekler): yalniz ref, tarih,
+                 adet, durum -- firma/kisi alanlari BASILMAZ. */
+              $sku = (string)($l['sku'] ?? ''); $lid = (string)($l['id'] ?? '');
+              $resp = function_exists('vestra_read_json') ? (array)vestra_read_json('offer_responses.json') : [];
+              $oc = 0;
+              foreach ((function_exists('vestra_read_csv') ? vestra_read_csv('offers.csv') : []) as $r) {
+                $hitO = ($sku !== '' && trim((string)($r['sku'] ?? '')) === $sku) || in_array($lid, array_map('strval', $r), true);
+                if (!$hitO) continue; $oc++; $ref = (string)($r['ref'] ?? '');
+                printf("   teklif %s · %s · adet %s · birim %s · yanit %s\n", $ref, substr((string)($r['timestamp'] ?? ''), 0, 16), $r['qty'] ?? '?', $r['offer_unit'] ?? '?', $resp[$ref]['status'] ?? 'yok');
+              }
+              $st = function_exists('vestra_read_json') ? (array)vestra_read_json('order_statuses.json') : [];
+              $odc = 0;
+              foreach ((function_exists('vestra_read_csv') ? vestra_read_csv('orders.csv') : []) as $r) {
+                $items = (string)($r['items'] ?? '');
+                if ($sku === '' || stripos($items, $sku) === false) continue; $odc++;
+                preg_match_all('~[^|;]*'.preg_quote($sku, '~').'[^|;]*~i', $items, $mm);
+                printf("   siparis %s · %s · durum %s · kalem %s\n", $r['ref'] ?? '?', substr((string)($r['timestamp'] ?? ''), 0, 16), $st[(string)($r['ref'] ?? '')]['status'] ?? 'pending', mb_substr(implode(' / ', $mm[0]), 0, 160));
+              }
+              echo "   teklif: $oc · siparis: $odc\n";
               /* Fotograflar yayinda mi (mektup bu adreslere baglanacak). */
               foreach (array_slice($imgs, 0, 12) as $u) {
                 $u = (string)$u; if ($u === '') continue;
