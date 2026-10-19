@@ -106,6 +106,15 @@ if (!in_array($mode, ['check', 'send'], true) || !is_readable($arg1)) { fwrite(S
 $s = pl_open((string)file_get_contents($arg1), getenv('HOME').'/.vestra_inbox_key.pem');
 $to = trim((string)($s['to'] ?? ''));
 if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "alici adresi gecersiz\n"); exit(1); }
+/* Hitaptaki {name}: alicinin ADI sunucudaki hesabindan (ilk kelime) -- ad pakete de girmez. Hesap ya da ad yoksa
+   "Bonjour," gibi adsiz hitap kalir. */
+if (str_contains((string)($s['greeting'] ?? ''), '{name}')) {
+    require_once $root.'/inc/auth.php';
+    $acc = auth_find($to); $nm = trim((string)($acc['name'] ?? ''));
+    $first = $nm !== '' && preg_match('/^\p{L}[\p{L}\'-]{1,}$/u', explode(' ', $nm)[0]) ? explode(' ', $nm)[0] : '';
+    $s['greeting'] = $first !== '' ? str_replace('{name}', mb_convert_case(mb_strtolower($first), MB_CASE_TITLE), $s['greeting']) : str_replace(' {name}', '', $s['greeting']);
+    echo "hitap: ".($first !== '' ? 'hesaptaki ad' : 'adsiz')."\n";
+}
 $token = bin2hex(random_bytes(12));
 $dir = $root.'/uploads/msg/'.$token; $base = 'https://vestrasales.com/uploads/msg/'.$token.'/';
 if (!@mkdir($dir, 0755, true)) { fwrite(STDERR, "dizin acilamadi\n"); exit(1); }
