@@ -2454,6 +2454,7 @@ jobs:
               $sh2 = (float)($p['meta']['shipping'] ?? 0);
               echo "TASLAK: ".count($p['items'])." kalem, uyeler: ".implode(', ', $p['refs'])."\n";
               echo "  belge tarihi: ".substr((string)($p['meta']['date'] ?? ''), 0, 10)."\n";
+              echo $lines;
               echo "  mal ".number_format($goods,2)." + kargo ".number_format($sh2,2)
                  ." = ".number_format($goods+$sh2,2)." ".$pCur."\n";
               echo "  satici: ".vestra_invoice_issuer_name($p['seller'],'Acerasoft LLC')."\n";
@@ -2469,6 +2470,13 @@ jobs:
                    ? 'CIKAR ('.count($__rails).' satir)'
                    : '*** CIKMAZ *** — '.$pCur.' icin bu hesapta ray yok')."\n";
               echo "  pdf: ".strlen($bytes)." bayt · ".(int)preg_match_all('~/Type\s*/Page(?![s\w])~', $bytes)." sayfa\n";
+              /* Renkler BELGEYE cizildi mi (yukte olmasi yetmez): her rengin adi PDF'in kendisinde aranir. */
+              $__cn = []; foreach ($p['items'] as $it) foreach ((array)($it['colors'] ?? []) as $cc) $__cn[] = trim((string)preg_replace('/\x{00A0}×\d+$/u', '', (string)$cc));
+              if ($__cn) {
+                $__miss = array_values(array_filter($__cn, fn($n) => strpos($bytes, mb_convert_encoding(str_replace("\u{00A0}", ' ', $n), 'Windows-1252', 'UTF-8')) === false
+                                                                  && strpos($bytes, mb_convert_encoding($n, 'Windows-1252', 'UTF-8')) === false));
+                echo "  belgede renk : ".(count($__cn) - count($__miss))."/".count($__cn).($__miss ? " — EKSIK: ".str_replace("\u{00A0}", ' ', implode(', ', $__miss)) : '')."\n";
+              }
               /* MEKTUBUN PARA BLOGU GUNLUGE DE BASILIYOR. Operatorun 9 Eyl
                  2026'da yakaladigi hata (dolar tutarlarin ustunde "EUR")
                  tam olarak burada gorunurdu ve gunluk onu HIC yazmiyordu:
