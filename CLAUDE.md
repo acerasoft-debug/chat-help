@@ -12970,3 +12970,14 @@ olmayana fotoğraf yok, yalnız "N live photos of the original samples" kilit ka
 Veri: chat-help `listing-live-photos.yml` (fotoğrafları `uploads/live/<ilan>/`'a kopyalar, yedek alır, alanı yazar).
 Test: `tests/live_photos_test.php` (13).
 
+
+**Lacoste sweatshirt/hoodie — 10'luk koli, M ve L üçer** (operatör, 19 Eki 2026: *"S×1 · M×2 · L×2 · XL×2 · XXL×1
+lacoste ürünlerini sweatshirt hoodiler 10 lu yap ve M ve L i 3 er li olarak koy"*). `product-fixes/lacoste-sweat-hoodie-10pack.json`,
+`set-product.yml` (dal `claude/wizardly-planck-7ylnmk`), yedek `listings.json.bak-20261019-151558`.
+- `lac-zip-hoodie` (SH9626): yalnız beden satırı `8/pack` → `S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack`; adım/MOQ/açıklama zaten 10/60'tı
+  (çelişki aynı gün İtalyan alıcıya giden fiyatlı mektupta "10'luk koli" yazılınca fark edildi).
+- `lac-highneck-sweatshirt` (SH1927): `size_step` 8→10, beden satırı aynı, **MOQ 56→60** ve kademe `60+ → €55` (MOQ kolinin katı
+  olmak zorunda; 56 yukarı yuvarlandı — operatör MOQ söylemedi), açıklama "cartons of 10 … Minimum order 60 pc".
+- `lac-fleece-hoodie` (SH9623) ve `lac-crew-sweatshirt` (SH9608) zaten bu durumdaydı (dosyada denetim satırı olarak duruyor).
+- Pantolon `lac-slim-sweatpants` (XH9624) **dokunulmadı** (8'lik koli; istek sweatshirt/hoodie). Açık teklif yoktu; tek sipariş
+  (`VES-3507BF86`) iptal. Geri okuma: dört ilan da `10/pack`, highneck `moq 60`.
