@@ -1,0 +1,32 @@
+{
+    "at": "2026-10-19T01:20:39+00:00",
+    "head": {
+        "code": 200,
+        "primary_ip_class": "other",
+        "headers": {
+            "server": "Apache"
+        }
+    },
+    "access_log": {
+        "sarvesto.vestrasales.com-Oct-2026.gz": {
+            "lines_sampled": 4000,
+            "distinct_addresses": 2007,
+            "classes": {
+                "cloudflare": 218,
+                "private": 0,
+                "other": 3782,
+                "ipv6_other": 0
+            }
+        },
+        "sarvesto.vestrasales.com-ssl_log-Oct-2026.gz": {
+            "lines_sampled": 4000,
+            "distinct_addresses": 155,
+            "classes": {
+                "cloudflare": 0,
+                "private": 0,
+                "other": 4000,
+                "ipv6_other": 0
+            }
+        }
+    }
+}
