@@ -36,7 +36,7 @@ jobs:
         env:
           LID: ${{ github.event.inputs.listing_id }}
           SRC: ${{ github.event.inputs.src }}
-          GROUPS: ${{ github.event.inputs.groups }}
+          LP_GROUPS: ${{ github.event.inputs.groups }}
           MODE: ${{ github.event.inputs.mode }}
           APPLY: ${{ github.event.inputs.apply }}
         with:
@@ -44,7 +44,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: LID,SRC,GROUPS,MODE,APPLY
+          envs: LID,SRC,LP_GROUPS,MODE,APPLY
           command_timeout: 4m
           script: |
             cd ~/public_html
@@ -74,7 +74,7 @@ jobs:
               sort($files);
               if (!$files) { fwrite(STDERR, "kaynakta fotograf yok\n"); exit(1); }
               $groups = [];
-              foreach (array_filter(array_map('trim', explode(';', (string)getenv('GROUPS')))) as $g) {
+              foreach (array_filter(array_map('trim', explode(';', (string)getenv('LP_GROUPS')))) as $g) {
                 [$k, $v] = array_pad(explode('=', $g, 2), 2, ''); [$gn, $note] = array_pad(explode('|', $v, 2), 2, '');
                 if (trim($k) !== '') $groups[trim($k)] = [trim($gn), trim($note)];
               }
@@ -87,7 +87,7 @@ jobs:
               }
               $byGroup = [];
               foreach ($new as $n) $byGroup[$n['group'].' · '.$n['note']] = ($byGroup[$n['group'].' · '.$n['note']] ?? 0) + 1;
-              echo "kaynak: ".count($files)." foto ($src…) -> /$dest/\n"; foreach ($byGroup as $k => $c) echo "   grup '$k': $c\n";
+              echo "kaynak: ".count($files)." foto ({$src}…) -> /$dest/\n"; foreach ($byGroup as $k => $c) echo "   grup '$k': $c\n";
             }
             if (!$apply) { echo "KURU KOSU -- hicbir sey yazilmadi (apply=true ile uygula)\n"; exit(0); }
             if ($new) {
