@@ -25,6 +25,9 @@ foreach ($st['days'] as $day => $d) { $labels[] = date('d.m.', strtotime($day));
 
 $orders = array_filter(vr_orders(), fn($o) => (string)($o['status'] ?? '') === 'paid' && (int)$o['created_at'] >= time() - $days * 86400);
 $revenue = array_sum(array_map(fn($o) => (int)$o['total_cents'], $orders));
+// Ödeme yolu dağılımı (bezahlte Bestellungen im Zeitraum): adet ve ciro.
+$byPm = ['card' => [0, 0], 'crypto' => [0, 0]];
+foreach ($orders as $o) { $k = vr_admin_paymethod($o); $byPm[$k][0]++; $byPm[$k][1] += (int)$o['total_cents']; }
 $pagesPerVisit = $st['uv'] > 0 ? round($st['pv'] / $st['uv'], 1) : 0;
 
 $pageLabel = function (string $p): string {
@@ -49,6 +52,19 @@ vr_admin_tabs($ranges, (string)$days, 'stats.php', 'd');
     <?php vr_admin_chart(['Besucher' => $uv, 'Seitenaufrufe' => $pv, 'Bots' => $bots], $labels, ['h' => 220]); ?>
   <?php vr_admin_card_close(); ?>
 <?php endif; ?>
+
+<div class="agrid agrid--21">
+  <?php vr_admin_card_open('Woher die Besucher kommen', '<span class="asmall">Land aus der IP-Adresse · lokale Tabelle, kein Drittanbieter</span>'); ?>
+    <?php vr_admin_worldmap($st['cc'], fn($k) => vr_url('admin/visitors.php', ['d' => in_array($days, [1, 7, 30, 60], true) ? $days : 60, 'cc' => $k]), 'Aufrufe'); ?>
+  <?php vr_admin_card_close(); ?>
+  <?php vr_admin_card_open('Zahlungsarten', '<span class="asmall">bezahlte Bestellungen</span>'); ?>
+    <?php vr_admin_bars(array_filter(['Karte · Stripe' => $byPm['card'][0], 'Krypto · OxaPay' => $byPm['crypto'][0]]), 2, fn($k) => vr_url('admin/orders.php', ['f' => 'paid', 'pm' => str_starts_with($k, 'Krypto') ? 'crypto' : 'card']), fn($k) => h($k)); ?>
+    <dl class="adl" style="margin-top:16px">
+      <dt>Umsatz Karte</dt><dd><?= h(vr_money($byPm['card'][1])) ?></dd>
+      <dt>Umsatz Krypto</dt><dd><?= h(vr_money($byPm['crypto'][1])) ?></dd>
+    </dl>
+  <?php vr_admin_card_close(); ?>
+</div>
 
 <div class="agrid agrid--2">
   <?php vr_admin_card_open('Seiten'); ?>

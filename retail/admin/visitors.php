@@ -13,10 +13,21 @@ require_once __DIR__ . '/_nav.php';
 
 $who = vr_admin_require();
 
-// Üst çubuktaki canlı sayaç (JSON)
-if (($_GET['json'] ?? '') === '1') {
-    header('Content-Type: application/json');
-    echo json_encode(['n' => count(vr_stats_live(300))]);
+// Üst çubuktaki canlı sayaç (json=1) ve canlı sayfanın 10 sn'lik akışı
+// (json=live: tablo satırları + harita, sunucuda çizilmiş ve kaçışlanmış HTML).
+if (($_GET['json'] ?? '') !== '') {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    $live = vr_stats_live(300);
+    $out  = ['n' => count($live)];
+    if ($_GET['json'] === 'live') {
+        $out['rows'] = vr_admin_live_rows($live);
+        $out['side'] = vr_admin_live_side($live);
+        ob_start(); vr_admin_worldmap(vr_admin_live_cc($live), fn($k) => vr_url('admin/visitors.php', ['cc' => $k]), 'online');
+        $out['map']  = (string)ob_get_clean();
+        $out['at']   = date('H:i:s');
+    }
+    echo json_encode($out, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -100,17 +111,23 @@ $csv = '<a class="btn btn--ghost btn--sm" href="' . h(vr_url('admin/visitors.php
 
 if ($f === 'live') {
     $live = vr_stats_live(300);
-    vr_admin_head('Gerade online', ['sub' => count($live) . ' Besucher in den letzten 5 Minuten · aktualisiert sich jede Minute', 'nav' => 'visitors.php']);
-    echo '<div data-adm-refresh="60"></div>';
+    vr_admin_head('Gerade online', ['sub' => 'Besucher der letzten 5 Minuten · aktualisiert sich alle 10 Sekunden', 'nav' => 'visitors.php']);
+    // Canlı akış: admin.js 10 sn'de bir json=live çeker, tabloyu ve haritayı yeniler.
+    echo '<div data-adm-livefeed="10" data-src="' . h(vr_url('admin/visitors.php', ['f' => 'live', 'json' => 'live'])) . '" hidden></div>';
     vr_admin_tabs($tabs, $f, 'visitors.php');
+    echo '<div class="agrid agrid--21">';
+    vr_admin_card_open('Woher gerade', '<span class="alive-state"><i class="alive-dot"></i> live · <span data-live-at>' . h(date('H:i:s')) . '</span></span>');
+    echo '<div data-live-map>';
+    vr_admin_worldmap(vr_admin_live_cc($live), fn($k) => vr_url('admin/visitors.php', ['cc' => $k]), 'online');
+    echo '</div>';
+    vr_admin_card_close();
+    vr_admin_card_open('Jetzt im Shop');
+    echo '<div data-live-side>' . vr_admin_live_side($live) . '</div>';
+    vr_admin_card_close();
+    echo '</div>';
     vr_admin_card_open('', '', 'acard--pad0');
-    echo '<div class="tablewrap"><table class="table"><thead><tr><th>IP</th><th>Land</th><th>Aktuelle Seite</th><th>Seiten</th><th>Seit</th><th>Zuletzt</th><th>Gerät</th><th>Kunde</th></tr></thead><tbody>';
-    foreach ($live as $v) {
-        $c = ($v['u'] ?? '') !== '' ? vr_customer($v['u']) : null;
-        $det = ($v['q']['id'] ?? '') !== '' ? ' · ' . $v['q']['id'] : (($v['q']['brand'] ?? '') !== '' ? ' · ' . $v['q']['brand'] : (($v['q']['q'] ?? '') !== '' ? ' · „' . $v['q']['q'] . '“' : ''));
-        echo '<tr><td><a class="amono" href="' . h(vr_url('admin/visitors.php', ['ip' => $v['ip']])) . '">' . h($v['ip']) . '</a></td><td>' . vr_admin_flag($v['cc']) . '</td><td>' . h($v['p'] . $det) . '</td><td class="anum">' . (int)$v['n'] . '</td><td>' . h(vr_admin_ago((int)$v['first'])) . '</td><td>' . h(vr_admin_ago((int)$v['last'])) . '</td><td class="asmall">' . h($v['d'] . ' · ' . $v['b']) . '</td><td>' . ($c ? '<a href="' . h(vr_url('admin/customer.php', ['id' => $c['id']])) . '">' . h($c['email']) . '</a>' : '—') . '</td></tr>';
-    }
-    if (!$live) echo '<tr><td colspan="8" class="asmall">Niemand online.</td></tr>';
+    echo '<div class="tablewrap"><table class="table"><thead><tr><th>IP</th><th>Land</th><th>Aktuelle Seite</th><th class="anum">Seiten</th><th>Seit</th><th>Zuletzt</th><th>Gerät</th><th>Kunde</th></tr></thead><tbody data-live-rows>';
+    echo vr_admin_live_rows($live);
     echo '</tbody></table></div>';
     vr_admin_card_close();
     vr_admin_foot();
@@ -146,14 +163,26 @@ if (($_GET['export'] ?? '') === 'csv') {
 }
 
 [$page, $pag] = vr_admin_paginate(array_values($ips), 60);
+$range = vr_stats_range($days);
 vr_admin_head($f === 'bots' ? 'Bots' : 'Besucher & IP-Adressen', ['sub' => count($ips) . ' Adressen in den letzten ' . $days . ' Tagen' . ($cc !== '' ? ' · ' . vr_country_name($cc) : ''), 'actions' => $csv, 'nav' => 'visitors.php']);
 vr_admin_tabs($tabs, $f, 'visitors.php');
+if ($f !== 'bots') {
+    // Nereden geliyorlar: IP → ülke (yerel tablo). Ülkeye tıklayınca liste o ülkeye süzülür.
+    echo '<div class="agrid agrid--21">';
+    vr_admin_card_open('Herkunft · ' . ($days === 1 ? 'heute' : $days . ' Tage'), $cc !== '' ? '<a href="' . h(vr_url('admin/visitors.php', ['d' => $days])) . '">alle Länder</a>' : '');
+    vr_admin_worldmap($range['cc'], fn($k) => vr_url('admin/visitors.php', ['d' => $days, 'cc' => $k]), 'Aufrufe');
+    vr_admin_card_close();
+    vr_admin_card_open('Länder');
+    vr_admin_bars($range['cc'], 8, fn($k) => vr_url('admin/visitors.php', ['d' => $days, 'cc' => $k]), fn($k) => vr_admin_flag($k) . ' ' . h($k === '??' ? 'unbekannt' : vr_country_name($k)));
+    vr_admin_card_close();
+    echo '</div>';
+}
 ?>
 <form class="afilter" method="get">
   <input type="hidden" name="f" value="<?= h($f) ?>">
   <input type="search" name="q" value="<?= h($q) ?>" placeholder="IP oder Browser-Kennung">
   <select name="d"><?php foreach ([1 => 'Heute', 7 => '7 Tage', 30 => '30 Tage', 60 => '60 Tage'] as $k => $l): ?><option value="<?= $k ?>"<?= $days === $k ? ' selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
-  <select name="cc"><option value="">Alle Länder</option><?php foreach (array_keys(vr_stats_range($days)['cc']) as $c): if ($c === '??') continue; ?><option value="<?= h($c) ?>"<?= $cc === $c ? ' selected' : '' ?>><?= h($c . ' · ' . vr_country_name($c)) ?></option><?php endforeach; ?></select>
+  <select name="cc"><option value="">Alle Länder</option><?php foreach (array_keys($range['cc']) as $c): if ($c === '??') continue; ?><option value="<?= h($c) ?>"<?= $cc === $c ? ' selected' : '' ?>><?= h($c . ' · ' . vr_country_name($c)) ?></option><?php endforeach; ?></select>
   <select name="s"><option value="last"<?= $sort === 'last' ? ' selected' : '' ?>>Zuletzt gesehen</option><option value="hits"<?= $sort === 'hits' ? ' selected' : '' ?>>Meiste Aufrufe</option></select>
   <button class="btn btn--ghost btn--sm" type="submit"><span>Filtern</span></button>
 </form>

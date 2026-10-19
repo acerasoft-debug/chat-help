@@ -453,3 +453,128 @@ function vr_admin_order_pill(array $o): string
     if ($st === 'refunded') return vr_admin_pill('erstattet', 'warn');
     return vr_admin_pill('unbezahlt', 'muted');
 }
+
+/** Siparişin ödeme yolu: 'crypto' (OxaPay) ya da 'card' (Stripe; alan yoksa eski siparişler). */
+function vr_admin_paymethod(array $o): string
+{
+    return (string)($o['payment_method'] ?? '') === 'crypto' ? 'crypto' : 'card';
+}
+
+/**
+ * Ödeme yolu rozeti. Kriptoda ödenen coin varsa yanında (ör. "Krypto · USDT").
+ * paid_crypto biçimi: "<miktar> <coin> <ağ>" (OxaPay txs[0]).
+ */
+function vr_admin_paym(array $o): string
+{
+    if (vr_admin_paymethod($o) === 'crypto') {
+        $coin = preg_split('/\s+/', trim((string)($o['oxapay']['paid_crypto'] ?? '')))[1] ?? '';
+        return '<span class="apm apm--crypto" title="Krypto · OxaPay">Krypto' . ($coin !== '' ? ' · ' . h($coin) : '') . '</span>';
+    }
+    return '<span class="apm apm--card" title="Karte · Stripe">Karte</span>';
+}
+
+/**
+ * Dünya haritası — satır içi SVG, kütüphane ve dış servis yok. Ülke dolgusu
+ * sayıya göre (log ölçek) kumdan altına koyulaşır; üzerine gelince ad + sayı,
+ * tıklayınca $href(ISO-2). Natural Earth 110m'de görünmeyen küçük ülkeler
+ * (Malta, Monaco, Singapur …) nokta olarak çizilir. $counts: [ISO-2 => sayı].
+ */
+function vr_admin_worldmap(array $counts, ?callable $href = null, string $unit = 'Besucher'): void
+{
+    static $m = null;
+    if ($m === null) $m = require __DIR__ . '/../inc/worldmap-data.php';
+
+    $c = [];
+    foreach ($counts as $k => $n) {
+        $k = strtoupper((string)$k);
+        if (preg_match('/^[A-Z]{2}$/', $k) && (int)$n > 0) $c[$k] = (int)$n;
+    }
+    $max = $c ? max($c) : 0;
+    // Üç duraklı renk: kum → altın → bronz. Log ölçek: bir ülke ezici çoğunlukta
+    // olsa da ikinci, üçüncü ülke açık gri kalmasın.
+    $stops = [[0xef, 0xe8, 0xd8], [0xc9, 0xa9, 0x6e], [0x6e, 0x53, 0x26]];
+    $fill = static function (int $n) use ($max, $stops): string {
+        $t = $max > 1 ? log(1 + $n) / log(1 + $max) : 1.0;
+        [$a, $b, $u] = $t < .5 ? [$stops[0], $stops[1], $t * 2] : [$stops[1], $stops[2], ($t - .5) * 2];
+        $mix = fn($i) => (int)round($a[$i] + ($b[$i] - $a[$i]) * $u);
+        return sprintf('#%02x%02x%02x', $mix(0), $mix(1), $mix(2));
+    };
+    $num = static fn(int $n): string => number_format($n, 0, ',', '.');
+
+    echo '<figure class="amap"><svg viewBox="0 0 ' . (int)$m['w'] . ' ' . (int)$m['h'] . '" role="img" aria-label="Weltkarte: ' . h($unit) . ' nach Land">';
+    foreach ($m['paths'] as $cc => $d) {
+        $n = $c[$cc] ?? 0;
+        $title = '<title>' . h(vr_country_name($cc)) . ($n ? ' · ' . $num($n) . ' ' . $unit : '') . '</title>';
+        $path = '<path d="' . $d . '" fill="' . ($n ? $fill($n) : '#e7e3db') . '">' . $title . '</path>';
+        echo ($n && $href) ? '<a href="' . h($href($cc)) . '">' . $path . '</a>' : $path;
+    }
+    foreach ($m['dots'] as $cc => [$x, $y]) {
+        $n = $c[$cc] ?? 0;
+        if (!$n) continue;                                  // boş küçük ülke çizilmez
+        $dot = '<circle class="amap__dot" cx="' . $x . '" cy="' . $y . '" r="4.5" fill="' . $fill($n) . '"><title>' . h(vr_country_name($cc)) . ' · ' . $num($n) . ' ' . $unit . '</title></circle>';
+        echo $href ? '<a href="' . h($href($cc)) . '">' . $dot . '</a>' : $dot;
+    }
+    echo '</svg>';
+    if ($max > 0) {
+        echo '<figcaption class="amap__legend"><span>1</span><i class="amap__scale"></i><span>' . $num($max) . ' ' . h($unit) . '</span>'
+           . '<span class="amap__n">' . count($c) . ' ' . (count($c) === 1 ? 'Land' : 'Länder') . '</span></figcaption>';
+    } else {
+        echo '<figcaption class="amap__legend"><span>Noch keine Daten.</span></figcaption>';
+    }
+    echo '</figure>';
+}
+
+/**
+ * Canlı ziyaretçi tablosunun satırları (sayfa ve 10 sn'lik JSON akışı aynı
+ * çıktıyı kullanır). $live: vr_stats_live() sonucu.
+ */
+function vr_admin_live_rows(array $live): string
+{
+    require_once __DIR__ . '/../inc/customers.php';
+    $out = '';
+    foreach ($live as $v) {
+        $c = ($v['u'] ?? '') !== '' ? vr_customer((string)$v['u']) : null;
+        $det = ($v['q']['id'] ?? '') !== '' ? ' · ' . $v['q']['id'] : (($v['q']['brand'] ?? '') !== '' ? ' · ' . $v['q']['brand'] : (($v['q']['q'] ?? '') !== '' ? ' · „' . $v['q']['q'] . '“' : ''));
+        $fresh = time() - (int)$v['last'] < 60;
+        $out .= '<tr' . ($fresh ? ' class="is-fresh"' : '') . '><td class="anowrap">' . ($fresh ? '<i class="alive-dot" title="in der letzten Minute aktiv"></i> ' : '')
+              . '<a class="amono" href="' . h(vr_url('admin/visitors.php', ['ip' => $v['ip']])) . '">' . h((string)$v['ip']) . '</a></td>'
+              . '<td class="anowrap">' . vr_admin_flag((string)$v['cc']) . '</td><td><span class="aellip" title="' . h($v['p'] . $det) . '">' . h($v['p'] . $det) . '</span></td><td class="anum">' . (int)$v['n'] . '</td>'
+              . '<td>' . h(vr_admin_ago((int)$v['first'])) . '</td><td>' . h(vr_admin_ago((int)$v['last'])) . '</td><td class="asmall">' . h($v['d'] . ' · ' . $v['b']) . '</td>'
+              . '<td>' . ($c ? '<a href="' . h(vr_url('admin/customer.php', ['id' => $c['id']])) . '">' . h((string)$c['email']) . '</a>' : '—') . '</td></tr>';
+    }
+    if (!$live) $out = '<tr><td colspan="8" class="asmall">Gerade ist niemand im Shop.</td></tr>';
+    return $out;
+}
+
+/**
+ * Canlı görünümün yan kartı: kişi sayısı, şu an bakılan sayfalar, cihazlar.
+ * Sayfa ve 10 sn'lik akış aynı çıktıyı kullanır.
+ */
+function vr_admin_live_side(array $live): string
+{
+    $pages = []; $dev = [];
+    foreach ($live as $v) {
+        $p = (string)($v['p'] ?? '');
+        $pages[$p] = ($pages[$p] ?? 0) + 1;
+        $d = ['phone' => 'Telefon', 'tablet' => 'Tablet', 'desktop' => 'Desktop'][(string)($v['d'] ?? '')] ?? (string)($v['d'] ?? '');
+        $dev[$d] = ($dev[$d] ?? 0) + 1;
+    }
+    arsort($pages); arsort($dev);
+    ob_start();
+    echo '<p class="abig">' . count($live) . '</p><p class="asmall" style="margin:0 0 18px">Besucher in den letzten 5 Minuten — ohne Bots und ohne Verwaltung. Grüner Punkt: in der letzten Minute aktiv.</p>';
+    if ($live) {
+        echo '<h3 class="asub">Gerade angesehen</h3>';
+        vr_admin_bars($pages, 5, null, fn($k) => h($k));
+        echo '<h3 class="asub">Geräte</h3>';
+        vr_admin_bars($dev, 3, null, fn($k) => h($k));
+    }
+    return (string)ob_get_clean();
+}
+
+/** Canlı ziyaretçilerin ülke sayıları (harita için). */
+function vr_admin_live_cc(array $live): array
+{
+    $cc = [];
+    foreach ($live as $v) { $k = strtoupper((string)($v['cc'] ?? '')); if ($k !== '') $cc[$k] = ($cc[$k] ?? 0) + 1; }
+    return $cc;
+}

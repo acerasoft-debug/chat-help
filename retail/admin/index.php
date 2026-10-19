@@ -6,6 +6,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../inc/view.php';
 require_once __DIR__ . '/../inc/admin.php';
 require_once __DIR__ . '/../inc/listings.php';
+require_once __DIR__ . '/../inc/oxapay.php';
 require_once __DIR__ . '/_nav.php';
 
 vr_admin_require();
@@ -24,6 +25,7 @@ $t0 = strtotime('today');
 [$n7, $c7]   = $sum($paid, time() - 7 * 86400);
 [$n7p, $c7p] = $sum($paid, time() - 14 * 86400, time() - 7 * 86400);
 [$n30, $c30] = $sum($paid, time() - 30 * 86400);
+[$n30x, $c30x] = $sum(array_filter($paid, fn($o) => vr_admin_paymethod($o) === 'crypto'), time() - 30 * 86400);
 [$n30p, $c30p] = $sum($paid, time() - 60 * 86400, time() - 30 * 86400);
 $trend = fn(int $now, int $prev) => $prev > 0 ? (int)round(($now - $prev) * 100 / $prev) : null;
 
@@ -57,7 +59,8 @@ $msgs = array_filter((array)vr_store_read('retail-messages.json', []), fn($m) =>
 $priv = array_filter((array)vr_store_read('retail-private-requests.json', []), fn($m) => is_array($m) && empty($m['done']));
 if ($msgs || $priv) $toDo[] = [(count($msgs) + count($priv)) . ' unbeantwortete Nachricht(en)', vr_url('admin/messages.php')];
 $unver = array_filter(vr_customers(), fn($c) => empty($c['verified']) && (int)($c['created_at'] ?? 0) < time() - 2 * 86400);
-if (!vr_stripe_ready()) $toDo[] = ['Stripe ist nicht konfiguriert — keine Zahlung möglich', vr_url('admin/system.php')];
+// Kart (Stripe) ya da kripto (OxaPay) — biri hazırsa müşteri ödeyebiliyor.
+if (!vr_stripe_ready() && !vr_oxapay_ready()) $toDo[] = ['Keine Zahlungsart eingerichtet — Kunden können nicht bezahlen', vr_url('admin/system.php')];
 $deal = vr_flash_deal();
 
 // Top ürünler (30 gün görüntülenme) + satış
@@ -72,7 +75,7 @@ vr_admin_head('Dashboard', ['sub' => $wd . ', ' . date('j') . '. ' . $mo . ' ' .
 <?php vr_admin_stats([
   'Umsatz heute'    => [vr_money($cToday), $nToday . ' Bestellung(en)'],
   'Umsatz 7 Tage'   => [vr_money($c7), $n7 . ' Bestellung(en)', $trend($c7, $c7p)],
-  'Umsatz 30 Tage'  => [vr_money($c30), $n30 . ' Bestellung(en)', $trend($c30, $c30p)],
+  'Umsatz 30 Tage'  => [vr_money($c30), $n30 . ' Bestellung(en)' . ($n30x ? ' · ' . $n30x . ' Krypto' : ''), $trend($c30, $c30p)],
   'Ø Bestellwert'   => [$n30 ? vr_money(intdiv($c30, $n30)) : '—', '30 Tage'],
 ]); ?>
 <?php vr_admin_stats([
@@ -116,30 +119,37 @@ vr_admin_head('Dashboard', ['sub' => $wd . ', ' . date('j') . '. ' . $mo . ' ' .
   </div>
 </div>
 
-<div class="agrid agrid--3">
+<div class="agrid agrid--21">
+  <?php vr_admin_card_open('Woher die Besucher kommen · 30 Tage', '<a href="' . h(vr_url('admin/visitors.php', ['d' => 30])) . '">IP-Adressen →</a>'); ?>
+    <?php vr_admin_worldmap($st['cc'], fn($k) => vr_url('admin/visitors.php', ['d' => 30, 'cc' => $k]), 'Aufrufe'); ?>
+  <?php vr_admin_card_close(); ?>
+  <?php vr_admin_card_open('Länder · 30 Tage'); ?>
+    <?php vr_admin_bars($st['cc'], 8, fn($k) => vr_url('admin/visitors.php', ['d' => 30, 'cc' => $k]), fn($k) => vr_admin_flag($k) . ' ' . h($k === '??' ? 'unbekannt' : vr_country_name($k))); ?>
+  <?php vr_admin_card_close(); ?>
+</div>
+
+<div class="agrid agrid--2">
   <?php vr_admin_card_open('Meistgesehene Artikel · 30 Tage'); ?>
     <?php vr_admin_bars($st['prod'], 8, fn($k) => vr_url('admin/product.php', ['id' => $k]), function ($k) { $p = vr_product($k); return h($p ? $p['brand'] . ' · ' . vr_card_name($p) : $k); }); ?>
   <?php vr_admin_card_close(); ?>
   <?php vr_admin_card_open('Meistverkauft · 30 Tage'); ?>
     <?php vr_admin_bars($soldQty, 8, fn($k) => vr_url('admin/product.php', ['id' => $k]), function ($k) { $p = vr_product($k); return h($p ? $p['brand'] . ' · ' . vr_card_name($p) : $k); }); ?>
   <?php vr_admin_card_close(); ?>
-  <?php vr_admin_card_open('Länder · 30 Tage'); ?>
-    <?php vr_admin_bars($st['cc'], 8, fn($k) => vr_url('admin/visitors.php', ['cc' => $k]), fn($k) => vr_admin_flag($k) . ' ' . h($k === '??' ? 'unbekannt' : vr_country_name($k))); ?>
-  <?php vr_admin_card_close(); ?>
 </div>
 
 <?php vr_admin_card_open('Letzte Bestellungen', '<a href="' . h(vr_url('admin/orders.php')) . '">alle →</a>', 'acard--pad0'); ?>
   <?php if (!$orders): ?><p class="asmall" style="padding:16px 18px">Noch keine Bestellungen.</p><?php else: ?>
   <div class="tablewrap"><table class="table">
-    <thead><tr><th>Nummer</th><th>Datum</th><th>Kunde</th><th>Land</th><th>Status</th><th class="anum">Summe</th></tr></thead>
+    <thead><tr><th>Nummer</th><th>Datum</th><th>Kunde</th><th>Land</th><th>Status</th><th>Zahlung</th><th class="anum">Summe</th></tr></thead>
     <tbody>
     <?php foreach (array_slice($orders, 0, 10) as $o): ?>
       <tr>
-        <td><a href="<?= h(vr_url('admin/order.php', ['id' => $o['id']])) ?>"><?= h((string)$o['number']) ?></a></td>
+        <td class="anowrap"><a href="<?= h(vr_url('admin/order.php', ['id' => $o['id']])) ?>"><?= h((string)$o['number']) ?></a></td>
         <td><?= h(vr_date((int)$o['created_at'], true)) ?></td>
         <td><?= h((string)($o['customer']['name'] ?? '') ?: (string)($o['customer']['email'] ?? '—')) ?></td>
         <td><?= vr_admin_flag((string)($o['ship_country'] ?? '')) ?></td>
         <td><?= vr_admin_order_pill($o) ?></td>
+        <td><?= vr_admin_paym($o) ?></td>
         <td class="anum"><?= h(vr_money((int)$o['total_cents'])) ?></td>
       </tr>
     <?php endforeach; ?>

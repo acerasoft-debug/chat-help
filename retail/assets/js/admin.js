@@ -28,13 +28,43 @@
     if (clock) { var d = new Date(); clock.textContent = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
   }
   tick(); setInterval(tick, 15000);
-  if (live) {
+  // Canlı akış (Gerade online): 10 sn'de bir tablo + harita + sayaç, sayfa
+  // yenilenmeden. Sekme arka plandayken sorulmaz; geri gelince hemen sorulur.
+  var feed = document.querySelector('[data-adm-livefeed]');
+  if (feed) {
+    var every = (parseInt(feed.getAttribute('data-adm-livefeed'), 10) || 10) * 1000;
+    var rows = document.querySelector('[data-live-rows]');
+    var map = document.querySelector('[data-live-map]');
+    var side = document.querySelector('[data-live-side]');
+    var at = document.querySelector('[data-live-at]');
+    var busy = false;
+    var pull = function () {
+      if (busy || document.hidden) return;
+      busy = true;
+      fetch(feed.getAttribute('data-src'), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          if (!j) return;
+          if (rows && typeof j.rows === 'string') rows.innerHTML = j.rows;
+          if (map && typeof j.map === 'string') map.innerHTML = j.map;
+          if (side && typeof j.side === 'string') side.innerHTML = j.side;
+          if (typeof j.n === 'number' && live) live.textContent = j.n;
+          if (at && j.at) at.textContent = j.at;
+        })
+        .catch(function () {})
+        .then(function () { busy = false; });
+    };
+    setInterval(pull, every);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) pull(); });
+  } else if (live) {
+    // Diğer sayfalar: yalnız üst çubuktaki sayaç, 30 sn'de bir.
     setInterval(function () {
+      if (document.hidden) return;
       fetch(live.closest('a').getAttribute('href').split('?')[0] + '?f=live&json=1', { credentials: 'same-origin' })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (j) { if (j && typeof j.n === 'number') live.textContent = j.n; })
         .catch(function () {});
-    }, 60000);
+    }, 30000);
   }
   // Otomatik yenilenen sayfalar (canlı görünüm)
   var auto = document.querySelector('[data-adm-refresh]');

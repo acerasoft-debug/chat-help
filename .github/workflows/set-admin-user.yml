@@ -1,0 +1,57 @@
+name: Sarvesto-Verwaltung — eigenen Admin-Zugang setzen
+
+# Elle tetiklenir: Actions → bu workflow → Run workflow.
+#
+# Gerekli repo secret'ları (Settings → Secrets and variables → Actions):
+#   SARVESTO_ADMIN_EMAIL      Giriş e-postası (panelde kullanıcı adı)
+#   SARVESTO_ADMIN_PASSWORD   En az 12 karakter
+#
+# Şifre hiçbir dosyaya commit edilmez, log'a yazılmaz, sunucuda komut satırına
+# da konmaz (stdin ile verilir); yalnızca password_hash özeti
+# ~/data/admin.json'a (chmod 600) yazılır. Giriş: https://sarvesto.com/admin/
+# Alternatif (secret'sız): panele Vestra şifresiyle girip Sicherheit →
+# "Eigenen Zugang anlegen".
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Kurulum klasörü (sunucuda)"
+        required: false
+        default: "~/maxsales_de"
+
+permissions:
+  contents: read
+
+jobs:
+  set-admin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Secret'lar var mı
+        env:
+          AE: ${{ secrets.SARVESTO_ADMIN_EMAIL }}
+          AP: ${{ secrets.SARVESTO_ADMIN_PASSWORD }}
+        run: |
+          [ -n "$AE" ] || { echo "::error::SARVESTO_ADMIN_EMAIL tanımlı değil (Settings → Secrets and variables → Actions)."; exit 1; }
+          [ -n "$AP" ] || { echo "::error::SARVESTO_ADMIN_PASSWORD tanımlı değil."; exit 1; }
+          [ ${#AP} -ge 12 ] || { echo "::error::Şifre en az 12 karakter olmalı."; exit 1; }
+          echo "Secret'lar tanımlı."
+
+      - name: Sunucuda hesabı yaz
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          AE: ${{ secrets.SARVESTO_ADMIN_EMAIL }}
+          AP: ${{ secrets.SARVESTO_ADMIN_PASSWORD }}
+          TARGET: ${{ github.event.inputs.target }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: AE,AP,TARGET
+          script: |
+            set -e
+            DEST=$(eval echo "${TARGET:-~/maxsales_de}")
+            cd "$DEST"
+            printf '%s' "$AP" | php tools/admin-user.php set "$AE" -
+            php tools/admin-user.php show

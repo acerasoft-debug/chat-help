@@ -72,8 +72,14 @@ $cust = vr_admin_customer_by_mail((string)($o['customer']['email'] ?? ''));
 $others = array_values(array_filter(vr_orders(), fn($x) => $x['id'] !== $o['id'] && strtolower((string)($x['customer']['email'] ?? '')) === strtolower((string)($o['customer']['email'] ?? '')) && (string)($o['customer']['email'] ?? '') !== ''));
 [$dev, $br, $os] = vr_stats_ua((string)($cl['ua'] ?? ''));
 
+$isCrypto = vr_admin_paymethod($o) === 'crypto';
+$ox       = (array)($o['oxapay'] ?? []);
 $timeline = [['at' => (int)$o['created_at'], 'what' => 'Bestellung angelegt', 'on' => true]];
-if (!empty($o['paid_at'])) $timeline[] = ['at' => (int)$o['paid_at'], 'what' => 'Zahlung eingegangen (Stripe)', 'on' => true];
+if (!empty($o['paid_at'])) $timeline[] = ['at' => (int)$o['paid_at'], 'what' => 'Zahlung eingegangen (' . ($isCrypto ? 'Krypto · OxaPay' : 'Karte · Stripe') . ')', 'on' => true];
+if (!empty($o['failed_at']) && in_array((string)$o['status'], ['failed', 'cancelled'], true)) {
+    $why = ['oxapay_expired' => 'Krypto-Rechnung abgelaufen', 'oxapay_failed' => 'Krypto-Zahlung fehlgeschlagen'][(string)($o['failed_reason'] ?? '')] ?? (string)($o['failed_reason'] ?? '');
+    $timeline[] = ['at' => (int)$o['failed_at'], 'what' => 'Nicht bezahlt' . ($why !== '' ? ' — ' . $why : ''), 'on' => true];
+}
 foreach ((array)($o['history'] ?? []) as $hx) {
     $label = ['shipped' => 'Versendet', 'unshipped' => 'Versandvermerk entfernt', 'cancelled' => 'Storniert', 'refunded' => 'Erstattet', 'mail_resent' => 'Bestätigung erneut gesendet'][$hx['what']] ?? $hx['what'];
     $timeline[] = ['at' => (int)$hx['at'], 'what' => $label . (($hx['note'] ?? '') !== '' ? ' — ' . $hx['note'] : '') . ' · ' . $hx['who'], 'on' => true];
@@ -86,9 +92,9 @@ if ((string)$o['status'] === 'paid') $actions .= vr_admin_button('resend', [], '
 vr_admin_head('Bestellung ' . $o['number'], ['sub' => vr_date((int)$o['created_at'], true) . ' · ' . ($o['customer']['email'] ?? ''), 'back' => [vr_url('admin/orders.php'), 'Bestellungen'], 'actions' => $actions, 'nav' => 'orders.php']);
 ?>
 <?php vr_admin_stats([
-  'Status'    => [strip_tags(vr_admin_order_pill($o)), ''],
+  'Status'    => [strip_tags(vr_admin_order_pill($o)), $isCrypto ? 'Krypto · OxaPay' : 'Karte · Stripe'],
   'Summe'     => [vr_money((int)$o['total_cents']), 'davon MwSt. ' . vr_money((int)($o['vat_cents'] ?? 0))],
-  'Provision' => [vr_money((int)($o['commission_cents'] ?? 0)), (string)($o['payout_mode'] ?? '')],
+  'Provision' => [vr_money((int)($o['commission_cents'] ?? 0)), in_array((string)($o['payout_mode'] ?? ''), ['', 'none'], true) ? 'Eigenware — keine Auszahlung' : (string)$o['payout_mode']],
   'Land'      => [(string)($o['ship_country'] ?? '—'), vr_country_name((string)($o['ship_country'] ?? ''))],
 ]); ?>
 
@@ -123,7 +129,7 @@ vr_admin_head('Bestellung ' . $o['number'], ['sub' => vr_date((int)$o['created_a
             <?= h(trim((string)($addr['line1'] ?? ''))) ?><?= trim((string)($addr['line2'] ?? '')) !== '' ? '<br>' . h(trim((string)$addr['line2'])) : '' ?><br>
             <?= h(trim(((string)($addr['postal_code'] ?? '')) . ' ' . ((string)($addr['city'] ?? '')))) ?><br>
             <?= h(vr_country_name((string)($addr['country'] ?? $o['ship_country'] ?? ''))) ?>
-          <?php else: ?><span class="asmall">noch nicht erfasst (kommt mit der Zahlung von Stripe)</span><?php endif; ?></dd>
+          <?php else: ?><span class="asmall"><?= $isCrypto ? 'nicht erfasst' : 'noch nicht erfasst (kommt mit der Zahlung von Stripe)' ?></span><?php endif; ?></dd>
         </dl>
       </div>
     <?php vr_admin_card_close(); ?>
@@ -169,14 +175,37 @@ vr_admin_head('Bestellung ' . $o['number'], ['sub' => vr_date((int)$o['created_a
       <?php else: ?><p class="asmall">Erst nach Zahlungseingang.</p><?php endif; ?>
     <?php vr_admin_card_close(); ?>
 
-    <?php vr_admin_card_open('Zahlung (Stripe)'); ?>
-      <dl class="adl">
-        <dt>Session</dt><dd class="amono asmall"><?= h((string)($o['stripe']['session_id'] ?? '') ?: '—') ?></dd>
-        <dt>PaymentIntent</dt><dd class="amono asmall"><?php $pi = (string)($o['stripe']['payment_intent'] ?? ''); echo $pi !== '' ? '<a href="https://dashboard.stripe.com/payments/' . h($pi) . '" target="_blank" rel="noopener">' . h($pi) . '</a>' : '—'; ?></dd>
-        <dt>Charge</dt><dd class="amono asmall"><?= h((string)($o['stripe']['charge_id'] ?? '') ?: '—') ?></dd>
-        <dt>Bezahlt</dt><dd><?= !empty($o['paid_at']) ? h(vr_date((int)$o['paid_at'], true)) : '—' ?></dd>
-      </dl>
-    <?php vr_admin_card_close(); ?>
+    <?php if ($isCrypto): ?>
+      <?php
+        // OxaPay durum dizgeleri (küçük harf) → Almanca etiket + ton.
+        $oxs = strtolower((string)($ox['status'] ?? ''));
+        [$oxLabel, $oxTone] = [
+            'new' => ['Rechnung erstellt', 'muted'], 'waiting' => ['wartet auf Zahlung', 'muted'], 'paying' => ['Zahlung unterwegs', 'warn'],
+            'confirming' => ['wird bestätigt', 'warn'], 'paid' => ['bezahlt', 'ok'], 'expired' => ['abgelaufen', 'bad'], 'failed' => ['fehlgeschlagen', 'bad'],
+            'refunding' => ['Erstattung läuft', 'warn'], 'refunded' => ['erstattet', 'warn'],
+        ][$oxs] ?? [$oxs !== '' ? $oxs : '—', 'muted'];
+        $oxAt = (int)($ox['synced_at'] ?? 0) ?: (int)($ox['updated_at'] ?? 0);
+      ?>
+      <?php vr_admin_card_open('Zahlung · Krypto (OxaPay)', vr_admin_paym($o)); ?>
+        <dl class="adl">
+          <dt>OxaPay-Status</dt><dd><?= vr_admin_pill($oxLabel, $oxTone) ?></dd>
+          <dt>Track-ID</dt><dd class="amono asmall"><?= h((string)($ox['track_id'] ?? '') ?: '—') ?></dd>
+          <dt>Bezahlt mit</dt><dd class="amono asmall"><?= h((string)($ox['paid_crypto'] ?? '') ?: '—') ?></dd>
+          <dt>Bezahlt</dt><dd><?= !empty($o['paid_at']) ? h(vr_date((int)$o['paid_at'], true)) : '—' ?></dd>
+          <dt>Zuletzt geprüft</dt><dd class="asmall"><?= $oxAt ? h(vr_admin_ago($oxAt)) : '—' ?></dd>
+        </dl>
+        <p class="anote" style="margin-top:10px">Coin, Netz und Transaktion stehen im OxaPay-Panel unter dieser Track-ID. Offene Rechnungen werden automatisch bei OxaPay abgefragt.</p>
+      <?php vr_admin_card_close(); ?>
+    <?php else: ?>
+      <?php vr_admin_card_open('Zahlung · Karte (Stripe)', vr_admin_paym($o)); ?>
+        <dl class="adl">
+          <dt>Session</dt><dd class="amono asmall"><?= h((string)($o['stripe']['session_id'] ?? '') ?: '—') ?></dd>
+          <dt>PaymentIntent</dt><dd class="amono asmall"><?php $pi = (string)($o['stripe']['payment_intent'] ?? ''); echo $pi !== '' ? '<a href="https://dashboard.stripe.com/payments/' . h($pi) . '" target="_blank" rel="noopener">' . h($pi) . '</a>' : '—'; ?></dd>
+          <dt>Charge</dt><dd class="amono asmall"><?= h((string)($o['stripe']['charge_id'] ?? '') ?: '—') ?></dd>
+          <dt>Bezahlt</dt><dd><?= !empty($o['paid_at']) ? h(vr_date((int)$o['paid_at'], true)) : '—' ?></dd>
+        </dl>
+      <?php vr_admin_card_close(); ?>
+    <?php endif; ?>
 
     <?php vr_admin_card_open('Interne Notiz'); ?>
       <form class="form" method="post"><?= vr_csrf_field() ?><input type="hidden" name="action" value="note">
@@ -187,7 +216,7 @@ vr_admin_head('Bestellung ' . $o['number'], ['sub' => vr_date((int)$o['created_a
 
     <?php if (in_array((string)$o['status'], ['paid', 'pending'], true)): ?>
       <?php vr_admin_card_open('Stornieren / Erstattung buchen', '', 'adanger'); ?>
-        <p class="anote">Storno setzt den Status und gibt den Bestand frei. Geld wird hier nicht bewegt — die Rückzahlung läuft im Stripe-Dashboard.</p>
+        <p class="anote">Storno setzt den Status und gibt den Bestand frei. Geld wird hier nicht bewegt — die Rückzahlung läuft im <?= $isCrypto ? 'OxaPay-Panel' : 'Stripe-Dashboard' ?>.</p>
         <form class="form" method="post" data-confirm="Bestellung <?= h($o['number']) ?> wirklich stornieren?" style="margin-top:10px"><?= vr_csrf_field() ?>
           <div class="field"><input name="reason" type="text" placeholder="Grund (für den Verlauf)"></div>
           <div class="afilter">

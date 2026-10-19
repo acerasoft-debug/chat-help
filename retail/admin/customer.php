@@ -100,13 +100,13 @@ vr_admin_head((string)($c['name'] ?? '') ?: $c['email'], ['sub' => $c['email'] .
 </div>
 
 <?php vr_admin_card_open('Bestellungen', '', 'acard--pad0'); ?>
-  <div class="tablewrap"><table class="table"><thead><tr><th>Nummer</th><th>Datum</th><th>Artikel</th><th>Status</th><th class="anum">Summe</th><th>IP</th></tr></thead><tbody>
+  <div class="tablewrap"><table class="table"><thead><tr><th>Nummer</th><th>Datum</th><th>Artikel</th><th>Status</th><th>Zahlung</th><th class="anum">Summe</th><th>IP</th></tr></thead><tbody>
   <?php foreach ($orders as $o): ?>
     <tr><td><a href="<?= h(vr_url('admin/order.php', ['id' => $o['id']])) ?>"><?= h($o['number']) ?></a></td><td class="asmall"><?= h(vr_date((int)$o['created_at'], true)) ?></td>
-      <td class="asmall"><?= h(implode(', ', array_map(fn($l) => ($l['qty'] ?? 1) . '× ' . ($l['name'] ?? ''), (array)$o['lines']))) ?></td><td><?= vr_admin_order_pill($o) ?></td><td class="anum"><?= h(vr_money((int)$o['total_cents'])) ?></td>
+      <td class="asmall"><?= h(implode(', ', array_map(fn($l) => ($l['qty'] ?? 1) . '× ' . ($l['name'] ?? ''), (array)$o['lines']))) ?></td><td><?= vr_admin_order_pill($o) ?></td><td><?= vr_admin_paym($o) ?></td><td class="anum"><?= h(vr_money((int)$o['total_cents'])) ?></td>
       <td><?= ($o['client']['ip'] ?? '') !== '' ? '<a class="amono asmall" href="' . h(vr_url('admin/visitors.php', ['ip' => $o['client']['ip']])) . '">' . h((string)$o['client']['ip']) . '</a>' : '' ?></td></tr>
   <?php endforeach; ?>
-  <?php if (!$orders): ?><tr><td colspan="6" class="asmall">Keine Bestellungen mit dieser E-Mail.</td></tr><?php endif; ?>
+  <?php if (!$orders): ?><tr><td colspan="7" class="asmall">Keine Bestellungen mit dieser E-Mail.</td></tr><?php endif; ?>
   </tbody></table></div>
 <?php vr_admin_card_close(); ?>
 

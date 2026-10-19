@@ -12,6 +12,8 @@ vr_admin_require();
 $f    = (string)($_GET['f'] ?? 'all');
 $q    = trim((string)($_GET['q'] ?? ''));
 $cc   = strtoupper(trim((string)($_GET['cc'] ?? '')));
+$pm   = (string)($_GET['pm'] ?? '');                    // ödeme yolu: card | crypto
+if (!in_array($pm, ['card', 'crypto'], true)) $pm = '';
 $from = trim((string)($_GET['from'] ?? ''));
 $to   = trim((string)($_GET['to'] ?? ''));
 $fromTs = $from !== '' ? (strtotime($from . ' 00:00:00') ?: 0) : 0;
@@ -41,13 +43,14 @@ function vr_admin_order_match(array $o, string $f): bool
     };
 }
 
-$rows = array_values(array_filter($all, function ($o) use ($f, $q, $cc, $fromTs, $toTs) {
+$rows = array_values(array_filter($all, function ($o) use ($f, $q, $cc, $pm, $fromTs, $toTs) {
     if (!vr_admin_order_match($o, $f)) return false;
     $t = (int)($o['created_at'] ?? 0);
     if ($t < $fromTs || $t > $toTs) return false;
     if ($cc !== '' && strtoupper((string)($o['ship_country'] ?? '')) !== $cc) return false;
+    if ($pm !== '' && vr_admin_paymethod($o) !== $pm) return false;
     if ($q !== '') {
-        $hay = strtolower(($o['number'] ?? '') . ' ' . ($o['customer']['email'] ?? '') . ' ' . ($o['customer']['name'] ?? '') . ' ' . ($o['tracking'] ?? '') . ' ' . ($o['client']['ip'] ?? '') . ' ' . ($o['stripe']['payment_intent'] ?? ''));
+        $hay = strtolower(($o['number'] ?? '') . ' ' . ($o['customer']['email'] ?? '') . ' ' . ($o['customer']['name'] ?? '') . ' ' . ($o['tracking'] ?? '') . ' ' . ($o['client']['ip'] ?? '') . ' ' . ($o['stripe']['payment_intent'] ?? '') . ' ' . ($o['oxapay']['track_id'] ?? ''));
         foreach ((array)($o['lines'] ?? []) as $l) $hay .= ' ' . strtolower((string)($l['name'] ?? '') . ' ' . (string)($l['pid'] ?? ''));
         if (!str_contains($hay, strtolower($q))) return false;
     }
@@ -55,9 +58,11 @@ $rows = array_values(array_filter($all, function ($o) use ($f, $q, $cc, $fromTs,
 }));
 
 if (($_GET['export'] ?? '') === 'csv') {
-    vr_admin_csv('bestellungen', ['nummer', 'datum', 'status', 'versendet', 'kunde', 'email', 'land', 'artikel', 'zwischensumme', 'versand', 'rabatt', 'gesamt', 'mwst', 'provision', 'gutschein', 'ip', 'tracking'],
+    vr_admin_csv('bestellungen', ['nummer', 'datum', 'status', 'zahlungsart', 'krypto_track_id', 'krypto_bezahlt', 'versendet', 'kunde', 'email', 'land', 'artikel', 'zwischensumme', 'versand', 'rabatt', 'gesamt', 'mwst', 'provision', 'gutschein', 'ip', 'tracking'],
         array_map(fn($o) => [
-            $o['number'], date('Y-m-d H:i', (int)$o['created_at']), $o['status'], !empty($o['shipped_at']) ? date('Y-m-d', (int)$o['shipped_at']) : '',
+            $o['number'], date('Y-m-d H:i', (int)$o['created_at']), $o['status'],
+            vr_admin_paymethod($o) === 'crypto' ? 'krypto' : 'karte', (string)($o['oxapay']['track_id'] ?? ''), (string)($o['oxapay']['paid_crypto'] ?? ''),
+            !empty($o['shipped_at']) ? date('Y-m-d', (int)$o['shipped_at']) : '',
             (string)($o['customer']['name'] ?? ''), (string)($o['customer']['email'] ?? ''), (string)($o['ship_country'] ?? ''),
             implode(' | ', array_map(fn($l) => ($l['qty'] ?? 1) . '× ' . ($l['brand'] ?? '') . ' ' . ($l['name'] ?? '') . ' ' . ($l['size'] ?? ''), (array)$o['lines'])),
             number_format((int)$o['subtotal_cents'] / 100, 2, ',', ''), number_format((int)$o['ship_cents'] / 100, 2, ',', ''), number_format((int)($o['discount_cents'] ?? 0) / 100, 2, ',', ''),
@@ -70,7 +75,7 @@ $sumTotal = 0; $sumPaid = 0;
 foreach ($rows as $o) { $sumTotal += (int)$o['total_cents']; if ((string)$o['status'] === 'paid') $sumPaid += (int)$o['total_cents']; }
 $tabs = ['all' => ['Alle', count($all)], 'open' => ['Offen', $count('open')], 'shipped' => ['Versendet', $count('shipped')], 'paid' => ['Bezahlt', $count('paid')],
          'pending' => ['Unbezahlt', $count('pending')], 'cancelled' => ['Storniert', $count('cancelled')], 'payout' => ['Auszahlung offen', $count('payout')]];
-$keep = array_filter(['q' => $q, 'cc' => $cc, 'from' => $from, 'to' => $to]);
+$keep = array_filter(['q' => $q, 'cc' => $cc, 'pm' => $pm, 'from' => $from, 'to' => $to]);
 [$page, $pag] = vr_admin_paginate($rows, 50);
 $countries = [];
 foreach ($all as $o) $countries[strtoupper((string)($o['ship_country'] ?? ''))] = 1;
@@ -84,27 +89,29 @@ vr_admin_tabs($tabs, $f, 'orders.php', 'f', $keep);
   <input type="search" name="q" value="<?= h($q) ?>" placeholder="Nummer, Name, E-Mail, Artikel, IP, Tracking">
   <input type="date" name="from" value="<?= h($from) ?>"> <span class="asmall">bis</span> <input type="date" name="to" value="<?= h($to) ?>">
   <select name="cc"><option value="">Alle Länder</option><?php foreach (array_keys($countries) as $c): if ($c === '') continue; ?><option value="<?= h($c) ?>"<?= $cc === $c ? ' selected' : '' ?>><?= h($c . ' · ' . vr_country_name($c)) ?></option><?php endforeach; ?></select>
+  <select name="pm"><option value="">Alle Zahlungsarten</option><option value="card"<?= $pm === 'card' ? ' selected' : '' ?>>Karte (Stripe)</option><option value="crypto"<?= $pm === 'crypto' ? ' selected' : '' ?>>Krypto (OxaPay)</option></select>
   <button class="btn btn--ghost btn--sm" type="submit"><span>Filtern</span></button>
   <?php if ($keep): ?><a class="asmall" href="<?= h(vr_url('admin/orders.php', ['f' => $f])) ?>">zurücksetzen</a><?php endif; ?>
 </form>
 <?php vr_admin_card_open('', '', 'acard--pad0'); ?>
 <div class="tablewrap"><table class="table">
-  <thead><tr><th>Nummer</th><th>Datum</th><th>Kunde</th><th>Land</th><th>Artikel</th><th>Status</th><th>Versand</th><th class="anum">Summe</th><th>IP</th></tr></thead>
+  <thead><tr><th>Nummer</th><th>Datum</th><th>Kunde</th><th>Land</th><th>Artikel</th><th>Status</th><th>Zahlung</th><th>Versand</th><th class="anum">Summe</th><th>IP</th></tr></thead>
   <tbody>
   <?php foreach ($page as $o): $n = array_sum(array_map(fn($l) => (int)($l['qty'] ?? 1), (array)$o['lines'])); ?>
     <tr<?= in_array((string)$o['status'], ['pending', 'failed', 'cancelled'], true) ? ' class="is-dim"' : '' ?>>
-      <td><a href="<?= h(vr_url('admin/order.php', ['id' => $o['id']])) ?>"><?= h((string)$o['number']) ?></a></td>
+      <td class="anowrap"><a href="<?= h(vr_url('admin/order.php', ['id' => $o['id']])) ?>"><?= h((string)$o['number']) ?></a></td>
       <td class="asmall"><?= h(vr_date((int)$o['created_at'], true)) ?></td>
       <td><?= h((string)($o['customer']['name'] ?? '')) ?><br><span class="asmall"><?= h((string)($o['customer']['email'] ?? '—')) ?></span></td>
       <td><?= vr_admin_flag((string)($o['ship_country'] ?? '')) ?></td>
       <td class="asmall"><?= $n ?> Art. · <?= h(mb_strimwidth(implode(', ', array_map(fn($l) => (string)($l['brand'] ?? ''), (array)$o['lines'])), 0, 40, '…')) ?></td>
       <td><?= vr_admin_order_pill($o) ?></td>
+      <td><?= vr_admin_paym($o) ?></td>
       <td class="asmall"><?= !empty($o['shipped_at']) ? h(vr_date((int)$o['shipped_at'])) . (($o['carrier'] ?? '') !== '' ? '<br>' . h((string)$o['carrier']) : '') : '—' ?></td>
       <td class="anum"><?= h(vr_money((int)$o['total_cents'])) ?></td>
       <td><?php $ip = (string)($o['client']['ip'] ?? ''); echo $ip !== '' ? '<a class="amono asmall" href="' . h(vr_url('admin/visitors.php', ['ip' => $ip])) . '">' . h($ip) . '</a>' : '<span class="asmall">—</span>'; ?></td>
     </tr>
   <?php endforeach; ?>
-  <?php if (!$page): ?><tr><td colspan="9" class="asmall">Nichts gefunden.</td></tr><?php endif; ?>
+  <?php if (!$page): ?><tr><td colspan="10" class="asmall">Nichts gefunden.</td></tr><?php endif; ?>
   </tbody></table></div>
 <?php vr_admin_card_close(); echo $pag; ?>
 <?php vr_admin_foot(); ?>

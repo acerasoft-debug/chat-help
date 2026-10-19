@@ -3,6 +3,7 @@
  * Yönetici hesabı kur — CLI
  * =========================
  *   php tools/admin-user.php set <e-posta> <şifre>
+ *   php tools/admin-user.php set <e-posta> -      (şifre stdin'den: işlem listesinde görünmez)
  *   php tools/admin-user.php show
  *
  * Şifre data/admin.json'a password_hash ile yazılır; dosya data/.gitignore
@@ -42,7 +43,9 @@ if ($cmd !== 'set' || count($argv) < 4) {
     exit(1);
 }
 
-[$ok, $err] = vr_admin_set((string)$argv[2], (string)$argv[3]);
+$pw = (string)$argv[3];
+if ($pw === '-') $pw = rtrim((string)stream_get_contents(STDIN), "\r\n");
+[$ok, $err] = vr_admin_set((string)$argv[2], $pw);
 if (!$ok) { echo "Fehler: {$err}\n"; exit(1); }
 
 @chmod(vr_store_path(VR_ADMIN_FILE), 0600);
