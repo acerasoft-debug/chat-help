@@ -1,0 +1,160 @@
+<?php
+/**
+ * FOTOĞRAFLI MEKTUP — satıcı adına alıcıya gerçek ürün fotoğrafları (19 Eki 2026, operatör: "bu fotoları Les Garage
+ * Paris adına gönderiyoruz diye bu müşteriye gönder, estetik bir şekilde").
+ *
+ * Depo ve Actions kütüğü herkese açık: alıcının adresi, adı, mektup metni ve fotoğraflar TEK bir şifreli pakette gelir
+ * (KEY.IV.GÖVDE, scripts/envelope_seal.php biçimi; özel anahtar ~/.vestra_inbox_key.pem sunucudan çıkmaz). Bu betik
+ * yalnız GENEL şablondur — kişiye ait hiçbir şey taşımaz.
+ *
+ *   php vestra-photo-letter.php check <paket>   paketi açar, fotoğrafları siteye koyar, adresleri yoklar, GÖNDERMEZ
+ *   php vestra-photo-letter.php send  <paket>   aynısı + mektubu gönderir
+ *   php vestra-photo-letter.php render <spec.json> <çıktı.html>   (yerel önizleme; şifresiz spec, fotoğraf yolu yerel)
+ *
+ * Paket gövdesi (JSON): to, from_name, reply_to, subject, kicker, title, subtitle, greeting, intro[], chips[],
+ * sections[{title, swatch, sub, photos[{name, b64, caption}]}], tap_hint, closing[], sign[], button{label,url}, footer.
+ * Fotoğraflar uploads/msg/<rastgele 24 hane>/ altına yazılır (dizin listesi kapalı, adres tahmin edilemez); her biri
+ * tam boy + 520 piksellik küçük kopya. Kütükte adres maskeli, metin basılmaz.
+ */
+ini_set('display_errors', 'stderr'); error_reporting(E_ALL);
+[$self, $mode, $arg1] = array_pad($argv, 3, '');
+$arg2 = $argv[3] ?? '';
+$root = getenv('VESTRA_ROOT') ?: (getenv('HOME').'/public_html');
+require_once $root.'/inc/products.php';
+require_once $root.'/inc/notify.php';
+
+function pl_open(string $env, string $keyFile): array {
+    $dec = fn(string $s): string => (string)base64_decode(strtr($s, '!$%&#,;?@~', '0123456789'), true);
+    $parts = explode('.', trim($env));
+    if (count($parts) !== 3) throw new RuntimeException('paket bicimi bozuk');
+    $priv = openssl_pkey_get_private((string)@file_get_contents($keyFile));
+    if (!$priv) throw new RuntimeException('ozel anahtar okunamadi');
+    $aes = '';
+    if (!openssl_private_decrypt($dec($parts[0]), $aes, $priv, OPENSSL_PKCS1_OAEP_PADDING)) throw new RuntimeException('anahtar acilamadi');
+    $json = openssl_decrypt($dec($parts[2]), 'aes-256-cbc', $aes, OPENSSL_RAW_DATA, $dec($parts[1]));
+    $d = is_string($json) ? json_decode($json, true) : null;
+    if (!is_array($d)) throw new RuntimeException('govde cozulemedi');
+    return $d;
+}
+
+/** Ana blok (vestra_html_email'in 'html' seçeneği) + düz metin. $url(name, thumb?) fotoğrafın adresini verir. */
+function pl_render(array $s, callable $url): array {
+    $e = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+    $p = 'margin:0 0 16px;line-height:1.65;color:#3a3428;font-size:15px';
+    $h = '<div style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#8a6d1f;font-weight:700;margin:2px 0 10px">'.$e($s['kicker'] ?? '').'</div>'
+       .'<div style="font-size:27px;line-height:1.2;color:#14110c;margin:0 0 6px">'.$e($s['title'] ?? '').'</div>'
+       .'<div style="font-size:13px;color:#8a8272;letter-spacing:.04em;margin:0 0 22px">'.$e($s['subtitle'] ?? '').'</div>'
+       .'<p style="'.$p.'">'.$e($s['greeting'] ?? '').'</p>';
+    foreach ((array)($s['intro'] ?? []) as $t) $h .= '<p style="'.$p.'">'.$e($t).'</p>';
+    if (!empty($s['chips'])) {
+        /* Satır içi blok: dar ekranda alt satıra geçer (tablo hücresi geçmiyor, telefonda taşıyordu). */
+        $c = '';
+        foreach ((array)$s['chips'] as $t) $c .= '<span style="display:inline-block;margin:0 6px 7px 0;border:1px solid #e1d5bd;background:#faf6ee;color:#5c5449;border-radius:999px;padding:5px 12px;font-size:12px;line-height:1.3;white-space:nowrap">'.$e($t).'</span>';
+        $h .= '<div style="margin:0 0 14px">'.$c.'</div>';
+    }
+    $plain = [(string)($s['greeting'] ?? ''), ...array_map('strval', (array)($s['intro'] ?? []))];
+    foreach ((array)($s['sections'] ?? []) as $sec) {
+        $h .= '<div style="border-top:1px solid #e6e0d5;margin:8px 0 0;padding:20px 0 4px">'
+            .'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+            .'<td valign="middle" style="padding-right:10px;line-height:0"><div style="width:16px;height:16px;border-radius:50%;background:'.$e($sec['swatch'] ?? '#ccc').';border:1px solid rgba(0,0,0,.15)"></div></td>'
+            .'<td valign="middle" style="font-size:17px;color:#14110c;font-weight:700;letter-spacing:.01em">'.$e($sec['title'] ?? '').'</td></tr></table>'
+            .'<div style="font-size:12px;color:#8a8272;margin:6px 0 14px 26px">'.$e($sec['sub'] ?? '').'</div>';
+        $rows = '';
+        foreach (array_chunk((array)($sec['photos'] ?? []), 2) as $pair) {
+            $tds = '';
+            foreach ($pair as $ph) {
+                $tds .= '<td valign="top" width="50%" style="padding:0 5px 14px">'
+                      .'<a href="'.$e($url($ph['name'], false)).'" style="text-decoration:none">'
+                      .'<img src="'.$e($url($ph['name'], true)).'" width="240" alt="'.$e($ph['caption'] ?? '').'" style="display:block;width:100%;max-width:240px;height:auto;border:1px solid #e6e0d5;border-radius:10px"></a>'
+                      .'<div style="font-size:11.5px;line-height:1.45;color:#5c5449;margin:7px 2px 0">'.$e($ph['caption'] ?? '').'</div></td>';
+            }
+            if (count($pair) === 1) $tds .= '<td width="50%" style="padding:0 5px 14px"></td>';
+            $rows .= '<tr>'.$tds.'</tr>';
+        }
+        $h .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 -5px">'.$rows.'</table></div>';
+        $plain[] = (string)($sec['title'] ?? '').' — '.(string)($sec['sub'] ?? '');
+        foreach ((array)($sec['photos'] ?? []) as $ph) $plain[] = '  · '.(string)($ph['caption'] ?? '').': '.$url($ph['name'], false);
+    }
+    if (!empty($s['tap_hint'])) $h .= '<div style="font-size:12px;color:#8a8272;font-style:italic;text-align:center;margin:0 0 20px">'.$e($s['tap_hint']).'</div>';
+    $h .= '<div style="border-top:1px solid #e6e0d5;padding-top:20px"></div>';
+    foreach ((array)($s['closing'] ?? []) as $t) { $h .= '<p style="'.$p.'">'.$e($t).'</p>'; $plain[] = (string)$t; }
+    if (!empty($s['sign'])) {
+        $lines = array_map('strval', (array)$s['sign']);
+        $h .= '<p style="margin:0 0 6px;line-height:1.55;color:#3a3428;font-size:15px">'.$e($lines[0]).'</p>'
+            .'<p style="margin:0 0 4px;line-height:1.4;color:#14110c;font-size:16px;font-weight:700">'.$e($lines[1] ?? '').'</p>'
+            .(isset($lines[2]) ? '<p style="margin:0 0 4px;color:#8a8272;font-size:12px;letter-spacing:.06em">'.$e($lines[2]).'</p>' : '');
+        $plain[] = implode("\n", $lines);
+    }
+    if (!empty($s['button']['url'])) $plain[] = (string)$s['button']['label'].': '.(string)$s['button']['url'];
+    $txt = implode("\n\n", array_filter($plain, fn($x) => trim($x) !== ''));
+    if (!empty($s['footer'])) $txt .= "\n\n—\n".(string)$s['footer'];
+    return [$h, $txt];
+}
+
+$mask = static function (string $e): string { $at = strrpos($e, '@'); return $at === false ? '***' : substr($e, 0, 1).'***'.substr($e, $at); };
+
+if ($mode === 'render') {
+    $s = json_decode((string)file_get_contents($arg1), true);
+    [$html, $txt] = pl_render($s, fn($n, $t) => 'file://'.dirname(realpath($arg1)).'/out/'.$n);
+    $opts = ['html' => $html] + (!empty($s['button']['url']) ? ['button' => $s['button']] : []);
+    file_put_contents($arg2, vestra_html_email($txt, '', $opts));
+    file_put_contents($arg2.'.txt', $txt);
+    echo "yazildi: $arg2\n"; exit(0);
+}
+if (!in_array($mode, ['check', 'send'], true) || !is_readable($arg1)) { fwrite(STDERR, "kullanim: check|send <paket>\n"); exit(2); }
+
+$s = pl_open((string)file_get_contents($arg1), getenv('HOME').'/.vestra_inbox_key.pem');
+$to = trim((string)($s['to'] ?? ''));
+if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "alici adresi gecersiz\n"); exit(1); }
+$token = bin2hex(random_bytes(12));
+$dir = $root.'/uploads/msg/'.$token; $base = 'https://vestrasales.com/uploads/msg/'.$token.'/';
+if (!@mkdir($dir, 0755, true)) { fwrite(STDERR, "dizin acilamadi\n"); exit(1); }
+@file_put_contents($root.'/uploads/msg/index.html', '');
+@file_put_contents($dir.'/index.html', '');
+$n = 0; $bytes = 0;
+foreach ($s['sections'] as &$sec) {
+    foreach ($sec['photos'] as &$ph) {
+        $name = preg_replace('/[^a-z0-9._-]/', '', strtolower((string)$ph['name']));
+        $raw = base64_decode((string)$ph['b64'], true);
+        if ($name === '' || !str_ends_with($name, '.jpg') || $raw === false || @imagecreatefromstring($raw) === false) { fwrite(STDERR, "fotograf bozuk: $name\n"); exit(1); }
+        file_put_contents($dir.'/'.$name, $raw); $bytes += strlen($raw);
+        $im = imagecreatefromstring($raw); $w = imagesx($im); $hh = imagesy($im); $tw = 520; $th = (int)round($hh * $tw / $w);
+        $t = imagecreatetruecolor($tw, $th); imagecopyresampled($t, $im, 0, 0, 0, 0, $tw, $th, $w, $hh);
+        imagejpeg($t, $dir.'/t-'.$name, 82);
+        $ph['name'] = $name; unset($ph['b64']); $n++;
+    }
+    unset($ph);
+}
+unset($sec);
+echo "fotograf: $n (".round($bytes / 1048576, 2)." MB) + kucuk kopyalar -> uploads/msg/".substr($token, 0, 4)."…/\n";
+$url = fn($nm, $thumb) => $base.($thumb ? 't-' : '').$nm;
+/* Yayında mı? Mektup gitmeden önce her adres 200 dönmeli; dönmeyen varsa mektup gitmez. */
+$bad = 0;
+foreach ($s['sections'] as $sec) foreach ($sec['photos'] as $ph) foreach ([true, false] as $th) {
+    $ch = curl_init($url($ph['name'], $th));
+    curl_setopt_array($ch, [CURLOPT_NOBODY => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15]);
+    curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); $ct = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE); curl_close($ch);
+    if ($code !== 200 || !str_starts_with($ct, 'image/')) { $bad++; echo "  YAYINDA DEGIL: ".($th ? 't-' : '').$ph['name']." ($code $ct)\n"; }
+}
+echo $bad ? "adres yoklamasi: $bad sorun\n" : "adres yoklamasi: hepsi 200 image/jpeg\n";
+/* Düğme canlı bir sayfaya gitmeli; açılmıyorsa düğme mektuptan çıkar (fotoğraflar mektubun asıl işi). */
+if (!empty($s['button']['url'])) {
+    $ch = curl_init((string)$s['button']['url']);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_FOLLOWLOCATION => false]);
+    curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    echo "dugme sayfasi: HTTP $code".($code === 200 ? '' : ' — dugme mektuptan CIKARILDI')."\n";
+    if ($code !== 200) unset($s['button']);
+}
+[$html, $txt] = pl_render($s, $url);
+$opts = ['html' => $html] + (!empty($s['button']['url']) ? ['button' => $s['button']] : []);
+echo "alici: ".$mask($to)." · gonderen adi: ".($s['from_name'] ?? '')." · konu: ".($s['subject'] ?? '')."\n";
+if ($mode === 'check' || $bad) {
+    /* Kuru koşuda yayımlanan fotoğraflar geri alınır — adres zaten kimseye gitmedi. */
+    array_map('unlink', glob($dir.'/*') ?: []); @rmdir($dir);
+    echo $bad ? "GONDERILMEDI (adres sorunu)\n" : "KURU KOSU — gonderilmedi, fotograflar geri alindi\n";
+    exit($bad ? 1 : 0);
+}
+$ok = vestra_send_mail($to, (string)$s['subject'], $txt, (string)($s['reply_to'] ?? 'support@vestrasales.com'), (string)($s['from_name'] ?? 'VESTRA'), null, '', $opts);
+echo $ok ? "GONDERILDI".(!empty($GLOBALS['vestra_api_last_message_id']) ? ' (saglayici kimligi var)' : '')."\n"
+         : "GONDERILEMEDI — ".json_encode($GLOBALS['vestra_api_last_error'] ?? null)."\n";
+exit($ok ? 0 : 1);

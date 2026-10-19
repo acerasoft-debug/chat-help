@@ -1,0 +1,67 @@
+name: (E-posta) Fotoğraflı mektup — satıcı adına alıcıya gerçek ürün fotoğrafları
+# 19 Eki 2026 (operatör: "bu fotoları Les Garage Paris adına gönderiyoruz diye bu müşteriye gönder, estetik bir şekilde").
+# Alıcının adresi, adı, mektup metni ve fotoğraflar TEK şifreli pakette (letters/*.enc, scripts/envelope_seal.php biçimi,
+# sunucunun ~/.vestra_inbox_key.pem anahtarıyla açılır) — depo ve kütük herkese açık, paket okunamaz. Şablon:
+# scripts/server/vestra-photo-letter.php. check = paketi açar, fotoğrafları yayınlar, adresleri yoklar, GÖNDERMEZ ve
+# yayınladığını geri alır; send = aynısı + gönderir. Paket sunucuya geçici olarak kopyalanır, iş bitince silinir.
+on:
+  workflow_dispatch:
+    inputs:
+      bundle:
+        description: "Şifreli paket (depodaki yol, letters/…enc)"
+        required: true
+      mode:
+        description: "check = gönderme, yalnız dene · send = gönder"
+        required: true
+        default: "check"
+permissions:
+  contents: read
+jobs:
+  letter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || 22 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts/server
+            letters
+      - name: SSH ayarı
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          {
+            echo "Host vestra"
+            echo "  HostName ${DEPLOY_HOST}"
+            echo "  User ${DEPLOY_USER}"
+            echo "  Port ${DEPLOY_PORT}"
+            echo "  IdentityFile ~/.ssh/deploy_key"
+            echo "  StrictHostKeyChecking no"
+            echo "  UserKnownHostsFile /dev/null"
+            echo "  LogLevel ERROR"
+            echo "  ConnectTimeout 25"
+          } > ~/.ssh/config
+          chmod 600 ~/.ssh/config
+      - name: Mektup
+        env:
+          BUNDLE: ${{ github.event.inputs.bundle }}
+          MODE: ${{ github.event.inputs.mode }}
+        run: |
+          set -o pipefail
+          case "$BUNDLE" in letters/*.enc) ;; *) echo "paket letters/*.enc olmali"; exit 1 ;; esac
+          case "$MODE" in check|send) ;; *) echo "mode check|send"; exit 1 ;; esac
+          [ -f "$BUNDLE" ] || { echo "paket yok: $BUNDLE"; exit 1; }
+          ssh vestra 'mkdir -p ~/vestra_tmp && chmod 700 ~/vestra_tmp'
+          ssh vestra 'cat > ~/vestra_tmp/photo-letter.php' < scripts/server/vestra-photo-letter.php
+          ssh vestra 'cat > ~/vestra_tmp/photo-letter.enc' < "$BUNDLE"
+          rc=0
+          ssh vestra "cd ~/public_html && php ~/vestra_tmp/photo-letter.php $MODE ~/vestra_tmp/photo-letter.enc" || rc=$?
+          ssh vestra 'rm -f ~/vestra_tmp/photo-letter.php ~/vestra_tmp/photo-letter.enc'
+          exit $rc
