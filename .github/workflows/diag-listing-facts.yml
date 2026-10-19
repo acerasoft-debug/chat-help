@@ -48,13 +48,13 @@ jobs:
             echo "eslesen ilan: ".count($hit)."\n";
             /* find ile gelenler TEK satir (genis bir arama kutugu bogmasin); tam kunye yalniz ids'tekiler. */
             foreach ($hit as $l) if (!in_array((string)($l['id'] ?? ''), $ids, true))
-              printf("  · %s | %s | %s | sku %s | %s | renk %s | %s | moq %s\n", $l['id'] ?? '', $l['brand'] ?? '', $l['name'] ?? '', $l['sku'] ?? '', $l['status'] ?? '',
-                implode('/', array_map('strval', (array)($l['colors'] ?? []))), $l['sizes'] ?? '', $l['moq'] ?? '');
+              printf("  · %s | %s | %s | sku %s | %s | renk %s | %s | moq %s | satici uid %s\n", $l['id'] ?? '', $l['brand'] ?? '', $l['name'] ?? '', $l['sku'] ?? '', $l['status'] ?? '',
+                implode('/', array_map('strval', (array)($l['colors'] ?? []))), $l['sizes'] ?? '', $l['moq'] ?? '', substr(preg_replace('/[^A-Za-z0-9_-]/', '', (string)($l['seller_uid'] ?? '-')), 0, 40));
             $hit = array_values(array_filter($hit, fn($l) => in_array((string)($l['id'] ?? ''), $ids, true)));
             $pii = '~@|\+?\d[\d\s().-]{7,}\d~';
             foreach ($hit as $l) {
               $out = [];
-              foreach (['id','status','mode','brand','name','sku','section','cat','gender','list','moq','size_step','min_colors','colorqty','sizes','series','pack','lot','origin','condition'] as $k)
+              foreach (['id','status','mode','brand','name','sku','section','cat','gender','list','moq','size_step','min_colors','colorqty','sizes','series','pack','lot','origin','condition','seller_uid'] as $k)
                 if (array_key_exists($k, $l)) $out[$k] = $l[$k];
               $out['colors'] = array_map(fn($c) => ['name' => (string)$c, 'base' => vestra_colour_base((string)$c), 'css' => vestra_colour_css((string)$c)], array_values((array)($l['colors'] ?? [])));
               $out['pack_size'] = vestra_pack_size($l);
