@@ -1,0 +1,12 @@
+[
+  {"match": "lac-zip-hoodie", "expect": 1,
+   "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack"},
+  {"match": "lac-highneck-sweatshirt", "expect": 1,
+   "size_step": 10, "moq": 60, "tiers": [{"min": 60, "price": 55}],
+   "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack",
+   "desc": "Zip-Up High Neck Interlock Sweatshirt — Lacoste, sold in cartons of 10 per colour (mixed sizes S-XXL). Minimum order 60 pc, at least 4 colours."},
+  {"match": "lac-fleece-hoodie", "expect": 1,
+   "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack"},
+  {"match": "lac-crew-sweatshirt", "expect": 1,
+   "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/pack"}
+]
