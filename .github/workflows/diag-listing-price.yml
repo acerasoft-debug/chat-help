@@ -1,0 +1,44 @@
+name: (Salt-okunur) İlan fiyatı — kademeler, süreli teklif, adete göre birim fiyat
+# 19 Eki 2026: karşı teklif tavanı (vestra_offer_ref_price) ilanın "başlayan" fiyatına bakıyor; bir teklifin adedinde
+# katalogun gerçekten hangi birim fiyatı istediğini görmek için. Hiçbir şey yazmaz.
+on:
+  workflow_dispatch:
+    inputs:
+      listing_id:
+        description: "İlan id"
+        required: true
+      qty:
+        description: "Adet (virgülle birden çok)"
+        required: false
+        default: "40,50,80,100"
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        env:
+          LID: ${{ github.event.inputs.listing_id }}
+          QTY: ${{ github.event.inputs.qty }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: LID,QTY
+          script: |
+            cd ~/public_html
+            php -r '
+              require "inc/products.php"; require_once "inc/offers.php";
+              $id = preg_replace("/[^A-Za-z0-9_-]/", "", (string)getenv("LID"));
+              $l = vestra_listing_by_id($id); if (!$l) { echo "ilan yok\n"; exit(1); }
+              echo "ilan: $id · ".($l["brand"] ?? "")." ".($l["name"] ?? "")." · sku ".($l["sku"] ?? "")." · mod ".($l["mode"] ?? "")." · list ".($l["list"] ?? "")." · moq ".($l["moq"] ?? "")."\n";
+              echo "kademeler (kayit): ".json_encode($l["tiers"] ?? null)."\n";
+              $a = function_exists("vestra_aktion") ? vestra_aktion($l) : null;
+              echo "sureli teklif: ".($a ? json_encode($a) : "yok")."\n";
+              $e = function_exists("vestra_aktion_apply") ? vestra_aktion_apply($l) : $l;
+              echo "kademeler (gecerli): ".json_encode($e["tiers"] ?? null)."\n";
+              echo "baslayan fiyat (from): ".vestra_from_price($e)." · karsi teklif tavani: ".vestra_offer_ref_price($l)."\n";
+              foreach (array_filter(array_map("intval", explode(",", (string)getenv("QTY")))) as $q) echo "  $q adet -> birim ".vestra_unit_price($e, $q)."\n";
+            '
