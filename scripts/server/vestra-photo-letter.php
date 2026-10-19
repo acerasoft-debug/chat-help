@@ -17,7 +17,8 @@
  * sections[{title, swatch, sub, photos[{name, b64, caption}]}], tap_hint, closing[], sign[], button{label,url}, footer.
  * Katalog mektubu için (19 Eki 2026, "tüm renklerini ve lotunu gönder") bölümde isteğe bağlı: colors[{name, css}]
  * (renk çipleri), facts[[etiket, değer]] (lot / MOQ satırları), sizes[[beden, adet]] (karton dökümü), cols (2|3),
- * link{label,url}. Fotoğraf b64 yerine src taşıyabilir: sunucudaki katalog görseli (/uploads/…), burada JPEG'e çevrilir
+ * link{label,url}, price + price_unit (başlığın yanında fiyat); üst düzeyde summary[[ad, kod, fiyat]] + summary_title
+ * (girişin altında fiyat özeti). Fotoğraf b64 yerine src taşıyabilir: sunucudaki katalog görseli (/uploads/…), burada JPEG'e çevrilir
  * (AVIF/WebP e-posta istemcilerinin çoğunda görünmüyor) ve 4:5 tuvale, köşe renginde boşlukla oturtulur.
  * Fotoğraflar uploads/msg/<rastgele 24 hane>/ altına yazılır (dizin listesi kapalı, adres tahmin edilemez); her biri
  * tam boy + 520 piksellik küçük kopya. Kütükte adres maskeli, metin basılmaz.
@@ -59,16 +60,35 @@ function pl_render(array $s, callable $url): array {
         $h .= '<div style="margin:0 0 14px">'.$c.'</div>';
     }
     $plain = [(string)($s['greeting'] ?? ''), ...array_map('strval', (array)($s['intro'] ?? []))];
+    if (!empty($s['summary'])) {
+        /* Fiyat özeti: ürün adı + kod solda, fiyat sağda. */
+        $r = '';
+        foreach ((array)$s['summary'] as $i => $row) {
+            [$nm, $code, $pr] = array_pad(array_values((array)$row), 3, '');
+            $r .= '<tr><td style="padding:9px 0;'.($i ? 'border-top:1px solid #efe6d4;' : '').'font-size:14px;color:#14110c;line-height:1.35">'.$e($nm)
+                .($code !== '' ? '<div style="font-size:11.5px;color:#8a8272;letter-spacing:.03em">'.$e($code).'</div>' : '').'</td>'
+                .'<td align="right" valign="middle" style="padding:9px 0 9px 12px;'.($i ? 'border-top:1px solid #efe6d4;' : '').'font-size:17px;color:#8a6d1f;font-weight:700;white-space:nowrap">'.$e($pr).'</td></tr>';
+            $plain[] = '  · '.$nm.($code !== '' ? ' ('.$code.')' : '').': '.$pr;
+        }
+        $h .= '<div style="background:#faf6ee;border:1px solid #efe6d4;border-radius:10px;padding:12px 16px 6px;margin:4px 0 18px">'
+            .'<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#8a6d1f;font-weight:700;margin:0 0 4px">'.$e($s['summary_title'] ?? '').'</div>'
+            .'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">'.$r.'</table></div>';
+        array_splice($plain, count($plain) - count((array)$s['summary']), 0, [(string)($s['summary_title'] ?? '')]);
+    }
     $hintTop = ($s['tap_hint_pos'] ?? '') === 'top' && !empty($s['tap_hint']);
     if ($hintTop) $h .= '<div style="font-size:12px;color:#8a8272;font-style:italic;margin:0 0 4px">'.$e($s['tap_hint']).'</div>';
     foreach ((array)($s['sections'] ?? []) as $sec) {
         $sw = (string)($sec['swatch'] ?? (empty($sec['colors']) ? '#ccc' : ''));
         $h .= '<div style="border-top:1px solid #e6e0d5;margin:8px 0 0;padding:20px 0 4px">'
-            .'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+            .'<table role="presentation"'.(!empty($sec['price']) ? ' width="100%"' : '').' cellpadding="0" cellspacing="0" border="0"><tr>'
             .($sw !== '' || empty($sec['colors']) ? '<td valign="middle" style="padding-right:10px;line-height:0"><div style="width:16px;height:16px;border-radius:50%;background:'.$e($sw).';border:1px solid rgba(0,0,0,.15)"></div></td>' : '')
-            .'<td valign="middle" style="font-size:17px;color:#14110c;font-weight:700;letter-spacing:.01em">'.$e($sec['title'] ?? '').'</td></tr></table>'
+            .'<td valign="middle" style="font-size:17px;color:#14110c;font-weight:700;letter-spacing:.01em">'.$e($sec['title'] ?? '').'</td>'
+            .(!empty($sec['price']) ? '<td align="right" valign="middle" style="padding-left:12px;white-space:nowrap"><span style="font-size:19px;color:#8a6d1f;font-weight:700">'.$e($sec['price']).'</span>'
+                .(!empty($sec['price_unit']) ? '<span style="font-size:11.5px;color:#8a8272"> '.$e($sec['price_unit']).'</span>' : '').'</td>' : '')
+            .'</tr></table>'
             .'<div style="font-size:12px;color:#8a8272;margin:6px 0 14px '.($sw !== '' || empty($sec['colors']) ? '26px' : '0').'">'.$e($sec['sub'] ?? '').'</div>';
-        $plain[] = (string)($sec['title'] ?? '').' — '.(string)($sec['sub'] ?? '');
+        $plain[] = (string)($sec['title'] ?? '').' — '.(string)($sec['sub'] ?? '')
+            .(!empty($sec['price']) ? "\n  ".$sec['price'].(!empty($sec['price_unit']) ? ' '.$sec['price_unit'] : '') : '');
         if (!empty($sec['colors'])) {
             /* Renk çipleri: nokta + ad, satır içi blok (dar ekranda alt satıra geçer). */
             $c = '';
