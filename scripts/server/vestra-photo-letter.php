@@ -10,6 +10,8 @@
  *   php vestra-photo-letter.php check <paket>   paketi açar, fotoğrafları siteye koyar, adresleri yoklar, GÖNDERMEZ
  *   php vestra-photo-letter.php send  <paket>   aynısı + mektubu gönderir
  *   php vestra-photo-letter.php render <spec.json> <çıktı.html>   (yerel önizleme; şifresiz spec, fotoğraf yolu yerel)
+ *   php vestra-photo-letter.php sheet <paket> <çıktı.jpg>   mektubun fotoğraflarının (sunucuda çevrilmiş hâlleriyle)
+ *     etiketli kontak sayfası; hiçbir şey yayınlamaz, göndermez (katalog mektubunu göndermeden gözle görmek için)
  *
  * Paket gövdesi (JSON): to, from_name, reply_to, subject, kicker, title, subtitle, greeting, intro[], chips[],
  * sections[{title, swatch, sub, photos[{name, b64, caption}]}], tap_hint, closing[], sign[], button{label,url}, footer.
@@ -186,7 +188,33 @@ if ($mode === 'render') {
     file_put_contents($arg2.'.txt', $txt);
     echo "yazildi: $arg2\n"; exit(0);
 }
-if (!in_array($mode, ['check', 'send'], true) || !is_readable($arg1)) { fwrite(STDERR, "kullanim: check|send <paket>\n"); exit(2); }
+if ($mode === 'sheet') {
+    $s = pl_open((string)file_get_contents($arg1), getenv('HOME').'/.vestra_inbox_key.pem');
+    $tw = 180; $th = 225; $cols = 5; $cap = 34; $tiles = [];
+    foreach ($s['sections'] as $si => $sec) foreach ($sec['photos'] as $ph) {
+        if (isset($ph['src'])) { [$raw, $how] = pl_catalog_jpeg((string)$ph['src'], $root); }
+        else { $raw = (string)base64_decode((string)($ph['b64'] ?? ''), true); $how = 'b64'; }
+        $im = $raw !== '' ? @imagecreatefromstring($raw) : false;
+        if ($im === false) { fwrite(STDERR, "okunamadi: ".($ph['src'] ?? $ph['name'])." ($how)\n"); exit(1); }
+        $tiles[] = [$im, ($si + 1).'. '.(string)($ph['caption'] ?? ''), (string)$ph['name']];
+    }
+    $rows = (int)ceil(count($tiles) / $cols);
+    $sh = imagecreatetruecolor($cols * ($tw + 10) + 10, $rows * ($th + $cap + 10) + 10);
+    imagefill($sh, 0, 0, imagecolorallocate($sh, 255, 255, 255));
+    $ink = imagecolorallocate($sh, 40, 40, 40); $grey = imagecolorallocate($sh, 140, 140, 140);
+    foreach ($tiles as $i => [$im, $c1, $c2]) {
+        $x = 10 + ($i % $cols) * ($tw + 10); $y = 10 + intdiv($i, $cols) * ($th + $cap + 10);
+        imagecopyresampled($sh, $im, $x, $y, 0, 0, $tw, $th, imagesx($im), imagesy($im));
+        imagerectangle($sh, $x, $y, $x + $tw - 1, $y + $th - 1, $grey);
+        /* GD'nin gömülü yazı tipi yalnız ASCII basar. */
+        imagestring($sh, 3, $x, $y + $th + 3, iconv('UTF-8', 'ASCII//TRANSLIT', $c1) ?: '?', $ink);
+        imagestring($sh, 2, $x, $y + $th + 18, $c2, $grey);
+    }
+    imagejpeg($sh, $arg2, 80);
+    echo "kontak sayfasi: ".count($tiles)." fotograf, ".round(filesize($arg2) / 1024)." KB — hicbir sey yayinlanmadi, gonderilmedi\n";
+    exit(0);
+}
+if (!in_array($mode, ['check', 'send'], true) || !is_readable($arg1)) { fwrite(STDERR, "kullanim: check|send|sheet <paket>\n"); exit(2); }
 
 $s = pl_open((string)file_get_contents($arg1), getenv('HOME').'/.vestra_inbox_key.pem');
 $to = trim((string)($s['to'] ?? ''));
