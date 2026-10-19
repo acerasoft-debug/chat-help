@@ -20,6 +20,10 @@ on:
         description: "true = açıldıktan sonra müşteriye 'hesabınız yeniden açıldı' e-postası"
         required: false
         default: "false"
+      clear_optout:
+        description: "true = kampanya dışı işaretini (no_campaigns) de kaldır"
+        required: false
+        default: "false"
 permissions:
   contents: read
 jobs:
@@ -32,12 +36,13 @@ jobs:
           EMAIL_B64: ${{ github.event.inputs.email_b64 }}
           DRY: ${{ github.event.inputs.dry_run }}
           NOTIFY: ${{ github.event.inputs.notify }}
+          CLEAR_OPTOUT: ${{ github.event.inputs.clear_optout }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: EMAIL_B64,DRY,NOTIFY
+          envs: EMAIL_B64,DRY,NOTIFY,CLEAR_OPTOUT
           command_timeout: 3m
           script: |
             cd ~/public_html
@@ -71,7 +76,9 @@ jobs:
             if ($dry) exit(0);
             @copy(vestra_data_dir().'/accounts.json', vestra_data_dir().'/accounts.json.bak-reopen-'.date('Ymd_His'));
             auth_update((string)$acc['id'], ['status' => 'active', 'suspend_reason' => '', 'suspend_note' => '', 'kyb_status' => 'approved',
-              'restricted_until' => '', 'restricted_lift_refs' => [], 'unsuspended_at' => date('c'), 'unsuspended_by' => 'operator ('.date('j M Y').', workflow)']);
+              'restricted_until' => '', 'restricted_lift_refs' => [], 'unsuspended_at' => date('c'), 'unsuspended_by' => 'operator ('.date('j M Y').', workflow)']
+              /* 19 Eki 2026 (operatör: "bu hesabın TÜM engellemelerini kaldır"): clear_optout=true ise kampanya dışı işareti de kalkar. */
+              + (strtolower(trim((string)getenv('CLEAR_OPTOUT'))) === 'true' ? ['no_campaigns' => false, 'no_campaigns_cleared_at' => date('c'), 'no_campaigns_cleared_by' => 'operator (workflow)'] : []));
             if ($thr) { foreach (array_keys($thr) as $tk) if (str_contains(strtolower((string)$tk), $email)) unset($thr[$tk]); auth_throttle_save($thr); }
             $back = auth_find($email);
             echo "SONRA:\n"; $show($back);
