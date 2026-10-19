@@ -182,7 +182,9 @@ function pl_catalog_jpeg(string $src, string $root): array {
        küçük görünüyordu. YALNIZ dört köşe aynı renkse (düz zemin): degrade ya da manken çekiminde kırpma bir kenarı
        keser ve kalan kenar dolgu renginden ayrışıp kutu gibi görünür (yerelde degrade örnekle görüldü). */
     $flat = max($hi[0] - $lo[0], $hi[1] - $lo[1], $hi[2] - $lo[2]) <= 10;
-    if ($flat && ($cr = @imagecropauto($im, IMG_CROP_THRESHOLD, 6.0, imagecolorat($im, 0, 0))) !== false && imagesx($cr) > 50 && imagesy($cr) > 50) { $im = $cr; $w = imagesx($im); $h = imagesy($im); }
+    /* Eşik %2: JPEG gürültüsü (±3 seviye ≈ %1) zemin sayılır, beyaz/açık mavi kumaş (zeminden ≥ %3) sayılmaz —
+       %6'da beyaz ve azzurro kapüşonlunun kolları kırpılıyordu (19 Eki, kontak sayfasında görüldü). */
+    if ($flat && ($cr = @imagecropauto($im, IMG_CROP_THRESHOLD, 2.0, imagecolorat($im, 0, 0))) !== false && imagesx($cr) > 50 && imagesy($cr) > 50) { $im = $cr; $w = imagesx($im); $h = imagesy($im); }
     $cv = imagecreatetruecolor($W, $H);
     imagefill($cv, 0, 0, imagecolorallocate($cv, intdiv($sum[0], 4), intdiv($sum[1], 4), intdiv($sum[2], 4)));
     /* Kenar payı yalnız düz zeminde (dolgu zeminle aynı renk); değilse görsel tuvali tam doldurur, kutu görünmez. */

@@ -59,13 +59,13 @@ jobs:
           case "$MODE" in check|send|sheet) ;; *) echo "mode check|send|sheet"; exit 1 ;; esac
           [ -f "$BUNDLE" ] || { echo "paket yok: $BUNDLE"; exit 1; }
           ssh vestra 'mkdir -p ~/vestra_tmp && chmod 700 ~/vestra_tmp'
-          ssh vestra 'cat > ~/vestra_tmp/photo-letter.php' < scripts/server/vestra-photo-letter.php
-          ssh vestra 'cat > ~/vestra_tmp/photo-letter.enc' < "$BUNDLE"
+          ssh vestra "cat > ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}.php" < scripts/server/vestra-photo-letter.php
+          ssh vestra "cat > ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}.enc" < "$BUNDLE"
           rc=0
           if [ "$MODE" = sheet ]; then
-            ssh vestra "cd ~/public_html && php ~/vestra_tmp/photo-letter.php sheet ~/vestra_tmp/photo-letter.enc ~/vestra_tmp/photo-letter-sheet.jpg" || rc=$?
-            [ $rc -eq 0 ] && ssh vestra 'cat ~/vestra_tmp/photo-letter-sheet.jpg' > /tmp/sheet.jpg
-            ssh vestra 'rm -f ~/vestra_tmp/photo-letter.php ~/vestra_tmp/photo-letter.enc ~/vestra_tmp/photo-letter-sheet.jpg'
+            ssh vestra "cd ~/public_html && php ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}.php sheet ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}.enc ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}-sheet.jpg" || rc=$?
+            [ $rc -eq 0 ] && ssh vestra "cat ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}-sheet.jpg" > /tmp/sheet.jpg
+            ssh vestra "rm -f ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}.php ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}.enc ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}-sheet.jpg"
             [ $rc -eq 0 ] || exit $rc
             # Yalnız KATALOG fotoğrafları (src) içeren paketler için anlamlı; kişi verisi yok, metin yok.
             out="letters/sheets/$(basename "$BUNDLE" .enc).jpg"
@@ -78,6 +78,6 @@ jobs:
             done
             echo "push edilemedi"; exit 1
           fi
-          ssh vestra "cd ~/public_html && php ~/vestra_tmp/photo-letter.php $MODE ~/vestra_tmp/photo-letter.enc" || rc=$?
-          ssh vestra 'rm -f ~/vestra_tmp/photo-letter.php ~/vestra_tmp/photo-letter.enc'
+          ssh vestra "cd ~/public_html && php ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}.php $MODE ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}.enc" || rc=$?
+          ssh vestra "rm -f ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}.php ~/vestra_tmp/photo-letter-${GITHUB_RUN_ID}.enc"
           exit $rc
