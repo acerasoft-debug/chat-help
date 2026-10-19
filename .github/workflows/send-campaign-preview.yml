@@ -2447,9 +2447,13 @@ jobs:
                 $goods += (float)$it['line'];
                 $lines .= sprintf("  %-16s %4d x %s %s = %s %s\n", $it['sku'], (int)$it['qty'],
                           $pCur, number_format((float)$it['unit'],2), $pCur, number_format((float)$it['line'],2));
+                /* Renk dokumu (urun renkleri, kisi verisi degil): belgeye cizilen hucreler aynen. */
+                if (!empty($it['colors'])) $lines .= "      renk".(!empty($it['colors_wide']) ? ' (aciklamanin altinda)' : '').": "
+                                                     .str_replace("\u{00A0}", ' ', implode(', ', (array)$it['colors']))."\n";
               }
               $sh2 = (float)($p['meta']['shipping'] ?? 0);
               echo "TASLAK: ".count($p['items'])." kalem, uyeler: ".implode(', ', $p['refs'])."\n";
+              echo "  belge tarihi: ".substr((string)($p['meta']['date'] ?? ''), 0, 10)."\n";
               echo "  mal ".number_format($goods,2)." + kargo ".number_format($sh2,2)
                  ." = ".number_format($goods+$sh2,2)." ".$pCur."\n";
               echo "  satici: ".vestra_invoice_issuer_name($p['seller'],'Acerasoft LLC')."\n";
@@ -2464,7 +2468,7 @@ jobs:
               echo "  odeme kutusu : ".($__rails
                    ? 'CIKAR ('.count($__rails).' satir)'
                    : '*** CIKMAZ *** — '.$pCur.' icin bu hesapta ray yok')."\n";
-              echo "  pdf: ".strlen($bytes)." bayt\n";
+              echo "  pdf: ".strlen($bytes)." bayt · ".(int)preg_match_all('~/Type\s*/Page(?![s\w])~', $bytes)." sayfa\n";
               /* MEKTUBUN PARA BLOGU GUNLUGE DE BASILIYOR. Operatorun 9 Eyl
                  2026'da yakaladigi hata (dolar tutarlarin ustunde "EUR")
                  tam olarak burada gorunurdu ve gunluk onu HIC yazmiyordu:

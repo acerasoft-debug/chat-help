@@ -1230,13 +1230,22 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
            toplam blogunun ustune basti. Metin sondasi "11/11 SKU cizili" ve "toplam
            VAR" dedi -- ikisi de dogruydu, NEREYE cizildigini kimse sormadi; belgeyi
            gozle acmak gerekti (SKU sutunundaki 28 Eyl kusurunun ayni sinifi). */
+        /* ADETLI RENK DOKUMU (teklif faturasi, 19 Eki 2026, O5AD1B): "Beige ×10, Navy ×10, ..." dar
+           renk sutununda renk basina bir satir tutuyor (8 renk = 8 satir) ve belgeyi ikinci sayfaya
+           itiyordu. 'colors_wide' isaretli kalemde dokum aciklamanin ALTINA, aciklama + renk
+           sutunlari boyunca basilir; renk sutununa yalniz renk sayisi yazilir. Isaretsiz kalem
+           (siparis faturalari) eskisi gibi. */
+        $wideCols = !empty($it['colors_wide']) && !empty($it['colors']);
         $colLines  = !empty($it['colors'])
-            ? vestra_invoice_wrap(implode(', ', (array)$it['colors']), $colQty - $colCol - 6, 8)
+            ? ($wideCols ? [count((array)$it['colors']).' colours']
+                         : vestra_invoice_wrap(implode(', ', (array)$it['colors']), $colQty - $colCol - 6, 8))
             : [];
-        $rowH = max(13, max(count($descLines), count($skuLines), count($colLines)) * 11) + 8;
+        $subLines = $wideCols ? vestra_invoice_wrap(implode(', ', (array)$it['colors']), $colQty - $colDesc - 8, 8) : [];
+        $rowH = max(13, max(count($descLines) + count($subLines), count($skuLines), count($colLines)) * 11) + 8;
         $need($rowH);
         foreach ($skuLines as $j => $sl)  $pdf->text($colSku,  $y - ($j * 10), 8, $sl);
         foreach ($descLines as $j => $dl) $pdf->text($colDesc, $y - ($j * 11), 9, $dl);
+        foreach ($subLines as $j => $bl)  $pdf->text($colDesc, $y - ((count($descLines) + $j) * 11), 8, $bl);
         foreach ($colLines as $j => $cl)  $pdf->text($colCol,  $y - ($j * 10), 8, $cl);
         $pdf->text($colQty, $y, 9, (string)((int)($it['qty'] ?? 0)));
         $pdf->text($colUnit, $y, 9, $money($it['unit'] ?? 0));

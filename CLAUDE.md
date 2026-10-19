@@ -12981,3 +12981,21 @@ lacoste ürünlerini sweatshirt hoodiler 10 lu yap ve M ve L i 3 er li olarak ko
 - `lac-fleece-hoodie` (SH9623) ve `lac-crew-sweatshirt` (SH9608) zaten bu durumdaydı (dosyada denetim satırı olarak duruyor).
 - Pantolon `lac-slim-sweatpants` (XH9624) **dokunulmadı** (8'lik koli; istek sweatshirt/hoodie). Açık teklif yoktu; tek sipariş
   (`VES-3507BF86`) iptal. Geri okuma: dört ilan da `10/pack`, highneck `moq 60`.
+
+**Teklif faturasında renk dökümü** (operatör, 19 Eki 2026: *"SH9623 bu üründen her rengi ekle faturaya — O5AD1B bu siparişi"*).
+Teklif faturası satırı rengi HİÇ taşımıyordu (`vestra_offer_invoice_payload` / birleşik kurucu `'colors' => []`); teklif kaydında
+yapılandırılmış renk alanı yoktu (alıcının seçtiği renk yalnız `offers.csv` mesajında serbest metin). Sipariş tarafının aracı
+(`order_colours` + `admin_mode=issue issue_redraft=true`) teklif belgesini SİPARİŞ kurucusundan yeniden kurar ve teklifin kendi
+ayarlarını (USD, banka profili, KDV notu, kesen) düşürür — teklif için KULLANILMAZ.
+- Yazıcı `vestra_offer_set_invoice_colours($ref, ['Renk' => adet], $dry, $allowInvoiced)` → `offer_responses.json[ref].invoice_colours`.
+  Renk yazımı ilandan; adet koli katı; toplam = teklif adedi (adet/tutar değişmez); renk sayısı ≥ `min_colors`; kabul edilmemiş,
+  parası gelmiş (birleşik faturada BİRİNCİLİN siparişi dahil) teklif RED; faturalıysa yalnız opt-in ile ve `must_redraft`.
+  Yedek: kaydın kendisi + BÜTÜN dosya (`offer_backups/<ref>-col-<ts>-<rnd>.json`, `offer_responses-col-…`); taze okumada kayıt
+  yok/kabul değilse YAZMAZ (eşzamanlı yazımın kestiği dosyaya yazıp tüm teklifleri silmesin).
+- Belge: hücre `Renk ×adet` (boşluklar U+00A0 — sarıcı adedi renkten ayırmasın); `colors_wide` kalemde döküm açıklamanın ALTINA
+  tam genişlik, renk sütununda "N colours" (8 renk dar sütunda 8 satır tutup belgeyi 2. sayfaya itiyordu). İşaretsiz kalem
+  (sipariş faturaları) eskisi gibi. Sipariş satırı notu `Colours — SKU: …` + `SKU colour split: …` (SKU başına TEK parça).
+- Ops: chat-help `seller-products.yml admin_mode=offer_colours` (kuru koşu varsayılan) → faturalıysa site deposundaki
+  `send-campaign-preview.yml reply_letter=invoice_draft` önce taslak (günlük renk/tarih/sayfa yazar), sonra
+  `ref=<ref>|apply=true|notify=false`. Alıcıya yeniden gönderim AYRI karar (KURAL 18).
+- Test: `tests/offer_colours_test.php` (54); `tests/pdf_row_height_test.php` kablolama iddiaları alt bloğu da sayacak şekilde güncellendi.

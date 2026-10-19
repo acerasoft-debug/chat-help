@@ -631,6 +631,159 @@ function vestra_offer_set_invoice_shipping(string $ref, float $amount, bool $dry
     return $out;
 }
 
+/* KABUL EDILMIS TEKLIFIN FATURASINDA RENK DOKUMU (19 Eki 2026, O5AD1B; operator: "SH9623 bu
+ * urunden her rengi ekle faturaya"). Teklif kaydinda yapilandirilmis bir renk alani yoktu -- alicinin
+ * formda sectigi renkler yalniz offers.csv 'message' metninde serbest yazi olarak duruyor -- ve teklif
+ * faturasi satiri 'colors' => [] ile kuruluyordu: hicbir yol teklif faturasina renk yazamiyordu.
+ * Siparis tarafinin araci (order_colours + admin_mode=issue yeniden cizimi) teklif belgesini SIPARIS
+ * kurucusundan yeniden kurar ve teklifin kendi ayarlarini (para birimi, banka profili, KDV notu,
+ * kesen) dusururdu; o yuzden renk teklifin KENDI kaydina yazilir ve teklif kurucusu onu okur.
+ *
+ * offer_responses.json[ref]['invoice_colours'] = ['Beige' => 10, 'Navy' => 10, ...] (ilan
+ * yazimiyla). Belgede renk sutunu "Beige ×10, Navy ×10, ..." basar; satir yine TEK (adet ve tutar
+ * degismez -- dokumun toplami teklifin adedine esit olmak zorunda). */
+function vestra_offer_invoice_colours(string $ref, ?array $rec = null): array {
+    if ($rec === null) $rec = (array)(vestra_read_json('offer_responses.json')[$ref] ?? []);
+    $out = [];
+    foreach ((array)($rec['invoice_colours'] ?? []) as $c => $q) {
+        $c = trim((string)$c); $q = (int)$q;
+        if ($c !== '' && $q > 0) $out[$c] = $q;
+    }
+    return $out;
+}
+
+/* Belgenin renk hucresi: "Light Blue ×10" -- bosluklar BOLUNMEZ (U+00A0, CP1252 0xA0): sarici
+   (vestra_invoice_wrap) dar sutunda adedi rengin altina, iki kelimelik rengi iki satira bolerdi
+   ("Navy" / "×10, Black ×10"); alici hangi adedin hangi renge ait oldugunu okuyamazdi. */
+function vestra_offer_colour_cell(string $c, int $q): string {
+    return str_replace(' ', "\u{00A0}", trim($c))."\u{00A0}×".$q;
+}
+
+/* Belgenin renk hucreleri. Dokum yoksa bos dizi (eski davranis). */
+function vestra_offer_invoice_colour_cells(string $ref, ?array $rec = null): array {
+    $cells = [];
+    foreach (vestra_offer_invoice_colours($ref, $rec) as $c => $q) $cells[] = vestra_offer_colour_cell($c, $q);
+    return $cells;
+}
+
+/* Renk dokumunu teklifin kaydina yazar. $split: ['Renk' => adet, ...]; bos dizi = dokumu KALDIR.
+ * Muhafazalar (navlun yazicisiyla ayni sira): teklif var ve KABUL edilmis; satisin parasi gelmemis;
+ * fatura kesilmisse yalniz $allowInvoiced ile ve donuste must_redraft (KURAL 5f: ayni numarayla
+ * yeniden cizim, invoice_draft). Dogrulama ilanin KENDISINDEN: her renk ilanda kayitli (yazim
+ * ilandan alinir), her adet koli adiminin (size_step) kati, toplam teklifin adedine ESIT (adet ve
+ * tutar degismez -- kabul edilmis teklif yeniden fiyatlanmaz, KURAL 4), renk sayisi ilanin asgari
+ * renk sayisindan az degil. $dry=true: hicbir sey yazilmaz. */
+function vestra_offer_set_invoice_colours(string $ref, array $split, bool $dry = false, bool $allowInvoiced = false): array {
+    require_once __DIR__.'/invoice.php';
+    require_once __DIR__.'/orders.php';
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($ref === '') return ['error' => 'ref boş', 'code' => 'ref'];
+    $row = vestra_offer_row($ref);
+    if (!$row) return ['error' => "teklif bulunamadı: {$ref}", 'code' => 'missing'];
+    $rec = (array)(vestra_read_json('offer_responses.json')[$ref] ?? []);
+    $st  = (string)($rec['status'] ?? '');
+    if ($st !== 'accept') {
+        return ['error' => 'teklif kabul edilmemiş (durum: '.($st !== '' ? $st : 'yanıtsız').') — renk dökümü faturaya ait ve fatura yalnız kabul edilmiş teklife kesilir',
+                'code' => 'not_accepted'];
+    }
+    $grp = trim((string)($rec['invoice_group_ref'] ?? ''));
+    $redraw = $grp !== '' ? $grp : $ref;
+    /* Birlesik faturanin uyesinde siparis satiri ve "odendi" durumu BIRINCILIN ref'inde durur:
+       ikisine de bakilir. */
+    foreach (array_unique([$ref, $redraw]) as $pr) {
+        if (!empty(vestra_order_payment_settled($pr)['settled'])) {
+            return ['error' => "satışın parası gelmiş ({$pr}) — tahsil edilmiş bir satışın belgesi bu yoldan değiştirilmez", 'code' => 'paid'];
+        }
+    }
+    $inv = vestra_invoices_for_ref($redraw, false);
+    $nos = array_map(fn($i) => (string)($i['no'] ?? ''), $inv);
+    if ($inv && !$allowInvoiced) {
+        return ['error' => 'fatura ZATEN KESİLMİŞ ('.implode(', ', $nos).') — yazmak için allow_invoiced=1, ardından AYNI numarayla yeniden çizim (KURAL 5f: send-campaign-preview → reply_letter=invoice_draft, spec ref='.$redraw.'|apply=true|notify=false)',
+                'code' => 'invoiced', 'invoices' => $nos];
+    }
+
+    $listing = vestra_listing_by_sku((string)($row['sku'] ?? ''));
+    $clean = [];
+    if ($split) {
+        if (!$listing) return ['error' => 'teklifin ilanı bulunamadı (SKU '.($row['sku'] ?? '').') — renkler ilana göre doğrulanamaz', 'code' => 'listing'];
+        $known = [];
+        foreach ((array)($listing['colors'] ?? []) as $c) $known[mb_strtolower(trim((string)$c))] = trim((string)$c);
+        $step = function_exists('vestra_pack_size') ? vestra_pack_size($listing) : 1;
+        $sum = 0;
+        foreach ($split as $c => $q) {
+            $k = mb_strtolower(trim((string)$c));
+            if (!isset($known[$k])) {
+                return ['error' => "renk ilanda yok: '{$c}' (ilan: ".implode(', ', $known).')', 'code' => 'colour'];
+            }
+            $name = $known[$k];
+            if (isset($clean[$name])) return ['error' => "renk iki kez verilmiş: {$name}", 'code' => 'dup'];
+            if (!is_scalar($q) || !is_numeric($q) || (int)$q != $q || (int)$q <= 0) {
+                return ['error' => 'adet geçersiz: '.$name.'='.json_encode($q, JSON_UNESCAPED_UNICODE), 'code' => 'qty'];
+            }
+            if ($step > 1 && (int)$q % $step !== 0) {
+                return ['error' => "{$name}={$q} koli adımının ({$step}) katı değil — tam koli satılır", 'code' => 'pack'];
+            }
+            $clean[$name] = (int)$q; $sum += (int)$q;
+        }
+        $qty = (int)($row['qty'] ?? 0);
+        if ($sum !== $qty) {
+            return ['error' => "renk dökümü toplamı {$sum}, teklifin adedi {$qty} — eşit olmalı (adet ve tutar bu yoldan değişmez)", 'code' => 'sum'];
+        }
+        $minC = (int)($listing['min_colors'] ?? 0);
+        if ($minC > 0 && count($clean) < $minC) {
+            return ['error' => 'renk sayısı '.count($clean).", ilanın asgarisi {$minC}", 'code' => 'min_colors'];
+        }
+    }
+
+    $prev = vestra_offer_invoice_colours($ref, $rec);
+    $cells = [];
+    foreach ($clean as $c => $q) $cells[] = vestra_offer_colour_cell($c, $q);
+    $out = ['ok' => true, 'dry' => $dry, 'ref' => $ref, 'sku' => (string)($row['sku'] ?? ''), 'qty' => (int)($row['qty'] ?? 0),
+            'prev' => $prev, 'colours' => $clean, 'cells' => $cells, 'invoices' => $nos,
+            'must_redraft' => (bool)$inv, 'redraw_ref' => $redraw,
+            /* Belge birlesik yoldan mi kesilmis (tek uyeli de olsa)? Yeniden cizim tarih/aciklama
+               satirini degistirebilir -- cizimden once taslakla karsilastirmak icin. */
+            'members' => array_values((array)($rec['invoice_members'] ?? []))];
+    if ($dry) return $out;
+
+    $bdir = vestra_data_dir().'/offer_backups';
+    if (!is_dir($bdir)) @mkdir($bdir, 0775, true);
+    /* Ad benzersiz (ayni saniyede ikinci uygulama ilk yedegi ezmesin); kaydin kendisi VE butun
+       dosya yedeklenir -- bir yazma yarisi dosyayi bozarsa geri donulecek tek yer burasi. */
+    $stamp = date('Ymd-His').'-'.substr(bin2hex(random_bytes(3)), 0, 5);
+    $bfile = $bdir.'/'.$ref.'-col-'.$stamp.'.json';
+    if (@file_put_contents($bfile, json_encode([$ref => $rec], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) === false
+        || !@copy(vestra_data_dir().'/offer_responses.json', $bdir.'/offer_responses-col-'.$stamp.'.json')) {
+        return ['error' => 'yedek yazılamadı — hiçbir şey değişmedi', 'code' => 'backup'];
+    }
+    /* Taze okuma: yedekten bu yana baska bir alan yazilmis olabilir. Okuma bos/eksik donerse
+       (eszamanli bir yazim dosyayi o an kesmis olabilir) YAZILMAZ: bos bir diziye yazmak butun
+       teklif kayitlarini silerdi. */
+    $rs = vestra_read_json('offer_responses.json');
+    if (!isset($rs[$ref]) || (string)($rs[$ref]['status'] ?? '') !== 'accept') {
+        return ['error' => 'kayıt taze okumada yok ya da değişmiş — hiçbir şey yazılmadı (yeniden deneyin)', 'code' => 'stale'];
+    }
+    if ($clean) {
+        $rs[$ref]['invoice_colours'] = $clean;
+    } else {
+        unset($rs[$ref]['invoice_colours']);
+    }
+    $rs[$ref]['invoice_colours_by'] = 'operator';
+    $rs[$ref]['invoice_colours_at'] = date('c');
+    vestra_write_json('offer_responses.json', $rs);
+
+    $back = vestra_offer_invoice_colours($ref);
+    if ($back !== $clean) {
+        return ['error' => 'yazma geri okunamadı — kayıt değişmemiş olabilir (yedek: '.basename($bfile).')', 'code' => 'readback'];
+    }
+    $p = vestra_offer_invoice_payload($ref);
+    $seen = (array)($p['base']['items'][0]['colors'] ?? $p['items'][0]['colors'] ?? []);
+    if ($seen !== $cells) {
+        return ['error' => 'kayıt yazıldı ama fatura yükü renkleri görmüyor ('.implode(', ', $seen).')', 'code' => 'payload'];
+    }
+    return $out + ['backup' => $bfile, 'payload_colours' => $seen];
+}
+
 /* Teklifin FATURA yuku: alici blogu + tek satir + fatura kesecek satici.
  * Uc yerde (operator kabulu, alici kabulu, panelden onayli kesim) elle
  * kuruluyordu; ucu de ayni rakami uretmek ZORUNDA, cunku ayni belge.
@@ -716,7 +869,10 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
             'sku'    => $listing['sku'] ?? ($offerRow['sku'] ?? ''),
             'brand'  => $listing['brand'] ?? '',
             'name'   => $listing['name'] ?? ($offerRow['product'] ?? ''),
-            'colors' => [],
+            /* Renk dokumu teklifin kendi kaydindan (vestra_offer_set_invoice_colours); yoksa bos. */
+            'colors' => vestra_offer_invoice_colour_cells($ref, (array)($rs[$ref] ?? [])),
+            /* Adetli renk hucreleri dar sutuna sigmaz: aciklamanin altinda tam genislik basilir. */
+            'colors_wide' => (bool)vestra_offer_invoice_colours($ref, (array)($rs[$ref] ?? [])),
             'qty'    => $qty,
             /* Satir toplami YENIDEN hesaplaniyor: CSV'deki offer_total ilk
                teklifin toplami, pazarlik sonrasi artik dogru degil. */
@@ -812,7 +968,8 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
             /* Ref satirda: alti kabul tek belgeye dusunce satirlarin hangi
                pazarliktan geldigi baska turlu gorunmez. */
             'name'   => trim((string)($listing['name'] ?? ($row['product'] ?? ''))).'  ·  '.$r,
-            'colors' => [],
+            'colors' => vestra_offer_invoice_colour_cells($r, (array)($rs[$r] ?? [])),
+            'colors_wide' => (bool)vestra_offer_invoice_colours($r, (array)($rs[$r] ?? [])),
             'qty'    => $qty,
             'unit'   => round($unit, 2),
             'line'   => round($unit * $qty, 2),
@@ -1142,6 +1299,28 @@ function vestra_offer_order_ensure(array $p, bool $update = false): bool {
     $refsNote = implode(', ', (array)($p['refs'] ?? [$ref]));
     $notes    = 'Payment: Bank transfer. Created from accepted offer(s) '.$refsNote.' — invoiced together.'
               .($shipping > 0 ? ' Shipping EUR '.number_format($shipping, 2, '.', '').'.' : '');
+    /* Teklif faturasindaki renk dokumu siparis satirina da: siparis sayfasi, siparis PDF'i ve
+       panel renkleri notlardaki "Colours — SKU: A, B." cumlesinden okuyor (vestra_order_lines).
+       Bicim vestra_order_set_colours'inkiyle ayni; redraft satiri bastan yazdigi icin her
+       cizimde yeniden kurulur. */
+    $rsC = vestra_read_json('offer_responses.json');
+    /* SKU basina TEK parca: okuyucu (vestra_order_notes_map) haritayi SKU ile anahtarliyor;
+       ayni SKU'lu iki teklif iki parca yazsaydi sonuncusu iki satira da yazilirdi. */
+    $bySku = [];
+    foreach ((array)($p['refs'] ?? [$ref]) as $r0) {
+        $map = vestra_offer_invoice_colours((string)$r0, (array)($rsC[$r0] ?? []));
+        $row0 = $map ? vestra_offer_row((string)$r0) : null;
+        $sku0 = trim((string)($row0['sku'] ?? ''));
+        if (!$map || $sku0 === '') continue;
+        foreach ($map as $cn => $cq) $bySku[$sku0][$cn] = ($bySku[$sku0][$cn] ?? 0) + (int)$cq;
+    }
+    $segs = []; $splits = [];
+    foreach ($bySku as $sku0 => $map) {
+        $segs[] = $sku0.': '.implode(', ', array_keys($map));
+        $parts = []; foreach ($map as $cn => $cq) $parts[] = $cn.'×'.$cq;
+        $splits[] = $sku0.' colour split: '.implode(', ', $parts).'.';
+    }
+    if ($segs) $notes .= ' Colours — '.implode(' | ', $segs).'. '.implode(' ', $splits);
 
     $dir = dirname(__DIR__).'/data'; if (!is_dir($dir)) @mkdir($dir, 0775, true);
     $file = $dir.'/orders.csv'; $new = !file_exists($file);
@@ -1301,6 +1480,9 @@ function vestra_offer_invoice_redraft_apply(string $ref, ?float $ship = null, ?a
     }
     return ['ok' => true, 'no' => $iv['no'], 'refs' => $p['refs'], 'total' => round($goods + $shp, 2),
             'sent' => $sent, 'copied' => $copied, 'notified' => $notifyBuyer,
+            /* Belgenin KENDI birimi: is akisi gunlugu toplami bununla yaziyor (USD bir belgenin
+               yanina "EUR" yazmasin). */
+            'currency' => strtoupper((string)($p['meta']['currency'] ?? 'EUR')) ?: 'EUR',
             'seller' => vestra_invoice_issuer_name($p['seller'], 'Acerasoft LLC')];
 }
 

@@ -181,10 +181,16 @@ echo "\n== 6. Kablolama ==\n";
 $src = fn(string $f) => (string)@file_get_contents($root . '/' . $f);
 $inv_src = $src('inc/invoice.php');
 $ord_src = $src('inc/orders.php');
-$t('fatura: satir yuksekligi renk satirlarini sayiyor',
-   (bool)preg_match('/\$rowH\s*=\s*max\(13,\s*max\(count\(\$descLines\),\s*count\(\$skuLines\),\s*count\(\$colLines\)\)\s*\*\s*11\)\s*\+\s*8;/', $inv_src));
-$t('fatura: renk satirlari ayni $colLines dizisinden cizilir (ikinci sarma yok)',
-   substr_count($inv_src, "vestra_invoice_wrap(implode(', ', (array)\$it['colors'])") === 1);
+/* 19 Eki 2026: adetli renk dokumu ('colors_wide', teklif faturasi) aciklamanin ALTINA ayri bir
+   blok ($subLines) olarak basiliyor. Kural ayni: cizilen HER blok satir yuksekligine sayilir ve
+   cizim sayilan diziden yapilir -- renk listesi artik iki yerde sariliyor ama ikisi de ($colLines,
+   $subLines) yukseklige giriyor ve yalniz kendi dizisinden ciziliyor. */
+$t('fatura: satir yuksekligi renk satirlarini (sutun + alt blok) sayiyor',
+   (bool)preg_match('/\$rowH\s*=\s*max\(13,\s*max\(count\(\$descLines\)\s*\+\s*count\(\$subLines\),\s*count\(\$skuLines\),\s*count\(\$colLines\)\)\s*\*\s*11\)\s*\+\s*8;/', $inv_src));
+$t('fatura: renk listesi yalniz $colLines ve $subLines icin sarilir, ikisi de kendi dizisinden cizilir',
+   substr_count($inv_src, "vestra_invoice_wrap(implode(', ', (array)\$it['colors'])") === 2
+   && (bool)preg_match('/foreach \(\$colLines as \$j => \$cl\)/', $inv_src)
+   && (bool)preg_match('/foreach \(\$subLines as \$j => \$bl\)/', $inv_src));
 $t('siparis ozeti: alt blok sarilan SATIR SAYISI kadar yer ayiriyor',
    (bool)preg_match('/\$subH\s*=\s*count\(\$subLines\)\s*\*\s*10;/', $ord_src)
    && (bool)preg_match('/\$y\s*-=\s*\$rowH\s*\+\s*\$subH;/', $ord_src));
