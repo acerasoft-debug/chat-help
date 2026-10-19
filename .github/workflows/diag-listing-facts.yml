@@ -1,0 +1,78 @@
+name: (Salt-okunur) İlan künyesi — renkler, lot/seri, beden dökümü, MOQ, fotoğraflar
+# 19 Eki 2026 (operatör: "Fleece Hoodie, zip hoodie ve Lacoste pantolonun tüm renklerini ve lotunu İtalyan müşteriye
+# gönder"). Bir müşteri mektubu ilanın KENDİ kaydından yazılsın diye: renkler (ve sitenin bastığı renk tonu), lot/paket
+# kuralı, beden dökümü, MOQ, asgari renk, fotoğraf yolları. Katalog verisi zaten sitede herkese açık; satıcı/alıcı kişi
+# verisi BASILMAZ. Hiçbir şey yazmaz.
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: "İlan id'leri (virgülle)"
+        required: false
+        default: ""
+      find:
+        description: "Ad/marka/SKU/id içinde aranacak düzenli ifade (büyük-küçük harf duyarsız), örn. 'lacoste.*(pant|jogger|trouser)'"
+        required: false
+        default: ""
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        env:
+          IDS: ${{ github.event.inputs.ids }}
+          FIND: ${{ github.event.inputs.find }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: IDS,FIND
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_lfacts.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors', 'stderr'); error_reporting(E_ALL);
+            require_once getenv('HOME').'/public_html/inc/products.php';
+            $ids = array_values(array_filter(array_map(fn($s) => preg_replace('/[^A-Za-z0-9_-]/', '', $s), explode(',', (string)getenv('IDS')))));
+            $find = trim((string)getenv('FIND'));
+            if ($find !== '' && @preg_match('~'.str_replace('~', '\~', $find).'~iu', '') === false) { fwrite(STDERR, "find gecersiz ifade\n"); exit(1); }
+            $L = vestra_listings(); $hit = [];
+            foreach ($L as $l) {
+              $id = (string)($l['id'] ?? '');
+              $hay = implode(' ', [$id, $l['brand'] ?? '', $l['name'] ?? '', $l['sku'] ?? '']);
+              if (in_array($id, $ids, true) || ($find !== '' && preg_match('~'.str_replace('~', '\~', $find).'~iu', $hay))) $hit[] = $l;
+            }
+            echo "eslesen ilan: ".count($hit)."\n";
+            $pii = '~@|\+?\d[\d\s().-]{7,}\d~';
+            foreach ($hit as $l) {
+              $out = [];
+              foreach (['id','status','mode','brand','name','sku','section','cat','gender','list','moq','size_step','min_colors','colorqty','sizes','series','pack','lot','origin','condition'] as $k)
+                if (array_key_exists($k, $l)) $out[$k] = $l[$k];
+              $out['colors'] = array_map(fn($c) => ['name' => (string)$c, 'base' => vestra_colour_base((string)$c), 'css' => vestra_colour_css((string)$c)], array_values((array)($l['colors'] ?? [])));
+              $out['pack_size'] = vestra_pack_size($l);
+              $out['size_options'] = vestra_size_options($l);
+              $out['sizes_label'] = vestra_sizes_label((string)($l['sizes'] ?? ''));
+              $out['colorqty_picker'] = vestra_is_colorqty_listing($l);
+              foreach ($l as $k => $v) if (preg_match('~stock|avail|qty|quant|lot|pack|serie|size|colou?r~i', (string)$k) && !array_key_exists($k, $out) && $k !== 'colors') $out[$k] = $v;
+              $imgs = array_values((array)($l['images'] ?? []));
+              $out['images'] = $imgs;
+              $out['live_photos'] = function_exists('vestra_live_photos') ? count(vestra_live_photos($l)) : null;
+              $d = trim(preg_replace('~\s+~', ' ', strip_tags((string)($l['desc'] ?? ''))));
+              $out['desc'] = preg_replace($pii, '[…]', mb_substr($d, 0, 900));
+              $out['all_keys'] = array_keys($l);
+              echo "------------------------------------------------------------\n";
+              echo json_encode($out, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)."\n";
+              /* Fotograflar yayinda mi (mektup bu adreslere baglanacak). */
+              foreach (array_slice($imgs, 0, 12) as $u) {
+                $u = (string)$u; if ($u === '') continue;
+                $abs = preg_match('~^https?://~', $u) ? $u : 'https://vestrasales.com/'.ltrim($u, '/');
+                $ch = curl_init($abs); curl_setopt_array($ch, [CURLOPT_NOBODY => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_FOLLOWLOCATION => true]);
+                curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); $ct = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE); curl_close($ch);
+                echo "   foto $code $ct  $u\n";
+              }
+            }
+            PHPEOF
+            php /tmp/vestra_lfacts.php; rc=$?; rm -f /tmp/vestra_lfacts.php; exit $rc
