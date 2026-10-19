@@ -140,5 +140,21 @@ jobs:
               foreach ((array)($e['history'] ?? []) as $h) echo "     ".($h['at'] ?? $h['ts'] ?? '')." ".($h['status'] ?? $h['event'] ?? '')." · ".($h['by'] ?? '')." · ".mb_substr(preg_replace('/\S+@\S+/', '[adres]', (string)($h['note'] ?? '')), 0, 90)."\n";
               foreach ($e as $k => $v) if (preg_match('/block|hold|restrict|freeze|lock|risk/i', (string)$k)) echo "     ALAN $k = ".mb_substr(json_encode($v), 0, 80)."\n";
             }
+            /* 19 Eki 2026: teklifler — canlı offers.csv ve panelin silme yedekleri (offers.csv.bak-del-*); silinmiş bir teklif
+               offer_restore ile geri yüklensin diye ref + ürün + adet + fiyat + hangi yedekte. Mesaj/ad basılmaz. */
+            echo "== 7. Teklifler (canli + silme yedekleri) ==\n";
+            $offLive = []; foreach (vestra_read_csv('offers.csv') as $r) $offLive[(string)($r['ref'] ?? '')] = true;
+            $rsp = vestra_read_json('offer_responses.json'); $seenO = [];
+            $offFiles = array_merge(['offers.csv'], array_map('basename', glob($dir.'/offers.csv.bak-del-*') ?: []));
+            foreach ($offFiles as $of) foreach (vestra_read_csv($of) as $r) {
+              if (strtolower(trim((string)($r['email'] ?? ''))) !== $email) continue;
+              $oref = (string)($r['ref'] ?? ''); if (isset($seenO[$oref])) { $seenO[$oref][] = $of; continue; } $seenO[$oref] = [$of];
+              $lst = function_exists('vestra_listing_by_sku') ? vestra_listing_by_sku((string)($r['sku'] ?? '')) : null;
+              printf("   %s · %s · sku %s (%s) · adet %s · teklif EUR %s · canli: %s · yanit: %s\n", $oref, substr((string)($r['timestamp'] ?? ''), 0, 16),
+                (string)($r['sku'] ?? '?'), $lst ? (string)($lst['id'] ?? '?') : '?', (string)($r['qty'] ?? '?'), (string)($r['offer_unit'] ?? '?'),
+                isset($offLive[$oref]) ? 'EVET' : 'HAYIR (silinmis)', isset($rsp[$oref]) ? (string)($rsp[$oref]['status'] ?? '?') : 'yok');
+            }
+            foreach ($seenO as $oref => $fs) if (count($fs) > 1 || $fs[0] !== 'offers.csv') echo "   $oref bulundugu dosyalar: ".implode(', ', array_slice($fs, 0, 4)).(count($fs) > 4 ? ' …' : '')."\n";
+            if (!$seenO) echo "   teklif yok\n";
             PHPEOF
             php /tmp/vestra_acc_diag.php 2>&1; rc=$?; rm -f /tmp/vestra_acc_diag.php; exit $rc
