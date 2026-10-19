@@ -55,23 +55,27 @@ function pl_render(array $s, callable $url): array {
     if (!empty($s['chips'])) {
         /* Satır içi blok: dar ekranda alt satıra geçer (tablo hücresi geçmiyor, telefonda taşıyordu). */
         $c = '';
-        foreach ((array)$s['chips'] as $t) $c .= '<span style="display:inline-block;margin:0 6px 7px 0;border:1px solid #e1d5bd;background:#faf6ee;color:#5c5449;border-radius:999px;padding:5px 12px;font-size:12px;line-height:1.3;white-space:nowrap">'.$e($t).'</span>';
+        foreach ((array)$s['chips'] as $t) $c .= '<span style="display:inline-block;margin:0 2px 7px 0;border:1px solid #e1d5bd;background:#faf6ee;color:#5c5449;border-radius:999px;padding:5px 12px;font-size:12px;line-height:1.3;white-space:nowrap">'.$e($t).'</span> ';
         $h .= '<div style="margin:0 0 14px">'.$c.'</div>';
     }
     $plain = [(string)($s['greeting'] ?? ''), ...array_map('strval', (array)($s['intro'] ?? []))];
+    $hintTop = ($s['tap_hint_pos'] ?? '') === 'top' && !empty($s['tap_hint']);
+    if ($hintTop) $h .= '<div style="font-size:12px;color:#8a8272;font-style:italic;margin:0 0 4px">'.$e($s['tap_hint']).'</div>';
     foreach ((array)($s['sections'] ?? []) as $sec) {
-        $sw = (string)($sec['swatch'] ?? '');
+        $sw = (string)($sec['swatch'] ?? (empty($sec['colors']) ? '#ccc' : ''));
         $h .= '<div style="border-top:1px solid #e6e0d5;margin:8px 0 0;padding:20px 0 4px">'
             .'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
-            .($sw !== '' ? '<td valign="middle" style="padding-right:10px;line-height:0"><div style="width:16px;height:16px;border-radius:50%;background:'.$e($sw).';border:1px solid rgba(0,0,0,.15)"></div></td>' : '')
+            .($sw !== '' || empty($sec['colors']) ? '<td valign="middle" style="padding-right:10px;line-height:0"><div style="width:16px;height:16px;border-radius:50%;background:'.$e($sw).';border:1px solid rgba(0,0,0,.15)"></div></td>' : '')
             .'<td valign="middle" style="font-size:17px;color:#14110c;font-weight:700;letter-spacing:.01em">'.$e($sec['title'] ?? '').'</td></tr></table>'
-            .'<div style="font-size:12px;color:#8a8272;margin:6px 0 14px '.($sw !== '' ? '26px' : '0').'">'.$e($sec['sub'] ?? '').'</div>';
+            .'<div style="font-size:12px;color:#8a8272;margin:6px 0 14px '.($sw !== '' || empty($sec['colors']) ? '26px' : '0').'">'.$e($sec['sub'] ?? '').'</div>';
         $plain[] = (string)($sec['title'] ?? '').' — '.(string)($sec['sub'] ?? '');
         if (!empty($sec['colors'])) {
             /* Renk çipleri: nokta + ad, satır içi blok (dar ekranda alt satıra geçer). */
             $c = '';
-            foreach ((array)$sec['colors'] as $co) $c .= '<span style="display:inline-block;margin:0 6px 7px 0;border:1px solid #e6e0d5;background:#fff;border-radius:999px;padding:4px 11px 4px 6px;font-size:12px;line-height:1.3;color:#3a3428;white-space:nowrap">'
-                .'<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'.$e($co['css'] ?? '#ccc').';border:1px solid rgba(0,0,0,.18);vertical-align:-2px;margin-right:6px"></span>'.$e($co['name'] ?? '').'</span>';
+            /* Outlook (Word motoru) boş span'a genişlik vermiyor: orada nokta yerine renkli ● basılır. Çipler arasındaki
+               boşluk, satır içi blok kenar boşluğunu yok sayan istemcide adların birbirine yapışmasını önler. */
+            foreach ((array)$sec['colors'] as $co) $c .= '<span style="display:inline-block;margin:0 2px 7px 0;border:1px solid #e6e0d5;background:#fff;border-radius:999px;padding:4px 11px 4px 6px;font-size:12px;line-height:1.3;color:#3a3428;white-space:nowrap">'
+                .'<!--[if mso]><span style="color:'.$e($co['css'] ?? '#ccc').'">&#9679;</span>&nbsp;<![endif]--><!--[if !mso]><!--><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'.$e($co['css'] ?? '#ccc').';border:1px solid rgba(0,0,0,.18);vertical-align:-2px;margin-right:6px"></span><!--<![endif]-->'.$e($co['name'] ?? '').'</span> ';
             $h .= '<div style="margin:0 0 10px">'.$c.'</div>';
             $plain[] = '  '.implode(' · ', array_map(fn($co) => (string)($co['name'] ?? ''), (array)$sec['colors']));
         }
@@ -113,7 +117,7 @@ function pl_render(array $s, callable $url): array {
             for ($i = count($pair); $i < $cols; $i++) $tds .= '<td width="'.$pct.'" style="padding:0 5px 14px"></td>';
             $rows .= '<tr>'.$tds.'</tr>';
         }
-        $h .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 -5px">'.$rows.'</table>';
+        $h .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">'.$rows.'</table>';
         if (!empty($sec['link']['url'])) {
             $h .= '<div style="margin:0 0 6px"><a href="'.$e($sec['link']['url']).'" style="font-size:13px;color:#8a6d1f;font-weight:700;text-decoration:none;letter-spacing:.02em">'.$e($sec['link']['label'] ?? '').' &rarr;</a></div>';
         }
@@ -121,7 +125,7 @@ function pl_render(array $s, callable $url): array {
         foreach ((array)($sec['photos'] ?? []) as $ph) $plain[] = '  · '.(string)($ph['caption'] ?? '').': '.$url($ph['name'], false);
         if (!empty($sec['link']['url'])) $plain[] = '  '.(string)($sec['link']['label'] ?? '').': '.(string)$sec['link']['url'];
     }
-    if (!empty($s['tap_hint'])) $h .= '<div style="font-size:12px;color:#8a8272;font-style:italic;text-align:center;margin:0 0 20px">'.$e($s['tap_hint']).'</div>';
+    if (!empty($s['tap_hint']) && !$hintTop) $h .= '<div style="font-size:12px;color:#8a8272;font-style:italic;text-align:center;margin:0 0 20px">'.$e($s['tap_hint']).'</div>';
     $h .= '<div style="border-top:1px solid #e6e0d5;padding-top:20px"></div>';
     foreach ((array)($s['closing'] ?? []) as $t) { $h .= '<p style="'.$p.'">'.$e($t).'</p>'; $plain[] = (string)$t; }
     if (!empty($s['sign'])) {
@@ -146,6 +150,8 @@ function pl_catalog_jpeg(string $src, string $root): array {
     if (!preg_match('#^/uploads/[A-Za-z0-9/_.-]+\.(jpe?g|png|webp|avif)$#i', $src) || str_contains($src, '..')) return ['', 'yol reddedildi'];
     $file = $root.$src;
     if (!is_file($file)) return ['', 'dosya yok'];
+    $sz = @getimagesize($file);
+    if ($sz && $sz[0] * $sz[1] > 40000000) return ['', 'cok buyuk '.$sz[0].'x'.$sz[1]];
     $data = (string)file_get_contents($file); $how = 'gd';
     $im = @imagecreatefromstring($data);
     if ($im === false && function_exists('imagecreatefromavif')) { $im = @imagecreatefromavif($file); $how = 'gd-avif'; }
@@ -153,25 +159,34 @@ function pl_catalog_jpeg(string $src, string $root): array {
         try { $m = new Imagick($file); $m->setImageFormat('png'); $im = @imagecreatefromstring($m->getImageBlob()); $how = 'imagick'; } catch (Throwable $t) { $im = false; }
     }
     if ($im === false) {
-        $tmp = tempnam(sys_get_temp_dir(), 'pl').'.png';
+        $tbase = tempnam(sys_get_temp_dir(), 'pl'); $tmp = $tbase.'.png';
         foreach (['magick', 'convert'] as $bin) {
             @exec(escapeshellcmd($bin).' '.escapeshellarg($file.'[0]').' '.escapeshellarg($tmp).' 2>/dev/null', $o, $rc);
             if ($rc === 0 && is_file($tmp) && ($im = @imagecreatefromstring((string)file_get_contents($tmp))) !== false) { $how = $bin; break; }
         }
-        @unlink($tmp);
+        @unlink($tmp); @unlink($tbase);
     }
     if ($im === false) return ['', 'cozulemedi'];
     $w = imagesx($im); $h = imagesy($im);
     $W = 900; $H = 1125;
-    $sum = [0, 0, 0];
+    $sum = [0, 0, 0]; $lo = [255, 255, 255]; $hi = [0, 0, 0];
     foreach ([[0, 0], [$w - 1, 0], [0, $h - 1], [$w - 1, $h - 1]] as [$x, $y]) {
         $c = imagecolorsforindex($im, imagecolorat($im, $x, $y));
         $a = $c['alpha'] / 127; /* saydam köşe beyaz zemin sayılır */
-        foreach (['red', 'green', 'blue'] as $i => $k) $sum[$i] += (int)round($c[$k] * (1 - $a) + 255 * $a);
+        foreach (['red', 'green', 'blue'] as $i => $k) {
+            $v = (int)round($c[$k] * (1 - $a) + 255 * $a);
+            $sum[$i] += $v; $lo[$i] = min($lo[$i], $v); $hi[$i] = max($hi[$i], $v);
+        }
     }
+    /* Düz zemini kırp, ürünü tuvalde aynı boyda göster: geniş kenar boşluklu kaynak (ör. 1436 kare) yanındakilerden
+       küçük görünüyordu. YALNIZ dört köşe aynı renkse (düz zemin): degrade ya da manken çekiminde kırpma bir kenarı
+       keser ve kalan kenar dolgu renginden ayrışıp kutu gibi görünür (yerelde degrade örnekle görüldü). */
+    $flat = max($hi[0] - $lo[0], $hi[1] - $lo[1], $hi[2] - $lo[2]) <= 10;
+    if ($flat && ($cr = @imagecropauto($im, IMG_CROP_THRESHOLD, 6.0, imagecolorat($im, 0, 0))) !== false && imagesx($cr) > 50 && imagesy($cr) > 50) { $im = $cr; $w = imagesx($im); $h = imagesy($im); }
     $cv = imagecreatetruecolor($W, $H);
     imagefill($cv, 0, 0, imagecolorallocate($cv, intdiv($sum[0], 4), intdiv($sum[1], 4), intdiv($sum[2], 4)));
-    $r = min($W / $w, $H / $h); $nw = (int)round($w * $r); $nh = (int)round($h * $r);
+    /* Kenar payı yalnız düz zeminde (dolgu zeminle aynı renk); değilse görsel tuvali tam doldurur, kutu görünmez. */
+    $r = $flat ? min($W * 0.86 / $w, $H * 0.9 / $h) : min($W / $w, $H / $h); $nw = (int)round($w * $r); $nh = (int)round($h * $r);
     imagealphablending($cv, true);
     imagecopyresampled($cv, $im, intdiv($W - $nw, 2), intdiv($H - $nh, 2), 0, 0, $nw, $nh, $w, $h);
     ob_start(); imageinterlace($cv, true); imagejpeg($cv, null, 82); $jpg = (string)ob_get_clean();
@@ -192,8 +207,11 @@ if ($mode === 'sheet') {
     $s = pl_open((string)file_get_contents($arg1), getenv('HOME').'/.vestra_inbox_key.pem');
     $tw = 180; $th = 225; $cols = 5; $cap = 34; $tiles = [];
     foreach ($s['sections'] as $si => $sec) foreach ($sec['photos'] as $ph) {
-        if (isset($ph['src'])) { [$raw, $how] = pl_catalog_jpeg((string)$ph['src'], $root); }
-        else { $raw = (string)base64_decode((string)($ph['b64'] ?? ''), true); $how = 'b64'; }
+        /* Sayfa herkese açık depoya işlenir: yalnız ilan KATALOG görselleri. Operatörün yüklediği (b64), bir mektupta
+           yayınlanmış (uploads/msg) ya da yalnız üyelere açık (uploads/live) fotoğraf buradan geçmez. */
+        $src = (string)($ph['src'] ?? '');
+        if ($src === '' || str_starts_with($src, '/uploads/msg/') || str_starts_with($src, '/uploads/live/')) { fwrite(STDERR, "sheet yalniz katalog (src) fotograflari icin\n"); exit(1); }
+        [$raw, $how] = pl_catalog_jpeg($src, $root);
         $im = $raw !== '' ? @imagecreatefromstring($raw) : false;
         if ($im === false) { fwrite(STDERR, "okunamadi: ".($ph['src'] ?? $ph['name'])." ($how)\n"); exit(1); }
         $tiles[] = [$im, ($si + 1).'. '.(string)($ph['caption'] ?? ''), (string)$ph['name']];
@@ -234,15 +252,16 @@ if (!@mkdir($dir, 0755, true)) { fwrite(STDERR, "dizin acilamadi\n"); exit(1); }
 @file_put_contents($root.'/uploads/msg/index.html', '');
 @file_put_contents($dir.'/index.html', '');
 $n = 0; $bytes = 0;
+$cleanup = function () use ($dir): void { array_map('unlink', glob($dir.'/*') ?: []); @rmdir($dir); };
 foreach ($s['sections'] as &$sec) {
     foreach ($sec['photos'] as &$ph) {
         $name = preg_replace('/[^a-z0-9._-]/', '', strtolower((string)$ph['name']));
         if (isset($ph['src'])) {
             [$raw, $how] = pl_catalog_jpeg((string)$ph['src'], $root);
-            if ($raw === '') { fwrite(STDERR, "katalog gorseli okunamadi: ".$ph['src']." ($how)\n"); array_map('unlink', glob($dir.'/*') ?: []); @rmdir($dir); exit(1); }
+            if ($raw === '') { fwrite(STDERR, "katalog gorseli okunamadi: ".$ph['src']." ($how)\n"); $cleanup(); exit(1); }
             echo "  ".$ph['src']." -> $name ($how)\n";
         } else $raw = base64_decode((string)($ph['b64'] ?? ''), true);
-        if ($name === '' || !str_ends_with($name, '.jpg') || $raw === false || @imagecreatefromstring($raw) === false) { fwrite(STDERR, "fotograf bozuk: $name\n"); exit(1); }
+        if ($name === '' || !str_ends_with($name, '.jpg') || $raw === false || @imagecreatefromstring($raw) === false) { fwrite(STDERR, "fotograf bozuk: $name\n"); $cleanup(); exit(1); }
         file_put_contents($dir.'/'.$name, $raw); $bytes += strlen($raw);
         $im = imagecreatefromstring($raw); $w = imagesx($im); $hh = imagesy($im); $tw = 520; $th = (int)round($hh * $tw / $w);
         $t = imagecreatetruecolor($tw, $th); imagecopyresampled($t, $im, 0, 0, 0, 0, $tw, $th, $w, $hh);
