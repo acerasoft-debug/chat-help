@@ -1,0 +1,124 @@
+name: (İlan) Canlı fotoğraflar — orijinal numune fotoğraflarını ilana bağla
+# 19 Eki 2026 (operatör: "SH9623 aynı zamanda bu ürüne live foto, örnek orijinal fotolar olarak ekle"). Fotoğraflar
+# sunucuda zaten yayında (fotoğraflı mektubun uploads/msg/<ön ek>… dizini — mektup o adreslere bağlı, o yüzden TAŞINMAZ,
+# KOPYALANIR) ya da başka bir uploads/ dizininde. Bu iş akışı onları uploads/live/<ilan id>/ altına kopyalar ve ilanın
+# 'live_photos' alanını yazar (product.php onları katalog fotoğraflarından ayrı, "Live photos" başlığıyla gösterir).
+# groups: dosya adında geçen parça = grup adı | not; örn. "bleu-roi=Bleu roi · 4XA|FR 5 / US L;bleu-marine=Bleu marine · 166|FR 4 / US M".
+# Kuru koşu varsayılan; apply=true listings.json'ın yedeğini alır, yazar, geri okur ve adresleri yoklar.
+on:
+  workflow_dispatch:
+    inputs:
+      listing_id:
+        description: "İlan id (örn. lac-fleece-hoodie)"
+        required: true
+      src:
+        description: "Kaynak dizin: uploads/msg/<ön ek> (tek eşleşme olmalı)"
+        required: true
+      groups:
+        description: "parça=Grup|Not;parça=Grup|Not"
+        required: false
+        default: ""
+      mode:
+        description: "add = mevcutlara ekle · replace = yerine yaz · clear = alanı kaldır"
+        required: false
+        default: "replace"
+      apply:
+        description: "true = yaz"
+        required: false
+        default: "false"
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        env:
+          LID: ${{ github.event.inputs.listing_id }}
+          SRC: ${{ github.event.inputs.src }}
+          GROUPS: ${{ github.event.inputs.groups }}
+          MODE: ${{ github.event.inputs.mode }}
+          APPLY: ${{ github.event.inputs.apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: LID,SRC,GROUPS,MODE,APPLY
+          command_timeout: 4m
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_live.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors', 'stderr'); error_reporting(E_ALL);
+            $root = getenv('HOME').'/public_html';
+            require_once $root.'/inc/products.php';
+            $lid = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('LID'));
+            $src = trim((string)getenv('SRC'), '/ ');
+            $mode = strtolower(trim((string)getenv('MODE'))) ?: 'replace';
+            $apply = strtolower(trim((string)getenv('APPLY'))) === 'true';
+            if (!in_array($mode, ['add', 'replace', 'clear'], true)) { fwrite(STDERR, "mode add|replace|clear\n"); exit(1); }
+            if (!function_exists('vestra_live_photos')) { fwrite(STDERR, "sunucuda canli fotograf kodu YOK -- once deploy\n"); exit(1); }
+            $L = vestra_listings(); $ix = null;
+            foreach ($L as $i => $l) if ((string)($l['id'] ?? '') === $lid) { $ix = $i; break; }
+            if ($ix === null) { fwrite(STDERR, "ilan yok: $lid\n"); exit(1); }
+            $l = $L[$ix];
+            printf("ilan: %s · %s %s · sku %s · durum %s · renkler %s · katalog foto %d · mevcut canli %d\n", $lid, $l['brand'] ?? '', $l['name'] ?? '',
+              $l['sku'] ?? '-', $l['status'] ?? '-', implode(', ', (array)($l['colors'] ?? [])), count((array)($l['images'] ?? [])), count(vestra_live_photos($l)));
+            $new = [];
+            if ($mode !== 'clear') {
+              if (!preg_match('#^uploads/[A-Za-z0-9/_-]+$#', $src) || str_contains($src, '..')) { fwrite(STDERR, "src uploads/... olmali\n"); exit(1); }
+              $dirs = glob($root.'/'.$src.'*', GLOB_ONLYDIR) ?: [];
+              if (count($dirs) !== 1) { fwrite(STDERR, "kaynak dizin TAM 1 eslesmeli, bulunan: ".count($dirs)."\n"); exit(1); }
+              $files = array_values(array_filter(glob($dirs[0].'/*.{jpg,jpeg,png,webp}', GLOB_BRACE) ?: [], fn($f) => !str_starts_with(basename($f), 't-')));
+              sort($files);
+              if (!$files) { fwrite(STDERR, "kaynakta fotograf yok\n"); exit(1); }
+              $groups = [];
+              foreach (array_filter(array_map('trim', explode(';', (string)getenv('GROUPS')))) as $g) {
+                [$k, $v] = array_pad(explode('=', $g, 2), 2, ''); [$gn, $note] = array_pad(explode('|', $v, 2), 2, '');
+                if (trim($k) !== '') $groups[trim($k)] = [trim($gn), trim($note)];
+              }
+              $dest = 'uploads/live/'.$lid;
+              foreach ($files as $f) {
+                $b = basename($f); $g = ['', ''];
+                foreach ($groups as $k => $gv) if (str_contains($b, $k)) { $g = $gv; break; }
+                $th = is_file(dirname($f).'/t-'.$b) ? 't-'.$b : $b;
+                $new[] = ['src' => '/'.$dest.'/'.$b, 'thumb' => '/'.$dest.'/'.$th, 'group' => $g[0], 'note' => $g[1], '_from' => $f, '_thf' => dirname($f).'/'.$th];
+              }
+              $byGroup = [];
+              foreach ($new as $n) $byGroup[$n['group'].' · '.$n['note']] = ($byGroup[$n['group'].' · '.$n['note']] ?? 0) + 1;
+              echo "kaynak: ".count($files)." foto ($src…) -> /$dest/\n"; foreach ($byGroup as $k => $c) echo "   grup '$k': $c\n";
+            }
+            if (!$apply) { echo "KURU KOSU -- hicbir sey yazilmadi (apply=true ile uygula)\n"; exit(0); }
+            if ($new) {
+              if (!is_dir($root.'/'.$dest) && !@mkdir($root.'/'.$dest, 0755, true)) { fwrite(STDERR, "hedef dizin acilamadi\n"); exit(1); }
+              @file_put_contents($root.'/uploads/live/index.html', ''); @file_put_contents($root.'/'.$dest.'/index.html', '');
+              foreach ($new as $n) {
+                if (!@copy($n['_from'], $root.$n['src']) || !@copy($n['_thf'], $root.$n['thumb'])) { fwrite(STDERR, "kopyalanamadi: ".basename($n['_from'])."\n"); exit(1); }
+              }
+            }
+            $clean = array_map(fn($n) => array_diff_key($n, ['_from' => 1, '_thf' => 1]), $new);
+            $bak = vestra_data_dir().'/listings.json.bak-live-'.date('Ymd_His');
+            if (!@copy(vestra_data_dir().'/listings.json', $bak)) { fwrite(STDERR, "yedek alinamadi -- yazilmadi\n"); exit(1); }
+            /* Taze oku, yalniz bu ilanin bu alanini degistir (araya giren baska bir yazim kaybolmasin). */
+            $L = vestra_listings();
+            foreach ($L as &$x) if ((string)($x['id'] ?? '') === $lid) {
+              if ($mode === 'clear') unset($x['live_photos']);
+              else $x['live_photos'] = $mode === 'add' ? array_merge(array_values((array)($x['live_photos'] ?? [])), $clean) : $clean;
+              $x['live_photos_at'] = date('c');
+            }
+            unset($x);
+            vestra_save_listings($L);
+            $back = vestra_listing_by_id($lid);
+            $got = vestra_live_photos($back ?? []);
+            echo "yedek: ".basename($bak)." · yazildi, geri okunan canli foto: ".count($got)."\n";
+            $bad = 0;
+            foreach (array_slice($got, 0, 40) as $g) foreach ([$g['src'], $g['thumb']] as $u) {
+              $ch = curl_init('https://vestrasales.com'.$u); curl_setopt_array($ch, [CURLOPT_NOBODY => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15]);
+              curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+              if ($code !== 200) { $bad++; echo "   YAYINDA DEGIL: $u ($code)\n"; }
+            }
+            echo $bad ? "adres sorunu: $bad\n" : "adresler: hepsi 200\n";
+            exit($bad ? 1 : 0);
+            PHPEOF
+            php /tmp/vestra_live.php; rc=$?; rm -f /tmp/vestra_live.php; exit $rc
