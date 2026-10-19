@@ -1095,6 +1095,21 @@ function vestra_product_redirect(string $id): ?string {
 }
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
 function vestra_primary_image(array $p): string { if(!empty($p['images'])&&is_array($p['images'])) return $p['images'][0]; return $p['image']??''; }
+/* CANLI FOTOGRAFLAR (19 Eki 2026): ilanin 'live_photos' alani -- saticinin depodaki orijinal numunelerin gercek
+   fotograflari, katalog fotografindan AYRI tutulur (product.php onlari kendi basligiyla gosterir). Kayit:
+   [{src, thumb, group, note}]; yalniz sitenin kendi /uploads/ altindaki gorselleri kabul edilir (disaridan bir
+   adres ya da bozuk kayit sayfaya basilmaz). Kucuk kopya yoksa tam boy kullanilir. */
+function vestra_live_photos(array $p): array {
+  $ok = fn(string $u): bool => (bool)preg_match('#^/uploads/[A-Za-z0-9/_.-]+\.(?:jpe?g|png|webp)$#i', $u) && !str_contains($u, '..');
+  $out = [];
+  foreach ((array)($p['live_photos'] ?? []) as $x) {
+    if (!is_array($x)) continue;
+    $src = trim((string)($x['src'] ?? '')); $th = trim((string)($x['thumb'] ?? '')) ?: $src;
+    if (!$ok($src) || !$ok($th)) continue;
+    $out[] = ['src' => $src, 'thumb' => $th, 'group' => trim((string)($x['group'] ?? '')), 'note' => trim((string)($x['note'] ?? ''))];
+  }
+  return $out;
+}
 
 /* ── Ilanin adi ve aciklamasi, SAYFANIN DILINDE ───────────────────────────────
  *

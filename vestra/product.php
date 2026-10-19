@@ -72,8 +72,16 @@ $NAV='shop'; require __DIR__.'/inc/head.php';
 $mode=vestra_display_mode($p); $from=vestra_from_price($p); $disc=vestra_discount($p);
 $offered=isset($_GET['offered']);
 $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_primary_image($p)?[vestra_primary_image($p)]:[]);
-$photosLocked = !$MEMBER && $images;   // photos require being signed in (any status) — not full KYB approval
-if(!$MEMBER) $images = [];
+/* CANLI FOTOGRAFLAR (19 Eki 2026, operator: "SH9623 ayni zamanda bu urune live foto, ornek orijinal fotolar olarak
+   ekle"): saticinin depodaki orijinal numuneleri cektigi gercek fotograflar. Katalog fotografi DEGILLER ve oyle
+   karismamalilar -- galeri seridinde degil, altinda kendi basliklariyla, renk gruplariyla duruyorlar; tiklaninca AYNI
+   buyuk goruntuleyicide (zoom dahil) "Canli fotograf" rozetiyle acilirlar. Fotograf kurali ayni: yalniz uyeler gorur. */
+$livePhotos = vestra_live_photos($p);
+$liveCount = count($livePhotos);
+$photosLocked = !$MEMBER && ($images || $livePhotos);   // photos require being signed in (any status) — not full KYB approval
+if(!$MEMBER) { $images = []; $livePhotos = []; }
+$catCount = count($images);
+$images = array_merge($images, array_column($livePhotos, 'src'));   // galeri: katalog fotograflari, sonra canli fotograflar
 /* Where the locked-photos CTA sends the viewer: guests sign in; signed-in-but-unverified
    accounts go straight to their verification tab. */
 $verifyHref = !$AUTH_USER
@@ -123,6 +131,23 @@ function vestra_colorqty_hint(array $p): string {
    duruyordu ve bir sayfadan digerine tema degisiyordu. Token seti inc/style.css'te
    (.pwrap); body ve altbilgi burada boyaniyor, shop.php ile ayni karar. */
 body{background:#f5f2ec}
+/* Canli fotograflar (19 Eki 2026): galeri seridinin altinda, kendi basligiyla. */
+.livephotos{display:block;margin:18px 0 0;padding:16px 16px 12px;background:#fff;border:1px solid var(--line-1,#e6e0d5);border-radius:16px;text-decoration:none;color:inherit}
+.livephotos .lp-head{display:flex;align-items:center;gap:8px;font-size:14px;letter-spacing:.01em;color:var(--ink,#14110c)}
+.livephotos .lp-dot{width:8px;height:8px;border-radius:50%;background:#d23b3b;box-shadow:0 0 0 3px rgba(210,59,59,.18);flex:none}
+.livephotos .lp-n{margin-left:auto;font-size:12px;color:#8a8272;background:#f5f2ec;border-radius:999px;padding:2px 9px}
+.livephotos .lp-sub{display:block;margin:6px 0 12px;font-size:12.5px;line-height:1.5;color:#6b6457}
+.livephotos .lp-gname{font-size:12px;font-weight:600;letter-spacing:.04em;color:#3a3428;margin:10px 0 7px}
+.livephotos .lp-gname span{font-weight:400;color:#8a8272}
+.livephotos .lp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.livephotos .lp-thumb{padding:0;border:1.5px solid var(--line-1,#e6e0d5);border-radius:10px;overflow:hidden;background:#fff;cursor:pointer;aspect-ratio:3/4;transition:.18s}
+.livephotos .lp-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.livephotos .lp-thumb:hover{transform:translateY(-2px);border-color:var(--line-2,#cfc6b4)}
+.livephotos .lp-thumb.active{border-color:var(--ink,#14110c);box-shadow:0 0 0 1px var(--ink,#14110c)}
+.livephotos.lp-locked .lp-sub{margin-bottom:0;color:#8a6d1f;font-weight:600}
+.lp-badge{position:absolute;left:14px;bottom:14px;z-index:3;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#fff;background:rgba(14,14,17,.62);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);padding:6px 12px;border-radius:999px}
+.lp-badge i{width:7px;height:7px;border-radius:50%;background:#ff5a5a;display:block}
+@media (max-width:640px){.livephotos .lp-grid{grid-template-columns:repeat(4,1fr);gap:6px}}
 footer{background:#14110c;border-top:0;color:#b8b2a4;margin-top:0}
 footer a{color:#d8bd86}
 </style>
@@ -199,6 +224,7 @@ footer a{color:#d8bd86}
         </div>
         <?php if($images): ?>
           <img class="gal-img" id="gal-main-img" src="<?= htmlspecialchars($images[0]) ?>" alt="<?= htmlspecialchars($_imgAlt) ?>">
+          <?php if($livePhotos): ?><span class="lp-badge" id="galLive"<?= $catCount > 0 ? ' style="display:none"' : '' ?>><i></i><?= htmlspecialchars(t('Live photo')) ?></span><?php endif; ?>
           <button class="gal-nav prev" onclick="galGo(-1)" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
           <button class="gal-nav next" onclick="galGo(1)" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
         <?php endif; ?>
@@ -222,15 +248,39 @@ footer a{color:#d8bd86}
       <?php endif; ?>
       <?php if($images): ?>
       <div class="gal-thumbs" id="gal-thumbs">
-        <?php foreach($images as $i=>$img): ?>
-          <button class="gal-thumb <?= $i===0?'active':'' ?>" onclick="galSet(<?= $i ?>)">
+        <?php foreach(array_slice($images, 0, $catCount) as $i=>$img): ?>
+          <button class="gal-thumb <?= $i===0?'active':'' ?>" data-gi="<?= $i ?>" onclick="galSet(<?= $i ?>)">
             <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($_imgAlt.' — '.sprintf(t('photo %d'), $i + 1)) ?>" loading="lazy">
           </button>
         <?php endforeach; ?>
-        <button class="gal-thumb" onclick="galSet(<?= count($images) ?>)" title="<?= htmlspecialchars($p['brand']) ?>">
+        <button class="gal-thumb" data-gi="<?= count($images) ?>" onclick="galSet(<?= count($images) ?>)" title="<?= htmlspecialchars($p['brand']) ?>">
           <span style="display:block;width:100%;height:100%;background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)"></span>
         </button>
       </div>
+      <?php endif; ?>
+      <?php if($livePhotos):
+        /* Renk gruplari kayittaki sirayla; her kucuk resim galerideki kendi slaydini acar (katalog fotograflarindan sonra). */
+        $lpGroups = [];
+        foreach ($livePhotos as $k => $lp) $lpGroups[$lp['group'].'|'.$lp['note']][] = [$catCount + $k, $lp]; ?>
+      <section class="livephotos" id="live-photos">
+        <div class="lp-head"><span class="lp-dot"></span><b><?= htmlspecialchars(t('Live photos')) ?></b><span class="lp-n"><?= $liveCount ?></span></div>
+        <p class="lp-sub"><?= htmlspecialchars(t('Original samples — real photos of the goods in stock, with their tags and labels')) ?></p>
+        <?php foreach ($lpGroups as $gk => $items): [$gName, $gNote] = explode('|', $gk, 2); ?>
+          <?php if ($gName !== ''): ?><div class="lp-gname"><?= htmlspecialchars($gName) ?><?php if ($gNote !== ''): ?> <span>· <?= htmlspecialchars($gNote) ?></span><?php endif; ?></div><?php endif; ?>
+          <div class="lp-grid">
+            <?php foreach ($items as [$gi, $lp]): ?>
+              <button type="button" class="lp-thumb" data-gi="<?= $gi ?>" onclick="galSet(<?= $gi ?>);galFocus()">
+                <img src="<?= htmlspecialchars($lp['thumb']) ?>" alt="<?= htmlspecialchars(trim($_imgAlt.' — '.t('Live photo').' '.$gName)) ?>" loading="lazy">
+              </button>
+            <?php endforeach; ?>
+          </div>
+        <?php endforeach; ?>
+      </section>
+      <?php elseif($photosLocked && $liveCount): ?>
+      <a class="livephotos lp-locked" href="<?= htmlspecialchars($verifyHref) ?>">
+        <span class="lp-head"><span class="lp-dot"></span><b><?= htmlspecialchars(sprintf(t('%d live photos of the original samples'), $liveCount)) ?></b></span>
+        <span class="lp-sub"><?= $AUTH_USER ? t('Complete verification to view photos') : t('Sign in to view product photos') ?> →</span>
+      </a>
       <?php endif; ?>
     </div>
 
@@ -959,13 +1009,20 @@ footer a{color:#d8bd86}
 <?php if($images): ?>
 <script>
 /* Slides: 0..n-1 = product photos (opens on the first photo); n = the brand card (last). */
-var galImgs=<?= json_encode($images) ?>, galN=galImgs.length, galIdx=0;
+var galImgs=<?= json_encode($images) ?>, galN=galImgs.length, galIdx=0, galCat=<?= (int)$catCount ?>;
 function galSet(i){
   galIdx=i;
-  var img=document.getElementById('gal-main-img'), card=document.getElementById('gal-card');
+  var img=document.getElementById('gal-main-img'), card=document.getElementById('gal-card'), live=document.getElementById('galLive');
   if(i>=galN){ if(img) img.style.display='none'; card.style.display='flex'; }
   else { img.src=galImgs[i]; img.style.display='block'; card.style.display='none'; }
-  document.querySelectorAll('.gal-thumb').forEach(function(t,j){ t.classList.toggle('active', j===i); });
+  /* Canli fotograflar katalog fotograflarindan SONRA gelir; o slaytlarda rozet gorunur. */
+  if(live) live.style.display=(i>=galCat && i<galN) ? '' : 'none';
+  document.querySelectorAll('[data-gi]').forEach(function(t){ t.classList.toggle('active', +t.getAttribute('data-gi')===i); });
+}
+/* Asagidaki canli fotograf izgarasindan tiklaninca buyuk goruntu ekranda degilse ona kaydir (telefonda izgara altta). */
+function galFocus(){
+  var w=document.getElementById('gal-wrap'); if(!w) return;
+  var r=w.getBoundingClientRect(); if(r.top<0 || r.bottom>window.innerHeight) w.scrollIntoView({behavior:'smooth',block:'center'});
 }
 function galGo(d){
   var n=galN+1;                           // slides: photos + brand card

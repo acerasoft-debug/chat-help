@@ -1761,4 +1761,8 @@ return array (
   'Fill in the boxes below' => '下の欄に入力してください',
   'Please complete the delivery address: street, postcode, city and country.' => '配送先住所を入力してください：番地、郵便番号、市区町村、国。',
   'Complete the steps on the left and confirm at the bottom.' => '左側の手順を入力し、最後に確認してください。',
+  'Live photos' => '実物写真',
+  'Live photo' => '実物写真',
+  'Original samples — real photos of the goods in stock, with their tags and labels' => 'オリジナルサンプル — 在庫品の実物写真（下げ札・ラベル付き）',
+  '%d live photos of the original samples' => 'オリジナルサンプルの実物写真 %d 枚',
 );

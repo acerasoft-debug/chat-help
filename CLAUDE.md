@@ -12957,3 +12957,16 @@ marka mağazası (Oleana), kuyumcu ve at malzemecisi.
   (zincir), Admanage (.ai reklam yazılımı), Shooting Sports UK. Adlar blocklist'e (kısaları alan adında TAM eşleşir),
   veri koruma / hukuk kutuları (`dataprotection*`, `datenschutz`, `legal`, `compliance`…) çöp, `.ai` alan adı ve
   atıcılık / silah moda dışı. (+7 iddia, 531 geçti.)
+
+## Canlı fotoğraflar — ilanın orijinal numune fotoğrafları (operatör, 19 Eki 2026)
+
+Operatör: *"SH9623 aynı zamanda bu ürüne live foto, örnek orijinal fotolar olarak ekle"* (Il Mercatista'ya Les Garage
+Paris adına giden fotoğraflı mektubun 17 fotoğrafı). İlan alanı `live_photos` = `[{src, thumb, group, note}]`
+(`vestra_live_photos()` yalnız `/uploads/` altındaki görselleri kabul eder). `product.php`: katalog fotoğraf
+şeridinden AYRI, galerinin altında "Live photos" bölümü (9 dil; it: "Foto reali" / "Campioni originali — …"), renk
+grupları + beden notu; küçük resme tıklayınca AYNI büyük görüntüleyicide (zoom dahil) "Live photo" rozetiyle açılır;
+galeri dizisi = katalog + canlı (canlılar sonda, `galCat` sınırı); serit/ızgara etkin işareti `data-gi` ile. Üye
+olmayana fotoğraf yok, yalnız "N live photos of the original samples" kilit kartı (fotoğraf kuralıyla aynı).
+Veri: chat-help `listing-live-photos.yml` (fotoğrafları `uploads/live/<ilan>/`'a kopyalar, yedek alır, alanı yazar).
+Test: `tests/live_photos_test.php` (13).
+

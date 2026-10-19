@@ -1765,4 +1765,8 @@ return array (
   'Fill in the boxes below' => 'Compila i campi qui sotto',
   'Please complete the delivery address: street, postcode, city and country.' => 'Completa l’indirizzo di consegna: via, CAP, città e paese.',
   'Complete the steps on the left and confirm at the bottom.' => 'Completa i passaggi a sinistra e conferma in fondo.',
+  'Live photos' => 'Foto reali',
+  'Live photo' => 'Foto reale',
+  'Original samples — real photos of the goods in stock, with their tags and labels' => 'Campioni originali — foto reali della merce in magazzino, con cartellini ed etichette',
+  '%d live photos of the original samples' => '%d foto reali dei campioni originali',
 );

@@ -1761,4 +1761,8 @@ return array (
   'Fill in the boxes below' => 'املأ الحقول أدناه',
   'Please complete the delivery address: street, postcode, city and country.' => 'يرجى إكمال عنوان التسليم: الشارع والرمز البريدي والمدينة والبلد.',
   'Complete the steps on the left and confirm at the bottom.' => 'أكمل الخطوات على اليسار ثم أكّد في الأسفل.',
+  'Live photos' => 'صور حقيقية',
+  'Live photo' => 'صورة حقيقية',
+  'Original samples — real photos of the goods in stock, with their tags and labels' => 'عينات أصلية — صور حقيقية للبضاعة في المخزون مع البطاقات والملصقات',
+  '%d live photos of the original samples' => '%d صورة حقيقية للعينات الأصلية',
 );
