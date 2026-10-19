@@ -13,6 +13,10 @@
  *
  * Paket gövdesi (JSON): to, from_name, reply_to, subject, kicker, title, subtitle, greeting, intro[], chips[],
  * sections[{title, swatch, sub, photos[{name, b64, caption}]}], tap_hint, closing[], sign[], button{label,url}, footer.
+ * Katalog mektubu için (19 Eki 2026, "tüm renklerini ve lotunu gönder") bölümde isteğe bağlı: colors[{name, css}]
+ * (renk çipleri), facts[[etiket, değer]] (lot / MOQ satırları), sizes[[beden, adet]] (karton dökümü), cols (2|3),
+ * link{label,url}. Fotoğraf b64 yerine src taşıyabilir: sunucudaki katalog görseli (/uploads/…), burada JPEG'e çevrilir
+ * (AVIF/WebP e-posta istemcilerinin çoğunda görünmüyor) ve 4:5 tuvale, köşe renginde boşlukla oturtulur.
  * Fotoğraflar uploads/msg/<rastgele 24 hane>/ altına yazılır (dizin listesi kapalı, adres tahmin edilemez); her biri
  * tam boy + 520 piksellik küçük kopya. Kütükte adres maskeli, metin basılmaz.
  */
@@ -54,26 +58,66 @@ function pl_render(array $s, callable $url): array {
     }
     $plain = [(string)($s['greeting'] ?? ''), ...array_map('strval', (array)($s['intro'] ?? []))];
     foreach ((array)($s['sections'] ?? []) as $sec) {
+        $sw = (string)($sec['swatch'] ?? '');
         $h .= '<div style="border-top:1px solid #e6e0d5;margin:8px 0 0;padding:20px 0 4px">'
             .'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
-            .'<td valign="middle" style="padding-right:10px;line-height:0"><div style="width:16px;height:16px;border-radius:50%;background:'.$e($sec['swatch'] ?? '#ccc').';border:1px solid rgba(0,0,0,.15)"></div></td>'
+            .($sw !== '' ? '<td valign="middle" style="padding-right:10px;line-height:0"><div style="width:16px;height:16px;border-radius:50%;background:'.$e($sw).';border:1px solid rgba(0,0,0,.15)"></div></td>' : '')
             .'<td valign="middle" style="font-size:17px;color:#14110c;font-weight:700;letter-spacing:.01em">'.$e($sec['title'] ?? '').'</td></tr></table>'
-            .'<div style="font-size:12px;color:#8a8272;margin:6px 0 14px 26px">'.$e($sec['sub'] ?? '').'</div>';
+            .'<div style="font-size:12px;color:#8a8272;margin:6px 0 14px '.($sw !== '' ? '26px' : '0').'">'.$e($sec['sub'] ?? '').'</div>';
+        $plain[] = (string)($sec['title'] ?? '').' — '.(string)($sec['sub'] ?? '');
+        if (!empty($sec['colors'])) {
+            /* Renk çipleri: nokta + ad, satır içi blok (dar ekranda alt satıra geçer). */
+            $c = '';
+            foreach ((array)$sec['colors'] as $co) $c .= '<span style="display:inline-block;margin:0 6px 7px 0;border:1px solid #e6e0d5;background:#fff;border-radius:999px;padding:4px 11px 4px 6px;font-size:12px;line-height:1.3;color:#3a3428;white-space:nowrap">'
+                .'<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:'.$e($co['css'] ?? '#ccc').';border:1px solid rgba(0,0,0,.18);vertical-align:-2px;margin-right:6px"></span>'.$e($co['name'] ?? '').'</span>';
+            $h .= '<div style="margin:0 0 10px">'.$c.'</div>';
+            $plain[] = '  '.implode(' · ', array_map(fn($co) => (string)($co['name'] ?? ''), (array)$sec['colors']));
+        }
+        if (!empty($sec['facts']) || !empty($sec['sizes'])) {
+            $f = '';
+            foreach ((array)($sec['facts'] ?? []) as $row) {
+                [$k, $v] = array_pad(array_values((array)$row), 2, '');
+                $f .= '<tr><td valign="top" style="padding:5px 12px 5px 0;font-size:12px;color:#8a8272;white-space:nowrap">'.$e($k).'</td>'
+                    .'<td valign="top" style="padding:5px 0;font-size:13.5px;color:#14110c;line-height:1.45">'.$e($v).'</td></tr>';
+                $plain[] = '  '.$k.': '.$v;
+            }
+            $box = '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">'.$f.'</table>';
+            if (!empty($sec['sizes'])) {
+                /* Karton dökümü: üst satır beden, alt satır adet, sonda toplam. */
+                $hd = ''; $qt = ''; $tot = 0;
+                foreach ((array)$sec['sizes'] as $row) {
+                    [$sz, $q] = array_pad(array_values((array)$row), 2, 0); $tot += (int)$q;
+                    $hd .= '<td align="center" style="padding:6px 0;font-size:11px;letter-spacing:.06em;color:#8a8272;border-bottom:1px solid #e6e0d5">'.$e($sz).'</td>';
+                    $qt .= '<td align="center" style="padding:7px 0;font-size:15px;color:#14110c;font-weight:700">'.$e($q).'</td>';
+                }
+                $hd .= '<td align="center" style="padding:6px 0;font-size:11px;letter-spacing:.06em;color:#8a6d1f;border-bottom:1px solid #e6e0d5;border-left:1px solid #e6e0d5">'.$e($sec['sizes_total_label'] ?? 'TOT').'</td>';
+                $qt .= '<td align="center" style="padding:7px 0;font-size:15px;color:#8a6d1f;font-weight:700;border-left:1px solid #e6e0d5">'.$tot.'</td>';
+                $box .= '<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#8a6d1f;font-weight:700;margin:12px 0 6px">'.$e($sec['sizes_title'] ?? '').'</div>'
+                      .'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;table-layout:fixed;background:#fff;border:1px solid #e6e0d5;border-radius:8px"><tr>'.$hd.'</tr><tr>'.$qt.'</tr></table>';
+                $plain[] = '  '.(string)($sec['sizes_title'] ?? '').': '.implode(' · ', array_map(fn($r) => implode(' ', array_values((array)$r)), (array)$sec['sizes'])).' = '.$tot;
+            }
+            $h .= '<div style="background:#faf6ee;border:1px solid #efe6d4;border-radius:10px;padding:12px 14px;margin:0 0 16px">'.$box.'</div>';
+        }
+        $cols = (int)($sec['cols'] ?? 2) === 3 ? 3 : 2; $pct = $cols === 3 ? '33%' : '50%'; $tw = $cols === 3 ? 160 : 240;
         $rows = '';
-        foreach (array_chunk((array)($sec['photos'] ?? []), 2) as $pair) {
+        foreach (array_chunk((array)($sec['photos'] ?? []), $cols) as $pair) {
             $tds = '';
             foreach ($pair as $ph) {
-                $tds .= '<td valign="top" width="50%" style="padding:0 5px 14px">'
+                $tds .= '<td valign="top" width="'.$pct.'" style="padding:0 5px 14px">'
                       .'<a href="'.$e($url($ph['name'], false)).'" style="text-decoration:none">'
-                      .'<img src="'.$e($url($ph['name'], true)).'" width="240" alt="'.$e($ph['caption'] ?? '').'" style="display:block;width:100%;max-width:240px;height:auto;border:1px solid #e6e0d5;border-radius:10px"></a>'
+                      .'<img src="'.$e($url($ph['name'], true)).'" width="'.$tw.'" alt="'.$e($ph['caption'] ?? '').'" style="display:block;width:100%;max-width:'.$tw.'px;height:auto;border:1px solid #e6e0d5;border-radius:10px"></a>'
                       .'<div style="font-size:11.5px;line-height:1.45;color:#5c5449;margin:7px 2px 0">'.$e($ph['caption'] ?? '').'</div></td>';
             }
-            if (count($pair) === 1) $tds .= '<td width="50%" style="padding:0 5px 14px"></td>';
+            for ($i = count($pair); $i < $cols; $i++) $tds .= '<td width="'.$pct.'" style="padding:0 5px 14px"></td>';
             $rows .= '<tr>'.$tds.'</tr>';
         }
-        $h .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 -5px">'.$rows.'</table></div>';
-        $plain[] = (string)($sec['title'] ?? '').' — '.(string)($sec['sub'] ?? '');
+        $h .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin:0 -5px">'.$rows.'</table>';
+        if (!empty($sec['link']['url'])) {
+            $h .= '<div style="margin:0 0 6px"><a href="'.$e($sec['link']['url']).'" style="font-size:13px;color:#8a6d1f;font-weight:700;text-decoration:none;letter-spacing:.02em">'.$e($sec['link']['label'] ?? '').' &rarr;</a></div>';
+        }
+        $h .= '</div>';
         foreach ((array)($sec['photos'] ?? []) as $ph) $plain[] = '  · '.(string)($ph['caption'] ?? '').': '.$url($ph['name'], false);
+        if (!empty($sec['link']['url'])) $plain[] = '  '.(string)($sec['link']['label'] ?? '').': '.(string)$sec['link']['url'];
     }
     if (!empty($s['tap_hint'])) $h .= '<div style="font-size:12px;color:#8a8272;font-style:italic;text-align:center;margin:0 0 20px">'.$e($s['tap_hint']).'</div>';
     $h .= '<div style="border-top:1px solid #e6e0d5;padding-top:20px"></div>';
@@ -89,6 +133,47 @@ function pl_render(array $s, callable $url): array {
     $txt = implode("\n\n", array_filter($plain, fn($x) => trim($x) !== ''));
     if (!empty($s['footer'])) $txt .= "\n\n—\n".(string)$s['footer'];
     return [$h, $txt];
+}
+
+/**
+ * Sunucudaki bir katalog görselini e-postaya uygun JPEG'e çevirir: 900×1125 (4:5) tuval, görsel ortada ve oranı korunarak,
+ * boşluk dört köşenin ortalama rengiyle (ürün fotoğrafının kendi zemini) doldurulur. Dönüş [jpeg baytları, yöntem];
+ * okunamazsa ['', neden]. Yalnız /uploads/ altındaki görseller.
+ */
+function pl_catalog_jpeg(string $src, string $root): array {
+    if (!preg_match('#^/uploads/[A-Za-z0-9/_.-]+\.(jpe?g|png|webp|avif)$#i', $src) || str_contains($src, '..')) return ['', 'yol reddedildi'];
+    $file = $root.$src;
+    if (!is_file($file)) return ['', 'dosya yok'];
+    $data = (string)file_get_contents($file); $how = 'gd';
+    $im = @imagecreatefromstring($data);
+    if ($im === false && function_exists('imagecreatefromavif')) { $im = @imagecreatefromavif($file); $how = 'gd-avif'; }
+    if ($im === false && class_exists('Imagick')) {
+        try { $m = new Imagick($file); $m->setImageFormat('png'); $im = @imagecreatefromstring($m->getImageBlob()); $how = 'imagick'; } catch (Throwable $t) { $im = false; }
+    }
+    if ($im === false) {
+        $tmp = tempnam(sys_get_temp_dir(), 'pl').'.png';
+        foreach (['magick', 'convert'] as $bin) {
+            @exec(escapeshellcmd($bin).' '.escapeshellarg($file.'[0]').' '.escapeshellarg($tmp).' 2>/dev/null', $o, $rc);
+            if ($rc === 0 && is_file($tmp) && ($im = @imagecreatefromstring((string)file_get_contents($tmp))) !== false) { $how = $bin; break; }
+        }
+        @unlink($tmp);
+    }
+    if ($im === false) return ['', 'cozulemedi'];
+    $w = imagesx($im); $h = imagesy($im);
+    $W = 900; $H = 1125;
+    $sum = [0, 0, 0];
+    foreach ([[0, 0], [$w - 1, 0], [0, $h - 1], [$w - 1, $h - 1]] as [$x, $y]) {
+        $c = imagecolorsforindex($im, imagecolorat($im, $x, $y));
+        $a = $c['alpha'] / 127; /* saydam köşe beyaz zemin sayılır */
+        foreach (['red', 'green', 'blue'] as $i => $k) $sum[$i] += (int)round($c[$k] * (1 - $a) + 255 * $a);
+    }
+    $cv = imagecreatetruecolor($W, $H);
+    imagefill($cv, 0, 0, imagecolorallocate($cv, intdiv($sum[0], 4), intdiv($sum[1], 4), intdiv($sum[2], 4)));
+    $r = min($W / $w, $H / $h); $nw = (int)round($w * $r); $nh = (int)round($h * $r);
+    imagealphablending($cv, true);
+    imagecopyresampled($cv, $im, intdiv($W - $nw, 2), intdiv($H - $nh, 2), 0, 0, $nw, $nh, $w, $h);
+    ob_start(); imageinterlace($cv, true); imagejpeg($cv, null, 82); $jpg = (string)ob_get_clean();
+    return [$jpg, "$how {$w}x{$h}"];
 }
 
 $mask = static function (string $e): string { $at = strrpos($e, '@'); return $at === false ? '***' : substr($e, 0, 1).'***'.substr($e, $at); };
@@ -124,13 +209,17 @@ $n = 0; $bytes = 0;
 foreach ($s['sections'] as &$sec) {
     foreach ($sec['photos'] as &$ph) {
         $name = preg_replace('/[^a-z0-9._-]/', '', strtolower((string)$ph['name']));
-        $raw = base64_decode((string)$ph['b64'], true);
+        if (isset($ph['src'])) {
+            [$raw, $how] = pl_catalog_jpeg((string)$ph['src'], $root);
+            if ($raw === '') { fwrite(STDERR, "katalog gorseli okunamadi: ".$ph['src']." ($how)\n"); array_map('unlink', glob($dir.'/*') ?: []); @rmdir($dir); exit(1); }
+            echo "  ".$ph['src']." -> $name ($how)\n";
+        } else $raw = base64_decode((string)($ph['b64'] ?? ''), true);
         if ($name === '' || !str_ends_with($name, '.jpg') || $raw === false || @imagecreatefromstring($raw) === false) { fwrite(STDERR, "fotograf bozuk: $name\n"); exit(1); }
         file_put_contents($dir.'/'.$name, $raw); $bytes += strlen($raw);
         $im = imagecreatefromstring($raw); $w = imagesx($im); $hh = imagesy($im); $tw = 520; $th = (int)round($hh * $tw / $w);
         $t = imagecreatetruecolor($tw, $th); imagecopyresampled($t, $im, 0, 0, 0, 0, $tw, $th, $w, $hh);
         imagejpeg($t, $dir.'/t-'.$name, 82);
-        $ph['name'] = $name; unset($ph['b64']); $n++;
+        $ph['name'] = $name; unset($ph['b64'], $ph['src']); $n++;
     }
     unset($ph);
 }
@@ -153,6 +242,13 @@ if (!empty($s['button']['url'])) {
     curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
     echo "dugme sayfasi: HTTP $code".($code === 200 ? '' : ' — dugme mektuptan CIKARILDI')."\n";
     if ($code !== 200) unset($s['button']);
+}
+foreach ($s['sections'] as $i => $sec) if (!empty($sec['link']['url'])) {
+    $ch = curl_init((string)$sec['link']['url']);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_FOLLOWLOCATION => false]);
+    curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    echo "bolum baglantisi ".($i + 1).": HTTP $code".($code === 200 ? '' : ' — baglanti CIKARILDI')."\n";
+    if ($code !== 200) unset($s['sections'][$i]['link']);
 }
 [$html, $txt] = pl_render($s, $url);
 $opts = ['html' => $html] + (!empty($s['button']['url']) ? ['button' => $s['button']] : []);
