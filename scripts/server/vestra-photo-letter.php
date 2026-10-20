@@ -18,7 +18,9 @@
  * Katalog mektubu için (19 Eki 2026, "tüm renklerini ve lotunu gönder") bölümde isteğe bağlı: colors[{name, css}]
  * (renk çipleri), facts[[etiket, değer]] (lot / MOQ satırları), sizes[[beden, adet]] (karton dökümü), cols (2|3),
  * link{label,url}, price + price_unit (başlığın yanında fiyat); üst düzeyde summary[[ad, kod, fiyat]] + summary_title
- * (girişin altında fiyat özeti). Fotoğraf b64 yerine src taşıyabilir: sunucudaki katalog görseli (/uploads/…), burada JPEG'e çevrilir
+ * (girişin altında fiyat özeti); videos[{name (.mp4), b64, poster, poster_b64, caption}] (20 Eki 2026, depo videosu:
+ * e-posta istemcileri videoyu satır içinde oynatmaz — kapak görseli + oynat işareti videonun yayındaki adresine bağlanır).
+ * Fotoğraf b64 yerine src taşıyabilir: sunucudaki katalog görseli (/uploads/…), burada JPEG'e çevrilir
  * (AVIF/WebP e-posta istemcilerinin çoğunda görünmüyor) ve 4:5 tuvale, köşe renginde boşlukla oturtulur.
  * Fotoğraflar uploads/msg/<rastgele 24 hane>/ altına yazılır (dizin listesi kapalı, adres tahmin edilemez); her biri
  * tam boy + 520 piksellik küçük kopya. Kütükte adres maskeli, metin basılmaz.
@@ -60,6 +62,14 @@ function pl_render(array $s, callable $url): array {
         $h .= '<div style="margin:0 0 14px">'.$c.'</div>';
     }
     $plain = [(string)($s['greeting'] ?? ''), ...array_map('strval', (array)($s['intro'] ?? []))];
+    foreach ((array)($s['videos'] ?? []) as $v) {
+        /* Kapak tam genislik, videonun adresine bagli; altinda baglanti metni. */
+        $h .= '<div style="margin:6px 0 18px">'
+            .'<a href="'.$e($url($v['name'], false)).'" style="text-decoration:none">'
+            .'<img src="'.$e($url($v['poster'], false)).'" width="520" alt="'.$e($v['caption'] ?? 'Video').'" style="display:block;width:100%;max-width:520px;height:auto;border:1px solid #e6e0d5;border-radius:12px"></a>'
+            .'<div style="margin:8px 2px 0"><a href="'.$e($url($v['name'], false)).'" style="font-size:13px;color:#8a6d1f;font-weight:700;text-decoration:none">&#9654;&nbsp;'.$e($v['caption'] ?? 'Video').'</a></div></div>';
+        $plain[] = (string)($v['caption'] ?? 'Video').': '.$url($v['name'], false);
+    }
     if (!empty($s['summary'])) {
         /* Fiyat özeti: ürün adı + kod solda, fiyat sağda. */
         $r = '';
@@ -293,7 +303,21 @@ foreach ($s['sections'] as &$sec) {
     unset($ph);
 }
 unset($sec);
-echo "fotograf: $n (".round($bytes / 1048576, 2)." MB) + kucuk kopyalar -> uploads/msg/".substr($token, 0, 4)."…/\n";
+$nv = 0;
+foreach ((array)($s['videos'] ?? []) as $vi => $v) {
+    $vn = preg_replace('/[^a-z0-9._-]/', '', strtolower((string)($v['name'] ?? '')));
+    $pn = preg_replace('/[^a-z0-9._-]/', '', strtolower((string)($v['poster'] ?? '')));
+    $raw = base64_decode((string)($v['b64'] ?? ''), true);
+    $praw = base64_decode((string)($v['poster_b64'] ?? ''), true);
+    /* MP4 'ftyp' kutusuyla baslar (4. bayttan itibaren); kapak gecerli bir gorsel olmali. */
+    if ($vn === '' || !str_ends_with($vn, '.mp4') || $raw === false || substr($raw, 4, 4) !== 'ftyp'
+        || $pn === '' || !str_ends_with($pn, '.jpg') || $praw === false || @imagecreatefromstring($praw) === false) {
+        fwrite(STDERR, "video ya da kapagi bozuk: $vn\n"); $cleanup(); exit(1);
+    }
+    file_put_contents($dir.'/'.$vn, $raw); file_put_contents($dir.'/'.$pn, $praw); $bytes += strlen($raw) + strlen($praw);
+    $s['videos'][$vi]['name'] = $vn; $s['videos'][$vi]['poster'] = $pn; unset($s['videos'][$vi]['b64'], $s['videos'][$vi]['poster_b64']); $nv++;
+}
+echo "fotograf: $n".($nv ? " + video: $nv" : '')." (".round($bytes / 1048576, 2)." MB) + kucuk kopyalar -> uploads/msg/".substr($token, 0, 4)."…/\n";
 $url = fn($nm, $thumb) => $base.($thumb ? 't-' : '').$nm;
 /* Yayında mı? Mektup gitmeden önce her adres 200 dönmeli; dönmeyen varsa mektup gitmez. */
 $bad = 0;
@@ -303,7 +327,14 @@ foreach ($s['sections'] as $sec) foreach ($sec['photos'] as $ph) foreach ([true,
     curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); $ct = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE); curl_close($ch);
     if ($code !== 200 || !str_starts_with($ct, 'image/')) { $bad++; echo "  YAYINDA DEGIL: ".($th ? 't-' : '').$ph['name']." ($code $ct)\n"; }
 }
-echo $bad ? "adres yoklamasi: $bad sorun\n" : "adres yoklamasi: hepsi 200 image/jpeg\n";
+foreach ((array)($s['videos'] ?? []) as $v) foreach ([[$v['name'], 'video/'], [$v['poster'], 'image/']] as [$fn, $want]) {
+    $ch = curl_init($url($fn, false));
+    curl_setopt_array($ch, [CURLOPT_NOBODY => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15]);
+    curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); $ct = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE); curl_close($ch);
+    if ($code !== 200 || !str_starts_with($ct, $want)) { $bad++; echo "  YAYINDA DEGIL: $fn ($code $ct)\n"; }
+    else echo "  $fn: $code $ct\n";
+}
+echo $bad ? "adres yoklamasi: $bad sorun\n" : "adres yoklamasi: hepsi 200 (gorseller image/*, video video/*)\n";
 /* Düğme canlı bir sayfaya gitmeli; açılmıyorsa düğme mektuptan çıkar (fotoğraflar mektubun asıl işi). */
 if (!empty($s['button']['url'])) {
     $ch = curl_init((string)$s['button']['url']);
