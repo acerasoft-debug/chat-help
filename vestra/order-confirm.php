@@ -62,17 +62,46 @@ if ($escrow && ($escrow['status'] ?? '') === 'pending' && isset($_GET['paid'])) 
 }
 $isEscrow = $escrow && in_array($escrow['status'] ?? '', ['held','released','refunded'], true);
 
-/* Group goods per seller — mirrors the per-seller invoice grouping in order.php */
-$bySeller = [];
-foreach ($lines as $l) { $bySeller[$l['seller_uid'] ?: 'vestra'][] = $l; }
+/* KARTLAR FATURA YUKUNDEN (20 Eki 2026, Il Mercatista / VES-C1DCCFEE). Bu sayfa
+   satirlari ILANIN saticisina gore gruplayip o saticinin HAM bank_iban'ini EUR
+   tutarla ve "14 gun icinde" cumlesiyle basiyordu -- operatorun kesen taraf
+   secimini (vestra_order_invoice_seller_pick: belgeyi platform, Acerasoft LLC,
+   USD kesecekti) hic okumadan. Alici faturanin hesabi yerine saticinin sahsi
+   hesabini gordu ve onu sohbete yapistirdi; e-postadaki "View my order" dugmesi
+   tam bu sayfaya aciliyor.
+   Kartlar artik belgeyi ciziklen AYNI yukten (vestra_order_invoice_payloads):
+   kesen taraf, birim, kalem tutarlari. Banka satirlari vestra_payment_rails'ten
+   -- PDF'in odeme kutusunu basan fonksiyon. Iki ayri kaynak, operatorun bir
+   belge gorup alicinin baska bir hesap gormesi demekti (KURAL 5d).
+   ODEME KUTUSU YALNIZ KESILMIS FATURAYLA: hesap ve tutar ancak belge kesilince
+   kesinlesiyor, ustteki bant da "faturaniz banka bilgileriyle e-postayla gelir"
+   diyor. Kesilmeden once kart hesap gostermez.
+   ESCROW ESKI GRUPLAMADA: odeme Stripe ile ilanin saticisina gitti, kutu yok. */
+$cards = [];
+if (!$isEscrow) {
+    foreach (vestra_order_invoice_payloads($ref) as $p) {
+        $cards[] = ['key' => (string)($p['seller_key'] ?? 'vestra'), 'acc' => $p['seller'] ?? null,
+                    'lines' => (array)($p['items'] ?? []),
+                    'cur' => strtoupper(trim((string)($p['meta']['currency'] ?? 'EUR'))) ?: 'EUR',
+                    'ok' => empty($p['currency_error']) && empty($p['bank_error'])];
+    }
+}
+if (!$cards) {
+    $bySeller = [];
+    foreach ($lines as $l) { $bySeller[$l['seller_uid'] ?: 'vestra'][] = $l; }
+    foreach ($bySeller as $sid => $sl) {
+        $sAcc = null;
+        if ($sid !== 'vestra') foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $sid) { $sAcc = $a; break; } }
+        $cards[] = ['key' => (string)$sid, 'acc' => $sAcc, 'lines' => $sl, 'cur' => 'EUR', 'ok' => false];
+    }
+}
+$money = fn(float $n, string $cur) => $cur === 'EUR' ? eur($n)
+    : ($cur === 'USD' ? 'US$' : $cur.' ').number_format($n, 2, '.', ',');
 
 /* Invoice list (one per seller), keyed by seller for the cards below */
 $invByKey = [];
 foreach (vestra_invoices_for_ref($ref) as $iv) { $invByKey[$iv['seller_key']] = $iv; }
 
-$accounts = auth_accounts();
-$accById = [];
-foreach ($accounts as $a) { $accById[$a['id'] ?? ''] = $a; }
 
 $PAGE = t('Order received'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
 ?>
@@ -123,18 +152,23 @@ $PAGE = t('Order received'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
   </div>
   <?php endif; ?>
 
-  <?php foreach ($bySeller as $sid => $sellerLines):
-    $acc   = $sid !== 'vestra' ? ($accById[$sid] ?? null) : null;
-    $label = $acc ? ($acc['company'] ?: ($acc['name'] ?: t('Seller'))) : 'VESTRA';
+  <?php foreach ($cards as $card):
+    $acc   = $card['acc'];
+    $sellerLines = $card['lines'];
+    $cur   = $card['cur'];
+    $label = !vestra_invoice_is_platform_issuer($acc) ? ($acc['company'] ?: ($acc['name'] ?: t('Seller'))) : 'VESTRA';
     $goods = round(array_sum(array_column($sellerLines, 'line')), 2);
-    $iv    = $invByKey[$sid] ?? null;
-    $hasBank = $acc && !empty($acc['bank_iban']);
+    $iv    = $invByKey[$card['key']] ?? null;
+    /* Belgenin KENDI birimi ve toplami: kutu PDF'te ne yaziyorsa onu yazar. */
+    $ivCur = $iv ? (strtoupper(trim((string)($iv['currency'] ?? ''))) ?: $cur) : $cur;
+    $rails = ($iv && $card['ok']) ? vestra_payment_rails($acc ?: vestra_platform_seller(), $ivCur) : [];
+    $ivTot = $iv ? round((float)($iv['total'] ?? 0), 2) : 0.0;
   ?>
   <div class="panelcard" style="margin-bottom:18px">
     <div class="pcfhead" style="flex-wrap:wrap;gap:10px">
       <h3 style="margin:0"><?= t('Seller') ?>: <?= htmlspecialchars($label) ?></h3>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span class="status offers"><?= eur($goods) ?></span>
+        <span class="status offers"><?= $money($goods, $cur) ?></span>
         <?php if ($iv): ?>
           <a class="btn btn-p btn-sm" href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener">📄 <?= t('Download invoice') ?> <?= htmlspecialchars(vestra_invoice_link_label($iv)) ?></a>
         <?php else: ?>
@@ -148,27 +182,26 @@ $PAGE = t('Order received'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
           <span><?= (int)$l['qty'] ?>× <b><?= htmlspecialchars($l['brand']) ?></b> <?= htmlspecialchars($l['name']) ?>
             <span class="hint">(<?= htmlspecialchars($l['sku']) ?>)</span>
             <?= $l['colors'] ? '<span class="hint"> · '.htmlspecialchars(implode(', ', $l['colors'])).'</span>' : '' ?></span>
-          <span style="white-space:nowrap"><?= eur($l['line']) ?></span>
+          <span style="white-space:nowrap"><?= $money((float)$l['line'], $cur) ?></span>
         </div>
       <?php endforeach; ?>
 
       <?php if ($isEscrow): ?>
       <div style="margin-top:14px;background:rgba(122,214,160,.06);border:1px solid rgba(122,214,160,.3);border-radius:10px;padding:14px 16px">
-        <div style="font-weight:600;color:var(--ok)">🛡️ <?= t('Paid via secure escrow') ?> — <?= eur($goods) ?></div>
+        <div style="font-weight:600;color:var(--ok)">🛡️ <?= t('Paid via secure escrow') ?> — <?= $money($goods, $cur) ?></div>
         <div class="hint" style="margin-top:6px"><?= t('These funds are held safely. Confirm delivery under My orders to release them to the seller.') ?></div>
       </div>
-      <?php elseif ($hasBank): ?>
+      <?php elseif ($rails && $ivTot > 0): ?>
       <div style="margin-top:14px;background:rgba(201,168,106,.05);border:1px solid rgba(201,168,106,.25);border-radius:10px;padding:14px 16px">
         <div style="font-weight:600;margin-bottom:8px">🏦 <?= t('Payment details — bank transfer') ?></div>
         <table style="font-size:13px;border-collapse:collapse">
-          <?php if (!empty($acc['bank_name'])): ?><tr><td style="color:var(--mut);padding:2px 14px 2px 0"><?= t('Bank') ?></td><td><?= htmlspecialchars($acc['bank_name']) ?></td></tr><?php endif; ?>
-          <?php if (!empty($acc['bank_holder'])): ?><tr><td style="color:var(--mut);padding:2px 14px 2px 0"><?= t('Account holder') ?></td><td><?= htmlspecialchars($acc['bank_holder']) ?></td></tr><?php endif; ?>
-          <tr><td style="color:var(--mut);padding:2px 14px 2px 0">IBAN</td><td style="font-family:monospace"><?= htmlspecialchars($acc['bank_iban']) ?></td></tr>
-          <?php if (!empty($acc['bank_bic'])): ?><tr><td style="color:var(--mut);padding:2px 14px 2px 0">BIC / SWIFT</td><td style="font-family:monospace"><?= htmlspecialchars($acc['bank_bic']) ?></td></tr><?php endif; ?>
-          <tr><td style="color:var(--mut);padding:2px 14px 2px 0"><?= t('Amount') ?></td><td><b><?= eur($goods) ?></b></td></tr>
-          <tr><td style="color:var(--mut);padding:2px 14px 2px 0"><?= t('Reference') ?></td><td><b><?= htmlspecialchars(($iv['no'] ?? '').' / '.$ref) ?></b></td></tr>
+          <?php foreach ($rails as $rl): [$rk, $rv] = array_map('trim', explode(':', $rl, 2)) + [1 => '']; ?>
+          <tr><td style="color:var(--mut);padding:2px 14px 2px 0"><?= htmlspecialchars($rk) ?></td><td style="font-family:monospace"><?= htmlspecialchars($rv) ?></td></tr>
+          <?php endforeach; ?>
+          <tr><td style="color:var(--mut);padding:2px 14px 2px 0"><?= t('Amount') ?></td><td><b><?= $money($ivTot, $ivCur) ?></b></td></tr>
+          <tr><td style="color:var(--mut);padding:2px 14px 2px 0"><?= t('Reference') ?></td><td><b><?= htmlspecialchars(trim((string)($iv['no'] ?? '')).' / '.$ref) ?></b></td></tr>
         </table>
-        <div class="hint" style="margin-top:8px"><?= t('Payment due within 14 days. Goods ship after the transfer arrives.') ?></div>
+        <div class="hint" style="margin-top:8px"><?= t('Pay by bank transfer to the account on the invoice. Goods ship once payment arrives.') ?></div>
       </div>
       <?php else: ?>
       <div class="hint" style="margin-top:14px">
