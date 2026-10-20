@@ -297,7 +297,11 @@ ok(substr_count($wf, $sharedSend) === 1,
    'paylasilan gonderim TEK satir (kopyanin atlayabilecegi ikinci yol yok)');
 ok($posCopy !== false && $posSend !== false && $posCopy < $posSend,
    'kopya kontrolu PAYLASILAN gonderimden ONCE -- send=true olmadan da onizlenebiliyor');
-ok(substr_count($wf, "\$E('copy')") === 1,
+/* Olculen sey inceleme YOLU (kopyayi gonderen blok), bayragin her okunusu degil:
+   invoice_bank_letter (20 Eki 2026) bayragi bir MUHAFAZA icin okuyor -- draft=1
+   copy=true olmadan DURUR, yani taslak fatura musteriye gidemez. O okuma ikinci
+   bir gonderim yolu degil; yolu acan kosul ise hala tek yerde olmali. */
+ok(substr_count($wf, "if (strtolower(\$E('copy')) === 'true') {") === 1,
    'inceleme yolu TEK yerde (dal basina ikinci kopya yok)');
 ok(str_contains($wf, 'vestra_tpl_price_list($salutation, $plFacts, $plDone, $signer, $plLang)'),
    'price_list dali sablonu cagiriyor');
