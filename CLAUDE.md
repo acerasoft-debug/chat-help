@@ -12999,3 +12999,23 @@ ayarlarını (USD, banka profili, KDV notu, kesen) düşürür — teklif için 
   `send-campaign-preview.yml reply_letter=invoice_draft` önce taslak (günlük renk/tarih/sayfa yazar), sonra
   `ref=<ref>|apply=true|notify=false`. Alıcıya yeniden gönderim AYRI karar (KURAL 18).
 - Test: `tests/offer_colours_test.php` (54); `tests/pdf_row_height_test.php` kablolama iddiaları alt bloğu da sayacak şekilde güncellendi.
+
+## Sipariş sayfasında YANLIŞ alacaklı + fatura/banka mektubu (operatör, 20 Eki 2026 — Il Mercatista / VES-C1DCCFEE)
+Alıcı sohbete satıcının (GARAGE LE PARIS) şahsi EUR IBAN'ını, `€11,480.00` ve "14 gün içinde" cümlesiyle yapıştırdı (sohbet filtresi
+engelledi). Kaynak `order-confirm.php`'ydi: kartları ILANIN `seller_uid`'ine göre gruplayıp o hesabın HAM `bank_iban`'ını basıyordu —
+operatörün kesen taraf seçimini (`vestra_order_invoice_seller_pick` = `vestra`, Acerasoft LLC) ve fatura birimini (USD) hiç okumadan.
+Fatura kesildikten SONRA da: fatura `seller_key='vestra'`, kart anahtarı satıcı uid'i → "Invoice within the day" + satıcı IBAN'ı.
+E-postaların "View my order" düğmesi tam bu sayfaya açılıyor.
+- **Düzeltme:** kartlar `vestra_order_invoice_payloads($ref)`'ten (PDF'in çizildiği yük): kesen taraf, birim, kalem tutarları;
+  banka satırları `vestra_payment_rails($p['seller'] ?: vestra_platform_seller(), <faturanın birimi>)` (PDF'in ödeme kutusu);
+  tutar + referans KESİLMİŞ faturanın kaydından. **Kutu yalnız kesilmiş faturayla** çıkar (üst bant zaten "faturanız banka
+  bilgileriyle e-postayla gelir" diyor). "14 gün" cümlesi yerine mevcut çevrili cümle (ödeme saati 5 iş günü, cron'da).
+  Escrow siparişi eski gruplamada (Stripe ile ilanın satıcısına ödendi, kutu yok).
+- **Canlı doğrulama:** chat-help `diag-order-page.yml` (salt okunur; sayfayı sunucuda admin oturumuyla çizer, yalnız YAPI basar:
+  kart, kutu etiketleri, fatura ref, `absent_b64` dizgeleri için evet/hayır). VES-C1DCCFEE: 1 kart "Seller: VESTRA", 6 USD satırı,
+  `INV-2026-1038 / VES-C1DCCFEE`, US$12,885.60, eski banka adı/BIC YOK.
+- **Mektup:** `send-campaign-preview.yml reply_letter=invoice_bank_letter` — operatörün metni + kutu (banka satırları SUNUCUDA
+  kesen kayıttan; kütüğe yalnız satır SAYISI) + `after=` paragrafı + fatura PDF eki. Belge platformdan değilse / tek belge değilse /
+  ödenmiş, iptal, dekontlu, süresi dolmuş siparişte DURUR; metin "Acerasoft" diyorsa kesen kayıt da öyle olmalı. `draft=1` (TASLAK
+  PDF, numara yakmaz) YALNIZ `copy=true` ile. Gönderildi 20 Eki 12:16 UTC (James Brown; özür + teslimat adresi isteği).
+- `tests/listing_sheet_test.php`: "inceleme yolu TEK yerde" iddiası artık kopya YOLUNU açan bloğu sayıyor (bayrağın her okunuşunu değil).
