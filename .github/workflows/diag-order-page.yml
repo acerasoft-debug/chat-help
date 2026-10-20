@@ -1,0 +1,63 @@
+name: (Salt-okunur) Sipariş sayfası — alıcının gördüğü ödeme kutusu
+# 20 Eki 2026 (Il Mercatista / VES-C1DCCFEE): order-confirm.php ödeme kutusunu ilanın
+# satıcısının HAM IBAN'ından çiziyordu, faturayı kesen taraftan değil. Bu teşhis sayfayı
+# sunucuda, gerçek kayıtla, admin oturumu gibi ÇİZER ve yalnız YAPIYI basar: kaç kart,
+# hangi para birimi, kutuda hangi satır ETİKETLERİ var, fatura numarası, ve verilen
+# yasak dizgelerin (örn. eski IBAN'ın banka adı) sayfada geçip geçmediği (evet/hayır).
+# Hesap numarası, IBAN, ad, e-posta BASILMAZ. Hiçbir şey yazmaz, e-posta göndermez.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Sipariş ref (VES-...)"
+        required: true
+      absent_b64:
+        description: "Sayfada GEÇMEMESİ gereken dizgeler, base64 (satır başına bir dizge) — kütüğe yalnız evet/hayır basılır"
+        required: false
+        default: ""
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        env:
+          OREF: ${{ github.event.inputs.ref }}
+          ABSENT: ${{ github.event.inputs.absent_b64 }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: OREF,ABSENT
+          script: |
+            cd ~/public_html
+            T="$HOME/vestra_tmp/order-page-${GITHUB_RUN_ID:-x}.php"; mkdir -p "$HOME/vestra_tmp"
+            cat > "$T" <<'PHPEOF'
+            <?php
+            ini_set('display_errors', 'stderr'); error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
+            $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('OREF'));
+            if ($ref === '') { fwrite(STDERR, "ref bos\n"); exit(1); }
+            $absent = array_values(array_filter(array_map('trim', explode("\n", (string)base64_decode((string)getenv('ABSENT'))))));
+            chdir(getenv('HOME').'/public_html');
+            session_save_path(sys_get_temp_dir()); session_id('diagop'.bin2hex(random_bytes(6))); @session_start();
+            $_SESSION['vadmin'] = 1; $_GET['ref'] = $ref; $_SERVER['REQUEST_URI'] = '/order-confirm?ref='.$ref; $_SERVER['REQUEST_METHOD'] = 'GET';
+            ob_start();
+            try { include getenv('HOME').'/public_html/order-confirm.php'; } catch (\Throwable $e) { ob_end_clean(); fwrite(STDERR, "HATA: ".$e->getMessage()." @ ".basename($e->getFile()).":".$e->getLine()."\n"); @session_destroy(); exit(1); }
+            $html = (string)ob_get_clean();
+            @session_destroy();
+            $txt = html_entity_decode(strip_tags(preg_replace('~<(script|style)\b.*?</\1>~is', '', $html)), ENT_QUOTES, 'UTF-8');
+            echo "sayfa       : ".strlen($html)." bayt\n";
+            echo "kart        : ".preg_match_all('~class="panelcard"~', $html)."\n";
+            echo "baslik      : ".implode(' | ', array_map(fn($m) => trim(strip_tags($m)), (preg_match_all('~<h3[^>]*>(.*?)</h3>~s', $html, $mm) ? $mm[1] : [])))."\n";
+            echo "odeme kutusu: ".substr_count($html, '🏦')."\n";
+            if (preg_match_all('~<tr><td style="color:var\(--mut\)[^"]*">([^<]+)</td>~u', $html, $lab)) echo "kutu etiket : ".implode(' | ', array_map('trim', $lab[1]))."\n";
+            echo "US\$ geciyor : ".(str_contains($txt, 'US$') ? 'evet' : 'hayir')." | € geciyor: ".(str_contains($txt, '€') ? 'evet' : 'hayir')."\n";
+            echo "fatura dugme: ".(preg_match('~Download invoice|Scarica fattura|📄~u', $html) ? 'VAR' : 'yok')."\n";
+            if (preg_match('~(INV-\d{4}-\d+)\s*/\s*'.preg_quote($ref, '~').'~', $txt, $iv)) echo "referans    : {$iv[1]} / {$ref}\n";
+            if (preg_match('~(US\$|€)[\d,]+\.\d{2}~u', $txt)) { preg_match_all('~(?:US\$|€)[\d,]+\.\d{2}~u', $txt, $am); echo "tutarlar    : ".implode(' ', array_slice(array_unique($am[0]), 0, 8))."\n"; }
+            echo "14 gun cumle: ".(preg_match('~14 (days|giorni|jours|Tage|días|dias)~u', $txt) ? 'VAR' : 'yok')."\n";
+            foreach ($absent as $i => $a) echo "yasak #".($i + 1)."    : ".(stripos($html, $a) !== false || stripos($txt, $a) !== false ? 'SAYFADA VAR' : 'yok')."\n";
+            PHPEOF
+            php "$T"; rc=$?; rm -f "$T"; exit $rc
