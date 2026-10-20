@@ -13019,3 +13019,9 @@ E-postaların "View my order" düğmesi tam bu sayfaya açılıyor.
   ödenmiş, iptal, dekontlu, süresi dolmuş siparişte DURUR; metin "Acerasoft" diyorsa kesen kayıt da öyle olmalı. `draft=1` (TASLAK
   PDF, numara yakmaz) YALNIZ `copy=true` ile. Gönderildi 20 Eki 12:16 UTC (James Brown; özür + teslimat adresi isteği).
 - `tests/listing_sheet_test.php`: "inceleme yolu TEK yerde" iddiası artık kopya YOLUNU açan bloğu sayıyor (bayrağın her okunuşunu değil).
+- **Aynı gün tarama** (salt okunur iş akışı, 107 yüzey): başka hiçbir alıcı yüzeyi satıcının banka satırlarını basmıyor. Düzeltilen:
+  alıcı panelindeki sipariş detayı (`vestra_render_order_detail`, ödeme hatırlatmasının düğmesi buraya açılıyor) tek EUR toplamın
+  altına faturanın kendi birim/toplamını yazar (`vestra_order_invoiced_note`); `invoice_bank_letter` ekteki belgenin `seller_key`'i
+  yükünkiyle aynı değilse DURUR. **Açık kalan (rapor edildi, dokunulmadı):** OxaPay kripto tutarı sipariş EUR toplamından (fatura
+  USD olsa da); admin kesen-taraf seçimi fatura kesildikten sonra da değişebiliyor (birim seçicisi engelliyor); checkout e-postası
+  "satıcının banka bilgileri" diyor (o an doğru, sonradan kesen değişirse değil); cron en küçük numaralı belgeyi okuyor.

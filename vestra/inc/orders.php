@@ -861,8 +861,14 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
        ayrisma parada gorunur. Kayitta toplam yoksa kalem toplami yazilir. */
     $rowTotal = isset($orderRow['total']) && (float)$orderRow['total'] > 0
         ? round((float)$orderRow['total'], 2) : round($subtotal, 2);
+    /* Fatura BASKA BIRIMDE kesildiyse (20 Eki 2026, VES-C1DCCFEE: siparis EUR, belge
+       Acerasoft LLC USD) tek toplam EUR'du; odeme hatirlatmasi "US$12,885.60" deyip
+       alicinin bu sayfaya gonderiyor. Siparis listesi kartindaki (buyer.php) ayni not. */
+    $invNote = vestra_order_invoiced_note($ref);
     $h .= '</tbody><tfoot><tr><td colspan="4" class="r"><b>'.t('Total').'</b></td>'
-        . '<td class="r"><b>'.eur($rowTotal).'</b></td></tr></tfoot>';
+        . '<td class="r"><b>'.eur($rowTotal).'</b></td></tr>'
+        . ($invNote !== '' ? '<tr><td colspan="4" class="r hint">'.t('Invoice').'</td><td class="r"><b>'.htmlspecialchars($invNote).'</b></td></tr>' : '')
+        . '</tfoot>';
     $h .= '</table>';
     if ($buyerNotes !== '') $h .= '<p class="hint" style="margin-top:10px"><b>'.t('Buyer notes').':</b> '.htmlspecialchars($buyerNotes).'</p>';
 

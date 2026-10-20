@@ -2025,6 +2025,11 @@ jobs:
                 if (count($bInvs) !== 1) { fwrite(STDERR, "kesilmis fatura sayisi ".count($bInvs)." -- TAM 1 gerekli (kesilmediyse onizleme icin draft=1|copy=true)\n"); exit(1); }
                 $bIv    = $bInvs[0];
                 $bInvNo = (string)($bIv['no'] ?? '');
+                /* Ekteki belgeyi KESEN taraf, kutunun satirlarini veren yukle AYNI olmali
+                   (eski bir satici belgesi + platform satirlari = iki farkli alacakli). */
+                if ((string)($bIv['seller_key'] ?? '') !== (string)($bP['seller_key'] ?? 'vestra')) {
+                  fwrite(STDERR, "kesilmis belge '".($bIv['seller_key'] ?? '?')."' adina, yuk '".($bP['seller_key'] ?? '?')."' -- belge ile banka satirlari ayni kesenden degil\n"); exit(1);
+                }
                 $bPdf   = vestra_invoice_file($bRef, (string)($bIv['seller_key'] ?? ''));
                 if (!is_file($bPdf) || strncmp((string)file_get_contents($bPdf, false, null, 0, 5), '%PDF-', 5) !== 0) { fwrite(STDERR, "fatura PDF'i diskte YOK ya da PDF degil\n"); exit(1); }
                 $bPdfAt = (int)filemtime($bPdf); $bRecAt = 0; $bRecKey = '';
