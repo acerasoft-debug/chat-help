@@ -347,8 +347,11 @@ foreach ($s['sections'] as $i => $sec) if (!empty($sec['link']['url'])) {
     $ch = curl_init((string)$sec['link']['url']);
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_FOLLOWLOCATION => false]);
     curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-    echo "bolum baglantisi ".($i + 1).": HTTP $code".($code === 200 ? '' : ' — baglanti CIKARILDI')."\n";
-    if ($code !== 200) unset($s['sections'][$i]['link']);
+    /* Alici paneli (buyer?tab=…) girissiz istekte giris sayfasina yonlendirir: sitenin kendi sayfasinda 3xx
+       beklenen cevap, baglanti dogru (alici giris yapinca acilir). */
+    $okLink = $code === 200 || ($code >= 300 && $code < 400 && str_starts_with((string)$sec['link']['url'], 'https://vestrasales.com/'));
+    echo "bolum baglantisi ".($i + 1).": HTTP $code".($okLink ? ($code === 200 ? '' : ' (giris sayfasina yonlendirme -- beklenen)') : ' — baglanti CIKARILDI')."\n";
+    if (!$okLink) unset($s['sections'][$i]['link']);
 }
 [$html, $txt] = pl_render($s, $url);
 $opts = ['html' => $html] + (!empty($s['button']['url']) ? ['button' => $s['button']] : []);
