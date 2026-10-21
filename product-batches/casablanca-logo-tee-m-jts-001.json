@@ -1,0 +1,82 @@
+[
+ {
+  "id": "csb-logo-tee-black",
+  "brand": "Casablanca",
+  "name": "Logo Patch T-Shirt — Black",
+  "cat": "T-Shirts",
+  "sku": "M-JTS-001-BLK",
+  "list": 69.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "sale",
+  "colors": [
+   "Black"
+  ],
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/casablanca/m-jts-001-black.jpg"
+  ],
+  "desc": "Casablanca, Logo Patch T-Shirt — Black. Model M-JTS-001-BLK, regular fit, 100% cotton, diamond logo patch. Summer season.",
+  "seller_uid": "7ab30f26afedd840"
+ },
+ {
+  "id": "csb-logo-tee-grey",
+  "brand": "Casablanca",
+  "name": "Logo Patch T-Shirt — Grey",
+  "cat": "T-Shirts",
+  "sku": "M-JTS-001-06",
+  "list": 69.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "sale",
+  "colors": [
+   "Grey"
+  ],
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/casablanca/m-jts-001-grey.jpg"
+  ],
+  "desc": "Casablanca, Logo Patch T-Shirt — Grey. Model M-JTS-001-06, regular fit, 100% cotton, diamond logo patch. Summer season.",
+  "seller_uid": "7ab30f26afedd840"
+ },
+ {
+  "id": "csb-logo-tee-blue",
+  "brand": "Casablanca",
+  "name": "Logo Patch T-Shirt — Blue",
+  "cat": "T-Shirts",
+  "sku": "M-JTS-001-03",
+  "list": 69.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "sale",
+  "colors": [
+   "Blue"
+  ],
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/casablanca/m-jts-001-blue.jpg"
+  ],
+  "desc": "Casablanca, Logo Patch T-Shirt — Blue. Model M-JTS-001-03, regular fit, 100% cotton, diamond logo patch. Summer season.",
+  "seller_uid": "7ab30f26afedd840"
+ },
+ {
+  "id": "csb-logo-tee-white",
+  "brand": "Casablanca",
+  "name": "Logo Patch T-Shirt — White",
+  "cat": "T-Shirts",
+  "sku": "M-JTS-001-01",
+  "list": 69.9,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "sale",
+  "colors": [
+   "White"
+  ],
+  "sizes": "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10 pcs/pack",
+  "images": [
+   "/uploads/casablanca/m-jts-001-white.jpg"
+  ],
+  "desc": "Casablanca, Logo Patch T-Shirt — White. Model M-JTS-001-01, regular fit, 100% cotton, diamond logo patch. Summer season.",
+  "seller_uid": "7ab30f26afedd840"
+ }
+]
