@@ -1,0 +1,45 @@
+name: E-posta testi — operatörün kendi kutusuna tek test mektubu
+# 21 Eki 2026 (operatör, Brevo'nun "inaktive SMTP-Schlüssel" bildiriminden sonra: "bana bir test email gönder").
+# Sitenin NORMAL gönderim yoluyla (vestra_send_mail: önce Brevo HTTP API, ayarlıysa SMTP yedeği) YALNIZ
+# operatör kutusuna (ops_email) tek mektup. Anahtar BASILMAZ: yalnız türü (xkeysib = API / xsmtpsib = SMTP),
+# hangi taşıyıcının ayarlı olduğu ve sonuç. Müşteriye hiçbir şey gitmez, hiçbir ayar değişmez.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            T="$HOME/vestra_tmp/mail-test-${GITHUB_RUN_ID:-x}.php"; mkdir -p "$HOME/vestra_tmp"
+            cat > "$T" <<'PHPEOF'
+            <?php
+            ini_set('display_errors', 'stderr'); error_reporting(E_ALL & ~E_NOTICE);
+            $home = getenv('HOME');
+            require $home.'/public_html/inc/products.php';
+            require_once $home.'/public_html/inc/notify.php';
+            $k = (string)vestra_cfg('mail_api_key', '');
+            $type = $k === '' ? 'YOK' : (str_starts_with($k, 'xkeysib-') ? 'API anahtari (xkeysib-)' : (str_starts_with($k, 'xsmtpsib-') ? 'SMTP anahtari (xsmtpsib-) -- API icin YANLIS TUR' : 'taninmayan tur'));
+            echo "gonderim acik : ".(vestra_cfg('mail_enabled', false) ? 'evet' : 'HAYIR')."\n";
+            echo "birincil yol  : Brevo HTTP API -- anahtar: {$type}\n";
+            echo "SMTP yedegi   : ".((string)vestra_cfg('smtp_host', '') !== '' ? 'ayarli' : 'yok')." | otomatik yedek: ".(vestra_cfg('mail_fallback_smtp', false) ? 'acik' : 'kapali')."\n";
+            $left = function_exists('vestra_mail_credits_left') ? vestra_mail_credits_left() : null;
+            echo "kalan kredi   : ".($left === null ? 'okunamadi' : $left)."\n";
+            $to = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
+            $now = gmdate('j F Y, H:i').' UTC';
+            $body = "Hello,\n\nThis is a test e-mail from VESTRA, sent through the site's normal delivery path (Brevo API) on {$now}.\n\n"
+                  . "If it reached your inbox, e-mail delivery is working.\n\nKind regards,\n\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
+            $ok = vestra_send_mail($to, 'VESTRA — test e-mail ('.$now.')', $body, 'support@vestrasales.com', 'VESTRA', null, '', ['badge' => 'Delivery test']);
+            echo "alici         : ".preg_replace('/^(.).*(@.*)$/', '$1***$2', $to)."\n";
+            echo "sonuc         : ".($ok ? 'GONDERILDI (Brevo kabul etti)' : 'GONDERILEMEDI')."\n";
+            if (!$ok) echo "hata          : ".substr((string)($GLOBALS['vestra_api_last_error'] ?? '-'), 0, 200)."\n";
+            exit($ok ? 0 : 1);
+            PHPEOF
+            php "$T"; rc=$?; rm -f "$T"; exit $rc
