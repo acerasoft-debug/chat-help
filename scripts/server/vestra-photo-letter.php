@@ -15,6 +15,7 @@
  *
  * Paket gövdesi (JSON): to, from_name, reply_to, subject, kicker, title, subtitle, greeting, intro[], chips[],
  * sections[{title, swatch, sub, photos[{name, b64, caption}]}], tap_hint, closing[], sign[], button{label,url}, footer.
+ * to='order:<ref>' adresi sipariş kaydından çözer; attachments[{name *.pdf, b64}] PDF ekler (21 Eki 2026).
  * Katalog mektubu için (19 Eki 2026, "tüm renklerini ve lotunu gönder") bölümde isteğe bağlı: colors[{name, css}]
  * (renk çipleri), facts[[etiket, değer]] (lot / MOQ satırları), sizes[[beden, adet]] (karton dökümü), cols (2|3),
  * link{label,url}, price + price_unit (başlığın yanında fiyat); üst düzeyde summary[[ad, kod, fiyat]] + summary_title
@@ -268,6 +269,13 @@ if (!in_array($mode, ['check', 'send'], true) || !is_readable($arg1)) { fwrite(S
 
 $s = pl_open((string)file_get_contents($arg1), getenv('HOME').'/.vestra_inbox_key.pem');
 $to = trim((string)($s['to'] ?? ''));
+/* to=order:<ref> (21 Eki 2026, Ash Vintage / VES-8D231E8D): adres pakete hic girmez, SIPARIS KAYDINDAN cozulur. */
+if (preg_match('/^order:([A-Za-z0-9_-]+)$/', $to, $om)) {
+    $to = '';
+    foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $om[1]) { $to = trim((string)($r['email'] ?? '')); break; }
+    if ($to === '') { fwrite(STDERR, "siparis bulunamadi ya da adresi yok: {$om[1]}\n"); exit(1); }
+    echo "alici siparisten: {$om[1]}\n";
+}
 if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "alici adresi gecersiz\n"); exit(1); }
 /* Hitaptaki {name}: alicinin ADI sunucudaki hesabindan (ilk kelime) -- ad pakete de girmez. Hesap ya da ad yoksa
    "Bonjour," gibi adsiz hitap kalir. */
@@ -355,6 +363,19 @@ foreach ($s['sections'] as $i => $sec) if (!empty($sec['link']['url'])) {
 }
 [$html, $txt] = pl_render($s, $url);
 $opts = ['html' => $html] + (!empty($s['button']['url']) ? ['button' => $s['button']] : []);
+/* EKLER: yalniz PDF (b64, %PDF- ile baslar, <= 8 MB). Gecici dosya kosu sonunda silinir. */
+$attTmp = [];
+foreach ((array)($s['attachments'] ?? []) as $at) {
+    $an = preg_replace('/[^A-Za-z0-9._-]/', '', (string)($at['name'] ?? ''));
+    $ar = base64_decode((string)($at['b64'] ?? ''), true);
+    if ($an === '' || !str_ends_with(strtolower($an), '.pdf') || $ar === false || strncmp($ar, '%PDF-', 5) !== 0 || strlen($ar) > 8 * 1048576) {
+        fwrite(STDERR, "ek bozuk: $an\n"); $cleanup(); exit(1);
+    }
+    $tp = sys_get_temp_dir().'/pl-att-'.bin2hex(random_bytes(6)).'.pdf'; file_put_contents($tp, $ar); $attTmp[] = $tp;
+    $opts['attachments'][] = ['name' => $an, 'path' => $tp];
+    echo "ek: $an (".round(strlen($ar) / 1024)." KB)\n";
+}
+register_shutdown_function(static function () use ($attTmp) { foreach ($attTmp as $f) @unlink($f); });
 echo "alici: ".$mask($to)." · gonderen adi: ".($s['from_name'] ?? '')." · konu: ".($s['subject'] ?? '')."\n";
 if ($mode === 'check' || $bad) {
     /* Kuru koşuda yayımlanan fotoğraflar geri alınır — adres zaten kimseye gitmedi. */
