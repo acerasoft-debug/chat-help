@@ -36,6 +36,7 @@ jobs:
             <?php
             ini_set('display_errors', 'stderr'); error_reporting(E_ALL);
             require_once getenv('HOME').'/public_html/inc/products.php';
+            @include_once getenv('HOME').'/public_html/inc/orders.php';
             $ids = array_values(array_filter(array_map(fn($s) => preg_replace('/[^A-Za-z0-9_-]/', '', $s), explode(',', (string)getenv('IDS')))));
             $find = trim((string)getenv('FIND'));
             if ($find !== '' && @preg_match('~'.str_replace('~', '\~', $find).'~iu', '') === false) { fwrite(STDERR, "find gecersiz ifade\n"); exit(1); }
@@ -87,6 +88,8 @@ jobs:
                 if ($sku === '' || stripos($items, $sku) === false) continue; $odc++;
                 preg_match_all('~[^|;]*'.preg_quote($sku, '~').'[^|;]*~i', $items, $mm);
                 printf("   siparis %s · %s · durum %s · kalem %s\n", $r['ref'] ?? '?', substr((string)($r['timestamp'] ?? ''), 0, 16), $st[(string)($r['ref'] ?? '')]['status'] ?? 'pending', mb_substr(implode(' / ', $mm[0]), 0, 160));
+                if (function_exists('vestra_order_lines')) foreach (vestra_order_lines($r)['lines'] as $ol) if (strcasecmp((string)($ol['sku'] ?? ''), $sku) === 0)
+                  printf("      kalem: %s x%d · renkler: %s\n", $ol['sku'], (int)($ol['qty'] ?? 0), implode(', ', array_map('strval', (array)($ol['colors'] ?? []))) ?: '(kayitta renk yok)');
               }
               echo "   teklif: $oc · siparis: $odc\n";
               /* Fotograflar yayinda mi (mektup bu adreslere baglanacak). */
