@@ -1,0 +1,225 @@
+<style>
+.imp-page { max-width: 860px; margin: 0 auto; padding: 52px 24px 80px; }
+
+.imp-hero { margin-bottom: 48px; }
+.imp-hero-badge { display: inline-flex; align-items: center; gap: 8px; background: #E8F5E3; color: #2D6A2D; font-size: 11px; font-weight: 700; padding: 5px 14px; border-radius: 20px; margin-bottom: 16px; letter-spacing: .6px; text-transform: uppercase; }
+.imp-hero h1 { font-family: 'Playfair Display', serif; font-size: 38px; font-weight: 700; color: var(--td); margin-bottom: 10px; }
+.imp-hero p { font-size: 15px; color: var(--tl); line-height: 1.7; max-width: 580px; }
+.imp-updated { font-size: 12px; color: var(--tl); margin-top: 8px; }
+
+/* SECTIONS */
+.imp-section { margin-bottom: 36px; }
+.imp-section-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--td); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 2px solid var(--bo); }
+.imp-section-title span { font-size: 20px; }
+
+/* INFO CARD */
+.imp-card { background: #fff; border: 1px solid var(--bo); border-radius: 16px; overflow: hidden; }
+.imp-card-header { background: var(--gd); padding: 18px 24px; display: flex; align-items: center; gap: 12px; }
+.imp-card-header svg { width: 22px; height: 22px; fill: #A8D8A0; flex-shrink: 0; }
+.imp-card-header-text h3 { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; color: #fff; }
+.imp-card-header-text p { font-size: 12px; color: rgba(255,255,255,.6); margin-top: 1px; }
+
+.imp-rows { display: flex; flex-direction: column; }
+.imp-row { display: flex; align-items: flex-start; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--bo); }
+.imp-row:last-child { border-bottom: none; }
+.imp-row:nth-child(even) { background: var(--cr); }
+.imp-row-label { font-size: 12px; font-weight: 700; color: var(--tl); text-transform: uppercase; letter-spacing: .5px; width: 180px; flex-shrink: 0; padding-top: 1px; }
+.imp-row-val { font-size: 14px; color: var(--td); font-weight: 500; flex: 1; }
+.imp-row-val strong { font-weight: 700; color: var(--td); }
+.imp-badge-ok { display: inline-flex; align-items: center; gap: 5px; background: #E8F5E3; color: #2D6A2D; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 12px; }
+.imp-badge-no { display: inline-flex; align-items: center; gap: 5px; background: #F5F5F5; color: #888; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
+.imp-mono { font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; color: var(--gd); letter-spacing: .5px; }
+
+/* CONTACT CARD */
+.imp-contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.imp-contact-item { background: #fff; border: 1px solid var(--bo); border-radius: 12px; padding: 18px 20px; display: flex; gap: 14px; align-items: flex-start; transition: box-shadow .2s; }
+.imp-contact-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+.imp-contact-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.imp-contact-icon svg { width: 20px; height: 20px; }
+.imp-contact-lbl { font-size: 11px; font-weight: 700; color: var(--tl); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.imp-contact-val { font-size: 14px; font-weight: 600; color: var(--td); }
+.imp-contact-val a { color: var(--gl); text-decoration: none; }
+.imp-contact-val a:hover { text-decoration: underline; }
+
+/* LEGAL TEXT */
+.imp-text { font-size: 14px; color: var(--tm); line-height: 1.8; }
+.imp-text p { margin-bottom: 12px; }
+.imp-text p:last-child { margin-bottom: 0; }
+
+/* HOST CARD */
+.imp-host { background: var(--cr); border: 1px solid var(--bo); border-radius: 12px; padding: 20px 24px; display: flex; gap: 16px; align-items: center; }
+.imp-host-logo { width: 48px; height: 48px; background: #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid var(--bo); font-weight: 800; font-size: 13px; color: var(--gd); }
+.imp-host-info h4 { font-size: 15px; font-weight: 700; color: var(--td); margin-bottom: 3px; }
+.imp-host-info p { font-size: 13px; color: var(--tl); line-height: 1.5; }
+
+@media(max-width: 640px) {
+  .imp-hero h1 { font-size: 28px; }
+  .imp-row { flex-direction: column; gap: 4px; }
+  .imp-row-label { width: auto; }
+  .imp-contact-grid { grid-template-columns: 1fr; }
+  .imp-page { padding: 32px 16px 60px; }
+}
+</style>
+
+<div class="imp-page">
+
+  <!-- HERO -->
+  <div class="imp-hero">
+    <div class="imp-hero-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="#2D6A2D"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+      Mentions légales
+    </div>
+    <h1>Mentions légales & Impressum</h1>
+    <p>Conformément à la loi française n°2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique, voici les informations légales relatives au site <strong>Mondimart</strong>.</p>
+    <div class="imp-updated">Dernière mise à jour : Juin 2025</div>
+  </div>
+
+  <!-- ÉDITEUR -->
+  <div class="imp-section">
+    <div class="imp-section-title"><span>🏢</span> Éditeur du site</div>
+    <div class="imp-card">
+      <div class="imp-card-header">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        <div class="imp-card-header-text">
+          <h3>AGAYA FERHAT — Mondimart</h3>
+          <p>Entrepreneur individuel · Micro-entreprise</p>
+        </div>
+      </div>
+      <div class="imp-rows">
+        <div class="imp-row">
+          <div class="imp-row-label">Nom de l'entreprise</div>
+          <div class="imp-row-val"><strong>AGAYA FERHAT</strong></div>
+        </div>
+        <div class="imp-row">
+          <div class="imp-row-label">Nom commercial</div>
+          <div class="imp-row-val"><strong>Mondimart</strong></div>
+        </div>
+        <div class="imp-row">
+          <div class="imp-row-label">Forme juridique</div>
+          <div class="imp-row-val">Entrepreneur individuel (EI)</div>
+        </div>
+        <div class="imp-row">
+          <div class="imp-row-label">Micro-entreprise</div>
+          <div class="imp-row-val"><span class="imp-badge-ok">✓ Oui</span></div>
+        </div>
+        <div class="imp-row">
+          <div class="imp-row-label">SIREN</div>
+          <div class="imp-row-val"><span class="imp-mono">928 653 922</span></div>
+        </div>
+        <div class="imp-row">
+          <div class="imp-row-label">SIRET (siège)</div>
+          <div class="imp-row-val"><span class="imp-mono">928 653 922 00023</span></div>
+        </div>
+        <div class="imp-row">
+          <div class="imp-row-label">N° TVA intracommunautaire</div>
+          <div class="imp-row-val"><span class="imp-mono">FR43928653922</span> <span class="imp-badge-ok" style="margin-left:8px">✓ Vérifié</span></div>
+        </div>
+        <div class="imp-row">
+          <div class="imp-row-label">Inscription au RCS</div>
+          <div class="imp-row-val"><span class="imp-badge-no">Non inscrit</span></div>
+        </div>
+        <div class="imp-row">
+          <div class="imp-row-label">Inscription au RNE</div>
+          <div class="imp-row-val"><span class="imp-badge-ok">✓ Inscrit</span></div>
+        </div>
+        <div class="imp-row">
+          <div class="imp-row-label">Pays d'établissement</div>
+          <div class="imp-row-val">🇫🇷 France</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTACT -->
+  <div class="imp-section">
+    <div class="imp-section-title"><span>📬</span> Contact</div>
+    <div class="imp-contact-grid">
+      <div class="imp-contact-item">
+        <div class="imp-contact-icon" style="background:#E8F5E3">
+          <svg viewBox="0 0 24 24" fill="#2D6A2D"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        </div>
+        <div>
+          <div class="imp-contact-lbl">Email</div>
+          <div class="imp-contact-val"><a href="mailto:contact@mondimart.fr">contact@mondimart.fr</a></div>
+        </div>
+      </div>
+      <div class="imp-contact-item">
+        <div class="imp-contact-icon" style="background:#EAF4FB">
+          <svg viewBox="0 0 24 24" fill="#2471A3"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </div>
+        <div>
+          <div class="imp-contact-lbl">Siège social</div>
+          <div class="imp-contact-val">Paris, France</div>
+        </div>
+      </div>
+      <div class="imp-contact-item">
+        <div class="imp-contact-icon" style="background:#F4ECF7">
+          <svg viewBox="0 0 24 24" fill="#7D3C98"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+        <div>
+          <div class="imp-contact-lbl">Site web</div>
+          <div class="imp-contact-val"><a href="https://mondimart.fr">www.mondimart.fr</a></div>
+        </div>
+      </div>
+      <div class="imp-contact-item">
+        <div class="imp-contact-icon" style="background:#FEF9E7">
+          <svg viewBox="0 0 24 24" fill="#B8860B"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+        </div>
+        <div>
+          <div class="imp-contact-lbl">Téléphone</div>
+          <div class="imp-contact-val">Sur demande par email</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HÉBERGEMENT -->
+  <div class="imp-section">
+    <div class="imp-section-title"><span>🖥️</span> Hébergement</div>
+    <div class="imp-host">
+      <div class="imp-host-logo">SHP</div>
+      <div class="imp-host-info">
+        <h4>Shopify Inc.</h4>
+        <p>151 O'Connor Street, Ground Floor, Ottawa, Ontario, K2P 2L8, Canada<br>
+        Site : <a href="https://www.shopify.com" style="color:var(--gl);font-weight:600">www.shopify.com</a> · Plateforme e-commerce certifiée PCI DSS Niveau 1</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROPRIÉTÉ INTELLECTUELLE -->
+  <div class="imp-section">
+    <div class="imp-section-title"><span>©</span> Propriété intellectuelle</div>
+    <div class="imp-text">
+      <p>L'ensemble du contenu de ce site — textes, photographies, visuels, logos, icônes, sons, logiciels — est la propriété exclusive de <strong>AGAYA FERHAT (Mondimart)</strong> ou de ses fournisseurs de contenu, et est protégé par les lois françaises et internationales relatives à la propriété intellectuelle.</p>
+      <p>Toute reproduction, représentation, modification, publication ou adaptation de tout ou partie des éléments du site, quel que soit le moyen ou le procédé utilisé, est interdite sauf autorisation écrite préalable de <strong>AGAYA FERHAT</strong>.</p>
+      <p>Les marques et logos présents sur le site sont des marques déposées. Toute reproduction sans autorisation constitue une contrefaçon passible de poursuites judiciaires.</p>
+    </div>
+  </div>
+
+  <!-- DONNÉES PERSONNELLES -->
+  <div class="imp-section">
+    <div class="imp-section-title"><span>🔒</span> Protection des données personnelles</div>
+    <div class="imp-text">
+      <p>Conformément au Règlement Général sur la Protection des Données (RGPD — Règlement UE 2016/679) et à la loi Informatique et Libertés du 6 janvier 1978 modifiée, vous disposez d'un droit d'accès, de rectification, d'effacement et de portabilité de vos données personnelles.</p>
+      <p>Le responsable du traitement des données est <strong>AGAYA FERHAT</strong>. Pour exercer vos droits, contactez-nous à l'adresse : <a href="mailto:contact@mondimart.fr" style="color:var(--gl);font-weight:600">contact@mondimart.fr</a>. Vous disposez également du droit d'introduire une réclamation auprès de la <strong>CNIL</strong> (Commission Nationale de l'Informatique et des Libertés — <a href="https://www.cnil.fr" style="color:var(--gl)">cnil.fr</a>).</p>
+    </div>
+  </div>
+
+  <!-- COOKIES -->
+  <div class="imp-section">
+    <div class="imp-section-title"><span>🍪</span> Cookies</div>
+    <div class="imp-text">
+      <p>Ce site utilise des cookies techniques nécessaires à son bon fonctionnement (gestion du panier, session utilisateur) ainsi que des cookies analytiques (mesure d'audience) et des cookies de personnalisation. Vous pouvez à tout moment paramétrer ou refuser les cookies via les paramètres de votre navigateur.</p>
+    </div>
+  </div>
+
+  <!-- MÉDIATION -->
+  <div class="imp-section">
+    <div class="imp-section-title"><span>⚖️</span> Médiation & Droit applicable</div>
+    <div class="imp-text">
+      <p>En cas de litige, vous pouvez recourir à une procédure de médiation conventionnelle ou à tout autre mode alternatif de règlement des différends. La plateforme européenne de règlement en ligne des litiges est disponible à l'adresse <a href="https://ec.europa.eu/consumers/odr" style="color:var(--gl);font-weight:600">ec.europa.eu/consumers/odr</a>.</p>
+      <p>Le présent site et les présentes mentions légales sont soumis au <strong>droit français</strong>. En cas de litige, les tribunaux français seront seuls compétents.</p>
+    </div>
+  </div>
+
+</div>

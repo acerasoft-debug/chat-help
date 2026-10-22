@@ -1,0 +1,65 @@
+<style>
+.e404-page { max-width: 680px; margin: 0 auto; padding: 80px 24px 100px; text-align: center; }
+.e404-visual { position: relative; margin-bottom: 40px; }
+.e404-number { font-family: 'Playfair Display', serif; font-size: 160px; font-weight: 700; color: var(--gp); line-height: 1; letter-spacing: -8px; }
+.e404-emoji { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -55%); font-size: 72px; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%,100% { transform: translate(-50%,-55%); } 50% { transform: translate(-50%,-62%); } }
+.e404-title { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 700; color: var(--td); margin-bottom: 14px; }
+.e404-sub { font-size: 15px; color: var(--tl); line-height: 1.7; margin-bottom: 36px; max-width: 440px; margin-left: auto; margin-right: auto; }
+.e404-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 56px; }
+.e404-btn-main { display: inline-flex; align-items: center; gap: 8px; background: var(--gd); color: #fff; padding: 14px 28px; border-radius: 12px; font-size: 14px; font-weight: 700; text-decoration: none; transition: background .2s; }
+.e404-btn-main:hover { background: var(--gm); }
+.e404-btn-sec { display: inline-flex; align-items: center; gap: 8px; background: var(--cr); color: var(--tm); border: 1.5px solid var(--bo); padding: 14px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all .2s; }
+.e404-btn-sec:hover { border-color: var(--gl); color: var(--gl); }
+.e404-suggestions h3 { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--td); margin-bottom: 18px; }
+.e404-cats { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.e404-cat { display: inline-flex; align-items: center; gap: 7px; padding: 10px 18px; background: #fff; border: 1.5px solid var(--bo); border-radius: 12px; font-size: 13px; font-weight: 600; color: var(--tm); text-decoration: none; transition: all .2s; }
+.e404-cat:hover { border-color: var(--gl); color: var(--gd); background: var(--gp); }
+.e404-search { display: flex; gap: 10px; max-width: 420px; margin: 0 auto 48px; }
+.e404-search input { flex: 1; height: 48px; padding: 0 16px; border: 1.5px solid var(--bo); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; }
+.e404-search input:focus { border-color: var(--gl); }
+.e404-search button { height: 48px; padding: 0 22px; background: var(--gl); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .2s; }
+.e404-search button:hover { background: var(--gm); }
+@media(max-width:480px) {
+  .e404-number { font-size: 110px; }
+  .e404-emoji { font-size: 52px; }
+  .e404-title { font-size: 24px; }
+  .e404-page { padding: 48px 16px 60px; }
+}
+</style>
+
+<div class="e404-page">
+
+  <div class="e404-visual">
+    <div class="e404-number">404</div>
+    <div class="e404-emoji">🍽️</div>
+  </div>
+
+  <h1 class="e404-title">Page introuvable</h1>
+  <p class="e404-sub">Cette page a peut-être été déplacée, supprimée ou n'a jamais existé. Pas de panique — il reste encore des milliers de délicieux produits à découvrir !</p>
+
+  <form class="e404-search" action="/search" method="get">
+    <input type="text" name="q" placeholder="Rechercher un produit...">
+    <button type="submit">Chercher</button>
+  </form>
+
+  <div class="e404-btns">
+    <a href="/" class="e404-btn-main">🏠 Retour à l'accueil</a>
+    <a href="/collections/all" class="e404-btn-sec">🛒 Voir tous les produits</a>
+  </div>
+
+  <div class="e404-suggestions">
+    <h3>Explorer nos catégories</h3>
+    <div class="e404-cats">
+      <a href="/collections/epicerie" class="e404-cat">🥫 Épicerie</a>
+      <a href="/collections/epices" class="e404-cat">🌶️ Épices</a>
+      <a href="/collections/halal" class="e404-cat">✅ Halal</a>
+      <a href="/collections/bio" class="e404-cat">🌱 Bio</a>
+      <a href="/collections/boissons" class="e404-cat">🍵 Boissons</a>
+      <a href="/collections/sucreries" class="e404-cat">🍬 Sucreries</a>
+      <a href="/collections/produits-turcs" class="e404-cat">🇹🇷 Turc</a>
+      <a href="/collections/produits-maghrebins" class="e404-cat">🇲🇦 Maghreb</a>
+    </div>
+  </div>
+
+</div>

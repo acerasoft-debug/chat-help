@@ -1,0 +1,126 @@
+<section class="section recipes-section">
+  <div class="section-inner">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">{{ section.settings.title }}</h2>
+        <p class="section-sub">{{ section.settings.subtitle }}</p>
+      </div>
+      <a class="see-all" href="{{ section.settings.blog_url }}">
+        {{ section.settings.see_all_label }}
+        <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </a>
+    </div>
+    <div class="recipes-grid">
+      {% assign blog = blogs[section.settings.blog] %}
+      {% if blog %}
+        {% for article in blog.articles limit: 3 %}
+          <a class="recipe-card" href="{{ article.url }}">
+            <div class="recipe-img">
+              {% if article.image %}
+                <img src="{{ article.image | image_url: width: 800 }}" alt="{{ article.title }}" loading="lazy">
+              {% else %}
+                <img src="https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=800&q=80" alt="{{ article.title }}" loading="lazy">
+              {% endif %}
+              {% if forloop.first %}
+                <span class="recipe-tag">Recette phare</span>
+              {% elsif article.tags contains 'populaire' %}
+                <span class="recipe-tag">Populaire</span>
+              {% else %}
+                <span class="recipe-tag">{{ article.tags | first }}</span>
+              {% endif %}
+            </div>
+            <div class="recipe-info">
+              <div class="recipe-cuisine">{{ article.tags | join: ' · ' | truncate: 40 }}</div>
+              <div class="recipe-title">{{ article.title }}</div>
+              <div class="recipe-meta">
+                <span>{{ article.published_at | date: '%d %b %Y' }}</span>
+              </div>
+            </div>
+          </a>
+        {% else %}
+          <!-- Recettes statiques si pas de blog configuré -->
+          {% for block in section.blocks %}
+            <a class="recipe-card" href="{{ block.settings.url }}" {{ block.shopify_attributes }}>
+              <div class="recipe-img">
+                {% if block.settings.image %}
+                  <img src="{{ block.settings.image | image_url: width: 800 }}" alt="{{ block.settings.title }}" loading="lazy">
+                {% else %}
+                  <img src="{{ block.settings.fallback_image }}" alt="{{ block.settings.title }}" loading="lazy">
+                {% endif %}
+                <span class="recipe-tag">{{ block.settings.tag }}</span>
+              </div>
+              <div class="recipe-info">
+                <div class="recipe-cuisine">{{ block.settings.cuisine }}</div>
+                <div class="recipe-title">{{ block.settings.title }}</div>
+                <div class="recipe-meta">
+                  <span>{{ block.settings.time }}</span>
+                  <span>{{ block.settings.servings }}</span>
+                </div>
+              </div>
+            </a>
+          {% endfor %}
+        {% endfor %}
+      {% else %}
+        {% for block in section.blocks %}
+          <a class="recipe-card" href="{{ block.settings.url }}" {{ block.shopify_attributes }}>
+            <div class="recipe-img">
+              {% if block.settings.image %}
+                <img src="{{ block.settings.image | image_url: width: 800 }}" alt="{{ block.settings.title }}" loading="lazy">
+              {% else %}
+                <img src="{{ block.settings.fallback_image }}" alt="{{ block.settings.title }}" loading="lazy">
+              {% endif %}
+              <span class="recipe-tag">{{ block.settings.tag }}</span>
+            </div>
+            <div class="recipe-info">
+              <div class="recipe-cuisine">{{ block.settings.cuisine }}</div>
+              <div class="recipe-title">{{ block.settings.title }}</div>
+              <div class="recipe-meta">
+                <span>{{ block.settings.time }}</span>
+                <span>{{ block.settings.servings }}</span>
+              </div>
+            </div>
+          </a>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Recettes",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Titre", "default": "Recettes du Monde Entier" },
+    { "type": "text", "id": "subtitle", "label": "Sous-titre", "default": "Cuisinez avec nos produits — recettes authentiques" },
+    { "type": "blog", "id": "blog", "label": "Blog" },
+    { "type": "text", "id": "blog_url", "label": "Lien blog", "default": "/blogs/recettes" },
+    { "type": "text", "id": "see_all_label", "label": "Voir tout texte", "default": "Toutes les recettes" }
+  ],
+  "blocks": [
+    {
+      "type": "recipe",
+      "name": "Recette manuelle",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "text", "id": "fallback_image", "label": "URL image fallback" },
+        { "type": "url", "id": "url", "label": "Lien" },
+        { "type": "text", "id": "tag", "label": "Badge", "default": "Recette phare" },
+        { "type": "text", "id": "cuisine", "label": "Cuisine", "default": "🇹🇷 Cuisine Turque" },
+        { "type": "text", "id": "title", "label": "Titre", "default": "Baklava Maison aux Pistaches" },
+        { "type": "text", "id": "time", "label": "Temps", "default": "90 min" },
+        { "type": "text", "id": "servings", "label": "Personnes", "default": "8 pers." }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Recettes",
+      "blocks": [
+        { "type": "recipe", "settings": { "tag": "Recette phare", "cuisine": "🇹🇷 Cuisine Turque", "title": "Baklava Maison aux Pistaches", "time": "90 min", "servings": "8 pers.", "url": "/blogs/recettes", "fallback_image": "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=800&q=80" } },
+        { "type": "recipe", "settings": { "tag": "Populaire", "cuisine": "🇫🇷 Cuisine Française", "title": "Bœuf Bourguignon Traditionnel", "time": "3h", "servings": "6 pers.", "url": "/blogs/recettes", "fallback_image": "https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&q=80" } },
+        { "type": "recipe", "settings": { "tag": "Facile", "cuisine": "🇮🇹 Cuisine Italienne", "title": "Spaghetti Carbonara Authentique", "time": "25 min", "servings": "2 pers.", "url": "/blogs/recettes", "fallback_image": "https://images.unsplash.com/photo-1551183053-bf91798d047e?w=500&q=80" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

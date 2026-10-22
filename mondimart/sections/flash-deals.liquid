@@ -1,0 +1,128 @@
+<section class="flash-section">
+  <div class="section-inner">
+    <div class="flash-header">
+      <div class="flash-title-wrap">
+        <div class="flash-icon">
+          <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+        </div>
+        <h2>{{ section.settings.title }}</h2>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px">
+        <div class="countdown" id="flash-countdown" data-end="{{ section.settings.countdown_end }}">
+          <div class="countdown-unit"><span class="n" id="cd-h">--</span><span class="l">h</span></div>
+          <span class="countdown-sep">:</span>
+          <div class="countdown-unit"><span class="n" id="cd-m">--</span><span class="l">min</span></div>
+          <span class="countdown-sep">:</span>
+          <div class="countdown-unit"><span class="n" id="cd-s">--</span><span class="l">sec</span></div>
+        </div>
+        <a href="{{ section.settings.see_all_url }}" style="color:#A8D8A0;font-size:13px;font-weight:600;text-decoration:none">
+          {{ section.settings.see_all_label }} →
+        </a>
+      </div>
+    </div>
+
+    <div class="flash-grid">
+      {% for block in section.blocks %}
+        {% if block.settings.product != blank %}
+          {%- assign product = block.settings.product -%}
+          <a class="flash-card" href="{{ product.url }}" {{ block.shopify_attributes }}>
+            <div class="flash-card-img">
+              {% if product.featured_image %}
+                <img src="{{ product.featured_image | image_url: width: 400 }}" alt="{{ product.title }}" loading="lazy">
+              {% endif %}
+              {% if block.settings.discount != blank %}
+                <div class="flash-discount">{{ block.settings.discount }}</div>
+              {% endif %}
+            </div>
+            <div class="flash-card-body">
+              <div class="flash-origin">{{ block.settings.origin }}</div>
+              <div class="flash-name">{{ product.title }}</div>
+              <div class="flash-price">
+                <span class="new-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}
+                  <span class="old-price">{{ product.compare_at_price | money }}</span>
+                {% endif %}
+              </div>
+              {% assign pct = block.settings.stock_pct %}
+              {% if pct > 0 %}
+                <div class="stock-bar">
+                  <div class="stock-label">{{ pct }}% vendu</div>
+                  <div class="stock-track"><div class="stock-fill" style="width:{{ pct }}%"></div></div>
+                </div>
+              {% endif %}
+              <button class="flash-add-btn" data-quick-add data-variant-id="{{ product.variants.first.id }}">
+                Ajouter au panier
+              </button>
+            </div>
+          </a>
+        {% else %}
+          <div class="flash-card" style="display:flex;align-items:center;justify-content:center;min-height:280px;opacity:.3" {{ block.shopify_attributes }}>
+            <span style="color:#A8D8A0;font-size:12px;text-align:center;padding:20px">Sélectionner<br>un produit</span>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  var el = document.getElementById('flash-countdown');
+  if (!el) return;
+  var hEl = document.getElementById('cd-h');
+  var mEl = document.getElementById('cd-m');
+  var sEl = document.getElementById('cd-s');
+  if (!hEl || !mEl || !sEl) return;
+
+  function getEnd() {
+    var str = el.dataset.end;
+    var d = str ? new Date(str) : null;
+    var now = new Date();
+    if (!d || isNaN(d) || d <= now) {
+      /* Date passée ou invalide → compte à rebours jusqu'à minuit du jour courant */
+      d = new Date();
+      d.setHours(23, 59, 59, 0);
+      if (d <= now) { d.setDate(d.getDate() + 1); d.setHours(23, 59, 59, 0); }
+    }
+    return d;
+  }
+
+  var end = getEnd();
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function tick() {
+    var diff = Math.floor((end - Date.now()) / 1000);
+    if (diff <= 0) { end = getEnd(); diff = Math.max(0, Math.floor((end - Date.now()) / 1000)); }
+    hEl.textContent = pad(Math.floor(diff / 3600));
+    mEl.textContent = pad(Math.floor((diff % 3600) / 60));
+    sEl.textContent = pad(diff % 60);
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Flash Deals",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Titre", "default": "Flash Deals du Jour" },
+    { "type": "text", "id": "see_all_label", "label": "Lien texte", "default": "Voir toutes les promos" },
+    { "type": "url", "id": "see_all_url", "label": "Lien URL" },
+    { "type": "text", "id": "countdown_end", "label": "Fin du compte à rebours (YYYY-MM-DDTHH:MM:SS+02:00)", "default": "2026-12-31T23:59:59" }
+  ],
+  "blocks": [
+    {
+      "type": "product",
+      "name": "Produit Flash",
+      "settings": [
+        { "type": "product", "id": "product", "label": "Produit" },
+        { "type": "text", "id": "discount", "label": "Badge réduction", "default": "-30%" },
+        { "type": "text", "id": "origin", "label": "Catégorie", "default": "🏺 Épicerie" },
+        { "type": "range", "id": "stock_pct", "label": "% vendu", "min": 0, "max": 100, "step": 1, "default": 60 }
+      ]
+    }
+  ],
+  "presets": [{ "name": "Flash Deals" }]
+}
+{% endschema %}

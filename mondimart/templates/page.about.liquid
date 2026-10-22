@@ -1,0 +1,231 @@
+<style>
+.about-page { max-width: 980px; margin: 0 auto; padding: 0 0 80px; }
+
+/* HERO */
+.about-hero { background: linear-gradient(135deg, var(--gd) 0%, #1A4A2D 60%, #0D2B1A 100%); padding: 72px 32px 64px; text-align: center; position: relative; overflow: hidden; }
+.about-hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+.about-hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(168,216,160,.2); border: 1px solid rgba(168,216,160,.3); color: #A8D8A0; font-size: 12px; font-weight: 700; padding: 6px 16px; border-radius: 20px; margin-bottom: 20px; letter-spacing: .5px; text-transform: uppercase; }
+.about-hero h1 { font-family: 'Playfair Display', serif; font-size: 46px; font-weight: 700; color: #fff; margin-bottom: 16px; line-height: 1.2; }
+.about-hero h1 em { color: #A8D8A0; font-style: normal; }
+.about-hero p { font-size: 17px; color: rgba(255,255,255,.75); max-width: 560px; margin: 0 auto; line-height: 1.75; }
+
+/* STATS */
+.about-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; border-top: 1px solid var(--bo); border-bottom: 1px solid var(--bo); }
+.about-stat { padding: 28px 20px; text-align: center; border-right: 1px solid var(--bo); }
+.about-stat:last-child { border-right: none; }
+.about-stat-val { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: var(--gd); margin-bottom: 4px; }
+.about-stat-lbl { font-size: 13px; color: var(--tl); line-height: 1.4; }
+
+/* SECTION */
+.about-section { padding: 60px 32px; }
+.about-section-badge { display: inline-flex; align-items: center; gap: 7px; background: #E8F5E3; color: #2D6A2D; font-size: 11px; font-weight: 700; padding: 5px 13px; border-radius: 20px; margin-bottom: 14px; letter-spacing: .5px; text-transform: uppercase; }
+.about-section h2 { font-family: 'Playfair Display', serif; font-size: 34px; font-weight: 700; color: var(--td); margin-bottom: 18px; line-height: 1.25; }
+.about-section p { font-size: 15px; color: var(--tm); line-height: 1.85; margin-bottom: 16px; }
+.about-section p:last-of-type { margin-bottom: 0; }
+
+/* STORY LAYOUT */
+.about-story { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; padding: 60px 32px; }
+.about-story-img { background: linear-gradient(135deg, #E8F5E3, #F0F7EE); border-radius: 20px; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; font-size: 80px; }
+.about-story.reverse { direction: rtl; }
+.about-story.reverse > * { direction: ltr; }
+
+/* VALUES */
+.about-values { background: var(--cr); padding: 60px 32px; }
+.about-values h2 { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: var(--td); text-align: center; margin-bottom: 36px; }
+.about-values-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+.about-value { background: #fff; border: 1px solid var(--bo); border-radius: 16px; padding: 28px 22px; text-align: center; transition: box-shadow .2s, transform .2s; }
+.about-value:hover { box-shadow: 0 6px 24px rgba(0,0,0,.09); transform: translateY(-3px); }
+.about-value-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 26px; }
+.about-value h3 { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; color: var(--td); margin-bottom: 8px; }
+.about-value p { font-size: 13px; color: var(--tl); line-height: 1.65; }
+
+/* CUISINES */
+.about-cuisines { padding: 60px 32px; }
+.about-cuisines h2 { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: var(--td); text-align: center; margin-bottom: 10px; }
+.about-cuisines-sub { text-align: center; font-size: 15px; color: var(--tl); margin-bottom: 36px; }
+.cuisines-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+.cuisine-card { background: #fff; border: 1px solid var(--bo); border-radius: 14px; padding: 22px 14px; text-align: center; transition: all .2s; text-decoration: none; }
+.cuisine-card:hover { border-color: var(--gl); box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-2px); }
+.cuisine-card-flag { font-size: 36px; margin-bottom: 10px; }
+.cuisine-card h4 { font-size: 13px; font-weight: 700; color: var(--td); margin-bottom: 4px; }
+.cuisine-card p { font-size: 11px; color: var(--tl); }
+
+/* CTA */
+.about-cta { background: linear-gradient(135deg, var(--gd), #1A5276); padding: 60px 32px; text-align: center; }
+.about-cta h3 { font-family: 'Playfair Display', serif; font-size: 32px; color: #fff; margin-bottom: 12px; }
+.about-cta p { font-size: 16px; color: rgba(255,255,255,.75); margin-bottom: 32px; }
+.about-cta-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.about-cta-btn { display: inline-flex; align-items: center; gap: 9px; padding: 15px 30px; border-radius: 12px; font-size: 15px; font-weight: 700; text-decoration: none; transition: all .2s; }
+.about-cta-btn-main { background: #fff; color: var(--gd); }
+.about-cta-btn-main:hover { background: #A8D8A0; }
+.about-cta-btn-sec { background: rgba(255,255,255,.15); color: #fff; border: 1.5px solid rgba(255,255,255,.3); }
+.about-cta-btn-sec:hover { background: rgba(255,255,255,.25); }
+
+@media(max-width:768px) {
+  .about-hero h1 { font-size: 30px; }
+  .about-stats { grid-template-columns: 1fr 1fr; }
+  .about-stat { border-right: none; border-bottom: 1px solid var(--bo); }
+  .about-stat:nth-child(odd) { border-right: 1px solid var(--bo); }
+  .about-story { grid-template-columns: 1fr; gap: 24px; padding: 40px 20px; }
+  .about-story.reverse { direction: ltr; }
+  .about-values-grid { grid-template-columns: 1fr 1fr; }
+  .cuisines-grid { grid-template-columns: repeat(2,1fr); }
+  .about-section { padding: 40px 20px; }
+  .about-values { padding: 40px 20px; }
+  .about-cuisines { padding: 40px 20px; }
+  .about-cta { padding: 48px 20px; }
+}
+@media(max-width:480px) {
+  .about-values-grid { grid-template-columns: 1fr; }
+  .cuisines-grid { grid-template-columns: 1fr 1fr; }
+  .about-hero { padding: 48px 20px 40px; }
+  .about-hero h1 { font-size: 26px; }
+}
+</style>
+
+<div class="about-page">
+
+  <!-- HERO -->
+  <div class="about-hero">
+    <div class="about-hero-badge">🌍 Notre histoire</div>
+    <h1>Mondimart — <em>Le monde</em><br>dans votre assiette</h1>
+    <p>Né à Paris, pensé pour l'Europe. Mondimart réunit les saveurs authentiques du monde entier pour les amateurs de gastronomie internationale.</p>
+  </div>
+
+  <!-- STATS -->
+  <div class="about-stats">
+    <div class="about-stat">
+      <div class="about-stat-val">2 000+</div>
+      <div class="about-stat-lbl">Produits sélectionnés</div>
+    </div>
+    <div class="about-stat">
+      <div class="about-stat-val">30+</div>
+      <div class="about-stat-lbl">Pays d'origine</div>
+    </div>
+    <div class="about-stat">
+      <div class="about-stat-val">8</div>
+      <div class="about-stat-lbl">Cuisines du monde</div>
+    </div>
+    <div class="about-stat">
+      <div class="about-stat-val">🇪🇺</div>
+      <div class="about-stat-lbl">Livraison Europe entière</div>
+    </div>
+  </div>
+
+  <!-- NOTRE HISTOIRE -->
+  <div class="about-story">
+    <div class="about-story-img">🏪</div>
+    <div>
+      <div class="about-section-badge">📖 Notre histoire</div>
+      <h2>De la boutique de Paris au marché européen</h2>
+      <p>Mondimart est né d'une passion simple : retrouver les saveurs d'ailleurs sans avoir à traverser le monde. Installé à Paris, notre fondateur a voulu créer un espace où chaque communauté peut retrouver les produits de son pays d'origine, et où les curieux peuvent découvrir des saveurs nouvelles.</p>
+      <p>Ce qui a commencé comme une épicerie de quartier est devenu une référence pour des milliers de familles en France et en Europe, attirées par la qualité, l'authenticité et la diversité de notre sélection.</p>
+    </div>
+  </div>
+
+  <div class="about-story reverse">
+    <div class="about-story-img">✅</div>
+    <div>
+      <div class="about-section-badge">🌱 Notre engagement</div>
+      <h2>Qualité, traçabilité et authenticité</h2>
+      <p>Chaque produit Mondimart est soigneusement sélectionné auprès de <strong>fournisseurs certifiés</strong>. Nos produits Halal sont vérifiés par des organismes reconnus. Nos produits bio portent les labels officiels AB, Ecocert ou USDA Organic.</p>
+      <p>Nous travaillons directement avec des producteurs et importateurs de confiance pour vous garantir des produits authentiques, frais et à des prix justes — du producteur à votre table.</p>
+    </div>
+  </div>
+
+  <!-- VALEURS -->
+  <div class="about-values">
+    <h2>Nos valeurs</h2>
+    <div class="about-values-grid">
+      <div class="about-value">
+        <div class="about-value-icon" style="background:#E8F5E3">🌍</div>
+        <h3>Diversité culinaire</h3>
+        <p>Nous célébrons la richesse des cuisines du monde, de la table turque aux saveurs du Maghreb en passant par l'Italie et l'Asie.</p>
+      </div>
+      <div class="about-value">
+        <div class="about-value-icon" style="background:#FEF9E7">⭐</div>
+        <h3>Qualité irréprochable</h3>
+        <p>Chaque produit est contrôlé avant d'être référencé. Nous ne faisons aucun compromis sur la fraîcheur et la qualité.</p>
+      </div>
+      <div class="about-value">
+        <div class="about-value-icon" style="background:#EAF4FB">✅</div>
+        <h3>Certification Halal</h3>
+        <p>Nos produits Halal sont certifiés par des organismes officiels. Chaîne de traçabilité complète et transparente.</p>
+      </div>
+      <div class="about-value">
+        <div class="about-value-icon" style="background:#FDEDEC">❄️</div>
+        <h3>Fraîcheur garantie</h3>
+        <p>Chaîne du froid continue pour les produits laitiers. Livraison 24h en France pour une fraîcheur absolue.</p>
+      </div>
+      <div class="about-value">
+        <div class="about-value-icon" style="background:#F4ECF7">🚀</div>
+        <h3>Livraison express</h3>
+        <p>Toute la France en 24h, Belgique et Luxembourg en 2 jours. Suivi en temps réel inclus avec chaque commande.</p>
+      </div>
+      <div class="about-value">
+        <div class="about-value-icon" style="background:#E8F5E3">💚</div>
+        <h3>Service humain</h3>
+        <p>Une équipe à votre écoute du lundi au samedi. Nous répondons à chaque message sous 24h, sans chatbot.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUISINES -->
+  <div class="about-cuisines">
+    <h2>8 Cuisines du monde</h2>
+    <p class="about-cuisines-sub">Des spécialités authentiques venues des quatre coins du globe</p>
+    <div class="cuisines-grid">
+      <a href="/collections/produits-turcs" class="cuisine-card">
+        <div class="cuisine-card-flag">🇹🇷</div>
+        <h4>Cuisine Turque</h4>
+        <p>Épices, pâtes, thés, loukoums</p>
+      </a>
+      <a href="/collections/produits-maghrebins" class="cuisine-card">
+        <div class="cuisine-card-flag">🇲🇦</div>
+        <h4>Cuisine Maghrébine</h4>
+        <p>Couscous, épices, conserves</p>
+      </a>
+      <a href="/collections/produits-italiens" class="cuisine-card">
+        <div class="cuisine-card-flag">🇮🇹</div>
+        <h4>Cuisine Italienne</h4>
+        <p>Pâtes, huiles, sauces</p>
+      </a>
+      <a href="/collections/produits-espagnols" class="cuisine-card">
+        <div class="cuisine-card-flag">🇪🇸</div>
+        <h4>Cuisine Espagnole</h4>
+        <p>Chorizo, huile d'olive, conserves</p>
+      </a>
+      <a href="/collections/produits-libanais" class="cuisine-card">
+        <div class="cuisine-card-flag">🇱🇧</div>
+        <h4>Cuisine Libanaise</h4>
+        <p>Houmous, zaatar, mezzés</p>
+      </a>
+      <a href="/collections/produits-asiatiques" class="cuisine-card">
+        <div class="cuisine-card-flag">🌏</div>
+        <h4>Cuisine Asiatique</h4>
+        <p>Sauces, thés, noodles</p>
+      </a>
+      <a href="/collections/produits-africains" class="cuisine-card">
+        <div class="cuisine-card-flag">🌍</div>
+        <h4>Cuisine Africaine</h4>
+        <p>Épices, farines, conserves</p>
+      </a>
+      <a href="/collections/produits-français" class="cuisine-card">
+        <div class="cuisine-card-flag">🇫🇷</div>
+        <h4>Terroir Français</h4>
+        <p>Fromages, confitures, vins</p>
+      </a>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="about-cta">
+    <h3>Prêt à explorer le monde ?</h3>
+    <p>Découvrez notre sélection de plus de 2 000 produits authentiques — livrés chez vous en 24h à 48h.</p>
+    <div class="about-cta-btns">
+      <a href="/collections/all" class="about-cta-btn about-cta-btn-main">🛒 Commencer mes achats</a>
+      <a href="/pages/contact" class="about-cta-btn about-cta-btn-sec">✉️ Nous contacter</a>
+    </div>
+  </div>
+
+</div>

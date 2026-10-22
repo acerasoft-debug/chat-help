@@ -1,0 +1,63 @@
+<section class="section cuisines-section">
+  <div class="section-inner">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">{{ section.settings.title }}</h2>
+        <p class="section-sub">{{ section.settings.subtitle }}</p>
+      </div>
+      <a class="see-all" href="{{ section.settings.see_all_url }}">
+        {{ section.settings.see_all_label }}
+        <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </a>
+    </div>
+    <div class="cuisines-row">
+      {% for block in section.blocks %}
+        <a class="cuisine-card" href="{{ block.settings.url }}" {{ block.shopify_attributes }}>
+          {% if block.settings.image != blank %}
+            <img src="{{ block.settings.image | image_url: width: 300 }}" alt="{{ block.settings.name }}" loading="lazy">
+          {% elsif block.settings.fallback_image != blank %}
+            <img src="{{ block.settings.fallback_image }}" alt="{{ block.settings.name }}" loading="lazy">
+          {% endif %}
+          <div class="cuisine-ov"></div>
+          <div class="cuisine-info">
+            <span class="cuisine-nm">{{ block.settings.name }}</span>
+            <span class="cuisine-cnt">{{ block.settings.subtitle }}</span>
+          </div>
+          {% if block.settings.tag != blank %}
+            <span class="cuisine-tag {{ block.settings.tag_style }}">{{ block.settings.tag }}</span>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "8 Cuisines du Monde",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Titre", "default": "8 Cuisines du Monde" },
+    { "type": "text", "id": "subtitle", "label": "Sous-titre", "default": "Produits authentiques directement d'origine" },
+    { "type": "text", "id": "see_all_label", "label": "Voir tout texte", "default": "Toutes les cuisines" },
+    { "type": "url", "id": "see_all_url", "label": "Voir tout lien" }
+  ],
+  "blocks": [
+    {
+      "type": "cuisine",
+      "name": "Cuisine",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "text", "id": "fallback_image", "label": "Image URL (fallback)" },
+        { "type": "url", "id": "url", "label": "Lien collection" },
+        { "type": "text", "id": "name", "label": "Nom", "default": "🇹🇷 Turque" },
+        { "type": "text", "id": "subtitle", "label": "Sous-titre", "default": "Épices & baklava" },
+        { "type": "text", "id": "tag", "label": "Badge (optionnel)" },
+        { "type": "select", "id": "tag_style", "label": "Style badge", "options": [
+          { "value": "tag-g", "label": "Vert" }, { "value": "tag-r", "label": "Rouge" }
+        ], "default": "tag-g" }
+      ]
+    }
+  ],
+  "presets": [{ "name": "8 Cuisines" }]
+}
+{% endschema %}
