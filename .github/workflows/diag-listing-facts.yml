@@ -46,6 +46,7 @@ jobs:
               $hay = implode(' ', [$id, $l['brand'] ?? '', $l['name'] ?? '', $l['sku'] ?? '']);
               if (in_array($id, $ids, true) || ($find !== '' && preg_match('~'.str_replace('~', '\~', $find).'~iu', $hay))) $hit[] = $l;
             }
+            if ($find === 'PINNED') { $hit = []; foreach ($L as $l) if (!empty(vestra_aktion_apply($l)['pinned'])) $hit[] = $l; }
             echo "eslesen ilan: ".count($hit)."\n";
             /* find ile gelenler TEK satir (genis bir arama kutugu bogmasin); tam kunye yalniz ids'tekiler. */
             foreach ($hit as $l) if (!in_array((string)($l['id'] ?? ''), $ids, true))
