@@ -16,6 +16,7 @@
  * hands back the existing file + invoice number on every later call.
  */
 require_once __DIR__.'/pdf.php';
+require_once __DIR__.'/invoice_gate.php';   /* onay kapisi (22 Eki 2026) -- fonksiyon govdeleri function_exists ile sorar: eval'li testler govdeyi tek basina yukluyor */
 
 /**
  * Platform'un kendi satici kimligi (Acerasoft LLC) + banka hesabi.
@@ -2347,6 +2348,13 @@ function vestra_issue_order_invoices(string $ref, bool $redraft = false): array 
             if ($gap !== '') return ['error' => $gap, 'error_code' => 'nopay'];
         }
     }
+    /* ONAY KAPISI (22 Eki 2026, inc/invoice_gate.php): kapi ACIKSA belge KESILMEZ --
+       taslak operatore e-postalanir, istek kaydedilir, 'gate' koduyla durulur.
+       Butun muhafazalardan SONRA: kesilemeyecek bir belgenin taslagi onaya gitmesin.
+       REDRAFT MUAF (belge zaten alicida); onay yolu 'pass' ile buradan gecer. */
+    if (!$redraft && function_exists('vestra_invoice_gate_blocks') && vestra_invoice_gate_blocks()) {
+        return vestra_invoice_gate_request('order', ['ref' => $ref, 'notify' => true, 'copy_to' => ''], $payloads);
+    }
     $issued = [];
     foreach ($payloads as $p) {
         $iv = vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true, $redraft);
@@ -2392,7 +2400,10 @@ function vestra_order_invoice_issue(string $ref, bool $notify = true, string $co
        bandiyla gosteriyordu (2 Eki 2026'da bulundu) -- rakam dogru, etiket yalan. */
     if (isset($issued['error'])) return ['error' => (string)$issued['error'],
                                          'error_code' => (string)($issued['error_code'] ?? ''),
-                                         'missing' => (array)($issued['missing'] ?? [])];
+                                         'missing' => (array)($issued['missing'] ?? [])]
+        /* onay kapisi: token/mailed/saved yukari tasinir -- panel ve is akisi "e-posta gitti mi" diye bakiyor */
+        + ((string)($issued['error_code'] ?? '') === 'gate'
+            ? ['gate' => true, 'token' => (string)($issued['token'] ?? ''), 'mailed' => !empty($issued['mailed']), 'saved' => !empty($issued['saved'])] : []);
     if (!$issued) return ['error' => 'Fatura kesilemedi (numara üretilmedi).'];
 
     $nos = array_values(array_filter(array_map(fn($i) => (string)($i['no'] ?? ''), $issued)));

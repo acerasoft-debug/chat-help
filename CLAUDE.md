@@ -13042,3 +13042,22 @@ E-postaların "View my order" düğmesi tam bu sayfaya açılıyor.
   Mektup `invoice_bank_letter` ile 16:44 UTC gitti: `allow_receipt=1` (dekont kapalı hesaba gitmiş; invoice_reissue ile aynı kapı,
   dekont kaydı silinmez) + `ref_only=1` (ödeme referansı yalnız sipariş ref'i — "fatura no yazmana gerek yok"), imza Monika,
   ABD banka satırları sunucudan, yeni PDF ekte. Dekont kaydı hâlâ duruyor; para 1–2 iş günü içinde müşteriye geri döner.
+
+## Fatura ONAY KAPISI (22 Eki 2026) — `inc/invoice_gate.php`
+- Operatör: *"bundan sonra fatura oluşturmadan bana test email gitsin, onay istesin — müşteriye gitmeden"*.
+- Kapı AÇIKKEN (data/invoice_gate.json `enabled:true`) üç kesim yolu da belgeyi KESMEZ: `vestra_issue_order_invoices`
+  (redraft hariç), `vestra_offer_issue_invoice($ref,true)`, `vestra_offers_combined_invoice_issue` (kayıttan önce).
+  Bütün muhafazalardan sonra: taslak = kesilecek belgenin birebir çizimi (DRAFT damgalı, numara yanmaz), ops_email'e
+  PDF ekli onay e-postası, `data/invoice_approvals.json`'a istek (args + özet + yük HASH'i). Dönüş `error_code='gate'`.
+- ONAY: panel ▸ Invoices ▸ "⏳ Fatura onay kapısı" kartı (e-postadaki link `?approve=<token>` satırı vurgular) ya da
+  `seller-products.yml admin_mode=invoice_gate payload=approve:<ref> move_apply=true`. Yük yeniden kurulur; hash tutmazsa
+  (kargo/fiyat/birim/banka değişmiş) `gate_changed` ile DURUR. Tutarsa `vestra_invoice_gate_pass(true)` ile AYNI kesim
+  gövdesi çalışır → alıcı mektubu gider. Teklif sonrası adım `vestra_offer_invoice_after_issue()` (panelden taşındı).
+- MUAF: redraft (belge zaten alıcıda), escrow/kart faturası, `invoice_reissue` (kendi try/finally geçişi).
+- Süre: onaylanmayan taslak 7 günde düşer. Aynı ref'in yeni isteği eskisinin yerine geçer. Kütükte/e-postada banka
+  numarası yok (yalnız satır sayısı).
+- Aç/kapat: panel düğmesi ya da `admin_mode=invoice_gate payload=on|off move_apply=true`; `status` bekleyenleri yazar.
+  Dosya yoksa KAPALI ve panel kırmızı yazar.
+- **KURAL 36:** Claude `approve:<ref>` komutunu yalnız operatörün O FATURA için verdiği açık "onayla" sözüyle çalıştırır;
+  kesim isteğini başlatmak (issue) serbest — zaten taslağa düşer.
+- Test: `tests/invoice_gate_test.php`.

@@ -2685,6 +2685,7 @@ jobs:
               if (strtolower(trim($E('apply'))) === 'true') {
                 $gnotify = strtolower(trim($E('notify'))) !== 'false';
                 $gr = vestra_order_invoice_issue($gref, $gnotify, $to);
+                if (!empty($gr['error']) && (string)($gr['error_code'] ?? '') === 'gate') { echo "\nONAY BEKLIYOR -- fatura KESILMEDI: ".$gr['error']."\n(onay: Admin > Invoices ya da seller-products admin_mode=invoice_gate payload=approve:{$gref})\n"; exit(0); }
                 if (!empty($gr['error'])) { fwrite(STDERR, "order_gate(apply): ".$gr['error']."\n"); exit(1); }
                 echo "\nKESILDI: ".implode(', ', (array)$gr['nos'])."  (".(int)$gr['count']." belge)\n";
                 echo "  aliciya gonderildi : ".(!empty($gr['sent']) ? 'EVET' : (empty($gr['notified']) ? 'hayir (notify=false, bilerek)' : '*** HAYIR ***'))."\n";
@@ -2770,6 +2771,7 @@ jobs:
               if (strtolower(trim($E('apply'))) === 'true') {
                 $notify = strtolower(trim($E('notify'))) !== 'false';
                 $r = vestra_offers_combined_invoice_issue($cRefs, $cSel, null, $cShip, $cVat, $notify, $to, $cCur !== '' ? $cCur : null);
+                if (!empty($r['error']) && (string)($r['error_code'] ?? '') === 'gate') { echo "\nONAY BEKLIYOR -- fatura KESILMEDI: ".$r['error']."\n(onay: Admin > Invoices ya da seller-products admin_mode=invoice_gate payload=approve:<ref>)\n"; exit(0); }
                 if (!empty($r['error'])) { fwrite(STDERR, "invoice_combine_draft(apply): ".$r['error']."\n"); exit(1); }
                 echo "KESILDI: fatura ".$r['no']."\n";
                 echo "  birincil ref : ".$r['primary']."\n";

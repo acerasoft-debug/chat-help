@@ -223,14 +223,23 @@ function vestra_invoice_reissue_apply(array $refs, string $cur, bool $allowRecei
         }
         vestra_invoice_reissue_reset_clock($r, $pl['old'], $cur, !empty($pl['receipt_overridden']));
 
-        if ($pl['kind'] === 'offer') {
-            $res = vestra_offers_combined_invoice_issue([$r], 'vestra', null, null, null, false, '', $cur);
-            if (!empty($res['error'])) { $out['error'] = "{$r}: eski belge ARSIVLENDI ama yenisi kesilemedi: {$res['error']} -- burada durdum"; return $out; }
-            $no = (string)$res['no'];
-        } else {
-            $res = vestra_issue_order_invoices($r);
-            if (isset($res['error'])) { $out['error'] = "{$r}: eski belge ARSIVLENDI ama yenisi kesilemedi: {$res['error']} -- burada durdum"; return $out; }
-            $no = (string)($res[0]['no'] ?? '');
+        /* ONAY KAPISI MUAF: operator kuru kosuyu gordu ve move_apply=true dedi; eski
+           belge zaten arsivlendi, burada 'onay bekliyor' ile durmak siparisi
+           FATURASIZ birakirdi. Gecis bayragi yalniz bu iki cagri suresince acik. */
+        require_once __DIR__.'/invoice_gate.php';
+        vestra_invoice_gate_pass(true);
+        try {
+            if ($pl['kind'] === 'offer') {
+                $res = vestra_offers_combined_invoice_issue([$r], 'vestra', null, null, null, false, '', $cur);
+                if (!empty($res['error'])) { $out['error'] = "{$r}: eski belge ARSIVLENDI ama yenisi kesilemedi: {$res['error']} -- burada durdum"; return $out; }
+                $no = (string)$res['no'];
+            } else {
+                $res = vestra_issue_order_invoices($r);
+                if (isset($res['error'])) { $out['error'] = "{$r}: eski belge ARSIVLENDI ama yenisi kesilemedi: {$res['error']} -- burada durdum"; return $out; }
+                $no = (string)($res[0]['no'] ?? '');
+            }
+        } finally {
+            vestra_invoice_gate_pass(false);
         }
         /* GERI OKUMA: kayittaki TEK belge yeni numara, hedef birim, eski numara degil. */
         $back = vestra_invoices_for_ref($r);

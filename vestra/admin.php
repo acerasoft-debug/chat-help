@@ -334,10 +334,31 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
          "para birimi cevrilemedi" bandiyla gostermek, bu deponun kayitli
          "rakam dogru, etiket yalan" hatasi olurdu: yanlis rakam sorgulanir,
          yanlis etikete inanilir ve operator kuru damgalamaya calisir. */
-      $__ik = ['nopay'=>'invoice_nopay','prereq'=>'invoice_prereq','restricted'=>'invoice_restricted'][(string)($r['error_code']??'')] ?? 'invoice_cur_err';
+      $__ik = ['nopay'=>'invoice_nopay','prereq'=>'invoice_prereq','restricted'=>'invoice_restricted','gate'=>'invoice_gate_sent'][(string)($r['error_code']??'')] ?? 'invoice_cur_err';
       header('Location: /admin?tab='.$back.'&msg='.$__ik.'&err='.urlencode(substr((string)$r['error'],0,240))); exit;
     }
     header('Location: /admin?tab='.$back.'&msg=invoice_issued'); exit;
+  }
+  /* ONAY KAPISI (22 Eki 2026, inc/invoice_gate.php). Kesim dugmeleri kapi acikken
+     belgeyi kesmiyor: taslak operatorun kutusuna gidiyor, istek kaydediliyor.
+     Burasi o istegin ONAYI (ayni kesim govdesi, pass ile) ya da reddi. */
+  if($act==='invoice_gate_approve' || $act==='invoice_gate_discard'){
+    require_once __DIR__.'/inc/invoice_gate.php';
+    $tok=preg_replace('/[^a-f0-9]/','',strtolower((string)($_POST['token']??'')));
+    if($act==='invoice_gate_discard'){
+      header('Location: /admin?tab=invoices&msg='.(vestra_invoice_gate_discard($tok)?'invoice_gate_discarded':'invoice_gate_fail&err='.urlencode('istek bulunamadı'))); exit;
+    }
+    $r=vestra_invoice_gate_approve($tok,'panel');
+    if(!empty($r['error'])){
+      $__ik = ['nopay'=>'invoice_nopay','prereq'=>'invoice_prereq'][(string)($r['error_code']??'')] ?? 'invoice_gate_fail';
+      header('Location: /admin?tab=invoices&msg='.$__ik.'&err='.urlencode(substr((string)$r['error'],0,240))); exit;
+    }
+    header('Location: /admin?tab=invoices&msg=invoice_gate_approved&n='.urlencode(implode(', ',(array)($r['nos']??[])))); exit;
+  }
+  if($act==='invoice_gate_toggle'){
+    require_once __DIR__.'/inc/invoice_gate.php';
+    $on=((string)($_POST['on']??'0'))==='1';
+    header('Location: /admin?tab=invoices&msg='.(vestra_invoice_gate_set($on,'panel')?($on?'invoice_gate_on':'invoice_gate_off'):'invoice_gate_fail&err='.urlencode('ayar yazılamadı'))); exit;
   }
   /* TASLAK ONIZLEME -- operator kararı (1 Eyl 2026): "faturayi musteri
      hesabina inmeden ve email ile gondermeden kendim kontrol etmem gerekiyor".
@@ -625,6 +646,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
        vardi, kaldirildi. */
     $r = vestra_offers_combined_invoice_issue($refs, $pick, $vn, $sh, $vr, true, '', $cu);
     if(!empty($r['error'])){
+      if(($r['error_code']??'')==='gate'){ header('Location: /admin?tab=invoices&msg=invoice_gate_sent&err='.urlencode(substr((string)$r['error'],0,240))); exit; }
       header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode($r['error'])); exit;
     }
     $issued = !empty($r['ok']);
@@ -714,33 +736,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $iv=vestra_offer_issue_invoice($ref, true);
     /* Kur damgasi yoksa HICBIR NUMARA YANMADAN duruyor; sebep ekranda. */
     if(is_array($iv) && !empty($iv['error'])){
+      if(($iv['error_code']??'')==='gate'){ header('Location: /admin?tab=invoices&msg=invoice_gate_sent&err='.urlencode(substr((string)$iv['error'],0,240))); exit; }
       $__ik = ['nopay'=>'invoice_nopay','restricted'=>'invoice_restricted'][(string)($iv['error_code']??'')] ?? 'invoice_cur_err';
       header('Location: /admin?tab=invoices&msg='.$__ik.'&err='.urlencode(substr((string)$iv['error'],0,200))); exit;
     }
     $issued = $iv && ($iv['no'] ?? '') !== '';
-    if($issued){
-      /* Faturalanan teklif ORDERS'a da duser (tek satir; idempotent).
-         Yuk yeniden kuruluyor: kesim kayittan okudu, ayni kayit ayni yuku verir. */
-      $__op = vestra_offer_invoice_payload($ref);
-      if($__op){ $__op['refs']=[$ref]; vestra_offer_order_ensure($__op); }
-      $orow=vestra_offer_row($ref);
-      if($orow && filter_var($orow['email']??'',FILTER_VALIDATE_EMAIL)){
-        require_once __DIR__.'/inc/notify.php';
-        /* RAKAM VE BIRIM BELGEDEN, kayittan degil. Burasi "EUR" sabitiyle
-           yaziliydi; teklif faturasi USD kesilebilir olunca ayni mektup dolar
-           bir belgenin yanina euro rakamlar koyardi -- bu deponun tekrar tekrar
-           kaydettigi "sayfada bir, kasada baska rakam". $__op zaten kesilen
-           belgenin yuku. */
-        $iv_att = is_file((string)($iv['path']??'')) ? ['attachments'=>[['name'=>'Invoice-'.$iv['no'].'.pdf','path'=>$iv['path']]]] : [];
-        vestra_send_mail($orow['email'], "VESTRA — invoice for {$ref}",
-          "Hello ".(($orow['company']??'')?:'there').",\n\nStock is confirmed and your invoice ({$iv['no']}) for the agreed offer is ready.\n\n"
-         ."Reference : {$ref}\nProduct   : ".($orow['product']??'')."\n\n"
-         .vestra_invoice_letter_amounts($__op['meta'], $__op['items'])."\n"
-         ."Download it under My offers and pay by bank transfer to the account shown on the invoice. Your goods ship as soon as the payment arrives.\n\n"
-         ."View: https://vestrasales.com/buyer?tab=offers&view=".rawurlencode($ref)."\n\n— VESTRA · vestrasales.com",
-          '','',null,'',$iv_att);
-      }
-    }
+    /* Siparis satiri + alici mektubu TEK fonksiyonda (vestra_offer_invoice_after_issue):
+       onay kapisi da onaydan sonra ayni adimi atiyor. */
+    if($issued) vestra_offer_invoice_after_issue($ref, $iv);
     header('Location: /admin?tab=invoices&msg='.($issued?'invoice_issued':'invoice_none')); exit;
   }
   /* Admin full listing editor — edit any field, set status, and reassign the
@@ -2938,6 +2941,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
        and "it says it deleted" can both be true on the same click. They have their
        own blocks further down, in the colour they deserve. */
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
+    'invoice_gate_approved'=>'✓ Onaylandı: fatura kesildi ve müşteriye e-postalandı.',
+    'invoice_gate_discarded'=>'✓ Taslak düşürüldü — hiçbir belge kesilmedi, müşteriye hiçbir şey gitmedi.',
+    'invoice_gate_on'=>'✓ Fatura onay kapısı AÇIK: her kesim önce taslak olarak e-postanıza gelir.',
     'invoice_seller_bad'=>'⚠ Seçilen satıcı hesabı bulunamadı — FATURA KESİLMEDİ. Boş bir hesaba düşüp belgeyi Acerasoft LLC adına çıkarmaktansa hiç kesmemek doğru: listeyi yenileyip tekrar seçin.',
     /* Yalniz BASARILI olan burada: bu harita her satiri yesil "✓" bandi olarak
        basiyor. Reddedilen iki hal (taninmayan birim, cevrilemeyen kur) asagida
@@ -3200,6 +3206,12 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Bu referansı taşıyan teklif bulunamadı — hiçbir şey silinmedi.</div>
 <?php elseif($msg==='offer_del_fail'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ offers.csv yeniden yazılamadı — hiçbir şey silinmedi. Veri klasörü yazılabilir değil.</div>
+<?php elseif($msg==='invoice_gate_sent'): ?>
+<div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">📨 <b>ONAY BEKLİYOR — fatura KESİLMEDİ.</b> Taslak PDF e-postanıza gönderildi; müşteriye hiçbir şey gitmedi, numara yanmadı. Taslağı kontrol edin, sonra aşağıdaki <b>⏳ Onay bekleyen taslaklar</b> kartından onaylayın — belge o anda kesilir ve müşteriye e-postalanır. <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?></div>
+<?php elseif($msg==='invoice_gate_fail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>ONAY İŞLENMEDİ — fatura kesilmedi.</b> <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?></div>
+<?php elseif($msg==='invoice_gate_off'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Fatura onay kapısı <b>KAPALI</b>: kesim düğmeleri belgeyi doğrudan keser ve müşteriye gönderir.</div>
 <?php elseif($msg==='combine_bad'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Birleşik fatura kesilmedi: <?= htmlspecialchars((string)($_GET['why'] ?? 'geçersiz seçim')) ?></div>
 <?php elseif($msg==='bulk_moq'): ?>
@@ -5063,7 +5075,45 @@ if($__dupRefs): ?>
 <?php endif; // order dossier vs list ?>
 
 <?php // ===================================================== INVOICE APPROVALS
-elseif($tab==='invoices'): ?>
+elseif($tab==='invoices'):
+  require_once __DIR__.'/inc/invoice_gate.php';
+  $__gateOn = vestra_invoice_gate_on();
+  $__gateReqs = vestra_invoice_gate_requests();
+  $__gateHi = preg_replace('/[^a-f0-9]/','',strtolower((string)($_GET['approve']??'')));
+?>
+
+<?php /* ONAY KAPISI (22 Eki 2026): durum + bekleyen taslaklar. Operator: "fatura
+         olusturmadan bana test email gitsin onay istesin, musteriye gitmeden".
+         Onay = ayni kesim govdesi; kayit taslaktan sonra degistiyse kesim DURUR. */ ?>
+<div class="acard" style="margin-bottom:16px;border-color:<?= $__gateOn ? 'rgba(122,214,160,.45)' : 'rgba(192,57,43,.45)' ?>">
+  <div class="acard-hd"><h3>⏳ Fatura onay kapısı — <?= $__gateOn ? '<span style="color:var(--ok)">AÇIK</span>' : '<span style="color:#c0392b">KAPALI</span>' ?></h3></div>
+  <p class="ahint" style="margin:0 0 10px"><?= $__gateOn
+    ? 'Her kesim (sipariş, teklif, birleşik) önce <b>DRAFT damgalı taslak PDF</b> olarak e-postanıza gider; müşteriye hiçbir şey gitmez, numara yanmaz. Onaylayınca aynı belge kesilir ve müşteriye e-postalanır. Kargo/fiyat/birim/banka onaydan önce değişirse onay durur, yeni taslak gerekir. Onaylanmayan taslak 7 günde düşer.'
+    : '<b>Kapalı:</b> kesim düğmeleri belgeyi doğrudan keser ve müşteriye gönderir. Açmak için düğmeye basın.' ?></p>
+  <form method="post" style="display:inline"><?= csrfField() ?><input type="hidden" name="_action" value="invoice_gate_toggle"><input type="hidden" name="on" value="<?= $__gateOn ? '0' : '1' ?>">
+    <button class="abtn" type="submit" style="<?= $__gateOn ? 'color:#c0392b;border-color:rgba(192,57,43,.4)' : 'color:var(--ok);border-color:rgba(122,214,160,.4)' ?>"><?= $__gateOn ? 'Kapıyı KAPAT (doğrudan kesim)' : 'Kapıyı AÇ (önce taslak + onay)' ?></button></form>
+  <?php if($__gateReqs): ?>
+  <table class="atable" style="margin-top:12px">
+    <?= arow(['Ref','Tür','Alıcı','Kesen','Toplam','Ödeme kutusu','Taslak','İsteyen',''],true) ?>
+    <?php foreach($__gateReqs as $__tok=>$__r): $__s=(array)($__r['summary']??[]); $__cur=(string)($__s['cur']??'EUR'); ?>
+    <tr<?= $__tok===$__gateHi ? ' style="outline:2px solid var(--ok);outline-offset:-2px"' : '' ?>>
+      <td><b><?= htmlspecialchars((string)$__r['ref']) ?></b></td>
+      <td><?= htmlspecialchars(['order'=>'sipariş','offer'=>'teklif','combined'=>'birleşik'][(string)$__r['kind']] ?? (string)$__r['kind']) ?></td>
+      <td><?= htmlspecialchars((string)($__s['buyer']??'')) ?></td>
+      <td><?= htmlspecialchars((string)($__s['issuer']??'')) ?></td>
+      <td><b><?= htmlspecialchars(vestra_invoice_gate_money($__cur,(float)($__s['grand']??0))) ?></b><br><span class="ahint" style="font-size:10.5px">mal <?= number_format((float)($__s['goods']??0),2) ?> · kargo <?= number_format((float)($__s['ship']??0),2) ?><?= ((float)($__s['disc']??0))>0 ? ' · indirim -'.number_format((float)$__s['disc'],2) : '' ?></span></td>
+      <td><?= (int)($__s['pay_lines']??0) ?> satır<?= ($__s['bank']??'')!=='' ? ' · '.htmlspecialchars((string)$__s['bank']) : '' ?></td>
+      <td><?= date('d.m H:i', (int)($__r['created']??0)) ?><?= empty($__r['mailed']) ? '<br><span style="color:#c0392b;font-size:10.5px">e-posta GİTMEDİ</span>' : '' ?></td>
+      <td><?= htmlspecialchars((string)($__r['by']??'')) ?></td>
+      <td style="white-space:nowrap">
+        <form method="post" style="display:inline" onsubmit="return confirm('Onaylıyor musunuz? Belge KESİLİR ve müşteriye e-postalanır.')"><?= csrfField() ?><input type="hidden" name="_action" value="invoice_gate_approve"><input type="hidden" name="token" value="<?= htmlspecialchars((string)$__tok) ?>"><button class="abtn" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)">✓ Onayla &amp; kes</button></form>
+        <form method="post" style="display:inline"><?= csrfField() ?><input type="hidden" name="_action" value="invoice_gate_discard"><input type="hidden" name="token" value="<?= htmlspecialchars((string)$__tok) ?>"><button class="abtn" type="submit">Vazgeç</button></form>
+      </td>
+    </tr>
+    <?php endforeach; ?>
+  </table>
+  <?php elseif($__gateOn): ?><p class="ahint" style="margin:10px 0 0">Bekleyen taslak yok.</p><?php endif; ?>
+</div>
 
 <div class="acard" style="margin-bottom:16px">
   <div class="acard-hd"><h3>🧾 Invoice approvals</h3></div>
