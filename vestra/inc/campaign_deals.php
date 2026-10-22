@@ -18,10 +18,17 @@ require_once __DIR__.'/campaign_edit.php';   // VESTRA_EDIT_PREMIUM
 
 const VESTRA_DEALS_UTM = 'utm_source=email&utm_medium=campaign&utm_campaign=vestra_deals';
 const VESTRA_DEALS_MIN_PCT = 10;
+/* ÖNE ÇIKANLAR (22 Eki 2026, operatör: SH9623/SH9608/SH9626 yeni fiyatlar + "bu indirimli Lacoste ürünlerini Angebota
+   koyalım … kampanya estetik olsun, live fotoları da ekle"). Bu ilanlar ızgaranın BAŞINA, marka başına tek ürün kuralı
+   dışında girer (aynı markadan üçü birden) ve markaları konuda/başlıkta öne geçer. Yine yalnız SEÇİLEBİLİR olanlar:
+   canlı, onaylı, ≥%10 indirimli — indirimi biten ilan kendiliğinden düşer. Canlı (depo) fotoğrafları bu ilanlardan. */
+const VESTRA_DEALS_FEATURED = ['lac-fleece-hoodie', 'lac-crew-sweatshirt', 'lac-zip-hoodie'];
+const VESTRA_DEALS_LIVE_MAX = 6;
 
 function vestra_deals_texts(string $lang): array {
   $T = [
-    'en' => ['subject' => '%s: trade markdowns up to −%d%% · VESTRA',
+    'en' => ['spot' => '%s in focus', 'live' => 'Real photos · our EU warehouse', 'live_note' => 'New stock in original packaging with tags — photographed in our warehouse, not catalogue images.',
+      'subject' => '%s: trade markdowns up to −%d%% · VESTRA',
       'kicker' => 'Trade markdowns · while stock lasts', 'title' => 'Up to −%d%% on %s.',
       'hello' => 'Hello %s,', 'hello0' => 'Hello,',
       'intro' => 'We wrote to you recently about VESTRA, the verified B2B marketplace where independent boutiques buy authentic designer brands at wholesale. A short update: several houses have trade markdowns right now — up to %2$d%% off the regular wholesale price.',
@@ -33,7 +40,8 @@ function vestra_deals_texts(string $lang): array {
       'bye' => "Kind regards,\nThe VESTRA team",
       'legal' => "VESTRA is operated by Acerasoft LLC. You are receiving this business message because we wrote to %s about VESTRA before.\nDon't want to hear from us again? Unsubscribe instantly: https://vestrasales.com/lead-unsubscribe",
       'shop' => 'your boutique'],
-    'de' => ['subject' => '%s: Händlerrabatte bis −%d%% · VESTRA',
+    'de' => ['spot' => 'Im Fokus: %s', 'live' => 'Echte Fotos · unser EU-Lager', 'live_note' => 'Neuware in Originalverpackung mit Etiketten — in unserem Lager fotografiert, keine Katalogbilder.',
+      'subject' => '%s: Händlerrabatte bis −%d%% · VESTRA',
       'kicker' => 'Händlerrabatte · solange der Vorrat reicht', 'title' => 'Bis zu −%d%% auf %s.',
       'hello' => 'Guten Tag %s,', 'hello0' => 'Guten Tag,',
       'intro' => 'Wir hatten Ihnen kürzlich über VESTRA geschrieben, den verifizierten B2B-Marktplatz, auf dem unabhängige Boutiquen authentische Designermarken im Großhandel einkaufen. Ein kurzes Update: Artikel mehrerer Marken sind für Händler gerade reduziert — bis zu %2$d %% unter dem regulären Großhandelspreis.',
@@ -45,7 +53,8 @@ function vestra_deals_texts(string $lang): array {
       'bye' => "Mit freundlichen Grüßen\nIhr VESTRA-Team",
       'legal' => "VESTRA wird von Acerasoft LLC betrieben. Sie erhalten diese geschäftliche Nachricht, weil wir %s bereits zu VESTRA kontaktiert haben.\nKeine weiteren Nachrichten? Sofort abmelden: https://vestrasales.com/lead-unsubscribe",
       'shop' => 'Ihre Boutique'],
-    'fr' => ['subject' => '%s : remises professionnelles jusqu’à −%d%% · VESTRA',
+    'fr' => ['spot' => 'À la une : %s', 'live' => 'Photos réelles · notre entrepôt européen', 'live_note' => 'Stock neuf, emballage d’origine et étiquettes — photographié dans notre entrepôt, pas des images de catalogue.',
+      'subject' => '%s : remises professionnelles jusqu’à −%d%% · VESTRA',
       'kicker' => 'Remises pro · dans la limite des stocks', 'title' => 'Jusqu’à −%d%% sur %s.',
       'hello' => 'Bonjour %s,', 'hello0' => 'Bonjour,',
       'intro' => 'Nous vous avons écrit récemment au sujet de VESTRA, la place de marché B2B vérifiée où les boutiques indépendantes achètent des marques de créateurs authentiques en gros. Petite mise à jour : des articles de plusieurs maisons sont actuellement remisés pour les professionnels — jusqu’à %2$d %% de moins que le prix de gros habituel.',
@@ -57,7 +66,8 @@ function vestra_deals_texts(string $lang): array {
       'bye' => "Bien cordialement,\nL’équipe VESTRA",
       'legal' => "VESTRA est exploité par Acerasoft LLC. Vous recevez ce message professionnel car nous avons déjà écrit à %s au sujet de VESTRA.\nVous ne souhaitez plus nous lire ? Désinscription immédiate : https://vestrasales.com/lead-unsubscribe",
       'shop' => 'votre boutique'],
-    'it' => ['subject' => '%s: sconti trade fino al −%d%% · VESTRA',
+    'it' => ['spot' => 'In primo piano: %s', 'live' => 'Foto reali · il nostro magazzino UE', 'live_note' => 'Merce nuova in confezione originale con cartellini — fotografata nel nostro magazzino, non immagini di catalogo.',
+      'subject' => '%s: sconti trade fino al −%d%% · VESTRA',
       'kicker' => 'Sconti trade · fino a esaurimento scorte', 'title' => 'Fino al −%d%% su %s.',
       'hello' => 'Buongiorno %s,', 'hello0' => 'Buongiorno,',
       'intro' => 'Vi abbiamo scritto di recente a proposito di VESTRA, il marketplace B2B verificato dove le boutique indipendenti acquistano marchi di design autentici all’ingrosso. Un breve aggiornamento: gli articoli di diverse maison sono ora scontati per i rivenditori — fino al %2$d%% in meno rispetto al normale prezzo all’ingrosso.',
@@ -69,7 +79,8 @@ function vestra_deals_texts(string $lang): array {
       'bye' => "Cordiali saluti,\nIl team VESTRA",
       'legal' => "VESTRA è gestito da Acerasoft LLC. Ricevete questo messaggio commerciale perché abbiamo già contattato %s a proposito di VESTRA.\nNon volete più ricevere messaggi? Disiscrizione immediata: https://vestrasales.com/lead-unsubscribe",
       'shop' => 'la vostra boutique'],
-    'es' => ['subject' => '%s: descuentos mayoristas de hasta −%d%% · VESTRA',
+    'es' => ['spot' => 'Destacado: %s', 'live' => 'Fotos reales · nuestro almacén en la UE', 'live_note' => 'Stock nuevo en embalaje original con etiquetas — fotografiado en nuestro almacén, no imágenes de catálogo.',
+      'subject' => '%s: descuentos mayoristas de hasta −%d%% · VESTRA',
       'kicker' => 'Descuentos profesionales · hasta agotar existencias', 'title' => 'Hasta −%d%% en %s.',
       'hello' => 'Hola %s,', 'hello0' => 'Hola,',
       'intro' => 'Le escribimos hace poco sobre VESTRA, el marketplace B2B verificado donde las boutiques independientes compran marcas de diseño auténticas al por mayor. Una breve novedad: varias marcas tienen ahora artículos rebajados para profesionales — hasta un %2$d %% menos que el precio mayorista habitual.',
@@ -81,7 +92,8 @@ function vestra_deals_texts(string $lang): array {
       'bye' => "Un cordial saludo,\nEl equipo de VESTRA",
       'legal' => "VESTRA está operado por Acerasoft LLC. Recibe este mensaje comercial porque ya escribimos a %s sobre VESTRA.\n¿No quiere recibir más mensajes? Darse de baja al instante: https://vestrasales.com/lead-unsubscribe",
       'shop' => 'su boutique'],
-    'nl' => ['subject' => '%s: handelskortingen tot −%d%% · VESTRA',
+    'nl' => ['spot' => 'Uitgelicht: %s', 'live' => 'Echte foto’s · ons EU-magazijn', 'live_note' => 'Nieuwe voorraad in originele verpakking met labels — gefotografeerd in ons magazijn, geen catalogusbeelden.',
+      'subject' => '%s: handelskortingen tot −%d%% · VESTRA',
       'kicker' => 'Handelskortingen · zolang de voorraad strekt', 'title' => 'Tot −%d%% op %s.',
       'hello' => 'Hallo %s,', 'hello0' => 'Hallo,',
       'intro' => 'We schreven u onlangs over VESTRA, de geverifieerde B2B-marktplaats waar onafhankelijke boetieks authentieke designermerken in de groothandel inkopen. Een korte update: artikelen van verschillende merken zijn nu afgeprijsd voor de handel — tot %2$d%% onder de normale groothandelsprijs.',
@@ -93,7 +105,8 @@ function vestra_deals_texts(string $lang): array {
       'bye' => "Met vriendelijke groet,\nHet VESTRA-team",
       'legal' => "VESTRA wordt beheerd door Acerasoft LLC. U ontvangt dit zakelijke bericht omdat we eerder contact hebben opgenomen met %s over VESTRA.\nGeen berichten meer? Direct afmelden: https://vestrasales.com/lead-unsubscribe",
       'shop' => 'uw boetiek'],
-    'pt' => ['subject' => '%s: descontos de atacado até −%d%% · VESTRA',
+    'pt' => ['spot' => 'Em destaque: %s', 'live' => 'Fotos reais · o nosso armazém na UE', 'live_note' => 'Stock novo na embalagem original com etiquetas — fotografado no nosso armazém, não imagens de catálogo.',
+      'subject' => '%s: descontos de atacado até −%d%% · VESTRA',
       'kicker' => 'Descontos profissionais · até esgotar o stock', 'title' => 'Até −%d%% em %s.',
       'hello' => 'Olá %s,', 'hello0' => 'Olá,',
       'intro' => 'Escrevemos-lhe recentemente sobre a VESTRA, o marketplace B2B verificado onde boutiques independentes compram marcas de design autênticas por atacado. Uma breve novidade: artigos de várias marcas estão agora com desconto para profissionais — até %2$d%% abaixo do preço de atacado habitual.',
@@ -141,15 +154,25 @@ function vestra_deals_pick(int $n = 6, ?array $all = null, ?int $now = null): ar
     $imgs = $p['images'] ?? []; $img = is_array($imgs) && $imgs ? (string)$imgs[0] : (string)($p['image'] ?? '');
     if ($img === '') continue;
     if (!preg_match('#^https?://#i', $img)) $img = 'https://vestrasales.com'.(str_starts_with($img, '/') ? '' : '/').$img;
-    $rows[] = ['brand' => $brand, 'label' => vestra_deals_brand_label($brand), 'name' => trim((string)($p['name'] ?? '')), 'img' => $img,
-               'url' => 'https://vestrasales.com/product?id='.rawurlencode((string)$p['id']).'&'.VESTRA_DEALS_UTM, 'pct' => $pct];
+    $live = [];
+    if (function_exists('vestra_live_photos')) foreach (vestra_live_photos($p) as $lp) $live[] = 'https://vestrasales.com'.$lp['thumb'];
+    $rows[] = ['id' => (string)$p['id'], 'brand' => $brand, 'label' => vestra_deals_brand_label($brand), 'name' => trim((string)($p['name'] ?? '')), 'img' => $img,
+               'url' => 'https://vestrasales.com/product?id='.rawurlencode((string)$p['id']).'&'.VESTRA_DEALS_UTM, 'pct' => $pct, 'live' => $live];
   }
   usort($rows, static fn($a, $b) => [$b['pct'], $a['brand'], $a['name']] <=> [$a['pct'], $b['brand'], $b['name']]);
   $brands = []; $raw = [];
   foreach ($rows as $r) { $brands[$r['label']] = max($brands[$r['label']] ?? 0, $r['pct']); $raw[$r['label']] ??= $r['brand']; }
   arsort($brands);
-  $items = []; $used = []; $taken = [];
+  $items = []; $used = []; $taken = []; $feat = [];
+  foreach (VESTRA_DEALS_FEATURED as $fid) foreach ($rows as $k => $r) {
+    if ($r['id'] !== $fid || isset($taken[$k])) continue;
+    $items[] = $r + ['featured' => true]; $used[$r['label']] = true; $taken[$k] = true; $feat[$r['label']] = true;
+  }
+  /* Öne çıkan markalar başlıkta/konuda önce gelir (sıra yine indirim yüzdesiyle). */
+  if ($feat) $brands = array_intersect_key($brands, $feat) + $brands;
+  $n += count($items);
   foreach ($rows as $k => $r) {
+    if (isset($taken[$k])) continue;
     if (count($items) >= $n) break;
     if (isset($used[$r['label']])) continue;
     $items[] = $r; $used[$r['label']] = true; $taken[$k] = true;
@@ -194,14 +217,32 @@ function vestra_campaign_deals(string $company = '', string $lang = 'en', ?array
 
   $html = '<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#3a3428">'.$h($hello).'</p>'
         . '<p style="margin:0 0 6px;font-size:15px;line-height:1.65;color:#3a3428">'.$h($intro).'</p>'
-        . $sec($h($t['grid'])).'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">';
-  foreach (array_chunk($pick['items'], 3) as $row) {
-    $html .= '<tr>';
-    foreach ($row as $p) $html .= '<td valign="top" width="33%" style="padding:0 5px 16px">'.$tile($p).'</td>';
-    for ($i = count($row); $i < 3; $i++) $html .= '<td width="33%"></td>';
-    $html .= '</tr>';
+        ;
+  $grid3 = static function (array $list, callable $cell): string {
+    $g = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">';
+    foreach (array_chunk($list, 3) as $row) {
+      $g .= '<tr>';
+      foreach ($row as $x) $g .= '<td valign="top" width="33%" style="padding:0 5px 16px">'.$cell($x).'</td>';
+      for ($i = count($row); $i < 3; $i++) $g .= '<td width="33%"></td>';
+      $g .= '</tr>';
+    }
+    return $g.'</table>';
+  };
+  /* Öne çıkanlar (VESTRA_DEALS_FEATURED) kendi başlıklarıyla en üstte; canlı depo fotoğrafları hemen altında. */
+  $featItems = array_values(array_filter($pick['items'], static fn($p) => !empty($p['featured'])));
+  $restItems = array_values(array_filter($pick['items'], static fn($p) => empty($p['featured'])));
+  $livePics = [];
+  foreach ($featItems as $p) foreach ((array)($p['live'] ?? []) as $u) if (count($livePics) < VESTRA_DEALS_LIVE_MAX) $livePics[] = ['src' => $u, 'url' => $p['url'], 'alt' => $p['label'].' '.$p['name']];
+  if ($featItems) {
+    $fl = array_values(array_unique(array_column($featItems, 'label')));
+    $html .= '<div style="margin:22px 0 4px;border-top:1px solid #ece6d8"></div>'.$sec($h(sprintf($t['spot'] ?? '%s', implode(' · ', $fl)))).$grid3($featItems, $tile);
+    if ($livePics) {
+      $html .= $sec($h($t['live'] ?? ''))
+        .$grid3($livePics, static fn($x) => '<a href="'.$h($x['url']).'" style="text-decoration:none"><img src="'.$h($x['src']).'" width="160" alt="'.$h($x['alt']).'" style="display:block;width:100%;max-width:160px;height:auto;border-radius:10px;border:1px solid #ece6d8"></a>')
+        .'<p style="margin:-6px 0 4px;font-size:12px;line-height:1.5;color:'.$mut.';text-align:center;font-style:italic">'.$h($t['live_note'] ?? '').'</p>';
+    }
   }
-  $html .= '</table>';
+  if ($restItems) $html .= $sec($h($t['grid'])).$grid3($restItems, $tile);
   $links = [];
   foreach (array_slice($pick['brands'], 0, 8, true) as $b => $pct)
     $links[] = '<a href="'.$h('https://vestrasales.com/shop?mode=sale&brand='.rawurlencode((string)($pick['raw'][$b] ?? $b)).'&'.VESTRA_DEALS_UTM.'&lang='.$lg).'" style="color:'.$ink.';text-decoration:none;white-space:nowrap"><b>'.str_replace(' ', '&nbsp;', $h($b)).'</b>&nbsp;<span style="color:'.$red.'">−'.(int)$pct.'%</span></a>';
@@ -215,8 +256,14 @@ function vestra_campaign_deals(string $company = '', string $lang = 'en', ?array
 
   /* Düz metin: aynı içerik + bağlantılar. Künye ayraçtan sonra. Fransızcada iki noktadan önce boşluk. */
   $c = $lg === 'fr' ? ' :' : ':';
-  $lines = [$hello, '', $intro, '', $t['grid'].$c];
-  foreach ($pick['items'] as $p) $lines[] = '- '.$p['label'].' — '.$p['name'].' (−'.(int)$p['pct'].'%): '.$p['url'];
+  $lines = [$hello, '', $intro, ''];
+  if ($featItems) {
+    $lines[] = sprintf($t['spot'] ?? '%s', implode(' · ', array_values(array_unique(array_column($featItems, 'label'))))).$c;
+    foreach ($featItems as $p) $lines[] = '- '.$p['label'].' — '.$p['name'].' (−'.(int)$p['pct'].'%): '.$p['url'];
+    if ($livePics) $lines[] = ($t['live'] ?? '').' — '.($t['live_note'] ?? '');
+    $lines[] = '';
+  }
+  if ($restItems) { $lines[] = $t['grid'].$c; foreach ($restItems as $p) $lines[] = '- '.$p['label'].' — '.$p['name'].' (−'.(int)$p['pct'].'%): '.$p['url']; }
   $hl = []; foreach (array_slice($pick['brands'], 0, 8, true) as $b => $pct) $hl[] = $b.' −'.(int)$pct.'%';
   $lines = array_merge($lines, ['', $t['houses'].$c.' '.implode(' · ', $hl), '', implode(' · ', $t['trust']), '', $t['cta1'].$c.' '.$shop, $t['cta2'].$c.' '.$reg, $t['note'], '', $t['bye']]);
   $body = implode("\n", $lines)."\n\n—\n".sprintf($t['legal'], $company !== '' ? $company : $t['shop']);
