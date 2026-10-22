@@ -507,6 +507,23 @@ $changes = 0;
 foreach ($plan as [$i, $set, $m]) {
   $p = $all[$i];
   $line = [];
+  /* SURESI DOLMUS AKTION KAYDI (22 Eki 2026, SH9623 / SH9608 / SH9626). Aktion bittikten sonra 'aktion' blogu
+     kayitta kaliyor ve vestra_aktion_apply() ilan HER OKUNUSTA blogun 'prev' fiyatlarini, listesini ve
+     pinned=false'unu geri yaziyor. Bu araclarla yazilan yeni kademe/liste/sabitleme dosyaya giriyor ama sitede
+     hic gorunmuyordu (uc Lacoste ilani 17 Ekim'den beri eski fiyatla, sabitlemesiz duruyordu; SAYFADA satiri da
+     ham kayittan hesaplandigi icin -%30 gosterip yaniltiyordu). Fiyat/sabitleme yazan bir satir artik suresi
+     dolmus blogu SILER (operatorun yeni degeri gecerli); SUREN bir aktion varken fiyat yazmak REDDEDILIR --
+     iki fiyat yolu ust uste binerdi, once aktion kapatilmali (seller-products admin_mode=aktion payload=clear). */
+  if (array_intersect(array_keys($set), ['price', 'tiers', 'sale_list', 'pinned', 'moq']) && function_exists('vestra_aktion_fields')
+      && ($af = vestra_aktion_fields($p))) {
+    if ((strtotime((string)$af['until']) ?: 0) > time()) {
+      fwrite(STDERR, "HATA: {$p['id']} uzerinde SUREN bir aktion var (bitis {$af['until']}) -- once aktion'u kapatin, sonra fiyat yazin\n");
+      exit(1);
+    }
+    unset($all[$i]['aktion']);
+    $line[] = "suresi dolmus aktion kaydi KALDIRILDI (bitis ".substr((string)$af['until'], 0, 10).") -- eski 'prev' fiyatlari/sabitlemesi artik sayfayi ezmez";
+    $changes++;
+  }
   foreach ($set as $k => $v) {
     if ($k === 'price') {
       $new = (float)$v; $old = (float)($p['list'] ?? 0);
@@ -774,7 +791,7 @@ foreach ($plan as [$i, $set, $m]) {
     if (!function_exists('vestra_display_mode') || !function_exists('vestra_from_price') || !function_exists('vestra_discount')) {
       $line[] = "  UYARI: sayfa fonksiyonlari sunucuda YOK (kod eski) -- rozet gosterilemedi";
     } else {
-      $fin  = $all[$i];
+      $fin  = function_exists('vestra_aktion_apply') ? vestra_aktion_apply($all[$i]) : $all[$i];   // sayfa ilani BU haliyle okur
       $fm   = number_format((float)($fin['list'] ?? 0), 2);
       $fp   = number_format((float)vestra_from_price($fin, true), 2);
       if (($fin['mode'] ?? '') !== 'sale') {
