@@ -63,6 +63,8 @@ if (@include_once __DIR__.'/inc/products.php') {
        Matched against the image PATH, so a folder-level fragment ('rl/csf-polo')
        takes a whole colourway line out in one entry. */
     $HERO_SKIP = ['burberry-8039175', 'rl/csf-polo'];
+    $HERO_PIN_FIRST = ['lac-fleece-hoodie', 'lac-crew-sweatshirt', 'lac-zip-hoodie', 'fp-m3600-polo', 'fp-m7535-sweat'];
+    $HERO_PIN_MAX = 6;   // vitrinde en çok kaç sabitli kare (önceden 3)
 
     /* Which houses lead the homepage and which one steps back. Matched as a
        lowercase substring of the product's brand, so "DSQUARED2" and "Dsquared2"
@@ -94,7 +96,14 @@ if (@include_once __DIR__.'/inc/products.php') {
         /* A product the operator has pinned (currently also pinned to the top of
            /shop) opens the film regardless of category -- it is the flagship piece
            of the moment, so it should lead rather than wait its turn in $WANT. */
-        if (!empty($hp['pinned']) && !in_array($im, $pinnedFrames, true)) $pinnedFrames[] = $im;
+        if (!empty($hp['pinned']) && !in_array($im, array_column($pinnedFrames, 1), true)) {
+            /* ONCE GELENLER (22 Eki 2026, operatör: "en son fiyatlarını güncellediğimiz Lacoste'ları ana sayfaya koy,
+               Fred Perry'leri de öne çıkar"): bu ilanlar sabitliyse vitrinin başına, verilen sırayla; diğer sabitliler
+               katalog sırasıyla arkalarından. Eskiden ilk 3 sabitli katalog sırasıyla alınıyordu ve yeni fiyatlı ilanlar
+               vitrine hiç çıkmıyordu. */
+            $pr = array_search((string)($hp['id'] ?? ''), $HERO_PIN_FIRST, true);
+            $pinnedFrames[] = [$pr === false ? 100 + count($pinnedFrames) : $pr, $im];
+        }
         $cat = (string)($hp['cat'] ?? '');
         $pos = array_search($cat, $WANT, true);
         if ($pos === false) continue;
@@ -127,7 +136,8 @@ if (@include_once __DIR__.'/inc/products.php') {
        show. The old cap was six — one frame per category — which left every plate
        holding a single photograph that never changed. */
     $HERO_MAX = 30;
-    $HERO_FRAMES = array_slice($pinnedFrames, 0, 3);
+    usort($pinnedFrames, fn($a, $b) => $a[0] <=> $b[0]);
+    $HERO_FRAMES = array_slice(array_column($pinnedFrames, 1), 0, $HERO_PIN_MAX);
 
     /* Round-robin across categories rather than one frame each: taking one per
        category filled the strip with the first six categories in $WANT and the
