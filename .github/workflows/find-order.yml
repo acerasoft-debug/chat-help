@@ -161,6 +161,12 @@ jobs:
                     foreach (preg_split('/\R/', $raw) ?: [] as $line) {
                         $s = strtolower($line);
                         if (!str_contains($s, $needle) && !($bare !== '' && str_contains($s, $bare))) continue;
+                        /* CSV satirinda e-posta/telefon ACIK duruyor ve bu kutuk herkese acik:
+                        full=0 iken maskele (JSON dali zaten scrub ediyor). */
+                        if (!$full) {
+                        $line = preg_replace_callback('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}/', fn($m) => mask($m[0]), $line);
+                        $line = preg_replace('/(?<=,)\\+?\\d[\\d\\s()\\/-]{6,}(?=,)/', '***(maskeli)', $line);
+                        }
                         echo "  " . mb_substr($line, 0, 2000) . "\n";
                         if (++$n >= 20) { echo "  … (ilk 20 satir)\n"; break; }
                     }
