@@ -13025,3 +13025,15 @@ E-postaların "View my order" düğmesi tam bu sayfaya açılıyor.
   yükünkiyle aynı değilse DURUR. **Açık kalan (rapor edildi, dokunulmadı):** OxaPay kripto tutarı sipariş EUR toplamından (fatura
   USD olsa da); admin kesen-taraf seçimi fatura kesildikten sonra da değişebiliyor (birim seçicisi engelliyor); checkout e-postası
   "satıcının banka bilgileri" diyor (o an doğru, sonradan kesen değişirse değil); cron en küçük numaralı belgeyi okuyor.
+
+## Platformun EUR hesapları kaldırıldı (22 Eki 2026)
+- Operatör: *"Acerasoft'un tüm Avrupa banka hesaplarını sil"* — Alman Banking Circle hesabı kapanmıştı, INV-2026-1039
+  (VIMA SRLS, VES-B7DDA4D4) hâlâ o IBAN'ı basıyordu ve müşteri oraya havale yaptı.
+- `vestra_platform_eur_clear(bool $apply)` (inc/invoice.php): düz `bank_iban` + `bank_eur_*` ve `banks` içindeki her EUR
+  profili tek yazmada kalkar; USD rayı/profilleri DOKUNULMAZ. Önce `platform_seller.json.bak-eur-<zaman>` (0600), sonra
+  geri okuma (EUR rayı 0 satır olmalı). `vestra_platform_seller_save` boş alanı "dokunma" saydığı için tek silme yolu budur.
+- İş akışı: `seller-products.yml admin_mode=platform_eur_clear` (varsayılan kuru koşu, `move_apply=true` uygular; kütükte
+  numara yok). Uygulandı 22 Eki 16:23 UTC: düz EUR rayı 5 → 0 satır, USD 6 satır aynen, EUR profili yoktu.
+- Sonuç: platform EUR faturasında ödeme kutusu basmaz → kesim `vestra_invoice_payment_gap` ile DURUR; platform faturası
+  artık USD'de kesilir (`admin_mode=currency` / `invoice_reissue`).
+- Test: `tests/platform_eur_clear_test.php` (27).
