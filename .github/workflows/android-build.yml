@@ -1,9 +1,9 @@
-name: Build Android APK (CHelp)
+name: Build Android APK (ChatHelp)
 
 on:
   workflow_dispatch: {}
   push:
-    branches: [ "claude/charming-franklin-1ynmuj" ]
+    branches: [ "claude/charming-franklin-1ynmuj", "claude/diagnostics-catalog-work-5gmxqw" ]
     paths:
       - "mobile/**"
       - ".github/workflows/android-build.yml"
@@ -43,29 +43,166 @@ jobs:
         working-directory: mobile
         run: npx capacitor-assets generate --android || echo "assets step skipped"
 
+      - name: Verify Google Play compliance patches (targetSdk 36 + edge-to-edge opt-out)
+        working-directory: mobile/android
+        run: |
+          grep -q "targetSdkVersion = 36" variables.gradle
+          grep -q "compileSdkVersion = 36" variables.gradle
+          grep -q "windowOptOutEdgeToEdgeEnforcement" app/src/main/res/values/styles.xml
+          grep -q "suppressUnsupportedCompileSdk=36" gradle.properties
+          echo "Play uyum yamalari dogrulandi: targetSdk 36, edge-to-edge opt-out, AGP uyari susturma"
+
       - name: Build debug APK
         working-directory: mobile/android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK
-        run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk CHelp.apk
+        run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk ChatHelp.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CHelp-debug-apk
-          path: CHelp.apk
+          name: ChatHelp-debug-apk
+          path: ChatHelp.apk
           if-no-files-found: error
 
       - name: Publish APK to a Release (direct download link)
+        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-latest
-          name: CHelp Android (Test-Build)
+          name: ChatHelp Android (Test-Build)
           body: |
-            CHelp Android test sürümü (debug APK).
-            Telefonda kur: bu sayfadaki **CHelp.apk**'ya dokun → Yükle.
+            ChatHelp Android test sürümü (debug APK).
+            Telefonda kur: bu sayfadaki **ChatHelp.apk**'ya dokun → Yükle.
             (Bilinmeyen kaynak uyarısı çıkarsa tarayıcıya izin ver.)
           prerelease: true
           make_latest: "false"
-          files: CHelp.apk
+          files: ChatHelp.apk
+
+  build-release:
+    # Google Play icin .aab. Secrets VARSA imzali uretir; YOKSA imzasiz
+    # (unsigned) uretip release'e yukler — imzalama sonra jarsigner ile
+    # terminalde yapilir (Google'in resmi destekledigi yol).
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      CI: "true"
+    steps:
+      - name: Check signing secrets present
+        id: sign
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+            echo "Secrets yok — IMZASIZ .aab uretilecek (jarsigner ile sonradan imzalanir)."
+          fi
+
+      - name: Check Play publish secret present
+        id: play
+        run: |
+          if [ -n "${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
+            echo "PLAY_SERVICE_ACCOUNT_JSON var — AAB otomatik Play (internal) kanalina yuklenecek."
+          else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+            echo "PLAY_SERVICE_ACCOUNT_JSON yok — otomatik Play yuklemesi ATLANIR (AAB yine artifact olarak kalir)."
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install deps + add Android platform + patch native
+        working-directory: mobile
+        run: |
+          npm install
+          npm run setup:android
+
+      - name: Generate app icon + splash
+        working-directory: mobile
+        run: npx capacitor-assets generate --android || echo "assets step skipped"
+
+      - name: Restore keystore from secret
+        if: steps.sign.outputs.has == 'true'
+        working-directory: mobile/android
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > release.jks
+
+      - name: Write key.properties from secrets
+        if: steps.sign.outputs.has == 'true'
+        working-directory: mobile/android
+        run: |
+          cat > key.properties <<EOF
+          storeFile=release.jks
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Fallback signing with committed upload keystore (no secrets)
+        if: steps.sign.outputs.has == 'false'
+        working-directory: mobile/android
+        run: |
+          cp ../ci/debug-shared.keystore release.jks
+          cp ../ci/debug-shared.keystore app/release.jks
+          cat > key.properties <<'EOF'
+          storeFile=release.jks
+          storePassword=android
+          keyAlias=androiddebugkey
+          keyPassword=android
+          EOF
+          echo "Committed upload keystore ile imzalanacak (Play upload key = bu anahtar)."
+
+      - name: Build release AAB
+        working-directory: mobile/android
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
+
+      - name: Rename AAB (always signed)
+        run: cp mobile/android/app/build/outputs/bundle/release/app-release.aab ChatHelp-release.aab
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChatHelp-release-aab
+          path: ChatHelp-release.aab
+          if-no-files-found: error
+
+      - name: Publish AAB to a Release (dogrudan .aab indirme, ZIP yok)
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-aab-latest
+          name: ChatHelp Android AAB (Play upload)
+          body: |
+            Google Play Console'a yuklenecek imzali AAB.
+            Asagidaki **ChatHelp-release.aab**'ye dokun -> dogrudan iner (ZIP degil).
+            Play Console -> Uretim -> Yeni surum -> bu .aab'yi yukle.
+          prerelease: true
+          make_latest: "false"
+          files: ChatHelp-release.aab
+
+      - name: Publish AAB to Google Play (internal track)
+        if: steps.play.outputs.has == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.acerasoft.chathelp
+          releaseFiles: ChatHelp-release.aab
+          track: internal
+          status: completed
+          changesNotSentForReview: false

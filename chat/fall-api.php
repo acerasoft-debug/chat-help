@@ -259,13 +259,17 @@ if ($action === 'fall_solve') {
     // Gerçek profil + tarih: sadece sunucuda birleştirilir, 3. taraflara gönderilmez
     $prof    = $body['profile'] ?? [];
     $datum   = trim($body['datum'] ?? date('d.m.Y'));
+    /* CH_FALLPROF — telefon alanina tarih yazilmaz; bos alan satirlari atlanir */
+    $chIsDate = function($s){ return (bool)preg_match('/^\s*(\d{4}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}\.\d{2,4})\s*$/', (string)$s); };
+    $chIsTel  = function($s) use ($chIsDate){ $s=trim((string)$s); if($s===''||$chIsDate($s)) return false; if(!preg_match('/^[+0-9 ()\/\-.]{5,}$/',$s)) return false; return strlen(preg_replace('/\D/','',$s))>=6; };
+    $chTel=''; if($chIsTel($prof['f6'] ?? '')) $chTel=trim((string)$prof['f6']); elseif($chIsTel($prof['f5'] ?? '')) $chTel=trim((string)$prof['f5']);
     $absName = trim(($prof['f1'] ?? '') . ' ' . ($prof['f2'] ?? ''));
     $absAdr  = trim(($prof['f3'] ?? '') . (($prof['f4'] ?? '') ? ', ' . $prof['f4'] : ''));
-    $profBlock = "ABSENDERDATEN (exakt diese Daten im Dokument verwenden, KEINE Platzhalter):\n"
+    $profBlock = "ABSENDERDATEN (exakt diese Daten im Dokument verwenden, KEINE Platzhalter; nicht genannte Felder WEGLASSEN):\n"
         . "Name: "    . ($absName ?: '[Vorname Nachname]') . "\n"
         . "Adresse: " . ($absAdr  ?: '[Straße, PLZ Ort]')  . "\n"
-        . "E-Mail: "  . ($prof['f7'] ?? '') . "\n"
-        . "Telefon: " . ($prof['f6'] ?? '') . "\n"
+        . ((($prof['f7'] ?? '') !== '') ? ("E-Mail: " . $prof['f7'] . "\n") : "")
+        . (($chTel !== '') ? ("Telefon: " . $chTel . "\n") : "")
         . "Datum: "   . $datum . "\n\n";
 
     $sys = "Du bist ein erfahrener deutscher Rechtsanwalt. Erstelle ein vollständiges, sofort einsetzbares "

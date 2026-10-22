@@ -1,0 +1,44 @@
+<?php
+/**
+ * ChatHelp — apply-fixpdf (CH_FIXPDF) — ACIL: Normal sablonda PDF cikmiyor.
+ *  [1] proceed(): __addr3OK bayragi 2,5 sn GECIKMELI sifirlanir — asenkron PDF
+ *      katmani bitmeden modal kendi cagrisini tekrar yakalamaz (PDF kilidi cozulur).
+ *  [2] Eksik alan akisi: confirm() KALKTI -> modal icinde doldurma paneli.
+ *      Her eksik alan icin giris kutusu (Datum bugunle otomatik), "✔ Uygula &
+ *      devam" metindeki ..... / [FELD] yerlerine isler. Ucretsiz baskida
+ *      "Yine de yazdir" var; gonderim/evime yolda alanlar TAMAMLANMADAN gecilmez.
+ *  5 count-guard'li degisim (IMZA5 blogu). Lint + opcache reset.
+ * KULLANIM: pull2.php?key=...&files=apply-fixpdf.php
+ */
+header('Content-Type: text/plain; charset=UTF-8');
+error_reporting(E_ERROR | E_PARSE);
+echo "apply-fixpdf BASLADI OK (PHP ".PHP_VERSION.")\n\n";
+$file = __DIR__.'/index.php';
+$src = @file_get_contents($file);
+if ($src===false) exit("index.php okunamadi\n");
+if (strpos($src,'ai-fillp')!==false) exit("Zaten ekli (CH_FIXPDF).\n");
+if (strpos($src,'CH_ADRES_IMZA5')===false) exit("HATA: once CH_ADRES_IMZA5 gerekli.\n");
+$REP = [["ICBmdW5jdGlvbiBwcm9jZWVkKGh0bWwpeyB3aW5kb3cuX19hZGRyM09LPXRydWU7IHdpbmRvdy5fX2FkZHJPSz10cnVlOyB0cnl7IENUWC5vcmlnLmNhbGwod2luZG93LGh0bWwpOyB9Y2F0Y2goZSl7IHRyeXsgQ1RYLm9yaWcoaHRtbCk7IH1jYXRjaChlMil7fSB9IHRyeXsgd2luZG93Ll9fYWRkcjNPSz1mYWxzZTsgd2luZG93Ll9fYWRkck9LPWZhbHNlOyB9Y2F0Y2goZSl7fSB9", "ICBmdW5jdGlvbiBwcm9jZWVkKGh0bWwpeyB3aW5kb3cuX19hZGRyM09LPXRydWU7IHdpbmRvdy5fX2FkZHJPSz10cnVlOyB0cnl7IENUWC5vcmlnLmNhbGwod2luZG93LGh0bWwpOyB9Y2F0Y2goZSl7IHRyeXsgQ1RYLm9yaWcoaHRtbCk7IH1jYXRjaChlMil7fSB9IHNldFRpbWVvdXQoZnVuY3Rpb24oKXsgdHJ5eyB3aW5kb3cuX19hZGRyM09LPWZhbHNlOyB3aW5kb3cuX19hZGRyT0s9ZmFsc2U7IH1jYXRjaChlKXt9IH0sMjUwMCk7IH0="], ["ICAvKiBkZXZhbSBldG1lZGVuIMO2bmNlIGVrc2lrIGFsYW4ga29udHJvbMO8IOKAlCBoYXJkPXRydWUgaWtlbiBibG9rbGFyLCBkZWdpbHNlIG9uYXkgc29yYXIgKi8KICBmdW5jdGlvbiBmaWxsR3VhcmQoaGFyZCl7CiAgICB2YXIgbT1taXNzaW5nRmllbGRzKGJvZHlWYWwoKSk7IGlmKCFtLmxlbmd0aCkgcmV0dXJuIHRydWU7CiAgICBpZihoYXJkKXsgdHJ5eyBhbGVydChUKCduZWVkZmlsbCcpK20uam9pbignLCAnKSk7IH1jYXRjaChlKXt9IHZhciBiPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdhaS1ib2R5Jyk7IGlmKGIpIHRyeXsgYi5mb2N1cygpOyB9Y2F0Y2goZSl7fSByZXR1cm4gZmFsc2U7IH0KICAgIHZhciBva2M9ZmFsc2U7IHRyeXsgb2tjPXdpbmRvdy5jb25maXJtKFQoJ2ZpbGxhbnknKS5yZXBsYWNlKCd7Zn0nLG0uam9pbignLCAnKSkpOyB9Y2F0Y2goZSl7IG9rYz10cnVlOyB9CiAgICBpZighb2tjKXsgdmFyIGIyPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdhaS1ib2R5Jyk7IGlmKGIyKSB0cnl7IGIyLmZvY3VzKCk7IH1jYXRjaChlKXt9IH0KICAgIHJldHVybiBva2M7CiAgfQ==", "ICAvKiBla3NpayBhbGFuIGFraXNpOiBtb2RhbCBJQ0lOREUgZG9sZHVybWEgcGFuZWxpIChjb25maXJtIHlvaykg4oCUIENIX0ZJWFBERiAqLwogIGZ1bmN0aW9uIF90b2RheSgpeyB2YXIgZD1uZXcgRGF0ZSgpOyBmdW5jdGlvbiB6KG4pe3JldHVybihuPDEwPycwJzonJykrbjt9IHJldHVybiB6KGQuZ2V0RGF0ZSgpKSsnLicreihkLmdldE1vbnRoKCkrMSkrJy4nK2QuZ2V0RnVsbFllYXIoKTsgfQogIGZ1bmN0aW9uIGFwcGx5RmlsbCgpewogICAgdmFyIGI9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2FpLWJvZHknKTsgaWYoIWIpIHJldHVybjsKICAgIHZhciB0PVN0cmluZyhiLnZhbHVlfHwnJyk7CiAgICB0cnl7IEFycmF5LnByb3RvdHlwZS5mb3JFYWNoLmNhbGwoZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnI2FpLWZpbGxwIFtkYXRhLW1mXScpLGZ1bmN0aW9uKGlucCl7CiAgICAgIHZhciBrPWlucC5nZXRBdHRyaWJ1dGUoJ2RhdGEtbWYnKTsgdmFyIHY9U3RyaW5nKGlucC52YWx1ZXx8JycpLnRyaW0oKTsgaWYoIXZ8fGs9PT0n4oCmJykgcmV0dXJuOwogICAgICBpZihrLmNoYXJBdCgwKT09PSdbJyl7IHdoaWxlKHQuaW5kZXhPZihrKSE9PS0xKSB0PXQucmVwbGFjZShrLHYpOyByZXR1cm47IH0KICAgICAgdmFyIHJlPW5ldyBSZWdFeHAoJygnK2sucmVwbGFjZSgvWy4qKz9eJHt9KCl8W1xdXFxdL2csJ1xcJCYnKSsnXFxzKls6XFwtXT9cXHMqKShcXC57Myx9fF97Myx9fHh7Myx9fFh7Myx9fC17Myx9fOKAlHsyLH0pJyk7CiAgICAgIHQ9dC5yZXBsYWNlKHJlLCckMScrdik7CiAgICB9KTsgfWNhdGNoKGUpe30KICAgIGIudmFsdWU9dDsKICB9CiAgZnVuY3Rpb24gZmlsbEZsb3coaGFyZCxjb250KXsKICAgIHZhciBtPW1pc3NpbmdGaWVsZHMoYm9keVZhbCgpKTsgaWYoIW0ubGVuZ3RoKXsgY29udCgpOyByZXR1cm47IH0KICAgIHZhciBvbGQ9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2FpLWZpbGxwJyk7IGlmKG9sZCkgb2xkLnJlbW92ZSgpOwogICAgdmFyIGFjdHM9ZG9jdW1lbnQucXVlcnlTZWxlY3RvcignI2FpLWJveCAuYWktYWN0cycpOwogICAgdmFyIHA9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnZGl2Jyk7IHAuaWQ9J2FpLWZpbGxwJzsgcC5jbGFzc05hbWU9J2FpLXdhcm4nOyBwLnN0eWxlLmNzc1RleHQ9J3dpZHRoOjEwMCU7bWFyZ2luOjhweCAwJzsKICAgIHZhciBMPVVJTCgpOwogICAgdmFyIGhkPXtkZTon4pqg77iPIE9mZmVuZSBBbmdhYmVuIOKAlCBiaXR0ZSBlcmfDpG56ZW46Jyx0cjon4pqg77iPIEVrc2lrIGJpbGdpbGVyIOKAlCBsw7x0ZmVuIHRhbWFtbGF5xLFuOicsZW46J+KaoO+4jyBNaXNzaW5nIGRldGFpbHMg4oCUIHBsZWFzZSBjb21wbGV0ZTonfVtMXXx8J+KaoO+4jyc7CiAgICB2YXIgYnQxPXtkZTon4pyUIMOcYmVybmVobWVuICYgZm9ydGZhaHJlbicsdHI6J+KclCBVeWd1bGEgJiBkZXZhbSBldCcsZW46J+KclCBBcHBseSAmIGNvbnRpbnVlJ31bTF18fCfinJQnOwogICAgdmFyIGJ0Mj17ZGU6J1Ryb3R6ZGVtIGRydWNrZW4nLHRyOidZaW5lIGRlIHlhemTEsXInLGVuOidQcmludCBhbnl3YXknfVtMXXx8J1ByaW50JzsKICAgIHZhciBnYXA9e2RlOidXZWl0ZXJlIEzDvGNrZW4gKOKApiAvIF9fXykgYml0dGUgb2JlbiBpbSBUZXh0IGVyZ8Okbnplbi4nLHRyOidEacSfZXIgYm/Fn2x1a2xhcsSxICjigKYgLyBfX18pIHl1a2FyxLFkYWtpIG1ldGluZGUgZG9sZHVydW4uJyxlbjonRmlsbCByZW1haW5pbmcgZ2FwcyAo4oCmIC8gX19fKSBpbiB0aGUgdGV4dCBhYm92ZS4nfVtMXXx8Jyc7CiAgICB2YXIgaD0nPGRpdiBzdHlsZT0iZm9udC13ZWlnaHQ6NzAwO21hcmdpbi1ib3R0b206NnB4Ij4nK2hkKyc8L2Rpdj4nOwogICAgbS5mb3JFYWNoKGZ1bmN0aW9uKGYpewogICAgICBpZihmPT09J+KApicpeyBoKz0nPGRpdiBjbGFzcz0iYWlrLWhpbnQiIHN0eWxlPSJjb2xvcjojZmZjZjdhO2ZvbnQtc2l6ZToxMXB4O21hcmdpbjoycHggMCI+JytnYXArJzwvZGl2Pic7IHJldHVybjsgfQogICAgICBoKz0nPGRpdiBzdHlsZT0ibWFyZ2luOjRweCAwIj48bGFiZWwgc3R5bGU9ImZvbnQtc2l6ZToxMXB4O2NvbG9yOiNmZmQ5YTAiPicrZXNjKGYpKyc8L2xhYmVsPjxpbnB1dCBjbGFzcz0iYWktaW4iIGRhdGEtbWY9IicrZXNjKGYpKyciIHN0eWxlPSJtYXJnaW4tdG9wOjJweCInKygvZGF0dW18dGFyaWgvaS50ZXN0KGYpPycgdmFsdWU9IicrX3RvZGF5KCkrJyInOicnKSsnPjwvZGl2Pic7CiAgICB9KTsKICAgIGgrPSc8ZGl2IHN0eWxlPSJkaXNwbGF5OmZsZXg7Z2FwOjhweDttYXJnaW4tdG9wOjhweDtmbGV4LXdyYXA6d3JhcCI+PGJ1dHRvbiBpZD0iYWktZmlsbC1nbyIgY2xhc3M9ImpiLW1idG4gcCIgc3R5bGU9ImZsZXg6MSI+JytidDErJzwvYnV0dG9uPicrKCFoYXJkPyc8YnV0dG9uIGlkPSJhaS1maWxsLXNraXAiIGNsYXNzPSJqYi1tYnRuIj4nK2J0MisnPC9idXR0b24+JzonJykrJzwvZGl2Pic7CiAgICBwLmlubmVySFRNTD1oOwogICAgaWYoYWN0cyYmYWN0cy5wYXJlbnROb2RlKSBhY3RzLnBhcmVudE5vZGUuaW5zZXJ0QmVmb3JlKHAsYWN0cyk7IGVsc2UgeyB2YXIgYng9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2FpLWJveCcpOyBpZihieCkgYnguYXBwZW5kQ2hpbGQocCk7IH0KICAgIHRyeXsgcC5zY3JvbGxJbnRvVmlldyh7YmxvY2s6J2NlbnRlcid9KTsgfWNhdGNoKGUpe30KICAgIHZhciBnbz1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYWktZmlsbC1nbycpOwogICAgaWYoZ28pIGdvLm9uY2xpY2s9ZnVuY3Rpb24oKXsgYXBwbHlGaWxsKCk7IHZhciByZXN0PW1pc3NpbmdGaWVsZHMoYm9keVZhbCgpKS5maWx0ZXIoZnVuY3Rpb24oeCl7IHJldHVybiB4IT09J+KApic7IH0pOyBpZihoYXJkJiZyZXN0Lmxlbmd0aCl7IHZhciBwcD1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYWktZmlsbHAnKTsgaWYocHApIHBwLnJlbW92ZSgpOyBmaWxsRmxvdyh0cnVlLGNvbnQpOyByZXR1cm47IH0gdmFyIHAyPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdhaS1maWxscCcpOyBpZihwMikgcDIucmVtb3ZlKCk7IGNvbnQoKTsgfTsKICAgIHZhciBzaz1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYWktZmlsbC1za2lwJyk7CiAgICBpZihzaykgc2sub25jbGljaz1mdW5jdGlvbigpeyB2YXIgcDM9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2FpLWZpbGxwJyk7IGlmKHAzKSBwMy5yZW1vdmUoKTsgY29udCgpOyB9OwogIH0KICBmdW5jdGlvbiBmaWxsR3VhcmQoaGFyZCl7IHJldHVybiAhbWlzc2luZ0ZpZWxkcyhib2R5VmFsKCkpLmxlbmd0aDsgfQ=="], ["ICBmdW5jdGlvbiBkb0ZyZWUoKXsgaWYoIWZpbGxHdWFyZChmYWxzZSkpIHJldHVybjsgdmFyIGh0bWw9ZmluYWxIdG1sKHRydWUpOyBzYXZlVG9waWNUeHQoYm9keVZhbCgpKTsgY2xvc2UoKTsgcHJvY2VlZChodG1sKTsgfQ==", "ICBmdW5jdGlvbiBkb0ZyZWUoKXsgZmlsbEZsb3coZmFsc2UsZnVuY3Rpb24oKXsgdmFyIGh0bWw9ZmluYWxIdG1sKHRydWUpOyBzYXZlVG9waWNUeHQoYm9keVZhbCgpKTsgY2xvc2UoKTsgcHJvY2VlZChodG1sKTsgfSk7IH0="], ["ICAgIGlmKCFmaWxsR3VhcmQoZmFsc2UpKSByZXR1cm47Cg==", "ICAgIGlmKCFmaWxsR3VhcmQodHJ1ZSkpeyBmaWxsRmxvdyh0cnVlLGZ1bmN0aW9uKCl7IGRvSG9tZSgpOyB9KTsgcmV0dXJuOyB9Cg=="], ["ICAgIGlmKCFmaWxsR3VhcmQodHJ1ZSkpIHJldHVybjsK", "ICAgIGlmKCFmaWxsR3VhcmQodHJ1ZSkpeyB2YXIgX3NiPWJ0bjsgZmlsbEZsb3codHJ1ZSxmdW5jdGlvbigpeyBkb1NlbmQoX3NiKTsgfSk7IHJldHVybjsgfQo="]];
+$i=0;
+foreach($REP as $pr){
+  $i++;
+  $o=base64_decode($pr[0]); $n=base64_decode($pr[1]);
+  $c=substr_count($src,$o);
+  if($c!==1){ exit("HATA: degisim #$i anchor $c kez (1 beklenir) — index DEGISTIRILMEDI.\n"); }
+  $src=str_replace($o,$n,$src);
+  echo "  ✓ degisim #$i uygulandi\n";
+}
+$tmp = tempnam(sys_get_temp_dir(),'fp').'.php';
+file_put_contents($tmp,$src);
+$lo=[];$rc=0; exec('php -l '.escapeshellarg($tmp).' 2>&1',$lo,$rc); @unlink($tmp);
+if ($rc!==0) { echo "\nLINT HATASI — index DEGISTIRILMEDI:\n  ".implode("\n  ",$lo)."\n"; exit; }
+@file_put_contents($file.'.bak-fixpdf-'.date('Ymd-His'), (string)@file_get_contents($file));
+$w=@file_put_contents($file,$src);
+if ($w===false || $w<strlen($src)) { echo "\n✗ YAZMA HATASI.\n"; exit; }
+if (function_exists('opcache_reset')) @opcache_reset();
+$chk=(string)@file_get_contents($file);
+if (strpos($chk,'ai-fillp')===false) { echo "\n✗ DOGRULAMA BASARISIZ.\n"; exit; }
+echo "\n  ✓ DOGRULAMA: CH_FIXPDF diskte (".strlen($chk)." bayt)\n";
+echo "\n✓ [1] PDF: bayrak gecikmeli sifirlanir -> Normal sablonda PDF tekrar cikar\n";
+echo "✓ [2] Eksik alanlar: panel icinde doldur -> ..... yerlerine islenir -> devam\n";
+echo "     (ucretsiz baskida 'Yine de yazdir'; gonderimde tamamlanmadan gecilmez)\n";

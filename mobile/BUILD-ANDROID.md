@@ -4,7 +4,7 @@ Bu klasör, mevcut `chat-help.com/chat` web uygulamasını **native Android** ka
 Uygulama açılışta native splash + status bar ile başlar, sonra canlı siteyi yükler (her güncelleme anında yansır),
 internet yoksa şık bir offline ekranı gösterir.
 
-- **Paket adı (appId):** `com.chathelp.app`  *(yayından sonra DEĞİŞMEZ — baştan doğru olsun)*
+- **Paket adı (appId):** `com.acerasoft.chathelp`  *(yayından sonra DEĞİŞMEZ — baştan doğru olsun)*
 - **Uygulama adı:** `ChatHelp`
 - **Ödeme:** uygulama ücretsiz; satın alma sitedeki Stripe akışında (mağaza komisyonu yok).
 
@@ -34,6 +34,7 @@ npm run setup:android
 3. `scripts/patch-android.js` → **premium native polish** uygular (aşağıya bak). Güvenle tekrar tekrar çalıştırılabilir (idempotent) — `android/` klasörünü silip yeniden oluşturduğunda sadece `npm run setup:android`'i tekrar çalıştırman yeter.
 
 ### Otomatik uygulanan premium native özellikler
+- **Google Play targetSdk 35 uyumu**: Capacitor 6 şablonu targetSdk 34 üretir; Play, Ağustos 2025'ten beri yeni uygulama ve güncellemelerde **API 35 (Android 15)** şart koşar. `variables.gradle` otomatik 35'e yükseltilir + Android 15'in zorunlu edge-to-edge davranışından çıkılır (durum çubuğu düzeni bozulmaz) + AGP sürüm uyarısı susturulur. Ayrıntı ve Play Console form cevapları: **`mobile/PLAY-COMPLIANCE.md`**.
 - **Donanım geri tuşu**: Android geri tuşu artık uygulamayı aniden kapatmıyor — önce WebView geçmişinde geri gider; en kökteyken çift basışla ("Nochmal drücken zum Beenden") çıkar. (`MainActivity.java`)
 - **Otomatik release imzalama**: `android/key.properties` oluşturduğunda (adım 4), `./gradlew bundleRelease` otomatik imzalı çıktı üretir — `build.gradle`'ı elle düzenlemene gerek yok.
 - **Biyometrik kilit altyapısı** (Face/parmak izi): kod hazır ama **varsayılan kapalı** (`MainActivity.java` içinde `BIOMETRIC_LOCK_ENABLED = false`). Cihazında test edip beğenirsen `true` yap + `npm run setup:android` ile yeniden derle. "Fail-open" tasarım — hata/iptal olursa kullanıcı asla kilitli kalmaz, içerik yine açılır.
@@ -84,6 +85,45 @@ keyPassword=SENIN_KEY_PAROLAN
 Bu kadar — **`build.gradle`'ı elle düzenlemene gerek yok**, `npm run setup:android` (adım 1) zaten `key.properties` varsa release'i otomatik imzalayacak şekilde bağladı.
 
 > `key.properties` ve `.jks` dosyalarını GİT'e koyma (zaten `.gitignore`'da).
+
+---
+
+## 4b) Mac'in yok mu? CI'da imzalı .aab üret (GitHub Secrets)
+
+Android Studio/Mac olmadan, sadece bir terminalde `keytool` çalıştırıp (Linux/Windows'ta da
+JDK ile gelir) 4 GitHub Secret ekleyerek CI'ya imzalı release build'i yaptırabilirsin —
+anahtarın kendisi hiçbir zaman koda veya loglara yazılmaz.
+
+1. **Keystore oluştur** (bir kere, güvenli bir yerde sakla — kaybedersen bu uygulamayı BİR DAHA
+   güncelleyemezsin):
+   ```bash
+   keytool -genkey -v -keystore chathelp-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias chathelp
+   ```
+   Sorulan store parolası + key parolasını not et.
+
+2. **Base64'e çevir** (GitHub Secrets sadece metin kabul eder):
+   ```bash
+   base64 -w0 chathelp-release.jks > chathelp-release.b64   # Linux
+   # Mac: base64 -i chathelp-release.jks | pbcopy
+   ```
+
+3. **GitHub'da 4 Secret ekle** → repo → *Settings* → *Secrets and variables* → *Actions* → *New repository secret*:
+   | İsim | Değer |
+   |---|---|
+   | `ANDROID_KEYSTORE_BASE64` | `chathelp-release.b64` dosyasının TAM içeriği |
+   | `ANDROID_KEYSTORE_PASSWORD` | store parolan |
+   | `ANDROID_KEY_ALIAS` | `chathelp` |
+   | `ANDROID_KEY_PASSWORD` | key parolan |
+
+4. **Workflow'u tetikle**: *Actions* sekmesi → *Build Android APK (CHelp)* → *Run workflow*
+   (veya `mobile/**` altına bir push yap). `build-release` job'u secret'ları görünce otomatik
+   çalışır ve imzalı `.aab`'yi üretir.
+
+5. **İndir**: workflow çalışması bitince *Artifacts* altında **CHelp-release-aab** — bu dosya
+   (`CHelp-release.aab`) doğrudan Play Console'a yüklenecek dosya.
+
+Secret'lar eklenmemişse bu job sessizce atlanır — mevcut test (debug APK) build'i her zaman
+normal çalışmaya devam eder.
 
 ---
 
@@ -151,7 +191,7 @@ Kod/bağımlılık tarafı hazır (`@capacitor/push-notifications` kurulu; `buil
 göndermek için:
 
 1. https://console.firebase.google.com → **Proje ekle** → ad: ChatHelp (Google hesabınla).
-2. **Android uygulaması ekle** → paket adı: `com.chathelp.app` → `google-services.json` indir.
+2. **Android uygulaması ekle** → paket adı: `com.acerasoft.chathelp` → `google-services.json` indir.
 3. Dosyayı `mobile/android/app/google-services.json` konumuna koy (`.gitignore`'a ekle, git'e girmesin).
 4. Bana haber ver — o an şunları ekleyip biteni işlerim: bildirim izni isteme, cihaz token'ını
    `chat-help.com`'a (backend'e) kaydetme, ve belge hazır olunca sunucudan FCM push gönderen küçük bir
