@@ -22,12 +22,14 @@ const VESTRA_DEALS_MIN_PCT = 10;
    koyalım … kampanya estetik olsun, live fotoları da ekle"). Bu ilanlar ızgaranın BAŞINA, marka başına tek ürün kuralı
    dışında girer (aynı markadan üçü birden) ve markaları konuda/başlıkta öne geçer. Yine yalnız SEÇİLEBİLİR olanlar:
    canlı, onaylı, ≥%10 indirimli — indirimi biten ilan kendiliğinden düşer. Canlı (depo) fotoğrafları bu ilanlardan. */
-const VESTRA_DEALS_FEATURED = ['lac-fleece-hoodie', 'lac-crew-sweatshirt', 'lac-zip-hoodie'];
+const VESTRA_DEALS_FEATURED = ['lac-fleece-hoodie', 'lac-crew-sweatshirt', 'lac-zip-hoodie', 'fp-m3600-polo', 'fp-m7535-sweat'];
+/* Fred Perry (aynı gün: "f.perry'leri de koy") indirimde değil: öne çıkan bir ilan indirimsiz de girer, rozeti
+   yüzde yerine "yeni" yazar (−%0 basılmaz). Öne çıkmayan ilanlar için ≥%10 kuralı aynen. */
 const VESTRA_DEALS_LIVE_MAX = 6;
 
 function vestra_deals_texts(string $lang): array {
   $T = [
-    'en' => ['spot' => '%s in focus', 'live' => 'Real photos · our EU warehouse', 'live_note' => 'New stock in original packaging with tags — photographed in our warehouse, not catalogue images.',
+    'en' => ['new' => 'New in', 'spot' => '%s in focus', 'live' => 'Real photos · our EU warehouse', 'live_note' => 'New stock in original packaging with tags — photographed in our warehouse, not catalogue images.',
       'subject' => '%s: trade markdowns up to −%d%% · VESTRA',
       'kicker' => 'Trade markdowns · while stock lasts', 'title' => 'Up to −%d%% on %s.',
       'hello' => 'Hello %s,', 'hello0' => 'Hello,',
@@ -40,7 +42,7 @@ function vestra_deals_texts(string $lang): array {
       'bye' => "Kind regards,\nThe VESTRA team",
       'legal' => "VESTRA is operated by Acerasoft LLC. You are receiving this business message because we wrote to %s about VESTRA before.\nDon't want to hear from us again? Unsubscribe instantly: https://vestrasales.com/lead-unsubscribe",
       'shop' => 'your boutique'],
-    'de' => ['spot' => 'Im Fokus: %s', 'live' => 'Echte Fotos · unser EU-Lager', 'live_note' => 'Neuware in Originalverpackung mit Etiketten — in unserem Lager fotografiert, keine Katalogbilder.',
+    'de' => ['new' => 'Neu', 'spot' => 'Im Fokus: %s', 'live' => 'Echte Fotos · unser EU-Lager', 'live_note' => 'Neuware in Originalverpackung mit Etiketten — in unserem Lager fotografiert, keine Katalogbilder.',
       'subject' => '%s: Händlerrabatte bis −%d%% · VESTRA',
       'kicker' => 'Händlerrabatte · solange der Vorrat reicht', 'title' => 'Bis zu −%d%% auf %s.',
       'hello' => 'Guten Tag %s,', 'hello0' => 'Guten Tag,',
@@ -53,7 +55,7 @@ function vestra_deals_texts(string $lang): array {
       'bye' => "Mit freundlichen Grüßen\nIhr VESTRA-Team",
       'legal' => "VESTRA wird von Acerasoft LLC betrieben. Sie erhalten diese geschäftliche Nachricht, weil wir %s bereits zu VESTRA kontaktiert haben.\nKeine weiteren Nachrichten? Sofort abmelden: https://vestrasales.com/lead-unsubscribe",
       'shop' => 'Ihre Boutique'],
-    'fr' => ['spot' => 'À la une : %s', 'live' => 'Photos réelles · notre entrepôt européen', 'live_note' => 'Stock neuf, emballage d’origine et étiquettes — photographié dans notre entrepôt, pas des images de catalogue.',
+    'fr' => ['new' => 'Nouveau', 'spot' => 'À la une : %s', 'live' => 'Photos réelles · notre entrepôt européen', 'live_note' => 'Stock neuf, emballage d’origine et étiquettes — photographié dans notre entrepôt, pas des images de catalogue.',
       'subject' => '%s : remises professionnelles jusqu’à −%d%% · VESTRA',
       'kicker' => 'Remises pro · dans la limite des stocks', 'title' => 'Jusqu’à −%d%% sur %s.',
       'hello' => 'Bonjour %s,', 'hello0' => 'Bonjour,',
@@ -66,7 +68,7 @@ function vestra_deals_texts(string $lang): array {
       'bye' => "Bien cordialement,\nL’équipe VESTRA",
       'legal' => "VESTRA est exploité par Acerasoft LLC. Vous recevez ce message professionnel car nous avons déjà écrit à %s au sujet de VESTRA.\nVous ne souhaitez plus nous lire ? Désinscription immédiate : https://vestrasales.com/lead-unsubscribe",
       'shop' => 'votre boutique'],
-    'it' => ['spot' => 'In primo piano: %s', 'live' => 'Foto reali · il nostro magazzino UE', 'live_note' => 'Merce nuova in confezione originale con cartellini — fotografata nel nostro magazzino, non immagini di catalogo.',
+    'it' => ['new' => 'Novità', 'spot' => 'In primo piano: %s', 'live' => 'Foto reali · il nostro magazzino UE', 'live_note' => 'Merce nuova in confezione originale con cartellini — fotografata nel nostro magazzino, non immagini di catalogo.',
       'subject' => '%s: sconti trade fino al −%d%% · VESTRA',
       'kicker' => 'Sconti trade · fino a esaurimento scorte', 'title' => 'Fino al −%d%% su %s.',
       'hello' => 'Buongiorno %s,', 'hello0' => 'Buongiorno,',
@@ -79,7 +81,7 @@ function vestra_deals_texts(string $lang): array {
       'bye' => "Cordiali saluti,\nIl team VESTRA",
       'legal' => "VESTRA è gestito da Acerasoft LLC. Ricevete questo messaggio commerciale perché abbiamo già contattato %s a proposito di VESTRA.\nNon volete più ricevere messaggi? Disiscrizione immediata: https://vestrasales.com/lead-unsubscribe",
       'shop' => 'la vostra boutique'],
-    'es' => ['spot' => 'Destacado: %s', 'live' => 'Fotos reales · nuestro almacén en la UE', 'live_note' => 'Stock nuevo en embalaje original con etiquetas — fotografiado en nuestro almacén, no imágenes de catálogo.',
+    'es' => ['new' => 'Novedad', 'spot' => 'Destacado: %s', 'live' => 'Fotos reales · nuestro almacén en la UE', 'live_note' => 'Stock nuevo en embalaje original con etiquetas — fotografiado en nuestro almacén, no imágenes de catálogo.',
       'subject' => '%s: descuentos mayoristas de hasta −%d%% · VESTRA',
       'kicker' => 'Descuentos profesionales · hasta agotar existencias', 'title' => 'Hasta −%d%% en %s.',
       'hello' => 'Hola %s,', 'hello0' => 'Hola,',
@@ -92,7 +94,7 @@ function vestra_deals_texts(string $lang): array {
       'bye' => "Un cordial saludo,\nEl equipo de VESTRA",
       'legal' => "VESTRA está operado por Acerasoft LLC. Recibe este mensaje comercial porque ya escribimos a %s sobre VESTRA.\n¿No quiere recibir más mensajes? Darse de baja al instante: https://vestrasales.com/lead-unsubscribe",
       'shop' => 'su boutique'],
-    'nl' => ['spot' => 'Uitgelicht: %s', 'live' => 'Echte foto’s · ons EU-magazijn', 'live_note' => 'Nieuwe voorraad in originele verpakking met labels — gefotografeerd in ons magazijn, geen catalogusbeelden.',
+    'nl' => ['new' => 'Nieuw', 'spot' => 'Uitgelicht: %s', 'live' => 'Echte foto’s · ons EU-magazijn', 'live_note' => 'Nieuwe voorraad in originele verpakking met labels — gefotografeerd in ons magazijn, geen catalogusbeelden.',
       'subject' => '%s: handelskortingen tot −%d%% · VESTRA',
       'kicker' => 'Handelskortingen · zolang de voorraad strekt', 'title' => 'Tot −%d%% op %s.',
       'hello' => 'Hallo %s,', 'hello0' => 'Hallo,',
@@ -105,7 +107,7 @@ function vestra_deals_texts(string $lang): array {
       'bye' => "Met vriendelijke groet,\nHet VESTRA-team",
       'legal' => "VESTRA wordt beheerd door Acerasoft LLC. U ontvangt dit zakelijke bericht omdat we eerder contact hebben opgenomen met %s over VESTRA.\nGeen berichten meer? Direct afmelden: https://vestrasales.com/lead-unsubscribe",
       'shop' => 'uw boetiek'],
-    'pt' => ['spot' => 'Em destaque: %s', 'live' => 'Fotos reais · o nosso armazém na UE', 'live_note' => 'Stock novo na embalagem original com etiquetas — fotografado no nosso armazém, não imagens de catálogo.',
+    'pt' => ['new' => 'Novidade', 'spot' => 'Em destaque: %s', 'live' => 'Fotos reais · o nosso armazém na UE', 'live_note' => 'Stock novo na embalagem original com etiquetas — fotografado no nosso armazém, não imagens de catálogo.',
       'subject' => '%s: descontos de atacado até −%d%% · VESTRA',
       'kicker' => 'Descontos profissionais · até esgotar o stock', 'title' => 'Até −%d%% em %s.',
       'hello' => 'Olá %s,', 'hello0' => 'Olá,',
@@ -150,7 +152,9 @@ function vestra_deals_pick(int $n = 6, ?array $all = null, ?int $now = null): ar
     if (($p['status'] ?? 'approved') !== 'approved') continue;                         // liste dışarıdan verilse de yalnız onaylı ilan
     $pct = vestra_on_sale($p) ? (int)vestra_discount($p) : 0;
     if (($a = vestra_aktion($p, $now))) $pct = max($pct, (int)$a['pct']);
-    if ($pct < VESTRA_DEALS_MIN_PCT || $pct >= 90) continue;   // %90+ veri hatasıdır, mektuba girmez
+    $isFeat = in_array((string)($p['id'] ?? ''), VESTRA_DEALS_FEATURED, true);
+    if ($pct >= 90 || ($pct < VESTRA_DEALS_MIN_PCT && !$isFeat)) continue;   // %90+ veri hatasıdır, mektuba girmez
+    if ($pct < VESTRA_DEALS_MIN_PCT) $pct = 0;   // öne çıkan, indirimsiz: rozet 'yeni'
     $imgs = $p['images'] ?? []; $img = is_array($imgs) && $imgs ? (string)$imgs[0] : (string)($p['image'] ?? '');
     if ($img === '') continue;
     if (!preg_match('#^https?://#i', $img)) $img = 'https://vestrasales.com'.(str_starts_with($img, '/') ? '' : '/').$img;
@@ -161,7 +165,7 @@ function vestra_deals_pick(int $n = 6, ?array $all = null, ?int $now = null): ar
   }
   usort($rows, static fn($a, $b) => [$b['pct'], $a['brand'], $a['name']] <=> [$a['pct'], $b['brand'], $b['name']]);
   $brands = []; $raw = [];
-  foreach ($rows as $r) { $brands[$r['label']] = max($brands[$r['label']] ?? 0, $r['pct']); $raw[$r['label']] ??= $r['brand']; }
+  foreach ($rows as $r) { $raw[$r['label']] ??= $r['brand']; if ($r['pct'] > 0) $brands[$r['label']] = max($brands[$r['label']] ?? 0, $r['pct']); }
   arsort($brands);
   $items = []; $used = []; $taken = []; $feat = [];
   foreach (VESTRA_DEALS_FEATURED as $fid) foreach ($rows as $k => $r) {
@@ -183,7 +187,7 @@ function vestra_deals_pick(int $n = 6, ?array $all = null, ?int $now = null): ar
   }
   /* 'raw': mektupta görünen ad → katalogdaki kayıtlı ad (BALMAIN). Katalog süzgeci kayıtlı adla eşleşir; bağlantıda görünen ad
      ("Balmain") giderse süzgeç tutmuyor, bütün indirimli ürünler açılıyordu. */
-  $out = ['items' => $items, 'brands' => $brands, 'raw' => $raw, 'max' => $rows ? $rows[0]['pct'] : 0, 'count' => count($rows)];
+  $out = ['items' => $items, 'brands' => $brands, 'raw' => $raw, 'max' => $brands ? (int)max($brands) : 0, 'count' => count(array_filter($rows, static fn($r) => $r['pct'] > 0))];
   if ($key !== '') $memo[$key] = $out;
   return $out;
 }
@@ -205,10 +209,13 @@ function vestra_campaign_deals(string $company = '', string $lang = 'en', ?array
   $intro = count($pick['brands']) === 1 ? sprintf($t['intro1'], $topTxt, $max) : sprintf($t['intro'], $topTxt, $max);   // tek marka: "birkaç marka" denmez
   $gold = '#a97f2c'; $ink = '#14110c'; $mut = '#8a8272'; $red = '#b4451f';
   $sec = static fn(string $x) => '<div style="color:'.$gold.';font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;text-align:center;margin:26px 0 12px">'.$x.'</div>';
-  $tile = static function (array $p) use ($h, $ink, $mut, $red): string {
+  $newTxt = (string)($t['new'] ?? 'New in');
+  $tile = static function (array $p) use ($h, $ink, $mut, $red, $newTxt): string {
     return '<a href="'.$h($p['url']).'" style="text-decoration:none;color:'.$ink.'">'
       .'<img src="'.$h($p['img']).'" width="160" alt="'.$h($p['label'].' '.$p['name']).'" style="display:block;width:100%;max-width:160px;height:auto;border-radius:10px;border:1px solid #ece6d8;background:#f7f4ee">'
-      .'<div style="margin:8px 0 2px"><span style="display:inline-block;background:'.$red.';color:#ffffff;font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px">−'.(int)$p['pct'].'%</span></div>'
+      .'<div style="margin:8px 0 2px">'.((int)$p['pct'] > 0
+          ? '<span style="display:inline-block;background:'.$red.';color:#ffffff;font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px">−'.(int)$p['pct'].'%</span>'
+          : '<span style="display:inline-block;background:#14110c;color:#f4ecd8;font-size:11px;font-weight:700;letter-spacing:.06em;border-radius:999px;padding:4px 10px">'.$h($newTxt).'</span>').'</div>'
       .'<div style="font-family:Georgia,serif;font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:6px 0 2px;word-break:break-word">'.$h($p['label']).'</div>'
       .'<div style="font-size:12px;color:'.$mut.';line-height:1.35">'.$h(mb_strimwidth($p['name'], 0, 46, '…', 'UTF-8')).'</div></a>';
   };
@@ -259,7 +266,7 @@ function vestra_campaign_deals(string $company = '', string $lang = 'en', ?array
   $lines = [$hello, '', $intro, ''];
   if ($featItems) {
     $lines[] = sprintf($t['spot'] ?? '%s', implode(' · ', array_values(array_unique(array_column($featItems, 'label'))))).$c;
-    foreach ($featItems as $p) $lines[] = '- '.$p['label'].' — '.$p['name'].' (−'.(int)$p['pct'].'%): '.$p['url'];
+    foreach ($featItems as $p) $lines[] = '- '.$p['label'].' — '.$p['name'].' ('.((int)$p['pct'] > 0 ? '−'.(int)$p['pct'].'%' : $newTxt).'): '.$p['url'];
     if ($livePics) $lines[] = ($t['live'] ?? '').' — '.($t['live_note'] ?? '');
     $lines[] = '';
   }
