@@ -263,6 +263,71 @@ function vestra_platform_seller_bank(string $key): ?array {
     return $acc;
 }
 
+/**
+ * PLATFORMUN BÜTÜN AVRUPA (EUR) HESAPLARINI KALDIRIR (22 Eki 2026).
+ *
+ * Operatör: *"Acerasoft'un tüm Avrupa banka hesaplarını sil"* — Alman Banking
+ * Circle hesabı kapanmıştı, INV-2026-1039 (VIMA SRLS) hâlâ o IBAN'ı basıyordu ve
+ * müşteri oraya havale yaptı. vestra_platform_seller_save boş alanı "dokunma"
+ * sayar (KURAL 5c: GET ile dolu alan ezilmez), yani düz EUR rayını SİLMENİN bir
+ * yolu yoktu; profil silici de düz alanlara dokunmuyor. Bu fonksiyon ikisini
+ * birden yapar: düz künyeden bank_iban + bank_eur_* kalkar, `banks` içindeki
+ * her EUR profili silinir. USD rayına ve USD profillerine DOKUNMAZ.
+ *
+ * Önce yedek (platform_seller.json.bak-eur-<zaman>, 0600), sonra yazma, sonra
+ * GERİ OKUMA: EUR rayı hâlâ kutu üretiyorsa ok=false. Dönen özet rakam
+ * taşımaz (kütük herkese açık). $apply=false = kuru koşu, dosyaya dokunmaz.
+ */
+function vestra_platform_eur_clear(bool $apply): array {
+    $f = vestra_data_dir().'/platform_seller.json';
+    $cur = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+    if (!is_array($cur)) $cur = [];
+    $flat = ['bank_iban', 'bank_eur_bic', 'bank_eur_name', 'bank_eur_address'];
+    $flatHad = array_values(array_filter($flat, fn($k) => trim((string)($cur[$k] ?? '')) !== ''));
+    $eurKeys = [];
+    foreach (vestra_platform_banks() as $k => $p) {
+        if (strtoupper((string)($p['currency'] ?? '')) === 'EUR') $eurKeys[$k] = (string)($p['label'] ?? $k);
+    }
+    /* Kaldırılan profili seçmiş AÇIK kayıtlar: kesimde vestra_platform_bank_mismatch
+       "no longer exists" ile DURUR — operatör seçimi değiştirsin diye listelenir. */
+    $refsHit = [];
+    foreach (vestra_read_json('order_statuses.json') as $ref => $st) {
+        $k = strtolower(trim((string)($st['invoice_bank'] ?? '')));
+        if ($k !== '' && isset($eurKeys[$k]) && (string)($st['status'] ?? 'pending') === 'pending') $refsHit[] = (string)$ref;
+    }
+    foreach (vestra_read_json('offer_responses.json') as $ref => $rs) {
+        $k = strtolower(trim((string)($rs['invoice_bank'] ?? '')));
+        if ($k !== '' && isset($eurKeys[$k])) $refsHit[] = (string)$ref;
+    }
+    $out = ['ok' => true, 'applied' => false, 'flat_cleared' => $flatHad, 'profiles_removed' => $eurKeys,
+            'refs_affected' => $refsHit, 'eur_rails_before' => count(vestra_payment_rails(vestra_platform_seller(), 'EUR')),
+            'usd_rails' => count(vestra_payment_rails(vestra_platform_seller(), 'USD')), 'backup' => ''];
+    if (!$apply) return $out;
+    if (!$flatHad && !$eurKeys) return $out;   /* silinecek bir şey yok, dosyaya dokunma */
+    if (!is_readable($f)) { $out['ok'] = false; $out['error'] = 'platform_seller.json yok'; return $out; }
+    $bak = $f.'.bak-eur-'.gmdate('Ymd-His');
+    if (@copy($f, $bak) === false) { $out['ok'] = false; $out['error'] = 'yedek alinamadi'; return $out; }
+    @chmod($bak, 0600);
+    $out['backup'] = basename($bak);
+    foreach ($flat as $k) unset($cur[$k]);
+    if (isset($cur['banks']) && is_array($cur['banks'])) {
+        foreach (array_keys($eurKeys) as $k) unset($cur['banks'][$k]);
+        if (!$cur['banks']) unset($cur['banks']);
+    }
+    $ok = @file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX);
+    @chmod($f, 0600);
+    $back = vestra_platform_seller();
+    $left = array_values(array_filter($flat, fn($k) => trim((string)($back[$k] ?? '')) !== ''));
+    $leftProf = array_intersect_key(vestra_platform_banks(), $eurKeys);
+    $out['applied'] = true;
+    $out['eur_rails_after'] = count(vestra_payment_rails($back, 'EUR'));
+    $out['usd_rails'] = count(vestra_payment_rails($back, 'USD'));
+    if ($ok === false || $left || $leftProf || $out['eur_rails_after'] !== 0) {
+        $out['ok'] = false; $out['error'] = 'geri okuma: EUR kaydi hala duruyor ('.implode(',', $left).' '.implode(',', array_keys($leftProf)).')';
+    }
+    return $out;
+}
+
 /** Seçili profilin belgenin birimiyle uyuşup uyuşmadığı: '' = sorun yok, dolu = insan diliyle uyarı. */
 function vestra_platform_bank_mismatch(string $key, string $currency): string {
     $key = strtolower(trim($key));
