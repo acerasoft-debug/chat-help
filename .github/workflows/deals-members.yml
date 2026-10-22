@@ -1,0 +1,49 @@
+name: İndirim kampanyası → KAYITLI alıcılar (sunucudan)
+# 22 Eki 2026 (operatör: "önce kayıtlılara, İtalyan hariç — büyük müşteri; sonra diğerlerine; sonra rapor ver").
+# public_html/cli_deals_members.php: dry = sayım (kimseye gitmez) · send = arka planda gönderim (8–11 sn arayla, sunucunun
+# günlük 500'ünü süren indirim partisiyle paylaşır) · status = gönderim kütüğünün sonu. Adresler kütükte maskeli.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry | send | status"
+        required: true
+        default: "dry"
+      limit:
+        description: "En çok kaç mektup"
+        required: false
+        default: "500"
+      exclude:
+        description: "Hariç tutulacak firma/ad parçaları (virgülle)"
+        required: false
+        default: "mercatista"
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        env:
+          MODE: ${{ github.event.inputs.mode }}
+          LIMIT: ${{ github.event.inputs.limit }}
+          EXCL: ${{ github.event.inputs.exclude }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: MODE,LIMIT,EXCL
+          script: |
+            cd ~/public_html; mkdir -p ~/vestra_tmp; L=~/vestra_tmp/deals-members.log
+            M=$(printf '%s' "$MODE" | tr -cd 'a-z'); N=$(printf '%s' "$LIMIT" | tr -cd '0-9'); X=$(printf '%s' "$EXCL" | tr -cd 'A-Za-z0-9 ,._-')
+            case "$M" in
+              dry)    php cli_deals_members.php dry "${N:-500}" "$X" ;;
+              send)   if pgrep -f cli_deals_members.php >/dev/null; then echo "zaten calisiyor"; tail -n 5 "$L"; exit 0; fi
+                      nohup php cli_deals_members.php send "${N:-500}" "$X" > "$L" 2>&1 < /dev/null &
+                      sleep 25; echo "arka planda basladi"; head -n 12 "$L"; echo ...; tail -n 3 "$L" ;;
+              status) pgrep -f cli_deals_members.php >/dev/null && echo "DURUM: suruyor" || echo "DURUM: bitti/calismiyor"
+                      head -n 12 "$L" 2>/dev/null; echo ...; tail -n 8 "$L" 2>/dev/null
+                      echo "gonderilen: $(grep -c '^  ok' "$L" 2>/dev/null) · hata: $(grep -c '^  HATA' "$L" 2>/dev/null)" ;;
+              *) echo "mode: dry|send|status"; exit 1 ;;
+            esac
