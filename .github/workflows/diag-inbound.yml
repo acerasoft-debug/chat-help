@@ -1,0 +1,26 @@
+name: (Salt-okunur) Gelen posta — support@vestrasales.com nereye düşüyor
+# 22 Eki 2026 (operatör: "cevap verdim diyor ama cevap gelmedi"). MX kaydı, cPanel posta kutuları, yönlendiriciler
+# (forwarder), varsayılan adres (catch-all) ve support@ için yerel teslim durumu. Adresler MASKELİ basılır; hiçbir şey yazmaz.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            m() { sed -E 's/([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@/\1***@/g'; }
+            echo "== MX (vestrasales.com) =="; php -r 'foreach (dns_get_record("vestrasales.com", DNS_MX) ?: [] as $r) echo "  ".$r["pri"]." ".$r["target"]."\n";'
+            echo "== cPanel posta kutulari =="; uapi --output=json Email list_pops 2>/dev/null | php -r '$d=json_decode(stream_get_contents(STDIN),true); foreach ((array)($d["result"]["data"]??[]) as $x) echo "  ".($x["email"]??"?")."\n"; echo "  toplam: ".count((array)($d["result"]["data"]??[]))."\n";' | m
+            echo "== Yonlendiriciler =="; uapi --output=json Email list_forwarders 2>/dev/null | php -r '$d=json_decode(stream_get_contents(STDIN),true); foreach ((array)($d["result"]["data"]??[]) as $x) echo "  ".($x["dest"]??"?")." -> ".($x["forward"]??"?")."\n"; echo "  toplam: ".count((array)($d["result"]["data"]??[]))."\n";' | m
+            echo "== Varsayilan adres (catch-all) =="; uapi --output=json Email list_default_address domain=vestrasales.com 2>/dev/null | php -r '$d=json_decode(stream_get_contents(STDIN),true); foreach ((array)($d["result"]["data"]??[]) as $x) echo "  ".($x["domain"]??"?").": ".($x["defaultaddress"]??"?")."\n";' | m
+            echo "== MX yerel mi uzak mi =="; uapi --output=json Email list_mxs domain=vestrasales.com 2>/dev/null | php -r '$d=json_decode(stream_get_contents(STDIN),true); foreach ((array)($d["result"]["data"]??[]) as $x) echo "  routing: ".($x["detected"]??"?")." / ".($x["mxcheck"]??"?")."\n";'
+            echo "== support@ icin son gelen posta izleri (exim, son 2 gun) =="; for f in ~/logs/exim_mainlog ~/mail/exim_mainlog; do [ -r "$f" ] && grep -i "support@vestrasales.com" "$f" | tail -5 | m; done; echo "(log okunamadiysa bos)"
+            ls -d ~/mail/vestrasales.com/* 2>/dev/null | sed 's#.*/##' | m
