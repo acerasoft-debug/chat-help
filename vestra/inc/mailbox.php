@@ -538,6 +538,12 @@ function vestra_mailbox_followups_today(string $camp = '', ?array $leads = null,
 
 /** Bugünkü indirim payı: tam tavanda (500) 300; tavan düşükse (ısınma / panel) aynı oranda (%60). */
 function vestra_mailbox_deals_quota(?array $leads = null): int {
+  /* TEK GÜNLÜK PAY (22 Eki 2026, operatör: "kendi server'dan 500 tane gönderelim"): mailbox.json'da deals_quota +
+     deals_quota_day (sunucu günü) varsa o gün pay odur -- yine günün sunucu tavanını aşamaz. Ertesi gün kendiliğinden
+     varsayılana (tam tavanda 300) döner; kalıcı bir ayar değil. */
+  $c = vestra_mailbox_cfg();
+  if ((string)($c['deals_quota_day'] ?? '') === date('Y-m-d') && (int)($c['deals_quota'] ?? 0) > 0)
+    return min((int)$c['deals_quota'], vestra_mailbox_cap_today($leads));
   return min(VESTRA_MAILBOX_DEALS_DAILY, intdiv(vestra_mailbox_cap_today($leads) * VESTRA_MAILBOX_DEALS_DAILY, VESTRA_MAILBOX_MAX_CAP));
 }
 
