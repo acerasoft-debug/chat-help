@@ -54,7 +54,7 @@ jobs:
             $pii = '~@|\+?\d[\d\s().-]{7,}\d~';
             foreach ($hit as $l) {
               $out = [];
-              foreach (['id','status','mode','brand','name','sku','section','cat','gender','list','moq','size_step','min_colors','colorqty','sizes','series','pack','lot','origin','condition','seller_uid'] as $k)
+              foreach (['id','status','mode','pinned','tiers','brand','name','sku','section','cat','gender','list','moq','size_step','min_colors','colorqty','sizes','series','pack','lot','origin','condition','seller_uid'] as $k)
                 if (array_key_exists($k, $l)) $out[$k] = $l[$k];
               $out['colors'] = array_map(fn($c) => ['name' => (string)$c, 'base' => vestra_colour_base((string)$c), 'css' => vestra_colour_css((string)$c)], array_values((array)($l['colors'] ?? [])));
               $out['pack_size'] = vestra_pack_size($l);
