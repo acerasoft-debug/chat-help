@@ -1,0 +1,5 @@
+[
+  {"match": "lac-zip-hoodie", "expect": 1,
+   "moq": 50, "tiers": [{"min": 50, "price": 47.00}, {"min": 100, "price": 42.50}, {"min": 200, "price": 39.90}],
+   "pinned": true}
+]
