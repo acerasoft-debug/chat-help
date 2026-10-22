@@ -16,6 +16,10 @@ on:
         description: "Açarken: tomorrow = bugün yeniden başlamaz, yarın 08:30'dan (23:45 turu da bu gece yok) · now = bugünden"
         required: false
         default: "tomorrow"
+      quota:
+        description: "Açarken (isteğe bağlı): BUGÜNKÜ indirim payı (ör. 490). Yalnız bugün geçerli, sunucu tavanını aşamaz; boş = varsayılan (300)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -28,12 +32,13 @@ jobs:
         env:
           ON: ${{ github.event.inputs.enable }}
           START: ${{ github.event.inputs.start }}
+          QUOTA: ${{ github.event.inputs.quota }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: ON,START
+          envs: ON,START,QUOTA
           command_timeout: 2m
           script: |
             cd ~/public_html
@@ -43,6 +48,8 @@ jobs:
             require 'inc/products.php'; require_once 'inc/mailbox.php';
             $on = strtolower(trim((string)getenv('ON'))) === 'true';
             $cfg = vestra_mailbox_cfg(); $cfg['deals'] = $on; $cfg['followup'] = $on; $cfg['deals_switch_at'] = date('c');
+            $q = (int)preg_replace('/\D/', '', (string)getenv('QUOTA'));
+            if ($on && $q > 0) { $cfg['deals_quota'] = min($q, VESTRA_MAILBOX_MAX_CAP); $cfg['deals_quota_day'] = date('Y-m-d'); echo "bugunku indirim payi: ".$cfg['deals_quota']." (".date('Y-m-d').")\n"; }
             if ($on && strtolower(trim((string)getenv('START'))) !== 'now') {   // bugünün denemeleri ve 23:45 turu tükenmiş sayılır
               $cfg['deals_day'] = date('Y-m-d'); $cfg['deals_tries'] = defined('VESTRA_MAILBOX_DEALS_TRIES') ? VESTRA_MAILBOX_DEALS_TRIES : 3; $cfg['followup_day'] = date('Y-m-d');
             }
@@ -57,6 +64,7 @@ jobs:
             echo ($on ? "INDIRIM PARTISI + 23:45 TURU ACIK".(strtolower(trim((string)getenv('START'))) !== 'now' ? " (yarin 08:30'dan)" : " (bugunden)") : "INDIRIM PARTISI + 23:45 TURU KAPALI")." · iptal edilen takip istegi: {$c}\n";
             if ($on && function_exists('vestra_mailbox_followup_targets')) echo "uygun indirim alicisi (yeni kurallarla): ".count(vestra_mailbox_followup_targets(5000))."\n";
             echo "bugun indirim mektubu: ".vestra_mailbox_followups_today('deals')." · bugun toplam: ".vestra_mailbox_sent_today()."\n";
+            echo "gecerli indirim payi (bugun): ".vestra_mailbox_deals_quota()." · sunucu tavani: ".vestra_mailbox_cap_today()."\n";
             exit($kill ? 3 : 0);
             PHPEOF
             php /tmp/vestra_deals_switch.php 2>&1; rc=$?; rm -f /tmp/vestra_deals_switch.php
