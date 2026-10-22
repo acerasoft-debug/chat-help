@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "dry | send | status"
+        description: "dry | send | status | stop"
         required: true
         default: "dry"
       limit:
@@ -46,5 +46,6 @@ jobs:
               status) alive && echo "DURUM: suruyor" || echo "DURUM: bitti/calismiyor"
                       head -n 12 "$L" 2>/dev/null; echo ...; tail -n 8 "$L" 2>/dev/null
                       echo "gonderilen: $(grep -c '^  ok' "$L" 2>/dev/null) · hata: $(grep -c '^  HATA' "$L" 2>/dev/null)" ;;
-              *) echo "mode: dry|send|status"; exit 1 ;;
+              stop)   if alive; then kill "$(cat "$P")" && echo "DURDURULDU"; else echo "calismiyor"; fi; tail -n 3 "$L" 2>/dev/null ;;
+              *) echo "mode: dry|send|status|stop"; exit 1 ;;
             esac
