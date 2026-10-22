@@ -71,6 +71,10 @@ jobs:
           n=$(gh run list --repo "${{ github.repository }}" --workflow brevo-daily.yml --limit 10 --json databaseId,createdAt \
                 --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.createdAt > \"$since\")] | length")
           echo "son 100 dk: $n başka koşu"
+          # DURAKLAT GUNU (22 Eki 2026, operatör: "brevo'dan 100 email gönder, 200 mesajlaşma için kalsın"): .github/brevo-pause-dates
+          # dosyasında bugünün tarihi (UTC, YYYY-AA-GG) varsa bu soğuk gönderim o gün HİÇ koşmaz -- sunucu tetiklese de.
+          if gh api "repos/${{ github.repository }}/contents/.github/brevo-pause-dates?ref=${{ github.ref_name }}" --jq .content 2>/dev/null | base64 -d 2>/dev/null | grep -qx "$(date -u +%F)"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"; echo "atlandı: bugün Brevo soğuk gönderimi duraklatıldı (.github/brevo-pause-dates)"; fi
           if [ "${n:-0}" -gt 0 ] && [ "${{ github.event.inputs.dry_run || 'false' }}" != "true" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "atlandı: aynı slot zaten çalıştı"; fi
       - name: Partiyi başlat
         if: steps.guard.outputs.skip != 'true'
@@ -99,6 +103,10 @@ jobs:
           n=$(gh run list --repo "${{ github.repository }}" --workflow brevo-daily.yml --limit 10 --json databaseId,createdAt \
                 --jq "[.[] | select(.databaseId != ${{ github.run_id }}) | select(.createdAt > \"$since\")] | length")
           echo "son 100 dk: $n başka koşu"
+          # DURAKLAT GUNU (22 Eki 2026, operatör: "brevo'dan 100 email gönder, 200 mesajlaşma için kalsın"): .github/brevo-pause-dates
+          # dosyasında bugünün tarihi (UTC, YYYY-AA-GG) varsa bu soğuk gönderim o gün HİÇ koşmaz -- sunucu tetiklese de.
+          if gh api "repos/${{ github.repository }}/contents/.github/brevo-pause-dates?ref=${{ github.ref_name }}" --jq .content 2>/dev/null | base64 -d 2>/dev/null | grep -qx "$(date -u +%F)"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"; echo "atlandı: bugün Brevo soğuk gönderimi duraklatıldı (.github/brevo-pause-dates)"; fi
           if [ "${n:-0}" -gt 0 ] && [ "${{ github.event.inputs.dry_run || 'false' }}" != "true" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "atlandı: aynı slot zaten çalıştı"; fi
       - name: Günün kalanı (150'ye kadar) 50'lik partilerle (0 gönderene kadar, en çok 5)
         if: steps.guard.outputs.skip != 'true'
