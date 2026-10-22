@@ -2052,7 +2052,9 @@ jobs:
                 echo "fatura  : {$bInvNo} | PDF ".filesize($bPdf)." bayt | cizim ".gmdate('Y-m-d H:i', $bPdfAt)." UTC\n";
               }
               $bAmt = ($bCur === 'USD' ? 'US$' : ($bCur === 'EUR' ? '€' : $bCur.' ')).number_format($bAmount, 2, '.', ',');
-              $bRefLine = $bRef.($bInvNo !== '' ? ' / '.$bInvNo : '');
+              /* ref_only=1: odeme referansi yalniz siparis ref'i (operator, 22 Eki 2026:
+                 "fatura no vs yazmana gerek yok") -- numara ekteki belgede zaten var. */
+              $bRefLine = $bRef.($bInvNo !== '' && trim($E('ref_only')) !== '1' ? ' / '.$bInvNo : '');
               $persona = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
               echo "durum   : ".($bSt['status'] ?? 'pending')." | odeme saati: {$bG['phase']}\n";
               echo "kesen   : {$bIssuer}\nbanka   : {$bCur} -- ".count($bRails)." satir (degerler kutuge basilmaz)\n";
