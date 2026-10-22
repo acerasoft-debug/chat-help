@@ -12,6 +12,7 @@ return [
     <h3>Operatore</h3>
     <ul><li><b>Societ&agrave;:</b> Acerasoft LLC</li>
     <li><b>Forma giuridica:</b> US Limited Liability Company (State of Delaware)</li>
+    <li><b>Codice fiscale (EIN, USA):</b> 61-2070643</li>
     <li><b>Sede legale:</b> 8 The Green, Suite B, Dover, Delaware 19901, USA</li>
     <li><b>Rappresentata da:</b> Management</li>
     <li><b>Contatto:</b> <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a> &middot; <a href='mailto:support@vestrasales.com'>support@vestrasales.com</a></li></ul>

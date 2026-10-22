@@ -1918,7 +1918,7 @@ if ($shoePicks):
     <div class="sfoot-brand">
       <div class="sfoot-logo"><?= htmlspecialchars($BRAND) ?></div>
       <p><?= $t['tagline'] ?>.</p>
-      <address>Acerasoft LLC<br>8 The Green, Suite B<br>Dover, Delaware 19901, USA</address>
+      <address>Acerasoft LLC<br>8 The Green, Suite B<br>Dover, Delaware 19901, USA<br>EIN 61-2070643</address>
       <a class="acc" href="mailto:<?= htmlspecialchars($CONTACT) ?>"><?= htmlspecialchars($CONTACT) ?></a>
     </div>
     <div class="sfoot-col" role="navigation" aria-label="<?= htmlspecialchars(t('Marketplace')) ?>">

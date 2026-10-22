@@ -73,6 +73,7 @@ function vestra_legal_en(){
     <h3>Operator</h3>
     <ul><li><b>Company:</b> {$co}</li>
     <li><b>Legal form:</b> US Limited Liability Company (State of Delaware)</li>
+    <li><b>EIN (US federal tax ID):</b> 61-2070643</li>
     <li><b>Registered address:</b> {$addr}</li>
     <li><b>Represented by:</b> Sarah J. Mitchell (Managing Member)</li>
     <li><b>Contact:</b> <a href='mailto:{$email}'>{$email}</a> · <a href='mailto:support@vestrasales.com'>support@vestrasales.com</a></li></ul>
