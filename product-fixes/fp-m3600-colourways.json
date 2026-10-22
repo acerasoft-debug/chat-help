@@ -1,0 +1,5 @@
+[
+  {"match": "fp-m3600-polo", "expect": 1,
+   "colors": ["Black · Coral logo · Coral/White tipping", "White · Navy logo · Burgundy/Navy tipping", "Navy · Burgundy logo · White/Burgundy tipping", "Bordeaux · White logo · White tipping", "Green · Black logo · Black tipping", "Light Blue · Navy logo · Navy/White tipping"],
+   "_why": "22 Eki 2026, VES-A11C0C97: M3600 siyah ve beyazın birden fazla çizgi/logo varyantı var; renk yalnız 'Black'/'White' yazınca alıcının hangi varyantı istediği belli olmadı. Her renk artık ilan fotoğrafındaki varyantı (logo + çizgi) adında taşır; taban renk (çip) aynı."}
+]
