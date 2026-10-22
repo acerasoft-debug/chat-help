@@ -13037,3 +13037,8 @@ E-postaların "View my order" düğmesi tam bu sayfaya açılıyor.
 - Sonuç: platform EUR faturasında ödeme kutusu basmaz → kesim `vestra_invoice_payment_gap` ile DURUR; platform faturası
   artık USD'de kesilir (`admin_mode=currency` / `invoice_reissue`).
 - Test: `tests/platform_eur_clear_test.php` (27).
+- **VIMA SRLS / VES-B7DDA4D4 (22 Eki 2026):** INV-2026-1039 (EUR 1,654.00, kapanmış Alman IBAN) `admin_mode=invoice_reissue`
+  payload=`USD|allow_receipt=1` ile ARŞİVLENDİ → **INV-2026-1040 US$1,858.06** (ECB 1.1234, 21 Eki; ödeme saati sıfırlandı).
+  Mektup `invoice_bank_letter` ile 16:44 UTC gitti: `allow_receipt=1` (dekont kapalı hesaba gitmiş; invoice_reissue ile aynı kapı,
+  dekont kaydı silinmez) + `ref_only=1` (ödeme referansı yalnız sipariş ref'i — "fatura no yazmana gerek yok"), imza Monika,
+  ABD banka satırları sunucudan, yeni PDF ekte. Dekont kaydı hâlâ duruyor; para 1–2 iş günü içinde müşteriye geri döner.
