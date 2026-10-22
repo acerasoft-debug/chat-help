@@ -1,0 +1,5 @@
+[
+  {"match": "lac-crew-sweatshirt", "expect": 1,
+   "moq": 50, "tiers": [{"min": 50, "price": 39.90}, {"min": 100, "price": 32.50}, {"min": 200, "price": 30.00}],
+   "pinned": true}
+]
