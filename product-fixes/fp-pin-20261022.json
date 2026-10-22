@@ -1,0 +1,4 @@
+[
+  {"match": "fp-m3600-polo", "expect": 1, "pinned": true},
+  {"match": "fp-m7535-sweat", "expect": 1, "pinned": true}
+]
