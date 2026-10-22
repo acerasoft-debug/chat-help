@@ -9,6 +9,10 @@ on:
         description: "Diller, virgülle (en,de,fr,it,es,nl,pt)"
         required: false
         default: "en"
+      member:
+        description: "true = KAYITLI müşteri sürümü"
+        required: false
+        default: "false"
 permissions:
   contents: read
 jobs:
@@ -18,12 +22,13 @@ jobs:
       - uses: appleboy/ssh-action@v1.0.3
         env:
           LANGS: ${{ github.event.inputs.langs }}
+          MEMBER: ${{ github.event.inputs.member }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: LANGS
+          envs: LANGS,MEMBER
           script: |
             T="$HOME/vestra_tmp/deals-preview-${GITHUB_RUN_ID:-x}.php"; mkdir -p "$HOME/vestra_tmp"
             cat > "$T" <<'PHPEOF'
@@ -36,7 +41,7 @@ jobs:
             foreach ($pick['items'] as $p) printf("  %s %-14s %-40s -%d%% · canli foto %d\n", !empty($p['featured']) ? '*' : ' ', $p['label'], mb_substr($p['name'], 0, 40), $p['pct'], count($p['live'] ?? []));
             $to = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com'); $rc = 0;
             foreach (array_filter(array_map('trim', explode(',', (string)getenv('LANGS')))) as $lg) {
-              [$s, $b, $o] = vestra_campaign_deals('Boutique Example', $lg, $pick);
+              [$s, $b, $o] = vestra_campaign_deals('Boutique Example', $lg, $pick, getenv('MEMBER') === 'true');
               if ($s === '') { echo "[$lg] bos mektup\n"; $rc = 1; continue; }
               $ok = vestra_send_mail($to, '[ONIZLEME '.strtoupper($lg).'] '.$s, $b, 'support@vestrasales.com', 'VESTRA', null, '', $o);
               echo "[$lg] konu: $s -> ".($ok ? 'operator kutusuna gonderildi' : 'GONDERILEMEDI')."\n"; if (!$ok) $rc = 1;
