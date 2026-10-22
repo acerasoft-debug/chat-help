@@ -1,4 +1,5 @@
 [
   {"match": "lac-fleece-hoodie", "expect": 1,
-   "moq": 50, "tiers": [{"min": 50, "price": 38.00}, {"min": 100, "price": 36.00}]}
+   "moq": 50, "tiers": [{"min": 50, "price": 38.00}, {"min": 100, "price": 36.00}, {"min": 200, "price": 35.00}],
+   "sale_list": 49.90, "pinned": true}
 ]
