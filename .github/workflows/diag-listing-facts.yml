@@ -54,10 +54,11 @@ jobs:
             $pii = '~@|\+?\d[\d\s().-]{7,}\d~';
             foreach ($hit as $l) {
               $out = [];
-              foreach (['id','status','mode','pinned','tiers','brand','name','sku','section','cat','gender','list','moq','size_step','min_colors','colorqty','sizes','series','pack','lot','origin','condition','seller_uid'] as $k)
+              foreach (['id','status','mode','pinned','tiers','aktion','brand','name','sku','section','cat','gender','list','moq','size_step','min_colors','colorqty','sizes','series','pack','lot','origin','condition','seller_uid'] as $k)
                 if (array_key_exists($k, $l)) $out[$k] = $l[$k];
               $out['colors'] = array_map(fn($c) => ['name' => (string)$c, 'base' => vestra_colour_base((string)$c), 'css' => vestra_colour_css((string)$c)], array_values((array)($l['colors'] ?? [])));
               $out['pack_size'] = vestra_pack_size($l);
+              $lv = function_exists('vestra_aktion_apply') ? vestra_aktion_apply($l) : $l; $out['LIVE_tiers'] = $lv['tiers'] ?? null; $out['LIVE_list'] = $lv['list'] ?? null; $out['LIVE_discount'] = function_exists('vestra_discount') ? vestra_discount($lv) : null;
               $out['size_options'] = vestra_size_options($l);
               $out['sizes_label'] = vestra_sizes_label((string)($l['sizes'] ?? ''));
               $out['colorqty_picker'] = vestra_is_colorqty_listing($l);
