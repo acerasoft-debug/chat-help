@@ -104,7 +104,18 @@ function vestra_mailbox_sent_today(?array $leads = null): int {
   foreach ($leads ?? vestra_leads() as $l)
     if ((string)($l['contact_via'] ?? '') === 'mailbox' && str_starts_with((string)($l['last_contacted_at'] ?? ''), $today)) $n++;
   /* Satıcıların sunucu yolu da support@ hesabından gider; GoDaddy'nin günlük 500'ü hesap başına (10 Eki 2026). */
-  if ($leads === null) $n += vestra_mailbox_seller_server_today();
+  if ($leads === null) $n += vestra_mailbox_seller_server_today() + vestra_mailbox_member_server_today();
+  return $n;
+}
+
+/** Bugün KAYITLI hesaplara sunucudan giden kampanya mektubu (data/member_outbox.json, 22 Eki 2026: indirim kampanyası
+ *  önce kayıtlı alıcılara). Aynı support@ hesabından çıktığı için GoDaddy'nin günlük 500'üne sayılır. */
+function vestra_mailbox_member_server_today(): int {
+  $f = vestra_mailbox_file('member_outbox.json');
+  $d = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+  $today = date('Y-m-d'); $n = 0;
+  foreach ((array)$d as $it)
+    if (is_array($it) && ($it['status'] ?? '') === 'sent' && str_starts_with((string)($it['at'] ?? ''), $today)) $n++;
   return $n;
 }
 
