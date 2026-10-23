@@ -13061,3 +13061,12 @@ E-postaların "View my order" düğmesi tam bu sayfaya açılıyor.
 - **KURAL 36:** Claude `approve:<ref>` komutunu yalnız operatörün O FATURA için verdiği açık "onayla" sözüyle çalıştırır;
   kesim isteğini başlatmak (issue) serbest — zaten taslağa düşer.
 - Test: `tests/invoice_gate_test.php`.
+
+## Arşivden fatura geri alma (23 Eki 2026) — `vestra_invoice_restore`
+- Operatör: *"VES-B7DDA4D4 — önceden silinen USD faturasını tekrar yükle ama müşteriye email gönderme"*. INV-2026-1040 panelden
+  🗑 Remove ile 22 Eki 19:19 UTC'de arşivlenmişti; geri getiren yol yoktu (tek seçenek yeni numara yakmaktı).
+- `vestra_invoice_restore($ref, $sellerKey, $stamp='', $apply=false)` (inc/invoice.php): `data/invoices/deleted/<damga>-<slug>.*`
+  dosyalarını AYNI numarayla canlıya taşır; boş damga = en yeni arşiv. Canlı belge varsa DURUR; numara başka canlı belgedeyse
+  DURUR; yarım taşıma geri alınır; geri okunur. E-posta göndermez, kayıt değiştirmez.
+- İş akışı: `seller-products.yml admin_mode=invoice_restore issue_ref=<ref> payload='<satıcı|boş=vestra>[|stamp=…]'`
+  (kuru koşu varsayılan, `move_apply=true` uygular). Test: `tests/invoice_restore_test.php` (18).

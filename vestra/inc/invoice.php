@@ -1819,6 +1819,67 @@ function vestra_invoices_archive_for_ref(string $ref): int {
  *
  * @return array{ok:bool,no:string,moved:int,unlinked:int,error:string}
  */
+/**
+ * ARSIVDEN GERI AL (23 Eki 2026). Operator: "VES-B7DDA4D4 -- onceden silinen USD
+ * faturasini tekrar yukle ama musteriye email gonderme". vestra_invoice_delete
+ * dosyalari data/invoices/deleted/<zaman>-<slug>.* olarak saklar ama geri
+ * getiren bir yol yoktu; tek secenek YENI numara yakmakti -- oysa belge
+ * alicinin eline gecmis olabilir ve ayni numara geri gelmeli.
+ *
+ * $stamp bos = o dilimin EN YENI arsivi. Canli belge varsa DURUR (iki belge
+ * olmaz); arsivdeki numara baska bir CANLI belgede kullaniliyorsa DURUR (ayni
+ * numara iki ref'te olmaz). Butun dosyalar (json + pdf) birlikte doner; yarisi
+ * tasinamazsa tasinanlar geri alinir. E-posta GONDERMEZ, kayit degistirmez.
+ * Dry run: $apply=false yalniz ne olacagini soyler.
+ */
+function vestra_invoice_restore(string $ref, string $sellerKey, string $stamp = '', bool $apply = false): array {
+    $out = ['ok' => false, 'applied' => false, 'no' => '', 'currency' => '', 'total' => 0.0, 'stamp' => '', 'files' => [], 'error' => ''];
+    $ref = trim($ref); $sellerKey = trim($sellerKey) ?: 'vestra';
+    if ($ref === '') { $out['error'] = 'ref bos'; return $out; }
+    $slug = vestra_invoice_slug($ref, $sellerKey);
+    if ($slug === '' || !str_contains($slug, '__')) { $out['error'] = 'gecersiz ref/satici'; return $out; }
+    $dir = vestra_invoice_dir(); $bin = $dir.'/deleted';
+    if (is_file($dir.'/'.$slug.'.json')) { $out['error'] = 'bu dilimde CANLI bir fatura zaten var -- once onu kaldirin'; return $out; }
+    $metas = glob($bin.'/*-'.$slug.'.json') ?: [];
+    if (!$metas) { $out['error'] = 'arsivde bu dilime ait fatura yok'; return $out; }
+    $pick = null;
+    if ($stamp !== '') {
+        $stamp = preg_replace('/[^0-9_]/', '', $stamp);
+        foreach ($metas as $m) if (basename($m) === $stamp.'-'.$slug.'.json') $pick = $m;
+        if (!$pick) { $out['error'] = "arsivde {$stamp} damgali kayit yok"; return $out; }
+    } else {
+        sort($metas, SORT_STRING); $pick = end($metas);   /* damga YYYYMMDD_HHMMSS: sozluk sirasi = zaman sirasi */
+    }
+    $out['stamp'] = substr(basename($pick), 0, strlen(basename($pick)) - strlen('-'.$slug.'.json'));
+    $m = json_decode((string)@file_get_contents($pick), true);
+    if (!is_array($m) || (string)($m['no'] ?? '') === '') { $out['error'] = 'arsiv kaydi okunamadi'; return $out; }
+    $out['no'] = (string)$m['no']; $out['currency'] = strtoupper((string)($m['currency'] ?? 'EUR')); $out['total'] = (float)($m['total'] ?? 0);
+    if ((string)($m['ref'] ?? '') !== $ref) { $out['error'] = 'arsiv kaydinin ref\'i tutmuyor'; return $out; }
+    foreach (glob($dir.'/*.json') ?: [] as $lm) {
+        $lj = json_decode((string)@file_get_contents($lm), true);
+        if (is_array($lj) && (string)($lj['no'] ?? '') === $out['no']) { $out['error'] = "numara {$out['no']} baska bir CANLI belgede (".basename($lm).") -- geri alinamaz"; return $out; }
+    }
+    $set = glob($bin.'/'.$out['stamp'].'-'.$slug.'.*') ?: [];
+    $out['files'] = array_map('basename', $set);
+    if (!$apply) { $out['ok'] = true; return $out; }
+    $moved = [];
+    foreach ($set as $f) {
+        $to = $dir.'/'.substr(basename($f), strlen($out['stamp']) + 1);
+        if (!@rename($f, $to)) {
+            foreach ($moved as [$a, $b]) @rename($b, $a);   /* yarim tasima birakma */
+            $out['error'] = 'dosya tasinamadi: '.basename($f); return $out;
+        }
+        $moved[] = [$f, $to];
+    }
+    clearstatcache();
+    $back = vestra_invoices_for_ref($ref);
+    $hit = false;
+    foreach ($back as $iv) if ((string)($iv['no'] ?? '') === $out['no'] && (string)($iv['seller_key'] ?? '') === $sellerKey && is_file(vestra_invoice_file($ref, $sellerKey))) $hit = true;
+    if (!$hit) { $out['error'] = 'geri okuma tutmadi (belge listede yok ya da PDF eksik)'; return $out; }
+    $out['ok'] = true; $out['applied'] = true;
+    return $out;
+}
+
 function vestra_invoice_delete(string $ref, string $sellerKey): array {
     $out = ['ok' => false, 'no' => '', 'moved' => 0, 'unlinked' => 0, 'error' => ''];
     $ref = trim($ref); $sellerKey = trim($sellerKey);
