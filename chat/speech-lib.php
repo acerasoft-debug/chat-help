@@ -693,7 +693,11 @@ function ch_tts_voice_for(array $cfg, ?string $presetId=null, string $lang=''): 
     $g=($cfg['gender'] ?? 'f')==='m' ? 'm' : 'f';
     $own=(string)($cfg['preset'] ?? '');
     if(!ch_tts_preset($own)) $own=CH_TTS_PRESET_DEFAULT[$g];
+    /* Katalog-Stimme (voice-catalog.php, z. B. „tr-f-oa-coral“) statt Voreinstellung: deren Voreinstellung + Cloud-Stimmname des Anbieters */
+    $cat=null; if($presetId!==null && !ch_tts_preset($presetId) && ($ce=ch_tts_catalog_entry($presetId))){ $cat=$ce; $presetId=$ce['preset']; $g=$ce['gender']; }
+    if($cat===null && isset($cfg['id']) && is_string($cfg['id']) && ($ce=ch_tts_catalog_entry($cfg['id']))){ $cat=$ce; if($presetId===null){ $presetId=$ce['preset']; $g=$ce['gender']; } }
     $pid=($presetId!==null && ch_tts_preset($presetId)) ? $presetId : $own;
+    if($cat!==null){ $r=ch_tts_voice_for(array_diff_key($cfg,['id'=>1]),$pid,$lang); return vc_apply_tts($r,$cat['id']); }
     $p=ch_tts_preset($pid); $mine=$pid===$own;
     $role=trim((string)($cfg['role'] ?? ''));
     $ins=$mine && trim((string)($cfg['instructions'] ?? ''))!=='' ? trim((string)$cfg['instructions']) : $p['instructions'].($role!=='' ? ' Role: you are '.$role.'.' : '');
@@ -704,6 +708,15 @@ function ch_tts_voice_for(array $cfg, ?string $presetId=null, string $lang=''): 
         'pitch'=>round(max(0.8,min(1.2,$mine ? $num($cfg['pitch'] ?? null,$p['pitch']) : $p['pitch'])),2),
         'openai'=>$p['openai'],'instructions'=>$ins,'google'=>$p['google'],'azure'=>$p['azure'],'elevenlabs'=>$p['elevenlabs'],'eleven'=>$p['eleven']];
 }
+
+/** Katalogstimme (voice-catalog.php) zu einer ID – null für Voreinstellungen/unbekannt. Lädt den Katalog bei Bedarf. */
+function ch_tts_catalog_entry(?string $id): ?array {
+    if($id===null || $id==='' || !preg_match('/^[a-z]{2}-[fm]-[a-z0-9_-]{1,32}$/',$id)) return null;
+    if(!function_exists('vc_entry')){ if(!is_file(__DIR__.'/voice-catalog.php')) return null; require_once __DIR__.'/voice-catalog.php'; }
+    return vc_entry($id);
+}
+/** Anbieter mit hinterlegtem Schlüssel – Flag je Anbieter (für Katalog/Studio: Premium-Stimmen nur zeigen, wenn nutzbar). */
+function ch_tts_providers_available(): array { $o=[]; foreach(CH_TTS_PROVIDERS as $p) $o[$p]=ch_tts_creds($p)!==null; return $o; }
 
 /* ====================================================================== */
 /* Server-Stimme */

@@ -11,7 +11,10 @@
  * und darf deshalb vom Service Worker als Offline-Hülle zwischengespeichert werden.
  */
 require_once __DIR__.'/pagever.php';
-ch_page_version(__FILE__, [__DIR__.'/app-bridge.js']);
+require_once __DIR__.'/app-i18n.php';   // Sprache: ?lang= → Cookie ch_lang → Accept-Language → de; Wörterbuch chat/app-i18n/<lang>.json
+[$L, $LSRC] = apl_lang();
+ch_page_version(__FILE__, array_merge([__DIR__.'/app-bridge.js'], apl_files($L)));
+$T = apl_t($L); $hx = fn($x) => htmlspecialchars((string)$x, ENT_QUOTES, 'UTF-8');
 header('Content-Type: text/html; charset=UTF-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0');
 header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store');
@@ -20,13 +23,13 @@ $bv = substr(md5((string)@filemtime(__DIR__.'/app-bridge.js')), 0, 8);
 $hasSetup = is_file(__DIR__.'/studio-panels/einrichtung.js') && is_file(__DIR__.'/studio-panels/einrichtung.html');
 $appVer = substr(md5((string)@filemtime(__FILE__)), 0, 6);
 ?><!DOCTYPE html>
-<html lang="de">
+<html lang="<?= $L === 'no' ? 'nb' : $L ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ChatHelp Business</title>
 <meta name="robots" content="noindex">
-<meta name="description" content="Deine KI-Agenten, Aufträge und Benachrichtigungen – Bestellungen, Termine, Fahrten, Hotel und Rückrufe live auf dem Handy.">
+<meta name="description" content="<?= $hx($T('a.meta.desc')) ?>">
 <link rel="manifest" href="/chat/app.webmanifest">
 <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b0d18" media="(prefers-color-scheme: dark)">
@@ -38,6 +41,7 @@ $appVer = substr(md5((string)@filemtime(__FILE__)), 0, 6);
 <meta name="format-detection" content="telephone=no">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
+<?= apl_head($L, $LSRC) ?>
 <script>window.CH_BRIDGE_SRC="/chat/app-bridge.js?v=<?= $bv ?>";(function(){try{var t=localStorage.getItem('ch_app_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <script src="/chat/app-bridge.js?v=<?= $bv ?>" defer></script>
 <style>
@@ -253,35 +257,35 @@ main{padding:4px calc(16px + var(--sar)) 0 calc(16px + var(--sal));max-width:760
     <div class="lhero">
       <div class="em big" style="margin:0 auto" aria-hidden="true"><svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></div>
       <h1 id="lTitle">ChatHelp <span>Business</span></h1>
-      <p>Bestellungen, Termine, Fahrten und Kunden deiner KI-Agenten – live auf dem Handy.</p>
+      <p data-i18n="a.l.lead">Bestellungen, Termine, Fahrten und Kunden deiner KI-Agenten – live auf dem Handy.</p>
     </div>
     <div class="panel">
       <form id="stepEmail" novalidate>
-        <label class="lbl" for="lEmail">E-Mail-Adresse</label>
-        <input class="inp" id="lEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="name@betrieb.de" required>
-        <button class="btn p w" id="lSend" type="submit" style="margin-top:12px">Anmeldecode senden</button>
-        <div class="small mute" style="margin-top:10px;text-align:center">Kein Passwort nötig – wir schicken dir einen 6-stelligen Code.</div>
+        <label class="lbl" for="lEmail" data-i18n="a.l.email">E-Mail-Adresse</label>
+        <input class="inp" id="lEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="name@betrieb.de" data-i18n-attr="placeholder:a.l.emailPh" required>
+        <button class="btn p w" id="lSend" type="submit" style="margin-top:12px" data-i18n="a.l.send">Anmeldecode senden</button>
+        <div class="small mute" style="margin-top:10px;text-align:center" data-i18n="a.l.nopw">Kein Passwort nötig – wir schicken dir einen 6-stelligen Code.</div>
       </form>
       <form id="stepCode" hidden novalidate>
         <div class="small mute" id="lTo" style="margin-bottom:10px"></div>
-        <label class="lbl" for="lCode">6-stelliger Code aus der E-Mail</label>
+        <label class="lbl" for="lCode" data-i18n="a.l.code">6-stelliger Code aus der E-Mail</label>
         <input class="inp code" id="lCode" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="7" autocomplete="one-time-code" placeholder="••••••" aria-describedby="lCodeHelp">
         <div class="acts" style="margin-top:10px">
-          <button class="btn o s" type="button" id="lPaste"><svg class="ico s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="4" width="10" height="4" rx="1.5"/><path d="M7 6H5.5A1.5 1.5 0 0 0 4 7.5v12A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-12A1.5 1.5 0 0 0 18.5 6H17"/></svg>Code einfügen</button>
-          <button class="btn p s" type="submit" id="lVerify">Anmelden</button>
+          <button class="btn o s" type="button" id="lPaste" data-i18n-t="a.l.paste"><svg class="ico s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="4" width="10" height="4" rx="1.5"/><path d="M7 6H5.5A1.5 1.5 0 0 0 4 7.5v12A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-12A1.5 1.5 0 0 0 18.5 6H17"/></svg>Code einfügen</button>
+          <button class="btn p s" type="submit" id="lVerify" data-i18n="a.l.login">Anmelden</button>
         </div>
-        <div id="lCodeHelp" class="small mute" style="margin-top:10px">Tipp: Auf dem iPhone erscheint der Code oft direkt über der Tastatur.</div>
-        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="lnk" type="button" id="lBack">Andere E-Mail</button><button class="lnk" type="button" id="lResend">Code erneut senden</button></div>
+        <div id="lCodeHelp" class="small mute" style="margin-top:10px" data-i18n="a.l.iosTip">Tipp: Auf dem iPhone erscheint der Code oft direkt über der Tastatur.</div>
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="lnk" type="button" id="lBack" data-i18n="a.l.other">Andere E-Mail</button><button class="lnk" type="button" id="lResend" data-i18n="a.l.resend">Code erneut senden</button></div>
       </form>
       <form id="stepKey" hidden novalidate>
-        <label class="lbl" for="lKey">API-Schlüssel</label>
+        <label class="lbl" for="lKey" data-i18n="a.l.key">API-Schlüssel</label>
         <input class="inp" id="lKey" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ch_live_…">
-        <button class="btn p w" type="submit" style="margin-top:12px">Mit Schlüssel anmelden</button>
-        <button class="lnk" type="button" id="lKeyBack">Zurück zur Anmeldung per E-Mail</button>
+        <button class="btn p w" type="submit" style="margin-top:12px" data-i18n="a.l.keyLogin">Mit Schlüssel anmelden</button>
+        <button class="lnk" type="button" id="lKeyBack" data-i18n="a.l.keyBack">Zurück zur Anmeldung per E-Mail</button>
       </form>
       <div id="lMsg" aria-live="polite"></div>
     </div>
-    <div class="lfoot"><button class="lnk" type="button" id="lKeyShow" style="font-size:12.5px">Mit API-Schlüssel anmelden</button><br>Noch kein Konto? <a href="/#preise">Agenten ansehen</a> · <a href="/impressum.html">Impressum</a></div>
+    <div class="lfoot" data-i18n-t="a.l.noacc"><button class="lnk" type="button" id="lKeyShow" style="font-size:12.5px" data-i18n="a.l.keyShow">Mit API-Schlüssel anmelden</button><br>Noch kein Konto? <a href="/#preise" data-i18n="a.l.agents">Agenten ansehen</a> · <a href="/impressum.html" data-i18n="a.imprint">Impressum</a></div>
   </div>
 </section>
 
@@ -290,26 +294,26 @@ main{padding:4px calc(16px + var(--sar)) 0 calc(16px + var(--sal));max-width:760
   <header class="top" id="top">
     <div class="toprow">
       <div class="toptitle"><h1 id="pgTitle">Heute</h1><div class="sub" id="pgSub"></div></div>
-      <span class="live" id="live" title="Live-Status"><i></i><span id="liveT">Live</span></span>
-      <button class="ib" id="btnRefresh" type="button" aria-label="Aktualisieren"><svg class="ico s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></button>
+      <span class="live" id="live" title="Live-Status" data-i18n-attr="title:a.liveStatus"><i></i><span id="liveT">Live</span></span>
+      <button class="ib" id="btnRefresh" type="button" aria-label="Aktualisieren" data-i18n-attr="aria-label:a.refresh"><svg class="ico s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></button>
     </div>
   </header>
   <div id="ptr" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></div>
   <div id="net" hidden role="status"><svg class="ico s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0"/><path d="M3 3l18 18"/></svg><span id="netT">Offline</span></div>
   <main id="pages">
-    <section class="page" id="p-heute" aria-label="Heute"></section>
-    <section class="page" id="p-auftraege" aria-label="Aufträge"></section>
-    <section class="page" id="p-kunden" aria-label="Kunden"></section>
-    <section class="page" id="p-benachrichtigungen" aria-label="Benachrichtigungen"></section>
-    <section class="page" id="p-mehr" aria-label="Mehr"></section>
+    <section class="page" id="p-heute" aria-label="Heute" data-i18n-attr="aria-label:a.tab.heute"></section>
+    <section class="page" id="p-auftraege" aria-label="Aufträge" data-i18n-attr="aria-label:a.tab.auftraege"></section>
+    <section class="page" id="p-kunden" aria-label="Kunden" data-i18n-attr="aria-label:a.tab.kunden"></section>
+    <section class="page" id="p-benachrichtigungen" aria-label="Benachrichtigungen" data-i18n-attr="aria-label:a.tab.push"></section>
+    <section class="page" id="p-mehr" aria-label="Mehr" data-i18n-attr="aria-label:a.tab.mehr"></section>
   </main>
-  <nav class="tabbar" id="tabbar" role="tablist" aria-label="Bereiche"></nav>
+  <nav class="tabbar" id="tabbar" role="tablist" aria-label="Bereiche" data-i18n-attr="aria-label:a.areas"></nav>
 </div>
 
 <div id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="shTitle">
   <div class="scrim" data-close></div>
   <div class="pan"><div class="grab" aria-hidden="true"><i></i></div>
-    <div class="sh"><h3 id="shTitle"></h3><button class="ib" type="button" data-close aria-label="Schließen"><svg class="ico s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="sh"><h3 id="shTitle"></h3><button class="ib" type="button" data-close aria-label="Schließen" data-i18n-attr="aria-label:a.close"><svg class="ico s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="sbody" id="shBody"></div><div class="sfoot" id="shFoot" hidden></div>
   </div>
 </div>
@@ -322,8 +326,21 @@ main{padding:4px calc(16px + var(--sar)) 0 calc(16px + var(--sal));max-width:760
    ===================================================================================== */
 const API='/chat/tokens-api.php/v1', HAS_SETUP=<?= $hasSetup ? 'true' : 'false' ?>, APP_VER='<?= $appVer ?>';
 const $=(s,r)=>(r||document).querySelector(s), $$=(s,r)=>[...(r||document).querySelectorAll(s)];
+/* ---------- Sprache (studio-i18n.js-Laufzeit, Wörterbuch app-i18n/<lang>.json inline im Kopf) ---------- */
+const I=window.I18N||{lang:'de',tag:'de-DE',t:k=>k,tx:x=>x,te:(e,f)=>(e&&e.data&&e.data.message)||f||'',fx:x=>x,apply:()=>{},num:n=>Number(n||0).toLocaleString('de-DE'),
+  eur:v=>Number(v||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'}),date:(d,o)=>new Date(d).toLocaleDateString('de-DE',o),time:d=>new Date(d).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}),set:()=>{},langs:[['de','Deutsch','de-DE']]};
+const _T=(k,v)=>I.t(k,v), DE_UI=I.lang==='de';
+/** Deutscher Servertext → Oberflächensprache: Abschnitte („ · “) einzeln über src/srx, deutsche Datums-/Betragsformate (fx, „Fr 23.10. 15:00“) umformatiert */
+const WD_DE=['So','Mo','Di','Mi','Do','Fr','Sa'];
+function X(v){if(v==null||v==='')return v==null?'':v;if(DE_UI)return String(v);const s=String(v);const one=x=>{const y=I.tx(x);return y!==x?y:x;};
+  const t=one(s)!==s?one(s):s.split(' · ').map(one).join(' · ');
+  return I.fx(t.replace(/\b(So|Mo|Di|Mi|Do|Fr|Sa),? (\d{1,2})\.(\d{1,2})\.(\d{4})?(?: (\d{1,2}):(\d{2}))?/g,(m,w,d,mo,y,hh,mi)=>{const dt=new Date(y?+y:new Date().getFullYear(),+mo-1,+d,hh?+hh:12,mi?+mi:0);
+    return I.date(dt,{weekday:'short',day:'2-digit',month:'2-digit'})+(hh?' '+I.time(dt):'');}));}
+const fmtD=(iso,o)=>{const m=/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/.exec(iso||'');if(!m)return '';return I.date(new Date(+m[1],+m[2]-1,+m[3],m[4]?+m[4]:12,m[5]?+m[5]:0),o);};
+const fmtT=hm=>{const m=/^(\d{1,2}):(\d{2})/.exec(hm||'');if(!m)return hm||'';const d=new Date();d.setHours(+m[1],+m[2],0,0);return I.time(d);};
+I.apply(document);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const de=n=>Number(n||0).toLocaleString('de-DE');
+const de=n=>I.num(n);
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}},set(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}},
   json(k,d){try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v;}catch(e){return d;}}};
 let KEY=LS.get('ch_api_key',''), ME=null, CATS=null, MODS=[], TABS=[], ROUTE='heute', SUBMOD='', A=null, ONLINE=navigator.onLine!==false, LAST_OK=0, BOOTED=false;
@@ -356,17 +373,17 @@ const P={
   vol:'<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>', vib:'<rect x="8" y="3.5" width="8" height="17" rx="2"/><path d="M4.5 8v8M19.5 8v8"/>',
   layers:'<path d="M4 7h16M4 12h16M4 17h10"/>', mail:'<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m4 7 8 6 8-6"/>', key:'<circle cx="8" cy="15" r="3.5"/><path d="m10.5 12.5 8-8M16 7l2.5 2.5"/>',
   share:'<path d="M12 3.5v11M8 7.5l4-4 4 4"/><path d="M7 11H5.5v9.5h13V11H17"/>', plus:'<path d="M12 5v14M5 12h14"/>', block:'<circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/>',
-  info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>', note:'<path d="M5 4.5h10l4 4V19a.5.5 0 0 1-.5.5h-13A.5.5 0 0 1 5 19z"/><path d="M14.5 4.5v4.5h4.5M8.5 13h7M8.5 16h5"/>'
+  info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>', globe:'<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5s1.2-6.1 3.6-8.5z"/>', note:'<path d="M5 4.5h10l4 4V19a.5.5 0 0 1-.5.5h-13A.5.5 0 0 1 5 19z"/><path d="M14.5 4.5v4.5h4.5M8.5 13h7M8.5 16h5"/>'
 };
 const ic=(n,c)=>'<svg class="ico'+(c?' '+c:'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(P[n]||P.info)+'</svg>';
 
 /* ---------- Module (gleiche Zuordnung wie im Studio: nur, was der Betrieb nutzt) ---------- */
 const MOD_DEF={
-  bestellungen:{label:'Bestellungen',one:'Bestellung',icon:'bag',tone:'gold',plans:['agent-bestellung','gastro-agent']},
-  termine:{label:'Termine',one:'Termin',icon:'cal',tone:'violet',plans:['agent-termine','agent-beauty','praxis-agent','agent-autohaus','praxis-termine','gastro-agent']},
-  taxi:{label:'Fahrten',one:'Fahrt',icon:'car',tone:'blue',plans:['agent-taxi']},
-  hotel:{label:'Hotel',one:'Hotelanfrage',icon:'bed',tone:'teal',plans:['agent-hotel']},
-  rueckruf:{label:'Rückrufe',one:'Rückruf',icon:'cb',tone:'rose',plans:['agent-phone','immo-agent','agent-hausverwaltung','agent-versicherung','agent-kanzlei','agent-steuer','agent-inkasso','agent-bank','agent-behoerde','agent-aesthetic','agent-hair-tr','agent-dental-tr','praxis-agent','agent-autohaus','agent-hotel','agent-sales','privat-anruf']}
+  bestellungen:{label:_T('a.m.bestellungen'),icon:'bag',tone:'gold',plans:['agent-bestellung','gastro-agent']},
+  termine:{label:_T('a.m.termine'),icon:'cal',tone:'violet',plans:['agent-termine','agent-beauty','praxis-agent','agent-autohaus','praxis-termine','gastro-agent']},
+  taxi:{label:_T('a.m.taxi'),icon:'car',tone:'blue',plans:['agent-taxi']},
+  hotel:{label:_T('a.m.hotel'),icon:'bed',tone:'teal',plans:['agent-hotel']},
+  rueckruf:{label:_T('a.m.rueckruf'),icon:'cb',tone:'rose',plans:['agent-phone','immo-agent','agent-hausverwaltung','agent-versicherung','agent-kanzlei','agent-steuer','agent-inkasso','agent-bank','agent-behoerde','agent-aesthetic','agent-hair-tr','agent-dental-tr','praxis-agent','agent-autohaus','agent-hotel','agent-sales','privat-anruf']}
 };
 const MOD_ORDER=['bestellungen','termine','taxi','hotel','rueckruf'];
 const ROUTE_ALIAS={home:'heute',phone:'heute',whatsapp:'kunden',assistant:'mehr',tokens:'mehr',agents:'mehr',meldungen:'benachrichtigungen',fahrten:'taxi',rueckrufe:'rueckruf',auftraege:''};
@@ -395,9 +412,9 @@ async function api(path,o={}){
       headers:Object.assign({'Content-Type':'application/json'},KEY?{Authorization:'Bearer '+KEY}:{}),body:o.body!==undefined?JSON.stringify(o.body):undefined});
     const j=await r.json().catch(()=>({}));
     setOnline(true);
-    if(!r.ok){const e=new Error(j.message||j.hint||(j.error==='unauthorized'?'Bitte neu anmelden.':'')||('Fehler '+r.status));e.status=r.status;e.data=j;throw e;}
+    if(!r.ok){const e=new Error(I.te({data:Object.assign({},j,{message:j.message||j.hint||''})},(j.error==='unauthorized'?_T('a.relogin'):'')||_T('a.errN',{n:r.status})));e.status=r.status;e.data=j;throw e;}
     return j;
-  }catch(e){if(e&&e.status)throw e;setOnline(false);const x=new Error('Keine Verbindung – bitte Internet prüfen.');x.offline=true;throw x;}
+  }catch(e){if(e&&e.status)throw e;setOnline(false);const x=new Error(_T('a.noNet'));x.offline=true;throw x;}
   finally{clearTimeout(t);}
 }
 const post=(p,b)=>api(p,{method:'POST',body:b||{}});
@@ -406,16 +423,16 @@ const post=(p,b)=>api(p,{method:'POST',body:b||{}});
 const pad=n=>String(n).padStart(2,'0');
 function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
 function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
-function ago(ts){if(!ts)return '';const s=Math.round((Date.now()-ts)/1000);if(s<45)return 'gerade eben';if(s<3600)return 'vor '+Math.max(1,Math.round(s/60))+' Min.';
-  const d=new Date(ts),n=new Date();if(ymd(d)===ymd(n))return 'heute '+pad(d.getHours())+':'+pad(d.getMinutes());if(ymd(d)===ymd(addDays(n,-1)))return 'gestern '+pad(d.getHours())+':'+pad(d.getMinutes());
-  return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
+function ago(ts){if(!ts)return '';const s=Math.round((Date.now()-ts)/1000);if(s<45)return _T('a.justNow');if(s<3600)return _T('a.minAgo',{n:I.num(Math.max(1,Math.round(s/60)))});
+  const d=new Date(ts),n=new Date(),hm=DE_UI?pad(d.getHours())+':'+pad(d.getMinutes()):I.time(d);if(ymd(d)===ymd(n))return _T('a.todayAt',{t:hm});if(ymd(d)===ymd(addDays(n,-1)))return _T('a.yestAt',{t:hm});
+  return I.date(d,{day:'2-digit',month:'2-digit'})+' '+hm;}
 function hmToday(hm){const m=/^(\d{1,2}):(\d{2})/.exec(hm||'');if(!m)return 0;const d=new Date();d.setHours(+m[1],+m[2],0,0);if(d.getTime()-Date.now()>5*60000)d.setDate(d.getDate()-1);return d.getTime();}
-function dayWord(dateStr){const t=ymd(new Date());if(dateStr===t)return 'Heute';if(dateStr===ymd(addDays(new Date(),1)))return 'Morgen';
-  try{const [y,m,d]=dateStr.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});}catch(e){return dateStr;}}
-function greet(){const h=new Date().getHours();return h<5?'Gute Nacht':h<11?'Guten Morgen':h<17?'Guten Tag':h<22?'Guten Abend':'Gute Nacht';}
+function dayWord(dateStr){const t=ymd(new Date());if(dateStr===t)return _T('a.today');if(dateStr===ymd(addDays(new Date(),1)))return _T('a.tomorrow');
+  try{const [y,m,d]=dateStr.split('-').map(Number);return I.date(new Date(y,m-1,d),{weekday:'long',day:'numeric',month:'long'});}catch(e){return dateStr;}}
+function greet(){const h=new Date().getHours();return _T(h<5?'a.g.night':h<11?'a.g.morning':h<17?'a.g.day':h<22?'a.g.evening':'a.g.night');}
 const iso=s=>{const t=Date.parse(s||'');return isNaN(t)?0:t;};
 const tel=p=>'tel:'+String(p||'').replace(/[^\d+]/g,'');
-const eur=c=>(Number(c||0)/100).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
+const eur=c=>I.eur(Number(c||0)/100);
 const initials=s=>{const w=String(s||'').replace(/[^\p{L}\p{N} ]/gu,'').trim().split(/\s+/).filter(Boolean);return (w.length?(w[0][0]+(w.length>1?w[w.length-1][0]:'')):'#').toUpperCase();};
 function relLink(u){try{const x=new URL(u,location.href);if(/(^|\.)chat-help\.com$/.test(x.hostname)&&location.hostname!==x.hostname)return x.pathname+x.search+x.hash;return x.href;}catch(e){return u;}}
 
@@ -431,9 +448,9 @@ document.addEventListener('pointerdown',()=>{try{if(audioCtx&&audioCtx.state==='
 
 /* ---------- Online / Offline ---------- */
 function setOnline(on){if(on)LAST_OK=Date.now();if(ONLINE===on&&$('#net').hidden===on)return paintLive();ONLINE=on;$('#net').hidden=on;
-  if(!on){const t=LS.json('ch_app_snap',null);$('#netT').textContent='Offline'+(t&&t.t?' – Stand von '+new Date(t.t).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'')+'. Wir versuchen es automatisch weiter.';}
+  if(!on){const t=LS.json('ch_app_snap',null);$('#netT').textContent=t&&t.t?_T('a.net.offAt',{t:I.time(new Date(t.t))}):_T('a.net.off');}
   paintLive();}
-function paintLive(busy){const l=$('#live');if(!l)return;l.className='live'+(!ONLINE?' off':busy?' busy':'');$('#liveT').textContent=!ONLINE?'Offline':busy?'Lädt …':'Live';}
+function paintLive(busy){const l=$('#live');if(!l)return;l.className='live'+(!ONLINE?' off':busy?' busy':'');$('#liveT').textContent=_T(!ONLINE?'a.live.off':busy?'a.live.busy':'a.live.on');}
 window.addEventListener('online',()=>{setOnline(true);refresh();});
 window.addEventListener('offline',()=>setOnline(false));
 function snapSave(){try{LS.set('ch_app_snap',JSON.stringify({t:Date.now(),email:ME&&ME.email,me:ME,d:{orders:D.orders,orderDrivers:D.orderDrivers,appts:D.appts,rides:D.rides,rideDrivers:D.rideDrivers,hotelReq:D.hotelReq,hotelBook:D.hotelBook,callbacks:D.callbacks,calls:(D.calls||[]).slice(0,15).map(c=>Object.assign({},c,{transcript:(c.transcript||[]).slice(0,12)})),contacts:(D.contacts||[]).slice(0,60),inbox:D.inbox,unread:D.unread}}));}catch(e){}}
@@ -447,31 +464,31 @@ function lmsg(t,k){$('#lMsg').innerHTML=t?'<div class="msg '+(k||'')+'">'+t+'</d
 function lstep(s){['stepEmail','stepCode','stepKey'].forEach(id=>$('#'+id).hidden=id!==s);$('#lKeyShow').hidden=s==='stepKey';}
 const codeOf=t=>{const m=String(t||'').match(/(?:\d[\s\u00a0.-]?){6}/);return m?m[0].replace(/\D/g,'').slice(0,6):String(t||'').replace(/\D/g,'').slice(0,6);};
 function busyBtn(b,on,label){if(!b)return;if(on){b.dataset.l=b.innerHTML;b.disabled=true;b.innerHTML='<span class="spin"></span>'+(label||'');}else{b.disabled=false;if(b.dataset.l!=null)b.innerHTML=b.dataset.l;}}
-$('#stepEmail').addEventListener('submit',async e=>{e.preventDefault();lEmail=$('#lEmail').value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lEmail)){lmsg('Bitte eine gültige E-Mail-Adresse eingeben.','err');return;}
-  const b=$('#lSend');busyBtn(b,true,'Code wird gesendet …');lmsg('');
-  try{const j=await post('/auth/request',{email:lEmail,lang:'de'});lstep('stepCode');$('#lTo').textContent='Code gesendet an '+lEmail;
-    lmsg(j.sent===false?'Der Code wurde erzeugt, aber der Versand ist fehlgeschlagen – bitte „Code erneut senden“ oder support@chat-help.com.':'Bitte E-Mail öffnen (auch den Spam-Ordner) und den Code eingeben.',j.sent===false?'err':'ok');setTimeout(()=>$('#lCode').focus(),60);}
+$('#stepEmail').addEventListener('submit',async e=>{e.preventDefault();lEmail=$('#lEmail').value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lEmail)){lmsg(esc(_T('a.l.badEmail')),'err');return;}
+  const b=$('#lSend');busyBtn(b,true,esc(_T('a.l.sending')));lmsg('');
+  try{const j=await post('/auth/request',{email:lEmail,lang:I.lang});lstep('stepCode');$('#lTo').textContent=_T('a.l.sentTo',{e:lEmail});
+    lmsg(esc(_T(j.sent===false?'a.l.sendFail':'a.l.checkMail')),j.sent===false?'err':'ok');setTimeout(()=>$('#lCode').focus(),60);}
   catch(x){lmsg(esc(x.message),'err');}busyBtn(b,false);});
 $('#lCode').addEventListener('input',()=>{const el=$('#lCode'),v=el.value.replace(/\D/g,'').slice(0,6);if(el.value!==v)el.value=v;if(v.length===6)verify();});
 $('#lCode').addEventListener('paste',e=>{const t=(e.clipboardData||window.clipboardData);const s=t&&t.getData?t.getData('text'):null;if(s==null)return;e.preventDefault();$('#lCode').value=codeOf(s);$('#lCode').dispatchEvent(new Event('input'));});
-$('#lPaste').addEventListener('click',async()=>{try{const c=codeOf(await navigator.clipboard.readText());if(c.length!==6){lmsg('In der Zwischenablage ist kein 6-stelliger Code. Kopiere ihn aus der E-Mail und tippe erneut auf „Code einfügen“.','err');return;}$('#lCode').value=c;$('#lCode').dispatchEvent(new Event('input'));}
-  catch(e){lmsg('Einfügen nicht erlaubt – tippe lange in das Feld und wähle „Einfügen“.','err');$('#lCode').focus();}});
+$('#lPaste').addEventListener('click',async()=>{try{const c=codeOf(await navigator.clipboard.readText());if(c.length!==6){lmsg(esc(_T('a.l.noCode')),'err');return;}$('#lCode').value=c;$('#lCode').dispatchEvent(new Event('input'));}
+  catch(e){lmsg(esc(_T('a.l.pasteDenied')),'err');$('#lCode').focus();}});
 if(!(navigator.clipboard&&navigator.clipboard.readText))$('#lPaste').hidden=true;
 $('#stepCode').addEventListener('submit',e=>{e.preventDefault();verify();});
 let verifying=false;
-async function verify(){const code=$('#lCode').value.replace(/\D/g,'');if(code.length!==6||verifying)return;verifying=true;const b=$('#lVerify');busyBtn(b,true,'Prüfe …');
+async function verify(){const code=$('#lCode').value.replace(/\D/g,'');if(code.length!==6||verifying)return;verifying=true;const b=$('#lVerify');busyBtn(b,true,esc(_T('a.l.checking')));
   try{const j=await post('/auth/verify',{email:lEmail,code});KEY=j.key;LS.set('ch_api_key',KEY);LS.set('ch_email',j.email);haptic('success');lmsg('');await boot();}
   catch(x){lmsg(esc(x.message),'err');$('#lCode').value='';haptic('error');}busyBtn(b,false);verifying=false;}
 $('#lBack').addEventListener('click',()=>{lstep('stepEmail');lmsg('');});
 $('#lResend').addEventListener('click',()=>{$('#lEmail').value=lEmail;$('#stepEmail').requestSubmit?$('#stepEmail').requestSubmit():$('#lSend').click();});
 $('#lKeyShow').addEventListener('click',()=>{lstep('stepKey');lmsg('');});
 $('#lKeyBack').addEventListener('click',()=>{lstep('stepEmail');lmsg('');});
-$('#stepKey').addEventListener('submit',async e=>{e.preventDefault();const k=$('#lKey').value.trim();if(!/^ch_(live|test)_[a-f0-9]{48}$/.test(k)){lmsg('Schlüssel-Format: ch_live_… (56 Zeichen)','err');return;}KEY=k;LS.set('ch_api_key',KEY);await boot();});
+$('#stepKey').addEventListener('submit',async e=>{e.preventDefault();const k=$('#lKey').value.trim();if(!/^ch_(live|test)_[a-f0-9]{48}$/.test(k)){lmsg(esc(_T('a.l.keyFmt')),'err');return;}KEY=k;LS.set('ch_api_key',KEY);await boot();});
 /* Ein-Tipp-Übernahme aus der Login-Mail (#code=123456&e=<base64url>) – wie im Studio nur vorausfüllen */
 const LINK_LOGIN=(()=>{try{const h=new URLSearchParams(location.hash.slice(1));const c=(h.get('code')||'').replace(/\D/g,'');const e=h.get('e');if(c.length!==6||!e)return null;let b=e.replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';
   const em=decodeURIComponent(escape(atob(b)));history.replaceState(null,'',location.pathname+location.search);return /.+@.+\..+/.test(em)?{code:c,email:em}:null;}catch(_){return null;}})();
 function showLogin(m,k){$('#vApp').hidden=true;$('#vLogin').hidden=false;hideBoot();if(m)lmsg(m,k);
-  if(LINK_LOGIN){lEmail=LINK_LOGIN.email;$('#lEmail').value=lEmail;lstep('stepCode');$('#lTo').textContent='Code für '+lEmail;$('#lCode').value=LINK_LOGIN.code;lmsg('Code aus der E-Mail übernommen – tippe auf „Anmelden“.','ok');}
+  if(LINK_LOGIN){lEmail=LINK_LOGIN.email;$('#lEmail').value=lEmail;lstep('stepCode');$('#lTo').textContent=_T('a.l.codeFor',{e:lEmail});$('#lCode').value=LINK_LOGIN.code;lmsg(esc(_T('a.l.fromLink')),'ok');}
   else{const em=LS.get('ch_email','');if(em&&!$('#lEmail').value)$('#lEmail').value=em;}}
 function logout(msg){LS.set('ch_api_key',null);LS.set('ch_app_snap',null);LS.set('ch_app_seen',null);KEY='';ME=null;for(const k in D)if(Array.isArray(D[k]))D[k]=[];
   D.orders=D.appts=D.rides=D.hotelReq=D.hotelBook=D.callbacks=D.calls=D.contacts=D.inbox=null;stopPolling();closeSheet(true);lstep('stepEmail');showLogin(msg,msg?'err':'');}
@@ -484,8 +501,8 @@ async function boot(){
   if(!KEY){showLogin();return;}
   let me=null;
   try{[me,CATS]=await Promise.all([api('/me'),api('/categories').then(j=>j.categories||[]).catch(()=>null)]);}
-  catch(e){if(e.status===401){logout('Sitzung abgelaufen – bitte neu anmelden.');return;}
-    if(e.offline&&snapLoad()){ME=ME||{email:LS.get('ch_email',''),plans:[],channels:[]};}else if(e.offline){showLogin('Keine Verbindung – bitte Internet prüfen und erneut versuchen.','err');return;}else{showLogin(esc(e.message),'err');return;}}
+  catch(e){if(e.status===401){logout(esc(_T('a.expired')));return;}
+    if(e.offline&&snapLoad()){ME=ME||{email:LS.get('ch_email',''),plans:[],channels:[]};}else if(e.offline){showLogin(esc(_T('a.noConn')),'err');return;}else{showLogin(esc(e.message),'err');return;}}
   if(me){ME=me;LS.set('ch_email',me.email);if(!snapLoad.done){snapLoad.done=1;const s=LS.json('ch_app_snap',null);if(s&&s.email===me.email&&s.d)Object.assign(D,s.d);}}
   computeMods();buildTabs();
   $('#vLogin').hidden=true;$('#vApp').hidden=false;hideBoot();BOOTED=true;
@@ -503,10 +520,10 @@ function validRoute(r){return ['heute','kunden','benachrichtigungen','mehr'].inc
 
 /* ---------- Tab-Leiste ---------- */
 function buildTabs(){
-  TABS=[{k:'heute',label:'Heute',icon:'heute'}];
+  TABS=[{k:'heute',label:_T('a.tab.heute'),icon:'heute'}];
   if(MODS.length===1)TABS.push({k:MODS[0],label:MOD_DEF[MODS[0]].label,icon:MOD_DEF[MODS[0]].icon,mod:true});
-  else if(MODS.length>1)TABS.push({k:'auftraege',label:'Aufträge',icon:'stack',mod:true});
-  TABS.push({k:'kunden',label:'Kunden',icon:'users'},{k:'benachrichtigungen',label:'Meldungen',icon:'bell'},{k:'mehr',label:'Mehr',icon:'more'});
+  else if(MODS.length>1)TABS.push({k:'auftraege',label:_T('a.tab.auftraege'),icon:'stack',mod:true});
+  TABS.push({k:'kunden',label:_T('a.tab.kunden'),icon:'users'},{k:'benachrichtigungen',label:_T('a.tab.meldungen'),icon:'bell'},{k:'mehr',label:_T('a.tab.mehr'),icon:'more'});
   $('#tabbar').innerHTML=TABS.map(t=>'<button class="tab" role="tab" type="button" data-tab="'+t.k+'" aria-label="'+esc(t.label)+'">'+ic(t.icon)+'<span class="t">'+esc(t.label)+'</span>'+
     (t.k==='benachrichtigungen'?'<span class="bdg" data-ch-unread style="display:none"></span>':t.mod?'<span class="bdg" data-mod-bdg style="display:none"></span>':'')+'</button>').join('');
   $$('#tabbar .tab').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.tab;haptic('select');if(k==='auftraege')go(SUBMOD||MODS[0]);else if(ROUTE===k||(k==='auftraege'&&MODS.includes(ROUTE)))window.scrollTo({top:0,behavior:'smooth'});else go(k);}));
@@ -558,7 +575,7 @@ async function refresh(o={}){
   refreshing=Promise.all(jobs).then(()=>{
     detectNew();snapSave();render();
     if(pendingDeep)openDeep(pendingDeep);
-  }).catch(e=>{if(e&&e.status===401)logout('Sitzung abgelaufen – bitte neu anmelden.');})
+  }).catch(e=>{if(e&&e.status===401)logout(esc(_T('a.expired')));})
     .finally(()=>{refreshing=null;paintLive(false);if(!ONLINE){render();}});
   return refreshing;
 }
@@ -578,44 +595,48 @@ function paintBadges(){const n=Object.values(actionCounts()).reduce((a,b)=>a+b,0
 /* =====================================================================================
    Modelle je Modul (Feed-Einträge, Aktionen)
    ===================================================================================== */
-const ORD_LABEL={new:'Neu',confirmed:'Bestätigt',preparing:'In Zubereitung',ready:'Fertig',out_for_delivery:'Unterwegs',delivered:'Zugestellt',cancelled:'Storniert'};
+const ORD_LABEL={};['new','confirmed','preparing','ready','out_for_delivery','delivered','cancelled'].forEach(x=>{ORD_LABEL[x]=_T('a.o.'+x);});
 const ORD_TONE={new:'gold',confirmed:'blue',preparing:'violet',ready:'ok',out_for_delivery:'blue',delivered:'ok',cancelled:'rose'};
-function ordNext(o){const d=o.type==='delivery';return {new:['confirmed','Bestätigen'],confirmed:['preparing','Zubereiten'],preparing:['ready','Fertig'],ready:d?['out_for_delivery','Losfahren']:['delivered','Abgeholt'],out_for_delivery:['delivered','Zugestellt']}[o.status]||null;}
+function ordNext(o){const d=o.type==='delivery';return {new:['confirmed',_T('a.oa.confirm')],confirmed:['preparing',_T('a.oa.prepare')],preparing:['ready',_T('a.oa.ready')],ready:d?['out_for_delivery',_T('a.oa.go')]:['delivered',_T('a.oa.picked')],out_for_delivery:['delivered',_T('a.oa.delivered')]}[o.status]||null;}
 const RIDE_TONE={new:'gold',assigned:'blue',en_route:'blue',arrived:'violet',onboard:'violet',completed:'ok',cancelled:'rose',no_show:'rose'};
-function rideNext(r){return {new:['assigned','Fahrer zuweisen'],assigned:['en_route','Anfahrt starten'],en_route:['arrived','Taxi ist da'],arrived:['onboard','Fahrt läuft'],onboard:['completed','Abschließen']}[r.status]||null;}
-const HB_LABEL={requested:'Anfrage',confirmed:'Bestätigt',declined:'Abgelehnt',cancelled:'Storniert',checked_in:'Eingecheckt',checked_out:'Abgereist',no_show:'Nicht angereist'};
+function rideNext(r){return {new:['assigned',_T('a.ra.assign')],assigned:['en_route',_T('a.ra.start')],en_route:['arrived',_T('a.ra.arrived')],arrived:['onboard',_T('a.ra.onboard')],onboard:['completed',_T('a.ra.done')]}[r.status]||null;}
+const HB_LABEL={};['requested','confirmed','declined','cancelled','checked_in','checked_out','no_show'].forEach(x=>{HB_LABEL[x]=_T('a.hb.'+x);});
 const CB_TONE={open:'gold',scheduled:'blue',calling:'violet',done:'ok',failed:'rose',cancelled:'mute'};
-const CH_LABEL={whatsapp:'WhatsApp',phone:'Telefon',widget:'Website',web:'Website',chat:'Chat',studio:'Studio',form:'Formular',api:'API',demo:'Demo'};
+const CH_LABEL={whatsapp:'WhatsApp',phone:_T('a.ch.phone'),widget:_T('a.ch.web'),web:_T('a.ch.web'),chat:'Chat',studio:'Studio',form:_T('a.ch.form'),api:'API',demo:'Demo'};
+/** Abholzeit einer Fahrt: Deutsch wie vom Server („Fr, 24.10. 05:30“), sonst aus pickup_at über Intl */
+function rideWhen(r){if(DE_UI||!r.pickup_at)return X(r.when||r.pickup_time);return fmtD(r.pickup_at,{weekday:'short',day:'2-digit',month:'2-digit'})+' '+fmtT(String(r.pickup_at).slice(11,16));}
+/** Termin lang: Deutsch wie vom Server („Fr, 24.10.2026 um 9:30 Uhr“), sonst Datum + Uhrzeit über Intl */
+function apptHuman(b){if(DE_UI)return b.human;return fmtD(b.date,{weekday:'short',day:'numeric',month:'long',year:'numeric'})+' · '+fmtT(b.time);}
 function apptTs(b){const [y,m,d]=(b.date||'').split('-').map(Number);const [h,mi]=(b.time||'0:0').split(':').map(Number);return new Date(y,(m||1)-1,d||1,h||0,mi||0).getTime();}
 function hbToday(b){const t=ymd(new Date());return (b.status==='requested')||(b.status==='confirmed'&&b.checkin<=t)||(b.status==='checked_in'&&b.checkout<=t);}
 
 function feedItems(){
   const out=[];const now=Date.now();
   (D.orders||[]).forEach(o=>{const nx=ordNext(o);out.push({key:'o:'+o.id,code:o.code,mod:'bestellungen',icon:'bag',tone:'gold',ts:hmToday(o.created)||now,
-    title:(o.type==='delivery'?'Lieferung':'Abholung')+' · '+o.total,sub:(o.items_text||'')+(o.name?' · '+o.name:''),
+    title:_T(o.type==='delivery'?'a.delivery':'a.pickup')+' · '+(DE_UI?o.total:eur(o.total_cents)),sub:(o.items_text||'')+(o.name?' · '+o.name:''),
     status:ORD_LABEL[o.status]||o.status,stTone:ORD_TONE[o.status]||'',hot:o.status==='new',ch:o.channel,primary:nx?{label:nx[1],run:b=>orderStatus(o,nx[0],b)}:null,open:()=>orderSheet(o)});});
   (D.appts||[]).filter(b=>b.status==='booked'&&b.date===ymd(new Date())).forEach(b=>{const ts=apptTs(b);out.push({key:'a:'+b.id,code:b.code,mod:'termine',icon:'cal',tone:'violet',ts:iso(b.created_at&&b.created_at.replace(' ','T'))||ts,sortTs:ts,
-    title:b.time+' · '+b.service,sub:b.name+(b.phone?' · '+b.phone:''),status:ts<now?'Läuft/vorbei':'Heute',stTone:ts<now?'':'violet',hot:false,ch:b.source,open:()=>apptSheet(b),
-    primary:ts<now?{label:'Erledigt',run:x=>apptStatus(b,'done',x)}:null});});
+    title:fmtT(b.time)+' · '+b.service,sub:b.name+(b.phone?' · '+b.phone:''),status:ts<now?_T('a.runPast'):_T('a.today'),stTone:ts<now?'':'violet',hot:false,ch:b.source,open:()=>apptSheet(b),
+    primary:ts<now?{label:_T('a.done'),run:x=>apptStatus(b,'done',x)}:null});});
   (D.rides||[]).forEach(r=>{const nx=rideNext(r);out.push({key:'r:'+r.id,code:r.code,mod:'taxi',icon:'car',tone:'blue',ts:iso(r.created_iso)||now,
-    title:(r.asap?'Sofort':(r.when||r.pickup_time))+' · '+(r.pickup||''),sub:(r.destination?'→ '+r.destination+' · ':'')+(r.name||'')+(r.passengers?' · '+r.passengers+' Pers.':''),
-    status:r.status_label||r.status,stTone:RIDE_TONE[r.status]||'',hot:r.status==='new',ch:r.channel,open:()=>rideSheet(r),
+    title:(r.asap?_T('a.asap'):rideWhen(r))+' · '+(r.pickup||''),sub:(r.destination?'→ '+r.destination+' · ':'')+(r.name||'')+(r.passengers?' · '+_T('a.pers',{n:r.passengers}):''),
+    status:X(r.status_label||r.status),stTone:RIDE_TONE[r.status]||'',hot:r.status==='new',ch:r.channel,open:()=>rideSheet(r),
     primary:nx?{label:nx[1],run:b=>nx[0]==='assigned'?driverSheet(r):rideStatus(r,nx[0],null,b)}:null});});
-  (D.hotelReq||[]).forEach(q=>out.push({key:'hr:'+q.id,code:String(q.id),mod:'hotel',icon:'bed',tone:'teal',ts:iso(q.created_iso)||now,title:(q.kind_label||'Gästewunsch')+(q.room_no?' · Zimmer '+q.room_no:''),
-    sub:(q.details||'')+(q.guest_name?' · '+q.guest_name:''),status:q.status_label||q.status,stTone:q.status==='open'?'gold':'blue',hot:q.status==='open',ch:q.channel,open:()=>hreqSheet(q),
-    primary:q.status==='open'?{label:'Übernehmen',run:b=>hreqStatus(q,'in_progress',b)}:q.status==='in_progress'?{label:'Erledigt',run:b=>hreqStatus(q,'done',b)}:null}));
-  (D.hotelBook||[]).filter(hbToday).forEach(b=>{const t=ymd(new Date());const act=b.status==='requested'?['confirm','Bestätigen']:b.status==='confirmed'?['checkin','Check-in']:b.status==='checked_in'?['checkout','Check-out']:null;
-    out.push({key:'hb:'+b.id,code:b.code,mod:'hotel',icon:'bed',tone:'teal',ts:iso(b.created_iso)||now,title:(b.status==='requested'?'Buchungsanfrage':b.status==='confirmed'?'Anreise heute':'Abreise heute')+' · '+b.name,
-      sub:b.room+' · '+b.checkin_short+' – '+b.checkout_short+' · '+b.nights+' N. · '+b.total,status:HB_LABEL[b.status]||b.status_label,stTone:b.status==='requested'?'gold':'blue',hot:b.status==='requested',ch:b.channel,
+  (D.hotelReq||[]).forEach(q=>out.push({key:'hr:'+q.id,code:String(q.id),mod:'hotel',icon:'bed',tone:'teal',ts:iso(q.created_iso)||now,title:(X(q.kind_label)||_T('a.guestWish'))+(q.room_no?' · '+_T('a.roomN',{n:q.room_no}):''),
+    sub:(q.details||'')+(q.guest_name?' · '+q.guest_name:''),status:X(q.status_label||q.status),stTone:q.status==='open'?'gold':'blue',hot:q.status==='open',ch:q.channel,open:()=>hreqSheet(q),
+    primary:q.status==='open'?{label:_T('a.take'),run:b=>hreqStatus(q,'in_progress',b)}:q.status==='in_progress'?{label:_T('a.done'),run:b=>hreqStatus(q,'done',b)}:null}));
+  (D.hotelBook||[]).filter(hbToday).forEach(b=>{const t=ymd(new Date());const act=b.status==='requested'?['confirm',_T('a.hb.act.confirm')]:b.status==='confirmed'?['checkin',_T('a.checkin')]:b.status==='checked_in'?['checkout',_T('a.checkout')]:null;
+    out.push({key:'hb:'+b.id,code:b.code,mod:'hotel',icon:'bed',tone:'teal',ts:iso(b.created_iso)||now,title:_T(b.status==='requested'?'a.hbReq':b.status==='confirmed'?'a.arrToday':'a.depToday')+' · '+b.name,
+      sub:b.room+' · '+(DE_UI?b.checkin_short:fmtD(b.checkin,{weekday:'short',day:'2-digit',month:'2-digit'}))+' – '+(DE_UI?b.checkout_short:fmtD(b.checkout,{weekday:'short',day:'2-digit',month:'2-digit'}))+' · '+_T('a.nightsN',{n:b.nights})+' · '+(DE_UI?b.total:eur(b.total_cents)),status:HB_LABEL[b.status]||X(b.status_label),stTone:b.status==='requested'?'gold':'blue',hot:b.status==='requested',ch:b.channel,
       open:()=>hbookSheet(b),primary:act?{label:act[1],run:x=>hbookAction(b,act[0],x)}:null});});
-  (D.callbacks||[]).forEach(c=>out.push({key:'c:'+c.id,code:c.code,mod:'rueckruf',icon:'cb',tone:'rose',ts:iso(c.created_at)||now,title:'Rückruf · '+c.name,sub:(c.topic||'')+' · '+(c.preferred_short||c.preferred||''),
-    status:c.urgency==='dringend'?'Dringend':(c.status_label||c.status),stTone:c.urgency==='dringend'||c.due?'rose':(CB_TONE[c.status]||''),hot:!!c.due,ch:c.source,open:()=>cbSheet(c),
-    primary:{label:'Anrufen',href:tel(c.phone)}}));
+  (D.callbacks||[]).forEach(c=>out.push({key:'c:'+c.id,code:c.code,mod:'rueckruf',icon:'cb',tone:'rose',ts:iso(c.created_at)||now,title:_T('a.cbTitle',{n:c.name}),sub:(c.topic||'')+' · '+X(c.preferred_short||c.preferred||''),
+    status:c.urgency==='dringend'?_T('a.urgent'):X(c.status_label||c.status),stTone:c.urgency==='dringend'||c.due?'rose':(CB_TONE[c.status]||''),hot:!!c.due,ch:c.source,open:()=>cbSheet(c),
+    primary:{label:_T('a.call'),href:tel(c.phone)}}));
   (D.calls||[]).slice(0,25).forEach(c=>{const ts=iso(c.started_at);if(now-ts>36*3600e3)return;const first=(c.transcript||[]).find(m=>m.role==='user');
-    out.push({key:'call:'+c.id,mod:'anrufe',icon:'phone',tone:'mute',ts,title:'Anruf · '+(c.from_number||'unbekannt'),sub:first?'„'+first.content+'“':(c.turns||0)+' Antworten',
-      status:c.outcome==='callback'?'Rückruf gewünscht':c.outcome==='forwarded'?'Weitergeleitet':(c.status==='completed'?'Beendet':c.status),stTone:c.outcome==='callback'?'rose':'',ch:'phone',open:()=>callSheet(c)});});
+    out.push({key:'call:'+c.id,mod:'anrufe',icon:'phone',tone:'mute',ts,title:_T('a.callTitle',{n:c.from_number||_T('a.unknown')}),sub:first?_T('a.quote',{x:first.content}):_T('a.answersN',{n:c.turns||0}),
+      status:c.outcome==='callback'?_T('a.cbWanted'):c.outcome==='forwarded'?_T('a.forwarded'):(c.status==='completed'?_T('a.ended'):c.status),stTone:c.outcome==='callback'?'rose':'',ch:'phone',open:()=>callSheet(c)});});
   (D.contacts||[]).filter(c=>c.last_channel==='whatsapp'&&now-iso(c.last_seen)<24*3600e3).forEach(c=>out.push({key:'wa:'+c.phone+':'+c.last_seen,mod:'whatsapp',icon:'chat',tone:'ok',ts:iso(c.last_seen),
-    title:'WhatsApp · '+(c.name||c.phone_masked),sub:c.open_count?c.open_count+' offene Vorgänge':'Gespräch mit dem Agenten',status:c.window_open?'Antwort möglich':'',stTone:c.window_open?'ok':'',ch:'whatsapp',open:()=>contactSheet(c.phone)}));
+    title:'WhatsApp · '+(c.name||c.phone_masked),sub:c.open_count?_T('a.openN',{n:c.open_count}):_T('a.waAgent'),status:c.window_open?_T('a.canReply'):'',stTone:c.window_open?'ok':'',ch:'whatsapp',open:()=>contactSheet(c.phone)}));
   return out.sort((a,b)=>(b.hot-a.hot)||((b.sortTs?0:b.ts)-(a.sortTs?0:a.ts))||(a.sortTs||0)-(b.sortTs||0));
 }
 function actionCounts(){const t=ymd(new Date());return {
@@ -629,7 +650,7 @@ function detectNew(){
   items.forEach(i=>{if(!SEEN.has(i.key)){if(!FIRST_LOAD)fresh.push(i);SEEN.add(i.key);}});
   FIRST_LOAD=false;LS.set('ch_app_seen',JSON.stringify([...SEEN].slice(-400)));
   if(fresh.length){NEWKEYS=new Set(fresh.map(i=>i.key));const f=fresh[0];haptic('success');chime();
-    toast(fresh.length>1?fresh.length+' neue Aufträge':({bestellungen:'Neue Bestellung',taxi:'Neue Fahrt',hotel:'Neue Hotelanfrage',rueckruf:'Neuer Rückrufwunsch',termine:'Neuer Termin'}[f.mod]||'Neu'),f.title,'',()=>f.open());}
+    toast(fresh.length>1?_T('a.newN',{n:fresh.length}):_T(['bestellungen','taxi','hotel','rueckruf','termine'].includes(f.mod)?'a.new.'+f.mod:'a.new.x'),f.title,'',()=>f.open());}
 }
 let NEWKEYS=new Set();
 
@@ -637,10 +658,10 @@ let NEWKEYS=new Set();
    Darstellung
    ===================================================================================== */
 function render(){
-  const page=pageOf(ROUTE);const T={heute:'Heute',kunden:'Kunden',benachrichtigungen:'Meldungen',mehr:'Mehr'};
-  $('#pgTitle').textContent=T[page]||(MODS.length>1?'Aufträge':MOD_DEF[ROUTE]?MOD_DEF[ROUTE].label:'Aufträge');
+  const page=pageOf(ROUTE);const T={heute:_T('a.tab.heute'),kunden:_T('a.tab.kunden'),benachrichtigungen:_T('a.tab.meldungen'),mehr:_T('a.tab.mehr')};
+  $('#pgTitle').textContent=T[page]||(MODS.length>1?_T('a.tab.auftraege'):MOD_DEF[ROUTE]?MOD_DEF[ROUTE].label:_T('a.tab.auftraege'));
   const company=((ME&&ME.configs||[]).find(c=>c.company)||{}).company||'';
-  $('#pgSub').textContent=page==='heute'?greet()+(company?' · '+company:''):page==='auftraege'?new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'}):page==='mehr'?(ME&&ME.email||''):'';
+  $('#pgSub').textContent=page==='heute'?greet()+(company?' · '+company:''):page==='auftraege'?I.date(new Date(),{weekday:'long',day:'numeric',month:'long'}):page==='mehr'?(ME&&ME.email||''):'';
   if(page==='heute')renderHeute();else if(page==='auftraege')renderMod();else if(page==='kunden')renderKunden();else if(page==='benachrichtigungen')renderPush();else if(page==='mehr')renderMehr();
   paintBadges();
 }
@@ -661,35 +682,35 @@ function pushBanner(){
   const st=D.pushState;if(!A&&!IS_NATIVE)return '';
   const mine=D.push&&D.deviceHash?(D.push.devices||[]).find(d=>d.h===D.deviceHash):null;
   if(st==='subscribed'&&(mine||!D.push))return '';
-  if(st==='denied')return '<div class="hero warn" style="margin-top:4px"><h3>Benachrichtigungen blockiert</h3><p>Ohne Erlaubnis verpasst du neue Aufträge, wenn die App geschlossen ist.</p><button class="btn s o" type="button" data-go="benachrichtigungen">So erlaubst du sie wieder</button></div>';
-  if(IS_IOS&&!STANDALONE&&!IS_NATIVE)return '<div class="hero" style="margin-top:4px"><h3>Für Benachrichtigungen: zum Home-Bildschirm</h3><p>Auf dem iPhone kommen Meldungen nur in der installierten App an. Das dauert 20 Sekunden.</p><button class="btn s p" type="button" data-iosguide>'+ic('share','s')+'Anleitung zeigen</button></div>';
+  if(st==='denied')return '<div class="hero warn" style="margin-top:4px"><h3>'+esc(_T('a.pb.denied.t'))+'</h3><p>'+esc(_T('a.pb.denied.p'))+'</p><button class="btn s o" type="button" data-go="benachrichtigungen">'+esc(_T('a.pb.denied.b'))+'</button></div>';
+  if(IS_IOS&&!STANDALONE&&!IS_NATIVE)return '<div class="hero" style="margin-top:4px"><h3>'+esc(_T('a.pb.ios.t'))+'</h3><p>'+esc(_T('a.pb.ios.p'))+'</p><button class="btn s p" type="button" data-iosguide>'+ic('share','s')+esc(_T('a.pb.ios.b'))+'</button></div>';
   if(st==='unsupported')return '';
-  return '<div class="hero" style="margin-top:4px"><h3>Keinen Auftrag mehr verpassen</h3><p>Neue Bestellungen, Fahrten und Termine kommen sofort mit Ton aufs Handy – auch wenn die App zu ist.</p><button class="btn g" type="button" data-enablepush>'+ic('bell','s')+'Benachrichtigungen aktivieren</button></div>';
+  return '<div class="hero" style="margin-top:4px"><h3>'+esc(_T('a.pb.t'))+'</h3><p>'+esc(_T('a.pb.p'))+'</p><button class="btn g" type="button" data-enablepush>'+ic('bell','s')+esc(_T('a.enablePush'))+'</button></div>';
 }
 function renderHeute(){
   const el=$('#p-heute');const loading=MODS.length&&MODS.some(k=>({bestellungen:D.orders,termine:D.appts,taxi:D.rides,hotel:D.hotelReq,rueckruf:D.callbacks})[k]==null);
   const items=feedItems();const ac=actionCounts();const t=ymd(new Date());
   const kp=[];
-  if(MODS.includes('bestellungen'))kp.push({k:'bestellungen',n:(D.orders||[]).length,l:'offene Bestellungen',hot:ac.bestellungen>0,icon:'bag',tone:'gold'});
-  if(MODS.includes('termine'))kp.push({k:'termine',n:(D.appts||[]).filter(b=>b.status==='booked'&&b.date===t).length,l:'Termine heute',icon:'cal',tone:'violet'});
-  if(MODS.includes('taxi'))kp.push({k:'taxi',n:(D.rides||[]).length,l:'offene Fahrten',hot:ac.taxi>0,icon:'car',tone:'blue'});
-  if(MODS.includes('hotel'))kp.push({k:'hotel',n:ac.hotel,l:'Hotel: zu erledigen',hot:ac.hotel>0,icon:'bed',tone:'teal'});
-  if(MODS.includes('rueckruf'))kp.push({k:'rueckruf',n:(D.callbacks||[]).length,l:'Rückrufe offen',hot:ac.rueckruf>0,icon:'cb',tone:'rose'});
-  if(kp.length<2&&hasPhone())kp.push({k:'heute',n:(D.calls||[]).filter(c=>ymd(new Date(iso(c.started_at)))===t).length,l:'Anrufe heute',icon:'phone',tone:'mute',filter:'anrufe'});
-  if(kp.length<2)kp.push({k:'benachrichtigungen',n:D.unread,l:'ungelesene Meldungen',icon:'bell',tone:'mute'});
-  const types=['bestellungen','termine','taxi','hotel','rueckruf','anrufe','whatsapp'].filter(k=>items.some(i=>i.mod===k));const FL={alle:'Alle',bestellungen:'Bestellungen',termine:'Termine',taxi:'Fahrten',hotel:'Hotel',rueckruf:'Rückrufe',anrufe:'Anrufe',whatsapp:'WhatsApp'};
+  if(MODS.includes('bestellungen'))kp.push({k:'bestellungen',n:(D.orders||[]).length,l:_T('a.k.orders'),hot:ac.bestellungen>0,icon:'bag',tone:'gold'});
+  if(MODS.includes('termine'))kp.push({k:'termine',n:(D.appts||[]).filter(b=>b.status==='booked'&&b.date===t).length,l:_T('a.k.appts'),icon:'cal',tone:'violet'});
+  if(MODS.includes('taxi'))kp.push({k:'taxi',n:(D.rides||[]).length,l:_T('a.k.rides'),hot:ac.taxi>0,icon:'car',tone:'blue'});
+  if(MODS.includes('hotel'))kp.push({k:'hotel',n:ac.hotel,l:_T('a.k.hotel'),hot:ac.hotel>0,icon:'bed',tone:'teal'});
+  if(MODS.includes('rueckruf'))kp.push({k:'rueckruf',n:(D.callbacks||[]).length,l:_T('a.k.cb'),hot:ac.rueckruf>0,icon:'cb',tone:'rose'});
+  if(kp.length<2&&hasPhone())kp.push({k:'heute',n:(D.calls||[]).filter(c=>ymd(new Date(iso(c.started_at)))===t).length,l:_T('a.k.calls'),icon:'phone',tone:'mute',filter:'anrufe'});
+  if(kp.length<2)kp.push({k:'benachrichtigungen',n:D.unread,l:_T('a.k.unread'),icon:'bell',tone:'mute'});
+  const types=['bestellungen','termine','taxi','hotel','rueckruf','anrufe','whatsapp'].filter(k=>items.some(i=>i.mod===k));const FL={alle:_T('a.f.alle'),bestellungen:_T('a.m.bestellungen'),termine:_T('a.m.termine'),taxi:_T('a.m.taxi'),hotel:_T('a.m.hotel'),rueckruf:_T('a.m.rueckruf'),anrufe:_T('a.f.anrufe'),whatsapp:'WhatsApp'};
   if(FEED_FILTER!=='alle'&&!types.includes(FEED_FILTER))FEED_FILTER='alle';
   const shown=FEED_FILTER==='alle'?items:items.filter(i=>i.mod===FEED_FILTER);
   let h=pushBanner();
   if(!MODS.length&&!hasPhone()){
-    h+='<div class="card" style="margin-top:10px"><div class="ti t-gold" style="margin-bottom:10px">'+ic('spark')+'</div><h3 class="serif" style="margin:0 0 4px;font-size:20px">Noch kein Agent mit Aufträgen aktiv</h3><p class="mute" style="margin:0 0 12px">Sobald dein Agent Bestellungen, Termine, Fahrten oder Rückrufe annimmt, erscheinen sie hier live.</p>'+
-      '<div class="acts">'+(HAS_SETUP?'<a class="btn p s" href="/chat/studio.php#einrichtung">Einrichtung fortsetzen</a>':'')+'<a class="btn '+(HAS_SETUP?'o':'p')+' s" href="/chat/studio.php#agents">Agenten im Studio</a><button class="btn o s" type="button" data-allmods>Alle Bereiche zeigen</button></div></div>';
+    h+='<div class="card" style="margin-top:10px"><div class="ti t-gold" style="margin-bottom:10px">'+ic('spark')+'</div><h3 class="serif" style="margin:0 0 4px;font-size:20px">'+esc(_T('a.none.t'))+'</h3><p class="mute" style="margin:0 0 12px">'+esc(_T('a.none.p'))+'</p>'+
+      '<div class="acts">'+(HAS_SETUP?'<a class="btn p s" href="/chat/studio.php#einrichtung">'+esc(_T('a.none.setup'))+'</a>':'')+'<a class="btn '+(HAS_SETUP?'o':'p')+' s" href="/chat/studio.php#agents">'+esc(_T('a.none.studio'))+'</a><button class="btn o s" type="button" data-allmods>'+esc(_T('a.none.all'))+'</button></div></div>';
   }
   if(kp.length)h+='<div class="kpis" style="margin-top:12px">'+kp.slice(0,4).map(x=>'<button class="kpi'+(x.hot?' hot':'')+'" type="button" data-kpi="'+x.k+'"'+(x.filter?' data-filter="'+x.filter+'"':'')+'><span class="ti t-'+x.tone+'" style="width:34px;height:34px;border-radius:11px;position:absolute;right:12px;top:12px">'+ic(x.icon,'s')+'</span><span class="n">'+de(x.n)+'</span><span class="l">'+esc(x.l)+'</span></button>').join('')+'</div>';
-  h+='<div class="sec"><h2>Live-Feed</h2><span class="tiny mute">'+(LAST_OK?'aktualisiert '+new Date(LAST_OK).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'')+'</span></div>';
-  if(types.length>1)h+='<div class="chips" role="tablist" aria-label="Filter">'+['alle',...types].map(k=>'<button class="chip'+(FEED_FILTER===k?' on':'')+'" type="button" data-filter="'+k+'">'+esc(FL[k]||k)+(k!=='alle'?'<span class="c">'+items.filter(i=>i.mod===k).length+'</span>':'')+'</button>').join('')+'</div><div style="height:10px"></div>';
+  h+='<div class="sec"><h2>'+esc(_T('a.feed'))+'</h2><span class="tiny mute">'+(LAST_OK?esc(_T('a.updated',{t:I.time(new Date(LAST_OK))})):'')+'</span></div>';
+  if(types.length>1)h+='<div class="chips" role="tablist" aria-label="'+esc(_T('a.filter'))+'">'+['alle',...types].map(k=>'<button class="chip'+(FEED_FILTER===k?' on':'')+'" type="button" data-filter="'+k+'">'+esc(FL[k]||k)+(k!=='alle'?'<span class="c">'+items.filter(i=>i.mod===k).length+'</span>':'')+'</button>').join('')+'</div><div style="height:10px"></div>';
   if(loading&&!items.length)h+=skel(3);
-  else if(!shown.length)h+='<div class="empty"><div class="ti t-ok">'+ic('check')+'</div><b>Alles erledigt</b>Neue Aufträge erscheinen hier sofort'+(D.pushState==='subscribed'?' – und du bekommst eine Benachrichtigung.':'.')+'</div>';
+  else if(!shown.length)h+='<div class="empty"><div class="ti t-ok">'+ic('check')+'</div><b>'+esc(_T('a.allDone'))+'</b>'+esc(_T(D.pushState==='subscribed'?'a.allDone.push':'a.allDone.p'))+'</div>';
   else h+='<div class="list" id="feedList">'+shown.slice(0,60).map(itemHTML).join('')+'</div>';
   el.innerHTML=h;bindItems(el,shown);bindCommon(el);
   $$('[data-filter]',el).forEach(b=>b.addEventListener('click',()=>{if(b.classList.contains('kpi')){FEED_FILTER=b.dataset.filter;}else{FEED_FILTER=b.dataset.filter;haptic('select');}LS.set('ch_app_filter',FEED_FILTER);renderHeute();}));
@@ -725,239 +746,246 @@ async function ensureLinks(mod){try{
 function renderOrders(root){
   const items=feedItems().filter(i=>i.mod==='bestellungen');const f=LS.get('ch_app_ofilter','offen');
   const groups={offen:items,neu:items.filter(i=>/^o:/.test(i.key)&&(D.orders.find(o=>'o:'+o.id===i.key)||{}).status==='new'),arbeit:items.filter(i=>{const o=(D.orders||[]).find(o=>'o:'+o.id===i.key)||{};return ['confirmed','preparing'].includes(o.status);}),fertig:items.filter(i=>{const o=(D.orders||[]).find(o=>'o:'+o.id===i.key)||{};return ['ready','out_for_delivery'].includes(o.status);})};
-  if(D.orders)root.innerHTML='<div class="chips" style="margin-bottom:10px">'+[['offen','Alle offenen'],['neu','Neu'],['arbeit','In Arbeit'],['fertig','Fertig & unterwegs']].map(([k,l])=>'<button class="chip'+(f===k?' on':'')+'" type="button" data-of="'+k+'">'+l+'<span class="c">'+groups[k].length+'</span></button>').join('')+'</div>';
-  listOrEmpty(root,D.orders==null?null:groups[f]||items,'Keine offenen Bestellungen','Neue Bestellungen aus Telefon, WhatsApp und Website erscheinen hier sofort.','bag','gold');
+  if(D.orders)root.innerHTML='<div class="chips" style="margin-bottom:10px">'+[['offen',_T('a.of.offen')],['neu',_T('a.of.neu')],['arbeit',_T('a.of.arbeit')],['fertig',_T('a.of.fertig')]].map(([k,l])=>'<button class="chip'+(f===k?' on':'')+'" type="button" data-of="'+k+'">'+esc(l)+'<span class="c">'+groups[k].length+'</span></button>').join('')+'</div>';
+  listOrEmpty(root,D.orders==null?null:groups[f]||items,_T('a.e.orders.t'),_T('a.e.orders.p'),'bag','gold');
   $$('[data-of]',root).forEach(b=>b.addEventListener('click',()=>{LS.set('ch_app_ofilter',b.dataset.of);haptic('select');renderMod();}));
   ensureLinks('bestellungen').then(()=>{if(ROUTE!=='bestellungen'||!D.orderLinks||!D.orderLinks.board)return;if($('#ordLinks'))return;
-    root.insertAdjacentHTML('beforeend','<div class="sec" id="ordLinks"><h2>Küche & Fahrer</h2></div><div class="group">'+linkRow(D.orderLinks.board,'Küchen-Board öffnen','Großansicht für Tablet oder Bildschirm in der Küche','board')+(D.orderLinks.drivers||[]).map(d=>linkRow(d.url,'Fahrer-Seite: '+d.name,'Link an den Fahrer schicken','car')).join('')+'</div>');});
+    root.insertAdjacentHTML('beforeend','<div class="sec" id="ordLinks"><h2>'+esc(_T('a.kd'))+'</h2></div><div class="group">'+linkRow(D.orderLinks.board,_T('a.kd.board'),_T('a.kd.boardSub'),'board')+(D.orderLinks.drivers||[]).map(d=>linkRow(d.url,_T('a.kd.drv',{n:d.name}),_T('a.sendDriver'),'car')).join('')+'</div>');});
 }
 function renderAppts(root){
   const all=(D.appts||[]).filter(b=>b.status==='booked');
   if(D.appts==null){listOrEmpty(root,null);return;}
-  if(!all.length){listOrEmpty(root,[],'Keine anstehenden Termine','In den nächsten 7 Tagen ist nichts gebucht.','cal','violet');return;}
+  if(!all.length){listOrEmpty(root,[],_T('a.e.appts.t'),_T('a.e.appts.p'),'cal','violet');return;}
   const byDay={};all.forEach(b=>{(byDay[b.date]=byDay[b.date]||[]).push(b);});
-  Object.keys(byDay).sort().forEach(d=>{root.insertAdjacentHTML('beforeend','<div class="sec"><h2>'+esc(dayWord(d))+'</h2><span class="tiny mute">'+byDay[d].length+' Termin'+(byDay[d].length>1?'e':'')+'</span></div>');
-    const items=byDay[d].sort((a,b)=>a.time.localeCompare(b.time)).map(b=>{const ts=apptTs(b);return {key:'a:'+b.id,mod:'termine',icon:'cal',tone:'violet',ts,sortTs:ts,title:b.time+'–'+(b.end||'')+' · '+b.service,sub:b.name+(b.phone?' · '+b.phone:'')+(b.note?' · '+b.note:''),
-      status:ts<Date.now()?'Vorbei':'Gebucht',stTone:ts<Date.now()?'':'violet',ch:b.source,open:()=>apptSheet(b),primary:ts<Date.now()?{label:'Erledigt',run:x=>apptStatus(b,'done',x)}:null};});
+  Object.keys(byDay).sort().forEach(d=>{root.insertAdjacentHTML('beforeend','<div class="sec"><h2>'+esc(dayWord(d))+'</h2><span class="tiny mute">'+esc(_T(byDay[d].length>1?'a.apptN':'a.apptN1',{n:byDay[d].length}))+'</span></div>');
+    const items=byDay[d].sort((a,b)=>a.time.localeCompare(b.time)).map(b=>{const ts=apptTs(b);return {key:'a:'+b.id,mod:'termine',icon:'cal',tone:'violet',ts,sortTs:ts,title:fmtT(b.time)+'–'+fmtT(b.end||'')+' · '+b.service,sub:b.name+(b.phone?' · '+b.phone:'')+(b.note?' · '+b.note:''),
+      status:ts<Date.now()?_T('a.past'):_T('a.booked'),stTone:ts<Date.now()?'':'violet',ch:b.source,open:()=>apptSheet(b),primary:ts<Date.now()?{label:_T('a.done'),run:x=>apptStatus(b,'done',x)}:null};});
     const w=document.createElement('div');w.className='list';w.innerHTML=items.map(itemHTML).join('');root.appendChild(w);bindItems(w,items);});
 }
 function renderRides(root){
-  listOrEmpty(root,D.rides==null?null:feedItems().filter(i=>i.mod==='taxi'),'Keine offenen Fahrten','Neue Fahrten aus Telefon, WhatsApp und Website erscheinen hier sofort.','car','blue');
+  listOrEmpty(root,D.rides==null?null:feedItems().filter(i=>i.mod==='taxi'),_T('a.e.rides.t'),_T('a.e.rides.p'),'car','blue');
   ensureLinks('taxi').then(()=>{if(ROUTE!=='taxi'||!D.rideLinks||!D.rideLinks.board||$('#rideLinks'))return;
-    root.insertAdjacentHTML('beforeend','<div class="sec" id="rideLinks"><h2>Zentrale & Fahrer</h2></div><div class="group">'+linkRow(D.rideLinks.board,'Taxi-Board öffnen','Disposition auf dem großen Bildschirm','board')+(D.rideLinks.drivers||[]).map(d=>linkRow(d.url,'Fahrer-App: '+d.name,'Link an den Fahrer schicken','car')).join('')+'</div>');});
+    root.insertAdjacentHTML('beforeend','<div class="sec" id="rideLinks"><h2>'+esc(_T('a.zd'))+'</h2></div><div class="group">'+linkRow(D.rideLinks.board,_T('a.zd.board'),_T('a.zd.boardSub'),'board')+(D.rideLinks.drivers||[]).map(d=>linkRow(d.url,_T('a.zd.drv',{n:d.name}),_T('a.sendDriver'),'car')).join('')+'</div>');});
 }
 function renderHotel(root){
   const it=feedItems().filter(i=>i.mod==='hotel');const req=it.filter(i=>/^hr:/.test(i.key)),bk=it.filter(i=>/^hb:/.test(i.key));
-  root.insertAdjacentHTML('beforeend','<div class="sec" style="margin-top:6px"><h2>Gästewünsche</h2></div>');
-  listOrEmpty(root,D.hotelReq==null?null:req,'Keine offenen Gästewünsche','','bed','teal');
-  root.insertAdjacentHTML('beforeend','<div class="sec"><h2>Anfragen, An- & Abreisen</h2></div>');
-  listOrEmpty(root,D.hotelBook==null?null:bk,'Heute nichts zu tun','Keine offenen Anfragen, An- oder Abreisen.','bed','teal');
+  root.insertAdjacentHTML('beforeend','<div class="sec" style="margin-top:6px"><h2>'+esc(_T('a.guestWishes'))+'</h2></div>');
+  listOrEmpty(root,D.hotelReq==null?null:req,_T('a.e.gw'),'','bed','teal');
+  root.insertAdjacentHTML('beforeend','<div class="sec"><h2>'+esc(_T('a.hbSec'))+'</h2></div>');
+  listOrEmpty(root,D.hotelBook==null?null:bk,_T('a.e.hb.t'),_T('a.e.hb.p'),'bed','teal');
   ensureLinks('hotel').then(()=>{if(ROUTE!=='hotel'||!D.hotelLinks||!D.hotelLinks.board||$('#hotelLinks'))return;
-    root.insertAdjacentHTML('beforeend','<div class="sec" id="hotelLinks"><h2>Rezeption</h2></div><div class="group">'+linkRow(D.hotelLinks.board,'Rezeptions-Board öffnen','Gästewünsche und Buchungen auf dem Bildschirm','board')+'</div>');});
+    root.insertAdjacentHTML('beforeend','<div class="sec" id="hotelLinks"><h2>'+esc(_T('a.rz'))+'</h2></div><div class="group">'+linkRow(D.hotelLinks.board,_T('a.rz.board'),_T('a.rz.boardSub'),'board')+'</div>');});
 }
-function renderCallbacks(root){listOrEmpty(root,D.callbacks==null?null:feedItems().filter(i=>i.mod==='rueckruf'),'Keine offenen Rückrufe','Rückrufwünsche aus Telefon, Formular und Chat erscheinen hier.','cb','rose');}
+function renderCallbacks(root){listOrEmpty(root,D.callbacks==null?null:feedItems().filter(i=>i.mod==='rueckruf'),_T('a.e.cb.t'),_T('a.e.cb.p'),'cb','rose');}
 
 /* ---------- Aktionen ---------- */
-async function act(btn,fn,okMsg){if(!ONLINE){toast('Offline','Diese Aktion braucht Internet.','err');return false;}if(btn)busyBtn(btn,true);
-  try{const r=await fn();haptic('success');if(okMsg)toast(okMsg,'','ok');return r||true;}catch(e){haptic('error');toast('Hat nicht geklappt',e.message,'err');return false;}finally{if(btn&&document.body.contains(btn))busyBtn(btn,false);}}
-async function orderStatus(o,st,btn){const r=await act(btn,()=>post('/order/status',{id:o.id,status:st}),'Bestellung '+o.code+': '+(ORD_LABEL[st]||st));if(r){if(r.order){const i=D.orders.findIndex(x=>x.id===o.id);if(['delivered','cancelled'].includes(st))D.orders.splice(i,1);else if(i>=0)D.orders[i]=r.order;}closeSheet();render();refresh();}}
-async function apptStatus(b,st,btn){const r=await act(btn,()=>post('/appt/status',{id:b.id,status:st}),{done:'Termin erledigt',noshow:'Als nicht erschienen markiert',cancelled:'Termin abgesagt'}[st]);if(r){const x=(D.appts||[]).find(y=>y.id===b.id);if(x)x.status=st;closeSheet();render();refresh();}}
-async function rideStatus(r,st,drv,btn){const res=await act(btn,()=>post('/ride/status',Object.assign({id:r.id,status:st,from:r.status},drv?{driver_id:drv}:{})),'Fahrt '+r.code+': aktualisiert');if(res){closeSheet();await refresh();render();}}
-async function hreqStatus(q,st,btn){const r=await act(btn,()=>post('/hotel/request',{id:q.id,status:st}),st==='done'?'Gästewunsch erledigt':'Übernommen');if(r){closeSheet();await refresh();render();}}
-async function hbookAction(b,a,btn){const r=await act(btn,()=>post('/hotel/booking',{id:b.id,action:a}),{confirm:'Buchung bestätigt',decline:'Anfrage abgelehnt',checkin:'Eingecheckt',checkout:'Ausgecheckt',cancel:'Storniert',noshow:'Nicht angereist'}[a]);if(r){closeSheet();await refresh();render();}}
-async function cbStatus(c,st,btn){const r=await act(btn,()=>post('/callbacks/update',{id:c.id,status:st}),st==='done'?'Rückruf erledigt':'Aktualisiert');if(r){D.callbacks=(D.callbacks||[]).filter(x=>x.id!==c.id||st==='open');closeSheet();render();refresh();}}
-function confirmAct(title,text,label,fn){openSheet(title,'<p class="mute" style="margin-top:0">'+esc(text)+'</p><div class="acts"><button class="btn o" type="button" data-close>Abbrechen</button><button class="btn rose" type="button" id="cfGo">'+esc(label)+'</button></div>');$('#cfGo').addEventListener('click',e=>fn(e.currentTarget));}
+async function act(btn,fn,okMsg){if(!ONLINE){toast(_T('a.offline.t'),_T('a.offline.p'),'err');return false;}if(btn)busyBtn(btn,true);
+  try{const r=await fn();haptic('success');if(okMsg)toast(okMsg,'','ok');return r||true;}catch(e){haptic('error');toast(_T('a.failed'),e.message,'err');return false;}finally{if(btn&&document.body.contains(btn))busyBtn(btn,false);}}
+async function orderStatus(o,st,btn){const r=await act(btn,()=>post('/order/status',{id:o.id,status:st}),_T('a.ok.order',{c:o.code,s:ORD_LABEL[st]||st}));if(r){if(r.order){const i=D.orders.findIndex(x=>x.id===o.id);if(['delivered','cancelled'].includes(st))D.orders.splice(i,1);else if(i>=0)D.orders[i]=r.order;}closeSheet();render();refresh();}}
+async function apptStatus(b,st,btn){const r=await act(btn,()=>post('/appt/status',{id:b.id,status:st}),_T({done:'a.ok.apptDone',noshow:'a.ok.noshow',cancelled:'a.ok.apptCancel'}[st]));if(r){const x=(D.appts||[]).find(y=>y.id===b.id);if(x)x.status=st;closeSheet();render();refresh();}}
+async function rideStatus(r,st,drv,btn){const res=await act(btn,()=>post('/ride/status',Object.assign({id:r.id,status:st,from:r.status},drv?{driver_id:drv}:{})),_T('a.ok.ride',{c:r.code}));if(res){closeSheet();await refresh();render();}}
+async function hreqStatus(q,st,btn){const r=await act(btn,()=>post('/hotel/request',{id:q.id,status:st}),_T(st==='done'?'a.ok.gwDone':'a.ok.taken'));if(r){closeSheet();await refresh();render();}}
+async function hbookAction(b,a,btn){const r=await act(btn,()=>post('/hotel/booking',{id:b.id,action:a}),_T({confirm:'a.ok.hbConfirm',decline:'a.ok.hbDecline',checkin:'a.ok.checkin',checkout:'a.ok.checkout',cancel:'a.ok.cancelled',noshow:'a.ok.noarr'}[a]));if(r){closeSheet();await refresh();render();}}
+async function cbStatus(c,st,btn){const r=await act(btn,()=>post('/callbacks/update',{id:c.id,status:st}),_T(st==='done'?'a.ok.cbDone':'a.ok.updated'));if(r){D.callbacks=(D.callbacks||[]).filter(x=>x.id!==c.id||st==='open');closeSheet();render();refresh();}}
+function confirmAct(title,text,label,fn){openSheet(title,'<p class="mute" style="margin-top:0">'+esc(text)+'</p><div class="acts"><button class="btn o" type="button" data-close>'+esc(_T('a.cancel'))+'</button><button class="btn rose" type="button" id="cfGo">'+esc(label)+'</button></div>');$('#cfGo').addEventListener('click',e=>fn(e.currentTarget));}
 
 /* ---------- Detail-Ansichten ---------- */
 function kv(rows){return '<dl class="kv">'+rows.filter(r=>r&&r[1]!=null&&r[1]!=='').map(r=>'<dt>'+esc(r[0])+'</dt><dd>'+(r[2]?r[1]:esc(r[1]))+'</dd>').join('')+'</dl>';}
-function callBtns(phone,extra){return '<div class="acts">'+(phone?'<a class="btn o s" href="'+esc(tel(phone))+'">'+ic('phone','s')+'Anrufen</a><button class="btn o s" type="button" data-contact="'+esc(phone)+'">'+ic('users','s')+'Kundenverlauf</button>':'')+(extra||'')+'</div>';}
+function callBtns(phone,extra){return '<div class="acts">'+(phone?'<a class="btn o s" href="'+esc(tel(phone))+'">'+ic('phone','s')+esc(_T('a.call'))+'</a><button class="btn o s" type="button" data-contact="'+esc(phone)+'">'+ic('users','s')+esc(_T('a.custHist'))+'</button>':'')+(extra||'')+'</div>';}
 function bindSheet(){$$('#shBody [data-contact]').forEach(b=>b.addEventListener('click',()=>contactSheet(b.dataset.contact)));}
 function orderSheet(o){const nx=ordNext(o);
-  openSheet('Bestellung '+o.code,'<div class="mt" style="margin:0 0 12px;display:flex;gap:6px;flex-wrap:wrap"><span class="pill '+(ORD_TONE[o.status]||'')+'">'+esc(ORD_LABEL[o.status]||o.status)+'</span><span class="pill">'+(o.type==='delivery'?'Lieferung':'Abholung')+'</span>'+(CH_LABEL[o.channel]?'<span class="pill">'+esc(CH_LABEL[o.channel])+'</span>':'')+'</div>'+
+  openSheet(_T('a.orderN',{c:o.code}),'<div class="mt" style="margin:0 0 12px;display:flex;gap:6px;flex-wrap:wrap"><span class="pill '+(ORD_TONE[o.status]||'')+'">'+esc(ORD_LABEL[o.status]||o.status)+'</span><span class="pill">'+esc(_T(o.type==='delivery'?'a.delivery':'a.pickup'))+'</span>'+(CH_LABEL[o.channel]?'<span class="pill">'+esc(CH_LABEL[o.channel])+'</span>':'')+'</div>'+
     '<div class="card" style="box-shadow:none">'+(o.items||[]).map(x=>'<div style="display:flex;gap:10px;padding:4px 0"><b style="min-width:28px;color:var(--gold2)">'+esc(x.qty)+'×</b><div style="min-width:0" class="wrap">'+esc(x.name)+((x.options||[]).length?'<div class="small mute">'+esc(x.options.join(', '))+'</div>':'')+'</div></div>').join('')+
-    '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:8px;padding-top:8px;font-weight:800"><span>Gesamt</span><span>'+esc(o.total)+'</span></div></div>'+
-    '<div style="margin-top:14px">'+kv([['Kunde',o.name],['Telefon',o.phone],['Adresse',o.address],['Zahlung',o.payment],['Eingang',o.created+' Uhr'],['Fertig ca.',o.eta?o.eta+' Uhr':''],['Fahrer',o.driver&&o.driver.name],['Notiz',o.note]])+'</div>'+
-    callBtns(o.phone,o.address&&o.maps?'<a class="btn o s" href="'+esc(o.maps)+'" target="_blank" rel="noopener">'+ic('pin','s')+'Route</a>':'')+
-    (o.type==='delivery'&&D.orderDrivers.length&&['confirmed','preparing','ready','out_for_delivery','new'].includes(o.status)?'<div class="sec"><h2>Fahrer</h2></div><select class="inp" id="odDrv"><option value="">– kein Fahrer –</option>'+D.orderDrivers.map(d=>'<option value="'+d.id+'"'+(o.driver&&o.driver.id===d.id?' selected':'')+'>'+esc(d.name)+'</option>').join('')+'</select>':'')+
-    '<div class="acts" style="margin-top:16px">'+(o.status!=='cancelled'&&o.status!=='delivered'?'<button class="btn rose s" type="button" id="odCancel">Stornieren</button>':'')+'</div>',
+    '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:8px;padding-top:8px;font-weight:800"><span>'+esc(_T('a.total'))+'</span><span>'+esc(DE_UI?o.total:eur(o.total_cents))+'</span></div></div>'+
+    '<div style="margin-top:14px">'+kv([[_T('a.f.customer'),o.name],[_T('a.f.phone'),o.phone],[_T('a.f.address'),o.address],[_T('a.f.payment'),X(o.payment)],[_T('a.f.received'),_T('a.clock',{t:fmtT(o.created)})],[_T('a.f.readyAt'),o.eta?_T('a.clock',{t:fmtT(o.eta)}):''],[_T('a.f.driver'),o.driver&&o.driver.name],[_T('a.f.note'),o.note]])+'</div>'+
+    callBtns(o.phone,o.address&&o.maps?'<a class="btn o s" href="'+esc(o.maps)+'" target="_blank" rel="noopener">'+ic('pin','s')+esc(_T('a.route'))+'</a>':'')+
+    (o.type==='delivery'&&D.orderDrivers.length&&['confirmed','preparing','ready','out_for_delivery','new'].includes(o.status)?'<div class="sec"><h2>'+esc(_T('a.f.driver'))+'</h2></div><select class="inp" id="odDrv" aria-label="'+esc(_T('a.f.driver'))+'"><option value="">'+esc(_T('a.noDriver'))+'</option>'+D.orderDrivers.map(d=>'<option value="'+d.id+'"'+(o.driver&&o.driver.id===d.id?' selected':'')+'>'+esc(d.name)+'</option>').join('')+'</select>':'')+
+    '<div class="acts" style="margin-top:16px">'+(o.status!=='cancelled'&&o.status!=='delivered'?'<button class="btn rose s" type="button" id="odCancel">'+esc(_T('a.cancelOrder'))+'</button>':'')+'</div>',
     nx?'<button class="btn p w" type="button" id="odNext">'+esc(nx[1])+'</button>':'');
   bindSheet();
   if($('#odNext'))$('#odNext').addEventListener('click',e=>orderStatus(o,nx[0],e.currentTarget));
-  if($('#odCancel'))$('#odCancel').addEventListener('click',()=>confirmAct('Bestellung stornieren?','Die Bestellung '+o.code+' wird storniert. Der Kunde wird – wenn möglich – informiert.','Stornieren',b=>orderStatus(o,'cancelled',b)));
-  if($('#odDrv'))$('#odDrv').addEventListener('change',e=>{const v=e.target.value;if(!v)return;act(null,()=>post('/order/status',{id:o.id,status:o.status,driver_id:+v}),'Fahrer zugewiesen').then(r=>{if(r)refresh();});});
+  if($('#odCancel'))$('#odCancel').addEventListener('click',()=>confirmAct(_T('a.cf.order.t'),_T('a.cf.order.p',{c:o.code}),_T('a.cancelOrder'),b=>orderStatus(o,'cancelled',b)));
+  if($('#odDrv'))$('#odDrv').addEventListener('change',e=>{const v=e.target.value;if(!v)return;act(null,()=>post('/order/status',{id:o.id,status:o.status,driver_id:+v}),_T('a.ok.drv')).then(r=>{if(r)refresh();});});
 }
 function apptSheet(b){
-  openSheet(b.service,'<div class="mt" style="margin:0 0 12px;display:flex;gap:6px"><span class="pill violet">'+esc(dayWord(b.date))+' · '+esc(b.time)+'–'+esc(b.end||'')+'</span></div>'+kv([['Kunde',b.name],['Telefon',b.phone],['E-Mail',b.email],['Notiz',b.note],['Termin',b.human],['Code',b.code],['Quelle',CH_LABEL[b.source]||b.source]])+callBtns(b.phone)+
-    '<div class="acts" style="margin-top:16px"><button class="btn o s" type="button" id="apNo">Nicht erschienen</button><button class="btn rose s" type="button" id="apCancel">Absagen</button></div>',
-    '<button class="btn p w" type="button" id="apDone">Als erledigt markieren</button>');
+  openSheet(b.service,'<div class="mt" style="margin:0 0 12px;display:flex;gap:6px"><span class="pill violet">'+esc(dayWord(b.date))+' · '+esc(fmtT(b.time))+'–'+esc(fmtT(b.end||''))+'</span></div>'+kv([[_T('a.f.customer'),b.name],[_T('a.f.phone'),b.phone],[_T('a.f.email'),b.email],[_T('a.f.note'),b.note],[_T('a.f.appt'),apptHuman(b)],[_T('a.f.code'),b.code],[_T('a.f.source'),CH_LABEL[b.source]||b.source]])+callBtns(b.phone)+
+    '<div class="acts" style="margin-top:16px"><button class="btn o s" type="button" id="apNo">'+esc(_T('a.noshowBtn'))+'</button><button class="btn rose s" type="button" id="apCancel">'+esc(_T('a.cancelAppt'))+'</button></div>',
+    '<button class="btn p w" type="button" id="apDone">'+esc(_T('a.markDone'))+'</button>');
   bindSheet();$('#apDone').addEventListener('click',e=>apptStatus(b,'done',e.currentTarget));$('#apNo').addEventListener('click',e=>apptStatus(b,'noshow',e.currentTarget));
-  $('#apCancel').addEventListener('click',()=>confirmAct('Termin absagen?','Der Termin von '+b.name+' am '+b.human+' wird abgesagt und der Platz wieder frei.','Absagen',x=>apptStatus(b,'cancelled',x)));
+  $('#apCancel').addEventListener('click',()=>confirmAct(_T('a.cf.appt.t'),_T('a.cf.appt.p',{n:b.name,d:apptHuman(b)}),_T('a.cancelAppt'),x=>apptStatus(b,'cancelled',x)));
 }
 function rideSheet(r){const nx=rideNext(r);
-  openSheet('Fahrt '+r.code,'<div class="mt" style="margin:0 0 12px;display:flex;gap:6px;flex-wrap:wrap"><span class="pill '+(RIDE_TONE[r.status]||'')+'">'+esc(r.status_label||r.status)+'</span><span class="pill">'+esc(r.when_long||r.when||'')+'</span></div>'+
-    kv([['Abholung',r.pickup],['Ziel',r.destination],['Fahrgast',r.name],['Telefon',r.phone],['Personen',r.passengers],['Fahrzeug',r.vehicle_name],['Preis',r.price_text],['Zahlung',r.payment_label],['Fahrer',r.driver&&(r.driver.name||r.driver)],['Notiz',r.note]])+
-    callBtns(r.phone,r.maps_pickup?'<a class="btn o s" href="'+esc(r.maps_pickup)+'" target="_blank" rel="noopener">'+ic('pin','s')+'Abholort</a>':'')+
-    (r.can_cancel!==false&&!['completed','cancelled','no_show'].includes(r.status)?'<div class="acts" style="margin-top:16px">'+(r.status!=='new'?'<button class="btn o s" type="button" id="rdDrv">Fahrer ändern</button>':'')+'<button class="btn rose s" type="button" id="rdCancel">Stornieren</button></div>':''),
+  openSheet(_T('a.rideN',{c:r.code}),'<div class="mt" style="margin:0 0 12px;display:flex;gap:6px;flex-wrap:wrap"><span class="pill '+(RIDE_TONE[r.status]||'')+'">'+esc(X(r.status_label||r.status))+'</span><span class="pill">'+esc(r.asap?_T('a.asap'):DE_UI?(r.when_long||r.when||''):rideWhen(r))+'</span></div>'+
+    kv([[_T('a.f.pickup'),r.pickup],[_T('a.f.dest'),r.destination],[_T('a.f.pax'),r.name],[_T('a.f.phone'),r.phone],[_T('a.f.persons'),r.passengers],[_T('a.f.vehicle'),X(r.vehicle_name)],[_T('a.f.price'),X(r.price_text)],[_T('a.f.payment'),X(r.payment_label)],[_T('a.f.driver'),r.driver&&(r.driver.name||r.driver)],[_T('a.f.note'),r.note]])+
+    callBtns(r.phone,r.maps_pickup?'<a class="btn o s" href="'+esc(r.maps_pickup)+'" target="_blank" rel="noopener">'+ic('pin','s')+esc(_T('a.pickupPlace'))+'</a>':'')+
+    (r.can_cancel!==false&&!['completed','cancelled','no_show'].includes(r.status)?'<div class="acts" style="margin-top:16px">'+(r.status!=='new'?'<button class="btn o s" type="button" id="rdDrv">'+esc(_T('a.changeDriver'))+'</button>':'')+'<button class="btn rose s" type="button" id="rdCancel">'+esc(_T('a.cancelOrder'))+'</button></div>':''),
     nx?'<button class="btn p w" type="button" id="rdNext">'+esc(nx[1])+'</button>':'');
   bindSheet();
   if($('#rdNext'))$('#rdNext').addEventListener('click',e=>nx[0]==='assigned'?driverSheet(r):rideStatus(r,nx[0],null,e.currentTarget));
   if($('#rdDrv'))$('#rdDrv').addEventListener('click',()=>driverSheet(r));
-  if($('#rdCancel'))$('#rdCancel').addEventListener('click',()=>confirmAct('Fahrt stornieren?','Die Fahrt '+r.code+' wird storniert.','Stornieren',b=>rideStatus(r,'cancelled',null,b)));
+  if($('#rdCancel'))$('#rdCancel').addEventListener('click',()=>confirmAct(_T('a.cf.ride.t'),_T('a.cf.ride.p',{c:r.code}),_T('a.cancelOrder'),b=>rideStatus(r,'cancelled',null,b)));
 }
 function driverSheet(r){const ds=(D.rideDrivers||[]).slice().sort((a,b)=>(b.id===r.suggest_driver_id)-(a.id===r.suggest_driver_id));
-  openSheet('Fahrer für '+r.code,ds.length?'<div class="group">'+ds.map(d=>'<button class="row" type="button" data-drv="'+d.id+'"><span class="av">'+esc(initials(d.name))+'</span><span class="bd"><b>'+esc(d.name)+(d.id===r.suggest_driver_id?' · Vorschlag':'')+'</b><span>'+esc([d.status,d.vehicle,d.plate].filter(Boolean).join(' · '))+'</span></span>'+ic('chev','s chev')+'</button>').join('')+'</div>':'<div class="empty"><b>Keine aktiven Fahrer</b>Fahrer legst du im Studio unter „Taxi“ an.</div>');
+  openSheet(_T('a.drvFor',{c:r.code}),ds.length?'<div class="group">'+ds.map(d=>'<button class="row" type="button" data-drv="'+d.id+'"><span class="av">'+esc(initials(d.name))+'</span><span class="bd"><b>'+esc(d.name)+(d.id===r.suggest_driver_id?' · '+esc(_T('a.suggest')):'')+'</b><span>'+esc([X(d.status),d.vehicle,d.plate].filter(Boolean).join(' · '))+'</span></span>'+ic('chev','s chev')+'</button>').join('')+'</div>':'<div class="empty"><b>'+esc(_T('a.noDrivers.t'))+'</b>'+esc(_T('a.noDrivers.p'))+'</div>');
   $$('#shBody [data-drv]').forEach(b=>b.addEventListener('click',()=>rideStatus(r,r.status==='new'?'assigned':r.status,+b.dataset.drv,b)));}
 function hreqSheet(q){
-  openSheet((q.kind_label||'Gästewunsch')+(q.room_no?' · Zimmer '+q.room_no:''),kv([['Wunsch',q.details],['Gast',q.guest_name],['Zimmer',q.room_no],['Fällig',q.due_human],['Status',q.status_label],['Eingang',q.created_day+' '+q.created],['Kontakt',q.contact]])+(q.ride_url?'<div class="acts"><a class="btn o s" href="'+esc(relLink(q.ride_url))+'" target="_blank" rel="noopener">Taxi-Status</a></div>':'')+
-    '<div class="acts" style="margin-top:16px"><button class="btn rose s" type="button" id="hqCancel">Stornieren</button></div>',
-    q.status==='open'?'<button class="btn p w" type="button" id="hqGo">Übernehmen</button>':q.status==='in_progress'?'<button class="btn p w" type="button" id="hqGo">Erledigt</button>':'');
+  openSheet((X(q.kind_label)||_T('a.guestWish'))+(q.room_no?' · '+_T('a.roomN',{n:q.room_no}):''),kv([[_T('a.f.wish'),q.details],[_T('a.f.guest'),q.guest_name],[_T('a.f.room'),q.room_no],[_T('a.f.due'),DE_UI||!q.due_iso?q.due_human:fmtD(q.due_iso,{weekday:'short',day:'2-digit',month:'2-digit'})+' '+I.time(new Date(q.due_iso))],[_T('a.f.status'),X(q.status_label)],[_T('a.f.received'),DE_UI||!q.created_iso?q.created_day+' '+q.created:ago(iso(q.created_iso))],[_T('a.f.contact'),q.contact]])+(q.ride_url?'<div class="acts"><a class="btn o s" href="'+esc(relLink(q.ride_url))+'" target="_blank" rel="noopener">'+esc(_T('a.taxiStatus'))+'</a></div>':'')+
+    '<div class="acts" style="margin-top:16px"><button class="btn rose s" type="button" id="hqCancel">'+esc(_T('a.cancelOrder'))+'</button></div>',
+    q.status==='open'?'<button class="btn p w" type="button" id="hqGo">'+esc(_T('a.take'))+'</button>':q.status==='in_progress'?'<button class="btn p w" type="button" id="hqGo">'+esc(_T('a.done'))+'</button>':'');
   if($('#hqGo'))$('#hqGo').addEventListener('click',e=>hreqStatus(q,q.status==='open'?'in_progress':'done',e.currentTarget));
   $('#hqCancel').addEventListener('click',e=>hreqStatus(q,'cancelled',e.currentTarget));
 }
-function hbookSheet(b){const a=b.status==='requested'?[['confirm','Bestätigen','p'],['decline','Ablehnen','rose']]:b.status==='confirmed'?[['checkin','Check-in','p'],['noshow','Nicht angereist','o'],['cancel','Stornieren','rose']]:b.status==='checked_in'?[['checkout','Check-out','p']]:[];
-  openSheet('Buchung '+b.code,'<div class="mt" style="margin:0 0 12px;display:flex;gap:6px"><span class="pill '+(b.status==='requested'?'gold':'blue')+'">'+esc(b.status_label||b.status)+'</span></div>'+kv([['Gast',b.name],['Telefon',b.phone],['E-Mail',b.email],['Zimmer',b.room+(b.room_no?' · Nr. '+b.room_no:'')],['Anreise',b.checkin_long+' ab '+b.checkin_from],['Abreise',b.checkout_long+' bis '+b.checkout_until],['Gäste',b.guests],['Frühstück',b.breakfast_text],['Preis',b.total],['Notiz',b.note]])+callBtns(b.phone),
+function hbookSheet(b){const a=b.status==='requested'?[['confirm',_T('a.hb.act.confirm'),'p'],['decline',_T('a.decline'),'rose']]:b.status==='confirmed'?[['checkin',_T('a.checkin'),'p'],['noshow',_T('a.hb.no_show'),'o'],['cancel',_T('a.cancelOrder'),'rose']]:b.status==='checked_in'?[['checkout',_T('a.checkout'),'p']]:[];
+  openSheet(_T('a.bookingN',{c:b.code}),'<div class="mt" style="margin:0 0 12px;display:flex;gap:6px"><span class="pill '+(b.status==='requested'?'gold':'blue')+'">'+esc(X(b.status_label||b.status))+'</span></div>'+kv([[_T('a.f.guest'),b.name],[_T('a.f.phone'),b.phone],[_T('a.f.email'),b.email],[_T('a.f.room'),b.room+(b.room_no?' · '+_T('a.roomNo',{n:b.room_no}):'')],[_T('a.f.arrival'),_T('a.fromT',{d:DE_UI?b.checkin_long:fmtD(b.checkin,{weekday:'long',day:'numeric',month:'long',year:'numeric'}),t:fmtT(b.checkin_from)})],[_T('a.f.departure'),_T('a.untilT',{d:DE_UI?b.checkout_long:fmtD(b.checkout,{weekday:'long',day:'numeric',month:'long',year:'numeric'}),t:fmtT(b.checkout_until)})],[_T('a.f.guests'),b.guests],[_T('a.f.breakfast'),X(b.breakfast_text)],[_T('a.f.price'),DE_UI?b.total:eur(b.total_cents)],[_T('a.f.note'),b.note]])+callBtns(b.phone),
     a.length?'<div class="acts" style="margin-top:0">'+a.map(x=>'<button class="btn '+x[2]+'" type="button" data-hb="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>':'');
   bindSheet();$$('#shFoot [data-hb]').forEach(x=>x.addEventListener('click',()=>hbookAction(b,x.dataset.hb,x)));}
 function cbSheet(c){
-  openSheet('Rückruf · '+c.name,'<div class="mt" style="margin:0 0 12px;display:flex;gap:6px;flex-wrap:wrap"><span class="pill '+(CB_TONE[c.status]||'')+'">'+esc(c.status_label||c.status)+'</span>'+(c.urgency==='dringend'?'<span class="pill rose">Dringend</span>':'')+'</div>'+
-    kv([['Anliegen',c.topic],['Telefon',c.phone_display||c.phone],['Wunschzeit',c.preferred],['Quelle',c.source_label],['Bearbeitung',c.mode_label],['Versuche',c.attempts?c.attempts+' / '+c.max_attempts:''],['Eingang',c.created],['Ergebnis',c.result]])+
-    callBtns(c.phone,'')+'<div class="acts" style="margin-top:16px"><button class="btn o s" type="button" id="cbCancel">Stornieren</button><button class="btn ok s" type="button" id="cbDone">'+ic('check','s')+'Erledigt</button></div>',
-    '<a class="btn p w" href="'+esc(tel(c.phone))+'">'+ic('phone','s')+'Jetzt anrufen</a>');
+  openSheet(_T('a.cbTitle',{n:c.name}),'<div class="mt" style="margin:0 0 12px;display:flex;gap:6px;flex-wrap:wrap"><span class="pill '+(CB_TONE[c.status]||'')+'">'+esc(X(c.status_label||c.status))+'</span>'+(c.urgency==='dringend'?'<span class="pill rose">'+esc(_T('a.urgent'))+'</span>':'')+'</div>'+
+    kv([[_T('a.f.topic'),c.topic],[_T('a.f.phone'),c.phone_display||c.phone],[_T('a.f.wishTime'),X(c.preferred)],[_T('a.f.source'),X(c.source_label)],[_T('a.f.handling'),X(c.mode_label)],[_T('a.f.attempts'),c.attempts?c.attempts+' / '+c.max_attempts:''],[_T('a.f.received'),DE_UI||!c.created_at?c.created:ago(iso(c.created_at))],[_T('a.f.result'),X(c.result)]])+
+    callBtns(c.phone,'')+'<div class="acts" style="margin-top:16px"><button class="btn o s" type="button" id="cbCancel">'+esc(_T('a.cancelOrder'))+'</button><button class="btn ok s" type="button" id="cbDone">'+ic('check','s')+esc(_T('a.done'))+'</button></div>',
+    '<a class="btn p w" href="'+esc(tel(c.phone))+'">'+ic('phone','s')+esc(_T('a.callNow'))+'</a>');
   bindSheet();$('#cbDone').addEventListener('click',e=>cbStatus(c,'done',e.currentTarget));$('#cbCancel').addEventListener('click',e=>cbStatus(c,'cancelled',e.currentTarget));}
 function callSheet(c){const tr=(c.transcript||[]).filter(m=>m&&m.content);
-  openSheet('Anruf · '+(c.from_number||'unbekannt'),kv([['Zeit',ago(iso(c.started_at))],['Antworten',c.turns],['Ergebnis',{callback:'Rückruf gewünscht',forwarded:'Weitergeleitet'}[c.outcome]||c.outcome||'–']])+callBtns(c.from_number)+
-    '<div class="sec"><h2>Gespräch</h2></div><div class="bubs">'+(tr.length?tr.map(m=>'<div class="bub '+(m.role==='user'?'u':'a')+'">'+esc(m.content)+'</div>').join(''):'<div class="mute small">Kein Transkript gespeichert.</div>')+'</div>');bindSheet();}
+  openSheet(_T('a.callTitle',{n:c.from_number||_T('a.unknown')}),kv([[_T('a.f.time'),ago(iso(c.started_at))],[_T('a.f.answers'),c.turns],[_T('a.f.result'),{callback:_T('a.cbWanted'),forwarded:_T('a.forwarded')}[c.outcome]||c.outcome||'–']])+callBtns(c.from_number)+
+    '<div class="sec"><h2>'+esc(_T('a.conv'))+'</h2></div><div class="bubs">'+(tr.length?tr.map(m=>'<div class="bub '+(m.role==='user'?'u':'a')+'">'+esc(m.content)+'</div>').join(''):'<div class="mute small">'+esc(_T('a.noTranscript'))+'</div>')+'</div>');bindSheet();}
 
 /* ---------- Kunden ---------- */
 let kq='',kT=null;
 function renderKunden(){
   const el=$('#p-kunden');
-  if(!$('#kSearch',el)){el.innerHTML='<div class="stickybar"><div class="search">'+ic('search','s')+'<input class="inp" id="kSearch" type="search" placeholder="Name oder Telefonnummer suchen" autocomplete="off" enterkeyhint="search" aria-label="Kunden suchen"></div></div><div id="kList"></div>';
+  if(!$('#kSearch',el)){el.innerHTML='<div class="stickybar"><div class="search">'+ic('search','s')+'<input class="inp" id="kSearch" type="search" placeholder="'+esc(_T('a.k.search'))+'" autocomplete="off" enterkeyhint="search" aria-label="'+esc(_T('a.k.searchAria'))+'"></div></div><div id="kList"></div>';
     $('#kSearch').addEventListener('input',e=>{kq=e.target.value.trim();clearTimeout(kT);kT=setTimeout(async()=>{D.contactsQ=kq;try{await loadContacts();}catch(x){}paintKunden();},280);});}
   paintKunden();
 }
 function paintKunden(){const box=$('#kList');if(!box)return;const L=D.contacts;
   if(L==null){box.innerHTML=skel(5);return;}
-  if(!L.length){box.innerHTML='<div class="empty"><div class="ti t-mute">'+ic('users')+'</div><b>'+(kq?'Niemand gefunden':'Noch keine Kunden')+'</b>'+(kq?'Andere Schreibweise oder die Telefonnummer versuchen.':'Wer bestellt, bucht, anruft oder schreibt, erscheint hier – über alle Kanäle in einem Verlauf.')+'</div>';return;}
-  box.innerHTML='<div class="group">'+L.map(c=>'<button class="row" type="button" data-ph="'+esc(c.phone)+'"><span class="av">'+esc(initials(c.name||c.phone))+'</span><span class="bd"><b class="ell">'+esc(c.name||c.phone_masked)+'</b><span class="ell">'+esc((c.last_channel_label||'')+' · '+ago(iso(c.last_seen)))+(c.open_count?' · <b style="display:inline;color:var(--gold2);font-size:12.5px">'+c.open_count+' offen</b>':'')+'</span></span>'+(c.window_open?'<span class="pill ok">'+ic('chat','xs')+'</span>':'')+ic('chev','s chev')+'</button>').join('')+'</div>';
+  if(!L.length){box.innerHTML='<div class="empty"><div class="ti t-mute">'+ic('users')+'</div><b>'+esc(_T(kq?'a.k.none':'a.k.empty'))+'</b>'+esc(_T(kq?'a.k.none.p':'a.k.empty.p'))+'</div>';return;}
+  box.innerHTML='<div class="group">'+L.map(c=>'<button class="row" type="button" data-ph="'+esc(c.phone)+'"><span class="av">'+esc(initials(c.name||c.phone))+'</span><span class="bd"><b class="ell">'+esc(c.name||c.phone_masked)+'</b><span class="ell">'+esc((CH_LABEL[c.last_channel]||X(c.last_channel_label)||'')+' · '+ago(iso(c.last_seen)))+(c.open_count?' · <b style="display:inline;color:var(--gold2);font-size:12.5px">'+esc(_T('a.k.openN',{n:c.open_count}))+'</b>':'')+'</span></span>'+(c.window_open?'<span class="pill ok">'+ic('chat','xs')+'</span>':'')+ic('chev','s chev')+'</button>').join('')+'</div>';
   // Kanal-Label ist bereits escaped, „offen“-Hinweis bewusst als HTML
   $$('[data-ph]',box).forEach(b=>b.addEventListener('click',()=>{haptic('light');contactSheet(b.dataset.ph);}));}
 async function contactSheet(phone){
-  openSheet('Kunde','<div style="margin-top:6px">'+skel(4)+'</div>','',{full:true});
-  let d;try{d=await api('/contacts/get?phone='+encodeURIComponent(phone));}catch(e){$('#shBody').innerHTML='<div class="empty"><b>Verlauf nicht verfügbar</b>'+esc(e.message)+'</div>';return;}
+  openSheet(_T('a.customer'),'<div style="margin-top:6px">'+skel(4)+'</div>','',{full:true});
+  let d;try{d=await api('/contacts/get?phone='+encodeURIComponent(phone));}catch(e){$('#shBody').innerHTML='<div class="empty"><b>'+esc(_T('a.histNA'))+'</b>'+esc(e.message)+'</div>';return;}
   const c=d.contact||{};const wa=d.whatsapp||{};const canWa=wa.ready&&wa.window_open, canSms=!!d.sms_ready;
-  $('#shTitle').textContent=c.name||c.phone_display||'Kunde';
+  $('#shTitle').textContent=c.name||c.phone_display||_T('a.customer');
   const items=(d.items||[]);
-  $('#shBody').innerHTML='<div style="display:flex;gap:12px;align-items:center;margin:0 0 12px"><span class="av" style="width:52px;height:52px;font-size:17px">'+esc(initials(c.name||c.phone))+'</span><div style="min-width:0"><b class="wrap" style="font-size:16px">'+esc(c.phone_display||c.phone)+'</b><div class="small mute">'+esc((c.channels||[]).map(x=>CH_LABEL[x]||x).join(' · '))+(c.first_seen?' · Kunde seit '+new Date(iso(c.first_seen)).toLocaleDateString('de-DE'):'')+'</div></div></div>'+
-    '<div class="acts" style="margin-top:0"><a class="btn o s" href="'+esc(tel(c.phone))+'">'+ic('phone','s')+'Anrufen</a>'+(d.callbacks_on?'<button class="btn o s" type="button" id="ctCb">'+ic('cb','s')+'Rückruf planen</button>':'')+'</div>'+
-    (d.open&&d.open.length?'<div class="sec"><h2>Offen</h2></div><div class="list">'+d.open.map(x=>'<div class="card" style="padding:12px 14px"><div style="display:flex;gap:8px;align-items:center"><b class="ell" style="flex:1;min-width:0">'+esc(x.title)+'</b><span class="pill '+esc(x.tone||'')+'">'+esc(x.status_label||'')+'</span></div><div class="small mute wrap" style="margin-top:2px">'+esc(x.sub||'')+'</div></div>').join('')+'</div>':'')+
-    '<div class="sec"><h2>Notiz</h2></div><textarea class="inp" id="ctNote" placeholder="Interne Notiz – z. B. Allergien, Vorlieben, Absprachen" maxlength="4000">'+esc(c.notes||'')+'</textarea><div class="acts" style="margin-top:8px"><button class="btn o s" type="button" id="ctNoteSave">Notiz speichern</button></div>'+
-    '<div class="sec"><h2>Verlauf</h2><span class="tiny mute">'+items.length+' Einträge</span></div><div class="list">'+(items.length?items.map(x=>'<div class="card" style="padding:12px 14px"><div style="display:flex;gap:8px;align-items:baseline"><b class="ell" style="flex:1;min-width:0">'+esc(x.title)+'</b><span class="tiny mute">'+esc(x.when||ago(iso(x.at)))+'</span></div>'+(x.sub?'<div class="small mute wrap" style="margin-top:2px">'+esc(x.sub)+'</div>':'')+
-      (x.status_label?'<div style="margin-top:6px"><span class="pill '+esc(x.tone||'')+'">'+esc(x.status_label)+'</span>'+(x.channel&&CH_LABEL[x.channel]?' <span class="pill">'+esc(CH_LABEL[x.channel])+'</span>':'')+'</div>':'')+
-      (x.messages&&x.messages.length?'<div class="bubs" style="margin-top:8px">'+x.messages.slice(-12).map(m=>'<div class="bub '+(m.role==='user'?'u':'a')+'">'+esc(m.content)+'</div>').join('')+'</div>':'')+'</div>').join(''):'<div class="mute small">Noch kein Verlauf.</div>')+'</div>';
+  $('#shBody').innerHTML='<div style="display:flex;gap:12px;align-items:center;margin:0 0 12px"><span class="av" style="width:52px;height:52px;font-size:17px">'+esc(initials(c.name||c.phone))+'</span><div style="min-width:0"><b class="wrap" style="font-size:16px">'+esc(c.phone_display||c.phone)+'</b><div class="small mute">'+esc((c.channels||[]).map(x=>CH_LABEL[x]||x).join(' · '))+(c.first_seen?' · '+_T('a.since',{d:I.date(new Date(iso(c.first_seen)))}):'')+'</div></div></div>'+
+    '<div class="acts" style="margin-top:0"><a class="btn o s" href="'+esc(tel(c.phone))+'">'+ic('phone','s')+esc(_T('a.call'))+'</a>'+(d.callbacks_on?'<button class="btn o s" type="button" id="ctCb">'+ic('cb','s')+esc(_T('a.planCb'))+'</button>':'')+'</div>'+
+    (d.open&&d.open.length?'<div class="sec"><h2>'+esc(_T('a.open'))+'</h2></div><div class="list">'+d.open.map(x=>'<div class="card" style="padding:12px 14px"><div style="display:flex;gap:8px;align-items:center"><b class="ell" style="flex:1;min-width:0">'+esc(X(x.title))+'</b><span class="pill '+esc(x.tone||'')+'">'+esc(X(x.status_label||''))+'</span></div><div class="small mute wrap" style="margin-top:2px">'+esc(X(x.sub||''))+'</div></div>').join('')+'</div>':'')+
+    '<div class="sec"><h2>'+esc(_T('a.note'))+'</h2></div><textarea class="inp" id="ctNote" placeholder="'+esc(_T('a.notePh'))+'" aria-label="'+esc(_T('a.note'))+'" maxlength="4000">'+esc(c.notes||'')+'</textarea><div class="acts" style="margin-top:8px"><button class="btn o s" type="button" id="ctNoteSave">'+esc(_T('a.noteSave'))+'</button></div>'+
+    '<div class="sec"><h2>'+esc(_T('a.history'))+'</h2><span class="tiny mute">'+esc(_T('a.entriesN',{n:items.length}))+'</span></div><div class="list">'+(items.length?items.map(x=>'<div class="card" style="padding:12px 14px"><div style="display:flex;gap:8px;align-items:baseline"><b class="ell" style="flex:1;min-width:0">'+esc(X(x.title))+'</b><span class="tiny mute">'+esc(DE_UI&&x.when?x.when:ago(iso(x.at)))+'</span></div>'+(x.sub?'<div class="small mute wrap" style="margin-top:2px">'+esc(X(x.sub))+'</div>':'')+
+      (x.status_label?'<div style="margin-top:6px"><span class="pill '+esc(x.tone||'')+'">'+esc(X(x.status_label))+'</span>'+(x.channel&&CH_LABEL[x.channel]?' <span class="pill">'+esc(CH_LABEL[x.channel])+'</span>':'')+'</div>':'')+
+      (x.messages&&x.messages.length?'<div class="bubs" style="margin-top:8px">'+x.messages.slice(-12).map(m=>'<div class="bub '+(m.role==='user'?'u':'a')+'">'+esc(m.content)+'</div>').join('')+'</div>':'')+'</div>').join(''):'<div class="mute small">'+esc(_T('a.noHist'))+'</div>')+'</div>';
   $('#shFoot').hidden=false;
-  $('#shFoot').innerHTML=(canWa||canSms)?'<form id="ctReply" style="display:flex;gap:8px;align-items:flex-end"><textarea class="inp" id="ctText" rows="1" style="min-height:48px;max-height:140px" placeholder="'+(canWa?'Per WhatsApp antworten …':'Per SMS antworten …')+'" maxlength="1000" aria-label="Antwort"></textarea><button class="btn p" type="submit" aria-label="Senden" style="min-width:52px;padding:12px">'+ic('send','s')+'</button></form><div class="tiny mute" style="margin-top:6px">'+(canWa?'WhatsApp-Fenster offen'+(wa.expires_at?' bis '+new Date(iso(wa.expires_at)).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):''):'Antwort per SMS')+'</div>'
-    :'<div class="small mute">'+(wa.window_open&&!wa.ready?'WhatsApp ist im Studio noch nicht verbunden – Antworten aus der App sind dann direkt möglich.':'Antworten per WhatsApp sind nur innerhalb von 24 Stunden nach der letzten Nachricht des Kunden möglich. Ruf an oder plane einen Rückruf.')+'</div>';
-  $('#ctNoteSave').addEventListener('click',e=>act(e.currentTarget,()=>post('/contacts/note',{phone:c.phone,notes:$('#ctNote').value}),'Notiz gespeichert'));
-  if($('#ctCb'))$('#ctCb').addEventListener('click',e=>act(e.currentTarget,()=>post('/contacts/reply',{phone:c.phone,action:'callback',topic:'Rückruf aus der App'}),'Rückruf geplant').then(r=>{if(r)refresh();}));
+  $('#shFoot').innerHTML=(canWa||canSms)?'<form id="ctReply" style="display:flex;gap:8px;align-items:flex-end"><textarea class="inp" id="ctText" rows="1" style="min-height:48px;max-height:140px" placeholder="'+esc(_T(canWa?'a.waReply':'a.smsReply'))+'" maxlength="1000" aria-label="'+esc(_T('a.reply'))+'"></textarea><button class="btn p" type="submit" aria-label="'+esc(_T('a.send'))+'" style="min-width:52px;padding:12px">'+ic('send','s')+'</button></form><div class="tiny mute" style="margin-top:6px">'+esc(canWa?(wa.expires_at?_T('a.waOpenUntil',{t:I.time(new Date(iso(wa.expires_at)))}):_T('a.waOpen')):_T('a.viaSms'))+'</div>'
+    :'<div class="small mute">'+esc(_T(wa.window_open&&!wa.ready?'a.waNotConn':'a.wa24'))+'</div>';
+  $('#ctNoteSave').addEventListener('click',e=>act(e.currentTarget,()=>post('/contacts/note',{phone:c.phone,notes:$('#ctNote').value}),_T('a.ok.note')));
+  if($('#ctCb'))$('#ctCb').addEventListener('click',e=>act(e.currentTarget,()=>post('/contacts/reply',{phone:c.phone,action:'callback',topic:_T('a.cbFromApp')}),_T('a.ok.cbPlanned')).then(r=>{if(r)refresh();}));
   if($('#ctReply')){const ta=$('#ctText');ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(140,ta.scrollHeight)+'px';});
     $('#ctReply').addEventListener('submit',async e=>{e.preventDefault();const t=ta.value.trim();if(!t)return;const b=e.submitter||$('#ctReply button');
-      const r=await act(b,()=>post('/contacts/reply',{phone:c.phone,text:t}),'Gesendet');if(r){ta.value='';contactSheet(phone);}});}
+      const r=await act(b,()=>post('/contacts/reply',{phone:c.phone,text:t}),_T('a.ok.sent'));if(r){ta.value='';contactSheet(phone);}});}
 }
 
 /* ---------- Benachrichtigungen ---------- */
 const EV_MOD={order_new:'bestellungen',order_cancel:'bestellungen',booking_new:'termine',booking_cancel:'termine',ride_new:'taxi',ride_cancel:'taxi',hotel_booking:'hotel',hotel_request:'hotel',callback_new:'rueckruf',lead_new:'rueckruf',call_done:'phone'};
 function statusModel(){
-  const st=D.pushState, P=D.push, mine=P&&D.deviceHash?(P.devices||[]).find(d=>d.h===D.deviceHash):null, mail=P&&P.email_fallback?' Bis dahin bekommst du wichtige Ereignisse per E-Mail'+(P.email?' an '+P.email:'')+'.':'';
-  if(!A)return {tone:'rose',icon:'block',tag:'Nicht geladen',title:'Benachrichtigungen konnten nicht geladen werden',text:'Bitte App neu öffnen oder Internet prüfen.'+mail,recheck:true};
-  if(st==='subscribed'&&(mine||!P))return {tone:'ok',icon:'check',tag:'Aktiv',title:'Benachrichtigungen sind auf diesem Gerät aktiv',text:'Neue Aufträge erreichen dich sofort – auch wenn die App geschlossen ist.'+(mine&&mine.last_ok?' Zuletzt zugestellt '+ago(iso(mine.last_ok))+'.':' Prüfe es mit „Test senden“.'),test:true,disable:true};
+  const st=D.pushState, P=D.push, mine=P&&D.deviceHash?(P.devices||[]).find(d=>d.h===D.deviceHash):null, mail=P&&P.email_fallback?(P.email?_T('a.p.mailTo',{e:P.email}):_T('a.p.mail')):'';
+  if(!A)return {tone:'rose',icon:'block',tag:_T('a.p.nl.tag'),title:_T('a.p.nl.t'),text:_T('a.p.nl.p')+mail,recheck:true};
+  if(st==='subscribed'&&(mine||!P))return {tone:'ok',icon:'check',tag:_T('a.p.on.tag'),title:_T('a.p.on.t'),text:_T('a.p.on.p')+(mine&&mine.last_ok?_T('a.p.on.last',{t:ago(iso(mine.last_ok))}):_T('a.p.on.test')),test:true,disable:true};
   if(IS_IOS&&!STANDALONE&&!IS_NATIVE){const v=/OS (\d+)[_.](\d+)/.exec(UA);const old=v&&(+v[1]<16||(+v[1]===16&&+v[2]<4));
-    if(old)return {tone:'mute',icon:'block',tag:'iOS zu alt',title:'Bitte iOS aktualisieren',text:'Benachrichtigungen gibt es auf iPhone und iPad ab iOS 16.4: Einstellungen → Allgemein → Softwareupdate.'+mail};
-    return {tone:'gold',icon:'share',tag:'iPhone & iPad',title:'Zuerst zum Home-Bildschirm hinzufügen',text:'Apple erlaubt Benachrichtigungen nur für installierte Web-Apps (ab iOS 16.4). So geht’s – dauert 20 Sekunden:',ios:true};}
-  if(st==='subscribed'||st==='granted')return {tone:'gold',icon:'bell',tag:'Fast fertig',title:'Noch dieses Gerät verbinden',text:'Die Erlaubnis ist erteilt, aber dieses Gerät ist (nicht mehr) angemeldet. Ein Tipp verbindet es wieder.',enable:'Gerät verbinden'};
-  if(st==='default')return {tone:'gold',icon:'bell',tag:'Aus',title:'Benachrichtigungen aktivieren',text:'Tippe auf den Knopf und bestätige mit „Zulassen“ – dann meldet sich ChatHelp bei jeder neuen Bestellung, Fahrt oder jedem Termin sofort, mit Ton.'+(IS_ANDROID&&!STANDALONE&&!IS_NATIVE?' Tipp: Als App installiert klingelt es zuverlässiger.':''),enable:'Benachrichtigungen aktivieren'};
-  if(st==='denied')return {tone:'rose',icon:'block',tag:'Blockiert',title:'Benachrichtigungen sind blockiert',text:A.deniedHint()+mail,recheck:true,denied:true};
-  return {tone:'mute',icon:'block',tag:'Nicht unterstützt',title:'Dieser Browser kann keine Push-Benachrichtigungen',text:'Nutze Chrome, Edge, Firefox oder Safari – oder lade die ChatHelp-App.'+mail,download:true};
+    if(old)return {tone:'mute',icon:'block',tag:_T('a.p.old.tag'),title:_T('a.p.old.t'),text:_T('a.p.old.p')+mail};
+    return {tone:'gold',icon:'share',tag:'iPhone & iPad',title:_T('a.p.ios.t'),text:_T('a.p.ios.p'),ios:true};}
+  if(st==='subscribed'||st==='granted')return {tone:'gold',icon:'bell',tag:_T('a.p.re.tag'),title:_T('a.p.re.t'),text:_T('a.p.re.p'),enable:_T('a.p.re.b')};
+  if(st==='default')return {tone:'gold',icon:'bell',tag:_T('a.p.off.tag'),title:_T('a.enablePush'),text:_T('a.p.off.p')+(IS_ANDROID&&!STANDALONE&&!IS_NATIVE?_T('a.p.off.tip'):''),enable:_T('a.enablePush')};
+  if(st==='denied')return {tone:'rose',icon:'block',tag:_T('a.p.den.tag'),title:_T('a.p.den.t'),text:I.tx(A.deniedHint())+mail,recheck:true,denied:true};
+  return {tone:'mute',icon:'block',tag:_T('a.p.ns.tag'),title:_T('a.p.ns.t'),text:_T('a.p.ns.p')+mail,download:true};
 }
-const IOS_STEPS=['In Safari unten auf <b>Teilen</b> tippen (Quadrat mit Pfeil nach oben).','Nach unten scrollen und <b>„Zum Home-Bildschirm“</b> wählen, dann <b>„Hinzufügen“</b>.','ChatHelp über das <b>neue Symbol</b> öffnen und hier <b>„Benachrichtigungen aktivieren“</b> tippen.'];
-function iosGuide(){openSheet('Zum Home-Bildschirm','<p class="mute" style="margin-top:0">Apple erlaubt Benachrichtigungen nur für installierte Web-Apps (ab iOS 16.4).</p><ol class="steps">'+IOS_STEPS.map(s=>'<li>'+s+'</li>').join('')+'</ol><div class="acts"><a class="btn o s" href="/chat/app-download.php">Ausführliche Anleitung mit Bildern</a></div>');}
+const IOS_STEPS=[_T('a.ios1'),_T('a.ios2'),_T('a.ios3')];   // Wörterbuch-Texte mit <b> (kein Nutzer-Inhalt)
+function iosGuide(){openSheet(_T('a.ios.title'),'<p class="mute" style="margin-top:0">'+esc(_T('a.ios.p'))+'</p><ol class="steps">'+IOS_STEPS.map(s=>'<li>'+s+'</li>').join('')+'</ol><div class="acts"><a class="btn o s" href="/chat/app-download.php">'+esc(_T('a.ios.more'))+'</a></div>');}
+/** Ereignis-Texte (Server: Deutsch) – je Schlüssel übersetzt (a.ev.<key> / a.evh.<key>) */
+const evLabel=e=>I.has&&I.has('a.ev.'+e.key)?_T('a.ev.'+e.key):X(e.label), evHint=e=>I.has&&I.has('a.evh.'+e.key)?_T('a.evh.'+e.key):X(e.hint);
 function renderPush(){
   const el=$('#p-benachrichtigungen');const m=statusModel();const P=D.push;
   const tc={ok:['var(--okl)','var(--ok)'],gold:['var(--goldl)','var(--gold2)'],rose:['var(--rosel)','var(--rose)'],mute:['var(--sur2)','var(--mute)']}[m.tone];
   let h='<div class="card" id="pnStatus" data-state="'+esc(D.pushState||'')+'" style="margin-top:6px"><div style="display:flex;gap:12px;align-items:flex-start"><div class="ti" style="background:'+tc[0]+';color:'+tc[1]+';width:48px;height:48px">'+ic(m.icon)+'</div><div style="min-width:0;flex:1">'+
     '<span class="pill '+(m.tone==='ok'?'ok':m.tone==='rose'?'rose':m.tone==='gold'?'gold':'')+'" id="pnTag">'+esc(m.tag)+'</span><h3 class="serif" style="margin:6px 0 4px;font-size:19px;line-height:1.25" id="pnTitle">'+esc(m.title)+'</h3><div class="small" style="color:var(--ink2)" id="pnText">'+esc(m.text)+'</div><div class="tiny mute" style="margin-top:6px">'+esc(devLabel())+'</div></div></div>'+
     (m.ios?'<ol class="steps">'+IOS_STEPS.map(s=>'<li>'+s+'</li>').join('')+'</ol>':'')+
-    '<div class="acts">'+(m.enable?'<button class="btn g w" type="button" id="pnEnable" data-enablepush>'+ic('bell','s')+esc(m.enable)+'</button>':'')+(m.test?'<button class="btn p" type="button" id="pnTest">'+ic('send','s')+'Test senden</button>':'')+
-    (m.recheck?'<button class="btn o" type="button" id="pnRecheck">Erneut prüfen</button>':'')+(A&&A.canInstall?'<button class="btn o" type="button" id="pnInstall">'+ic('dl','s')+'App installieren</button>':'')+(m.ios||m.download||m.denied?'<a class="btn o" href="/chat/app-download.php">'+ic('dl','s')+'App & Anleitung</a>':'')+'</div>'+
-    '<div id="pnMsg" aria-live="polite"></div>'+(m.disable?'<button class="lnk" type="button" id="pnOff" style="margin-top:4px">Auf diesem Gerät ausschalten</button>':'')+'</div>';
+    '<div class="acts">'+(m.enable?'<button class="btn g w" type="button" id="pnEnable" data-enablepush>'+ic('bell','s')+esc(m.enable)+'</button>':'')+(m.test?'<button class="btn p" type="button" id="pnTest">'+ic('send','s')+esc(_T('a.testSend'))+'</button>':'')+
+    (m.recheck?'<button class="btn o" type="button" id="pnRecheck">'+esc(_T('a.recheck'))+'</button>':'')+(A&&A.canInstall?'<button class="btn o" type="button" id="pnInstall">'+ic('dl','s')+esc(_T('a.install'))+'</button>':'')+(m.ios||m.download||m.denied?'<a class="btn o" href="/chat/app-download.php">'+ic('dl','s')+esc(_T('a.appGuide'))+'</a>':'')+'</div>'+
+    '<div id="pnMsg" aria-live="polite"></div>'+(m.disable?'<button class="lnk" type="button" id="pnOff" style="margin-top:4px">'+esc(_T('a.offHere'))+'</button>':'')+'</div>';
   if(P){const relevant=e=>!EV_MOD[e.key]||allOn()||(EV_MOD[e.key]==='phone'?hasPhone():MODS.includes(EV_MOD[e.key]));
-    const evs=(P.events||[]).filter(relevant);const groups={};evs.forEach(e=>{(groups[e.group_label]=groups[e.group_label]||[]).push(e);});
-    h+='<div class="sec"><h2>Geräte</h2><span class="tiny mute">'+(P.devices||[]).length+' angemeldet'+(P.drivers?' · '+P.drivers+' Fahrer':'')+(P.boards?' · '+P.boards+' Boards':'')+'</span></div><div class="group" id="pnDevices">'+((P.devices||[]).length?(P.devices||[]).map(d=>'<div class="row"><span class="ti '+(d.h===D.deviceHash?'t-ok':'t-mute')+'" style="width:36px;height:36px;border-radius:12px">'+ic(d.type==='fcm'?'grid':'bell','s')+'</span><span class="bd"><b class="ell">'+esc(d.label||'Gerät')+(d.h===D.deviceHash?' · Dieses Gerät':'')+'</b><span class="ell" data-devres="'+esc(d.id)+'">'+esc(d.last_ok?'zuletzt zugestellt '+ago(iso(d.last_ok)):'noch nichts zugestellt')+'</span></span></div>').join(''):'<div class="row"><span class="bd"><span>Noch kein Gerät angemeldet – aktiviere oben die Benachrichtigungen.</span></span></div>')+'</div>';
-    Object.keys(groups).forEach(g=>{h+='<div class="sec"><h2>'+esc(g)+'</h2></div><div class="group">'+groups[g].map(e=>'<label class="row" style="cursor:pointer"><span class="bd"><b>'+esc(e.label)+(e.urgent?' <span class="pill gold" style="font-size:10.5px;vertical-align:1px">dringend</span>':'')+'</b><span>'+esc(e.hint)+'</span></span><span class="sw"><input type="checkbox" data-ev="'+esc(e.key)+'"'+(e.on?' checked':'')+' aria-label="'+esc(e.label)+'"><i></i></span></label>').join('')+'</div>';});
+    const evs=(P.events||[]).filter(relevant);const groups={};evs.forEach(e=>{const g=I.has&&I.has('a.pg.'+e.group)?_T('a.pg.'+e.group):X(e.group_label);(groups[g]=groups[g]||[]).push(e);});
+    h+='<div class="sec"><h2>'+esc(_T('a.devices'))+'</h2><span class="tiny mute">'+esc(_T('a.devN',{n:(P.devices||[]).length})+(P.drivers?' · '+_T('a.drvN',{n:P.drivers}):'')+(P.boards?' · '+_T('a.boardsN',{n:P.boards}):''))+'</span></div><div class="group" id="pnDevices">'+((P.devices||[]).length?(P.devices||[]).map(d=>'<div class="row"><span class="ti '+(d.h===D.deviceHash?'t-ok':'t-mute')+'" style="width:36px;height:36px;border-radius:12px">'+ic(d.type==='fcm'?'grid':'bell','s')+'</span><span class="bd"><b class="ell">'+esc(d.label||_T('a.device'))+(d.h===D.deviceHash?' · '+esc(_T('a.thisDev')):'')+'</b><span class="ell" data-devres="'+esc(d.id)+'">'+esc(d.last_ok?_T('a.lastOk',{t:ago(iso(d.last_ok))}):_T('a.nothingYet'))+'</span></span></div>').join(''):'<div class="row"><span class="bd"><span>'+esc(_T('a.noDev'))+'</span></span></div>')+'</div>';
+    Object.keys(groups).forEach(g=>{h+='<div class="sec"><h2>'+esc(g)+'</h2></div><div class="group">'+groups[g].map(e=>'<label class="row" style="cursor:pointer"><span class="bd"><b>'+esc(evLabel(e))+(e.urgent?' <span class="pill gold" style="font-size:10.5px;vertical-align:1px">'+esc(_T('a.urgentTag'))+'</span>':'')+'</b><span>'+esc(evHint(e))+'</span></span><span class="sw"><input type="checkbox" data-ev="'+esc(e.key)+'"'+(e.on?' checked':'')+' aria-label="'+esc(evLabel(e))+'"><i></i></span></label>').join('')+'</div>';});
     const q=P.quiet||{};
-    h+='<div class="sec"><h2>Ruhezeiten & E-Mail</h2></div><div class="group"><div class="row" style="flex-wrap:wrap"><span class="bd" style="flex-basis:100%"><b>Ruhezeit</b><span>Keine Töne in dieser Zeit'+(P.in_quiet?' · gerade aktiv':'')+'</span></span><div style="display:flex;gap:8px;align-items:center;width:100%"><input class="inp" type="time" id="pnQFrom" value="'+esc(q.from||'')+'" aria-label="Ruhezeit von" style="min-height:44px"><span class="mute">bis</span><input class="inp" type="time" id="pnQTo" value="'+esc(q.to||'')+'" aria-label="Ruhezeit bis" style="min-height:44px"></div></div>'+
-      '<label class="row" style="cursor:pointer"><span class="bd"><b>Dringende Aufträge trotzdem melden</b><span>Neue Bestellungen und Fahrten auch in der Ruhezeit</span></span><span class="sw"><input type="checkbox" id="pnQUrgent"'+(q.urgent!==false?' checked':'')+'><i></i></span></label>'+
-      '<label class="row" style="cursor:pointer"><span class="bd"><b>E-Mail-Ersatz</b><span>Per E-Mail, wenn kein Gerät erreicht wurde'+(P.email?' ('+esc(P.email)+')':'')+'</span></span><span class="sw"><input type="checkbox" id="pnMail"'+(P.email_fallback?' checked':'')+'><i></i></span></label></div>';
+    h+='<div class="sec"><h2>'+esc(_T('a.quiet.sec'))+'</h2></div><div class="group"><div class="row" style="flex-wrap:wrap"><span class="bd" style="flex-basis:100%"><b>'+esc(_T('a.quiet'))+'</b><span>'+esc(_T('a.quiet.p')+(P.in_quiet?' · '+_T('a.quiet.now'):''))+'</span></span><div style="display:flex;gap:8px;align-items:center;width:100%"><input class="inp" type="time" id="pnQFrom" value="'+esc(q.from||'')+'" aria-label="'+esc(_T('a.quiet.from'))+'" style="min-height:44px;min-width:0"><span class="mute">'+esc(_T('a.until'))+'</span><input class="inp" type="time" id="pnQTo" value="'+esc(q.to||'')+'" aria-label="'+esc(_T('a.quiet.to'))+'" style="min-height:44px;min-width:0"></div></div>'+
+      '<label class="row" style="cursor:pointer"><span class="bd"><b>'+esc(_T('a.quiet.urgent'))+'</b><span>'+esc(_T('a.quiet.urgent.p'))+'</span></span><span class="sw"><input type="checkbox" id="pnQUrgent"'+(q.urgent!==false?' checked':'')+' aria-label="'+esc(_T('a.quiet.urgent'))+'"><i></i></span></label>'+
+      '<label class="row" style="cursor:pointer"><span class="bd"><b>'+esc(_T('a.mailFb'))+'</b><span>'+esc(_T('a.mailFb.p'))+(P.email?' ('+esc(P.email)+')':'')+'</span></span><span class="sw"><input type="checkbox" id="pnMail"'+(P.email_fallback?' checked':'')+' aria-label="'+esc(_T('a.mailFb'))+'"><i></i></span></label></div>';
   } else h+='<div style="margin-top:14px">'+skel(2)+'</div>';
   const inbox=D.inbox||[];
-  h+='<div class="sec"><h2>Postfach</h2>'+(D.unread?'<button class="act" type="button" id="pnReadAll">Alle gelesen ('+D.unread+')</button>':'<span class="tiny mute">alles gelesen</span>')+'</div>';
-  h+=inbox.length?'<div class="group" id="pnInbox">'+inbox.map(n=>'<button class="row" type="button" data-nid="'+n.id+'"><span class="ti '+(n.read?'t-mute':'t-gold')+'" style="width:36px;height:36px;border-radius:12px">'+ic(({auftraege:'bag',kommunikation:'chat',konto:'info'})[n.group]||'bell','s')+'</span><span class="bd"><b class="ell" style="font-weight:'+(n.read?500:700)+'">'+esc(n.title)+'</b><span class="ell">'+esc(n.body)+'</span><span>'+esc(ago(iso(n.created)))+'</span></span>'+(n.read?'':'<span style="width:9px;height:9px;border-radius:50%;background:var(--rose);flex:0 0 auto"></span>')+'</button>').join('')+'</div>'
-    :'<div class="empty"><b>Noch keine Meldungen</b>Hier landet jede Benachrichtigung – auch die, die du verpasst hast.</div>';
+  h+='<div class="sec"><h2>'+esc(_T('a.inbox'))+'</h2>'+(D.unread?'<button class="act" type="button" id="pnReadAll">'+esc(_T('a.readAll',{n:D.unread}))+'</button>':'<span class="tiny mute">'+esc(_T('a.allRead'))+'</span>')+'</div>';
+  h+=inbox.length?'<div class="group" id="pnInbox">'+inbox.map(n=>'<button class="row" type="button" data-nid="'+n.id+'"><span class="ti '+(n.read?'t-mute':'t-gold')+'" style="width:36px;height:36px;border-radius:12px">'+ic(({auftraege:'bag',kommunikation:'chat',konto:'info'})[n.group]||'bell','s')+'</span><span class="bd"><b class="ell" style="font-weight:'+(n.read?500:700)+'">'+esc(X(n.title))+'</b><span class="ell">'+esc(X(n.body))+'</span><span>'+esc(ago(iso(n.created)))+'</span></span>'+(n.read?'':'<span style="width:9px;height:9px;border-radius:50%;background:var(--rose);flex:0 0 auto"></span>')+'</button>').join('')+'</div>'
+    :'<div class="empty"><b>'+esc(_T('a.noInbox.t'))+'</b>'+esc(_T('a.noInbox.p'))+'</div>';
   el.innerHTML=h;bindCommon(el);
   if($('#pnTest'))$('#pnTest').addEventListener('click',e=>testPush(e.currentTarget));
   if($('#pnRecheck'))$('#pnRecheck').addEventListener('click',async()=>{await loadPush();renderPush();});
-  if($('#pnInstall'))$('#pnInstall').addEventListener('click',async()=>{const r=await A.install();toast(r.ok?'Wird installiert':'Installation',r.message,r.ok?'ok':'');});
-  if($('#pnOff'))$('#pnOff').addEventListener('click',async()=>{const r=await A.disablePush();toast(r.ok?'Ausgeschaltet':'Hat nicht geklappt',r.message,r.ok?'':'err');await loadPush();renderPush();});
-  $$('[data-ev]',el).forEach(x=>x.addEventListener('change',async()=>{haptic('select');const k=x.dataset.ev,v=x.checked;try{const r=await post('/push/prefs',{prefs:{[k]:v}});if(P){P.events.forEach(e=>{if(e.key===k)e.on=!!(r.prefs||{})[k];});}}catch(e){x.checked=!v;toast('Nicht gespeichert',e.message,'err');}}));
-  const saveQ=async()=>{try{const r=await post('/push/prefs',{quiet:{from:$('#pnQFrom').value,to:$('#pnQTo').value,urgent:$('#pnQUrgent').checked,tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/Berlin'}});if(P){P.quiet=r.quiet;P.in_quiet=r.in_quiet;}toast('Ruhezeit gespeichert',r.quiet&&r.quiet.from?r.quiet.from+'–'+r.quiet.to+' Uhr':'Keine Ruhezeit','ok');}catch(e){toast('Nicht gespeichert',e.message,'err');}};
+  if($('#pnInstall'))$('#pnInstall').addEventListener('click',async()=>{const r=await A.install();toast(_T(r.ok?'a.installing':'a.installation'),I.tx(r.message),r.ok?'ok':'');});
+  if($('#pnOff'))$('#pnOff').addEventListener('click',async()=>{const r=await A.disablePush();toast(_T(r.ok?'a.switchedOff':'a.failed'),I.tx(r.message),r.ok?'':'err');await loadPush();renderPush();});
+  $$('[data-ev]',el).forEach(x=>x.addEventListener('change',async()=>{haptic('select');const k=x.dataset.ev,v=x.checked;try{const r=await post('/push/prefs',{prefs:{[k]:v}});if(P){P.events.forEach(e=>{if(e.key===k)e.on=!!(r.prefs||{})[k];});}}catch(e){x.checked=!v;toast(_T('a.notSaved'),e.message,'err');}}));
+  const saveQ=async()=>{try{const r=await post('/push/prefs',{quiet:{from:$('#pnQFrom').value,to:$('#pnQTo').value,urgent:$('#pnQUrgent').checked,tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/Berlin'}});if(P){P.quiet=r.quiet;P.in_quiet=r.in_quiet;}toast(_T('a.ok.quiet'),r.quiet&&r.quiet.from?_T('a.range',{a:fmtT(r.quiet.from),b:fmtT(r.quiet.to)}):_T('a.noQuiet'),'ok');}catch(e){toast(_T('a.notSaved'),e.message,'err');}};
   ['pnQFrom','pnQTo','pnQUrgent'].forEach(id=>{const x=$('#'+id);if(x)x.addEventListener('change',saveQ);});
-  if($('#pnMail'))$('#pnMail').addEventListener('change',async e=>{const v=e.target.checked;try{const r=await post('/push/prefs',{email_fallback:v});if(P)P.email_fallback=r.email_fallback;}catch(x){e.target.checked=!v;toast('Nicht gespeichert',x.message,'err');}});
-  if($('#pnReadAll'))$('#pnReadAll').addEventListener('click',async()=>{try{const r=await post('/push/read',{all:true});(D.inbox||[]).forEach(n=>n.read=true);setUnread(r.unread);renderPush();haptic('success');}catch(e){toast('Hat nicht geklappt',e.message,'err');}});
+  if($('#pnMail'))$('#pnMail').addEventListener('change',async e=>{const v=e.target.checked;try{const r=await post('/push/prefs',{email_fallback:v});if(P)P.email_fallback=r.email_fallback;}catch(x){e.target.checked=!v;toast(_T('a.notSaved'),x.message,'err');}});
+  if($('#pnReadAll'))$('#pnReadAll').addEventListener('click',async()=>{try{const r=await post('/push/read',{all:true});(D.inbox||[]).forEach(n=>n.read=true);setUnread(r.unread);renderPush();haptic('success');}catch(e){toast(_T('a.failed'),e.message,'err');}});
   $$('[data-nid]',el).forEach(b=>b.addEventListener('click',()=>{const n=(D.inbox||[]).find(x=>x.id===+b.dataset.nid);if(n){haptic('light');handleTap({url:n.url,tag:n.tag,id:n.id,event:n.event});}}));
 }
 async function enablePush(btn){
-  if(!A){toast('Nicht verfügbar','Benachrichtigungen konnten nicht geladen werden – bitte App neu öffnen.','err');return;}
+  if(!A){toast(_T('a.na'),_T('a.na.p'),'err');return;}
   if(IS_IOS&&!STANDALONE&&!IS_NATIVE){iosGuide();return;}
   const p=A.enablePush({label:devLabel()});   // sofort im Klick: der Berechtigungsdialog braucht die Nutzergeste
-  busyBtn(btn,true,'Wird aktiviert …');
+  busyBtn(btn,true,esc(_T('a.activating')));
   const r=await p;busyBtn(btn,false);
-  if(r.ok){haptic('success');toast('Benachrichtigungen aktiv','Neue Aufträge kommen jetzt sofort auf dieses Gerät.','ok');}
-  else{haptic('error');toast(r.reason==='denied'?'Blockiert':r.reason==='ios_install'?'Zuerst installieren':'Noch nicht aktiv',r.message,'err');}
+  if(r.ok){haptic('success');toast(_T('a.pushOn.t'),_T('a.pushOn.p'),'ok');}
+  else{haptic('error');toast(_T(r.reason==='denied'?'a.blocked':r.reason==='ios_install'?'a.installFirst':'a.notYet'),I.tx(r.message),'err');}
   await loadPush();render();
-  if(r.ok&&ROUTE==='benachrichtigungen'){const m=$('#pnMsg');if(m)m.innerHTML='<div class="msg ok">'+esc(r.message||'Aktiv.')+' Tippe auf „Test senden“, um es auszuprobieren.</div>';}
+  if(r.ok&&ROUTE==='benachrichtigungen'){const m=$('#pnMsg');if(m)m.innerHTML='<div class="msg ok">'+esc((r.message?I.tx(r.message):_T('a.active'))+' '+_T('a.tryTest'))+'</div>';}
 }
-async function testPush(btn){busyBtn(btn,true,'Sendet …');
-  try{const r=await post('/push/test',{});const m=$('#pnMsg');if(m)m.innerHTML='<div class="msg '+(r.ok?'ok':'err')+'">'+esc(r.message||'')+'</div>';
-    (r.results||[]).forEach(x=>{const s=$('[data-devres="'+x.id+'"]');if(s){s.textContent=x.ok?'✓ Test zugestellt':'✗ '+(x.removed?'nicht mehr erreichbar – entfernt':(x.error||'nicht zugestellt'));s.style.color=x.ok?'var(--ok)':'var(--rose)';}});
+async function testPush(btn){busyBtn(btn,true,esc(_T('a.sending')));
+  try{const r=await post('/push/test',{});const m=$('#pnMsg');if(m)m.innerHTML='<div class="msg '+(r.ok?'ok':'err')+'">'+esc(X(r.message||''))+'</div>';
+    (r.results||[]).forEach(x=>{const s=$('[data-devres="'+x.id+'"]');if(s){s.textContent=x.ok?_T('a.testOk'):'✗ '+(x.removed?_T('a.gone'):(X(x.error)||_T('a.notDelivered')));s.style.color=x.ok?'var(--ok)':'var(--rose)';}});
     if(r.unread!=null)setUnread(r.unread);haptic(r.ok?'success':'warning');}
-  catch(e){toast('Test fehlgeschlagen',e.message,'err');}busyBtn(btn,false);}
+  catch(e){toast(_T('a.testFail'),e.message,'err');}busyBtn(btn,false);}
 
 /* ---------- Mehr ---------- */
 function renderMehr(){
   const el=$('#p-mehr');const theme=LS.get('ch_app_theme','system');
   const plans=(ME&&ME.plans||[]).filter(p=>p.active);
-  let h='<div class="card" style="margin-top:6px"><div style="display:flex;gap:12px;align-items:center"><span class="av" style="background:var(--goldl);color:var(--gold2)">'+esc(initials(ME&&ME.email||'?'))+'</span><div style="min-width:0;flex:1"><b class="ell" style="display:block">'+esc(ME&&ME.email||'')+'</b><span class="small mute">'+de(ME&&ME.balance)+' Tokens Guthaben</span></div></div>'+
+  let h='<div class="card" style="margin-top:6px"><div style="display:flex;gap:12px;align-items:center"><span class="av" style="background:var(--goldl);color:var(--gold2)">'+esc(initials(ME&&ME.email||'?'))+'</span><div style="min-width:0;flex:1"><b class="ell" style="display:block">'+esc(ME&&ME.email||'')+'</b><span class="small mute">'+esc(_T('a.balance',{n:de(ME&&ME.balance)}))+'</span></div></div>'+
     (plans.length?'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">'+plans.map(p=>'<span class="pill gold">'+esc(p.name.replace(/\s*\(.*\)$/,''))+'</span>').join('')+'</div>':'')+'</div>';
   h+='<div class="sec"><h2>Studio</h2></div><div class="group">'+
-    '<a class="row" href="/chat/studio.php#home"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('grid','s')+'</span><span class="bd"><b>Studio öffnen</b><span>Agenten, Telefon, Website-Widget, Einstellungen</span></span>'+ic('chev','s chev')+'</a>'+
-    '<a class="row" href="/chat/studio.php#assistant"><span class="ti t-gold" style="width:36px;height:36px;border-radius:12px">'+ic('spark','s')+'</span><span class="bd"><b>Assistent</b><span>Fragen, einrichten, Wissen ergänzen – per Chat oder Sprache</span></span>'+ic('chev','s chev')+'</a>'+
-    (HAS_SETUP?'<a class="row" href="/chat/studio.php#einrichtung"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('check','s')+'</span><span class="bd"><b>Einrichtung</b><span>Schritt für Schritt startklar</span></span>'+ic('chev','s chev')+'</a>':'')+
-    '<a class="row" href="/chat/studio.php#tokens"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('key','s')+'</span><span class="bd"><b>Tokens & Abrechnung</b><span>Guthaben nachladen, Lizenzen</span></span>'+ic('chev','s chev')+'</a></div>';
+    '<a class="row" href="/chat/studio.php#home"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('grid','s')+'</span><span class="bd"><b>'+esc(_T('a.mx.studio'))+'</b><span>'+esc(_T('a.mx.studio.p'))+'</span></span>'+ic('chev','s chev')+'</a>'+
+    '<a class="row" href="/chat/studio.php#assistant"><span class="ti t-gold" style="width:36px;height:36px;border-radius:12px">'+ic('spark','s')+'</span><span class="bd"><b>'+esc(_T('a.mx.asst'))+'</b><span>'+esc(_T('a.mx.asst.p'))+'</span></span>'+ic('chev','s chev')+'</a>'+
+    (HAS_SETUP?'<a class="row" href="/chat/studio.php#einrichtung"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('check','s')+'</span><span class="bd"><b>'+esc(_T('a.mx.setup'))+'</b><span>'+esc(_T('a.mx.setup.p'))+'</span></span>'+ic('chev','s chev')+'</a>':'')+
+    '<a class="row" href="/chat/studio.php#tokens"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('key','s')+'</span><span class="bd"><b>'+esc(_T('a.mx.tokens'))+'</b><span>'+esc(_T('a.mx.tokens.p'))+'</span></span>'+ic('chev','s chev')+'</a></div>';
   h+='<div class="sec"><h2>App</h2></div><div class="group">'+
-    (A&&A.canInstall?'<button class="row" type="button" id="mxInstall"><span class="ti t-ok" style="width:36px;height:36px;border-radius:12px">'+ic('dl','s')+'</span><span class="bd"><b>App installieren</b><span>Eigenes Symbol, schneller Start, zuverlässige Meldungen</span></span>'+ic('chev','s chev')+'</button>':'')+
-    (IS_NATIVE?'':'<a class="row" href="/chat/app-download.php"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('dl','s')+'</span><span class="bd"><b>App für Android & iPhone</b><span>Herunterladen oder zum Home-Bildschirm hinzufügen</span></span>'+ic('chev','s chev')+'</a>')+
-    '<div class="row" style="flex-wrap:wrap"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('moon','s')+'</span><span class="bd"><b>Darstellung</b></span><div class="seg" style="width:100%" id="mxTheme">'+[['system','Automatisch'],['light','Hell'],['dark','Dunkel']].map(([k,l])=>'<button type="button" data-th="'+k+'" class="'+(theme===k?'on':'')+'">'+l+'</button>').join('')+'</div></div>'+
-    tog('ch_app_sound','vol','Ton bei neuen Aufträgen','Kurzer Gong, solange die App offen ist','1')+tog('ch_app_vib','vib','Vibration','Haptisches Feedback bei Aktionen und neuen Aufträgen','1')+
-    tog('ch_nav_all','layers','Alle Bereiche zeigen','Auch Module, die dein Betrieb noch nicht nutzt','0')+'</div>';
-  h+='<div class="sec"><h2>Hilfe</h2></div><div class="group"><a class="row" href="mailto:support@chat-help.com?subject=ChatHelp%20Business-App"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('mail','s')+'</span><span class="bd"><b>Support kontaktieren</b><span>support@chat-help.com</span></span>'+ic('chev','s chev')+'</a>'+
-    '<button class="row" type="button" id="mxOut"><span class="ti t-rose" style="width:36px;height:36px;border-radius:12px">'+ic('out','s')+'</span><span class="bd"><b style="color:var(--rose)">Abmelden</b><span>Auf diesem Gerät abmelden</span></span></button></div>'+
-    '<div class="tiny mute" style="text-align:center;margin:18px 0 8px">ChatHelp Business · Version '+esc(APP_VER)+(IS_NATIVE?' · App':STANDALONE?' · installiert':' · Browser')+'<br><a href="/impressum.html" style="color:inherit">Impressum</a> · DSGVO · EU-Server</div>';
+    (A&&A.canInstall?'<button class="row" type="button" id="mxInstall"><span class="ti t-ok" style="width:36px;height:36px;border-radius:12px">'+ic('dl','s')+'</span><span class="bd"><b>'+esc(_T('a.install'))+'</b><span>'+esc(_T('a.mx.install.p'))+'</span></span>'+ic('chev','s chev')+'</button>':'')+
+    (IS_NATIVE?'':'<a class="row" href="/chat/app-download.php"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('dl','s')+'</span><span class="bd"><b>'+esc(_T('a.mx.dl'))+'</b><span>'+esc(_T('a.mx.dl.p'))+'</span></span>'+ic('chev','s chev')+'</a>')+
+    '<div class="row" style="flex-wrap:wrap"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('moon','s')+'</span><span class="bd"><b>'+esc(_T('a.mx.theme'))+'</b></span><div class="seg" style="width:100%" id="mxTheme">'+[['system',_T('a.th.system')],['light',_T('a.th.light')],['dark',_T('a.th.dark')]].map(([k,l])=>'<button type="button" data-th="'+k+'" class="'+(theme===k?'on':'')+'">'+esc(l)+'</button>').join('')+'</div></div>'+
+    langRow()+
+    tog('ch_app_sound','vol',_T('a.mx.sound'),_T('a.mx.sound.p'),'1')+tog('ch_app_vib','vib',_T('a.mx.vib'),_T('a.mx.vib.p'),'1')+
+    tog('ch_nav_all','layers',_T('a.mx.all'),_T('a.mx.all.p'),'0')+'</div>';
+  h+='<div class="sec"><h2>'+esc(_T('a.mx.help'))+'</h2></div><div class="group"><a class="row" href="mailto:support@chat-help.com?subject=ChatHelp%20Business-App"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('mail','s')+'</span><span class="bd"><b>'+esc(_T('a.mx.support'))+'</b><span>support@chat-help.com</span></span>'+ic('chev','s chev')+'</a>'+
+    '<button class="row" type="button" id="mxOut"><span class="ti t-rose" style="width:36px;height:36px;border-radius:12px">'+ic('out','s')+'</span><span class="bd"><b style="color:var(--rose)">'+esc(_T('a.mx.out'))+'</b><span>'+esc(_T('a.mx.out.p'))+'</span></span></button></div>'+
+    '<div class="tiny mute" style="text-align:center;margin:18px 0 8px">ChatHelp Business · '+esc(_T('a.mx.ver',{v:APP_VER}))+(IS_NATIVE?' · App':STANDALONE?' · '+esc(_T('a.mx.installed')):' · Browser')+'<br><a href="/impressum.html" style="color:inherit">'+esc(_T('a.imprint'))+'</a> · '+esc(_T('a.gdpr'))+'</div>';
   el.innerHTML=h;
   $$('#mxTheme [data-th]').forEach(b=>b.addEventListener('click',()=>{haptic('select');setTheme(b.dataset.th);renderMehr();}));
   $$('[data-tog]',el).forEach(x=>x.addEventListener('change',()=>{haptic('select');LS.set(x.dataset.tog,x.checked?'1':'0');if(x.dataset.tog==='ch_nav_all'){computeMods();buildTabs();refresh({full:true});go('mehr');}if(x.dataset.tog==='ch_app_sound'&&x.checked)chime();}));
-  if($('#mxInstall'))$('#mxInstall').addEventListener('click',async()=>{const r=await A.install();toast(r.ok?'Wird installiert':'Installation',r.message,r.ok?'ok':'');renderMehr();});
-  $('#mxOut').addEventListener('click',()=>confirmAct('Abmelden?','Du wirst auf diesem Gerät abgemeldet. Benachrichtigungen bleiben aktiv, bis du sie unter „Meldungen“ ausschaltest.','Abmelden',()=>logout('')));
+  if($('#mxInstall'))$('#mxInstall').addEventListener('click',async()=>{const r=await A.install();toast(_T(r.ok?'a.installing':'a.installation'),I.tx(r.message),r.ok?'ok':'');renderMehr();});
+  $('#mxOut').addEventListener('click',()=>confirmAct(_T('a.cf.out.t'),_T('a.cf.out.p'),_T('a.mx.out'),()=>logout('')));
+  const ls=$('#mxLang');if(ls)ls.addEventListener('change',()=>{haptic('select');I.set(ls.value);});
 }
+/** Sprachwahl unter „Mehr“: Cookie ch_lang (+ localStorage) und Neuladen – dieselbe Wahl wie im Studio und auf der Website */
+function langRow(){return '<label class="row" style="cursor:pointer"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('globe','s')+'</span><span class="bd"><b>'+esc(_T('a.mx.lang'))+'</b><span>'+esc(_T('a.mx.lang.p'))+'</span></span>'+
+  '<select class="inp" id="mxLang" aria-label="'+esc(_T('a.mx.lang'))+'" style="width:auto;max-width:46%;min-height:44px;padding:8px 10px;font-size:15px">'+(I.langs||[]).map(x=>'<option value="'+esc(x[0])+'" lang="'+esc(x[2])+'"'+(x[0]===I.lang?' selected':'')+'>'+esc(x[1])+'</option>').join('')+'</select></label>';}
 function tog(k,icon,label,sub,def){return '<label class="row" style="cursor:pointer"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic(icon,'s')+'</span><span class="bd"><b>'+esc(label)+'</b><span>'+esc(sub)+'</span></span><span class="sw"><input type="checkbox" data-tog="'+k+'"'+(LS.get(k,def)==='1'?' checked':'')+' aria-label="'+esc(label)+'"><i></i></span></label>';}
 function setTheme(t){LS.set('ch_app_theme',t==='system'?null:t);if(t==='system')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);paintSystemBars();}
 function isDark(){const t=document.documentElement.getAttribute('data-theme');return t?t==='dark':!!(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);}
@@ -1045,7 +1073,7 @@ function initBridge(){
 }
 
 /* ---------- Los geht's ---------- */
-document.addEventListener('DOMContentLoaded',()=>{boot().catch(e=>showLogin(esc(e.message||'Fehler beim Start'),'err'));});
+document.addEventListener('DOMContentLoaded',()=>{boot().catch(e=>showLogin(esc(e.message||_T('a.startErr')),'err'));});
 </script>
 </body>
 </html>

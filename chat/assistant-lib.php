@@ -20,6 +20,7 @@ require_once __DIR__.'/appt-lib.php';
 require_once __DIR__.'/order-lib.php';
 require_once __DIR__.'/agent-tools.php';   // ch_plan_active_any, Fachmodule (Taxi, Hotel, Rückruf, Training) – bereits geladen, wenn agent-tools uns einbindet
 if(is_file(__DIR__.'/speech-lib.php')) require_once __DIR__.'/speech-lib.php';
+if(is_file(__DIR__.'/voice-catalog.php')) require_once __DIR__.'/voice-catalog.php';   // Stimmenkatalog: profile.voice.id (≥ 6 Stimmen je Sprache und Geschlecht)
 if(is_file(__DIR__.'/profile-lib.php')) require_once __DIR__.'/profile-lib.php';   // Registrierungs-Profil (ch_profile_brief) als kurzer Kontext
 
 const ASSISTANT_COST_TURN = 6;          // Tokens je Antwort
@@ -436,9 +437,18 @@ function assistant_profile(int $acc): array {
     if(!in_array($o['personality']['detail'],['kurz','ausführlich'],true)) $o['personality']['detail']='kurz';
     $pre=assistant_voice_presets(); $pid=(string)($o['voice']['preset'] ?? '');
     if(!isset($pre[$pid]) || $pre[$pid]['gender']!==$o['gender']) $o['voice']['preset']=assistant_preset_for($o['gender'],$o['voice']['tone']);
+    $o['voice']['id']=assistant_voice_id($o);
     if($o['portrait']!=='custom' && !assistant_portrait($o['portrait'])) $o['portrait']=assistant_default_portrait($o['gender']);
     if($o['portrait']==='custom' && !$o['portrait_data']) $o['portrait']=assistant_default_portrait($o['gender']);
     return $o;
+}
+/**
+ * Katalogstimme des Profils (voice-catalog.php): gespeicherte voice.id, wenn sie zu Sprache und Geschlecht passt – sonst die Standardstimme
+ * der Voreinstellung (so bleibt ein altes Profil ohne id stimmig: f_warm → de-f-lea). '' ohne Katalog.
+ */
+function assistant_voice_id(array $pr): string {
+    if(!function_exists('vc_fit')) return (string)($pr['voice']['id'] ?? '');
+    return vc_fit(is_string($pr['voice']['id'] ?? null) ? $pr['voice']['id'] : null,(string)($pr['lang'] ?? 'de'),(string)$pr['gender'],(string)($pr['voice']['preset'] ?? ''));
 }
 /** Rollenbezeichnung für die Oberfläche. */
 function assistant_role_label(array $pr): string {
@@ -447,8 +457,9 @@ function assistant_role_label(array $pr): string {
 }
 function assistant_profile_public(array $pr): array {
     $pre=assistant_voice_presets()[$pr['voice']['preset']] ?? null;
+    $ce=function_exists('vc_entry') ? vc_entry((string)($pr['voice']['id'] ?? '')) : null;   // Katalogstimme: Vorname + Stufe (echt/Variante/Premium)
     return ['name'=>$pr['name'],'gender'=>$pr['gender'],'portrait'=>$pr['portrait'],'portrait_url'=>assistant_portrait_url($pr),'has_photo'=>!empty($pr['portrait_data']),
-        'photo_url'=>!empty($pr['portrait_data']) && $pr['portrait']!=='custom' ? (string)$pr['portrait_data'] : null,'voice_label'=>$pre ? $pre['title'] : '',
+        'photo_url'=>!empty($pr['portrait_data']) && $pr['portrait']!=='custom' ? (string)$pr['portrait_data'] : null,'voice_label'=>$ce ? $ce['label'] : ($pre ? $pre['title'] : ''),'voice_tier'=>$ce ? $ce['tier'] : null,
         'voice'=>$pr['voice'],'personality'=>$pr['personality'],'lang'=>$pr['lang'],'lang_tag'=>assistant_lang_tag($pr['lang']),'lang_name'=>assistant_lang_name($pr['lang']),
         'role'=>assistant_role_label($pr),'saved'=>$pr['saved'],'chosen'=>(bool)$pr['saved']];   // chosen: Person & Stimme schon einmal gewählt (jedes gespeicherte Profil) – sonst zeigt das Panel die Auswahl
 }

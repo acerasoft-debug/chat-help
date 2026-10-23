@@ -3,17 +3,96 @@
 <style>html,body{margin:0;background:#fbfbfd;overflow:hidden}canvas{display:block}</style></head>
 <body><canvas id="c" width="1600" height="900"></canvas>
 <script>
-/* Deterministik animasyon: window.seek(t) → t saniyesindeki kareyi çizer (0 ≤ t < DUR). Tarayıcıda açılırsa kendi kendine oynar. */
+/* Deterministik animasyon: window.seek(t) → t saniyesindeki kareyi çizer (0 ≤ t < DUR). Tarayıcıda açılırsa kendi kendine oynar.
+   Sprache: ?lang=de|fr|tr|az|es|it|en|ru|nl|sv|no|fi|ja (Standard de). Deutsch = Originalfassung (Kanzlei, Buchhaltung, Inkasso);
+   alle anderen Sprachen zeigen örtliche Betriebe (Zahnarzt, Online-Shop, Pizzeria per WhatsApp) mit Kanälen statt deutscher Rechtsthemen. */
 const W=1600,H=900,DUR=12,cv=document.getElementById('c'),ctx=cv.getContext('2d');
-const C={ink:'#0f1222',ink2:'#3b4055',mute:'#6b7083',line:'#e6e8ef',gold:'#b8862b',gold2:'#d4a84a',indigo:'#4f46e5',teal:'#0f9f9c',rose:'#d9336b',ok:'#1a9e5a'};
+const C={ink:'#0f1222',ink2:'#3b4055',mute:'#6b7083',line:'#e6e8ef',gold:'#b8862b',gold2:'#d4a84a',indigo:'#4f46e5',teal:'#0f9f9c',rose:'#d9336b',ok:'#1a9e5a',wa:'#1faa59'};
+const LANG=((new URLSearchParams(location.search).get('lang')||'de').toLowerCase().match(/^[a-z]{2}$/)||['de'])[0];
+const FONT=LANG==='ja'?'Inter, "WenQuanYi Zen Hei", "Noto Sans CJK JP", "DejaVu Sans", sans-serif':'Inter, "DejaVu Sans", sans-serif';
+/* n: Knoten · tag: Untertitel Kern · c1–c4: Karten · t1: Telefon-Dauer-Präfix */
+const L10N={
+ de:{tag:'de-DE',n:['Telefon','Website-Chat','E-Mail','Kanzlei & Recht','Buchhaltung','Inkasso'],core:'arbeitet 24/7 · nur deine Fakten',
+   c1:['Eingehender Anruf · Zahnarztpraxis Dr. Weber','Telefon-Agent „Lea“ · ','Ich hätte gern einen Termin zur Zahnreinigung.','Gern – Dienstag 9:30 oder Donnerstag 15:00 Uhr?'],
+   c2:['Website-Chat · Nordlicht Outdoor','Support-Agent · antwortet in 1,2 s','Wo ist meine Bestellung 4711?','Unterwegs mit DHL – Zustellung morgen bis 18 Uhr. Sendungsnummer kommt per E-Mail. ✓'],
+   c3:['Mandantenaufnahme · Kanzlei Berger & Partner','Kanzlei-Agent · Fristen-Vorprüfung',[['Anliegen','Kündigung erhalten (Zugang 14.10.)'],['Frist','3 Wochen · § 4 KSchG → 04.11.'],['Status','DRINGEND · Rückruf heute 16:00 ✓']]],
+   c4:['Diese Woche','Gespräche','gelöst','Wartezeit']},
+ fr:{tag:'fr-FR',n:['Téléphone','Chat du site','E-mail','WhatsApp','Rendez-vous','Commandes'],core:'24 h/24 · uniquement vos infos',
+   c1:['Appel entrant · Cabinet dentaire Dr Martin','Agent téléphonique « Lea » · ','Je voudrais un rendez-vous pour un détartrage.','Avec plaisir – mardi 9 h 30 ou jeudi 15 h ?'],
+   c2:['Chat du site · Nordlicht Outdoor','Agent support · répond en 1,2 s','Où en est ma commande 4711 ?','En route avec Colissimo – livraison demain avant 18 h. Le numéro de suivi arrive par e-mail. ✓'],
+   c3:['Commande WhatsApp · Pizzeria Napoli','Agent de commande · Lyon',[['Commande','2× Margherita, 1× Coca'],['Livraison','12 rue Mercière · 35 min'],['Statut','CONFIRMÉE · 26,50 € payés ✓']]],
+   c4:['Cette semaine','conversations','résolues','d’attente']},
+ tr:{tag:'tr-TR',n:['Telefon','Web sitesi sohbeti','E-posta','WhatsApp','Randevular','Siparişler'],core:'7/24 · yalnızca senin bilgilerin',
+   c1:['Gelen arama · Dr. Aydın Diş Kliniği','Telefon asistanı “Lea” · ','Diş taşı temizliği için randevu almak istiyorum.','Tabii – Salı 09:30 ya da Perşembe 15:00 olur mu?'],
+   c2:['Web sohbeti · Nordlicht Outdoor','Destek asistanı · 1,2 sn’de yanıtlar','4711 numaralı siparişim nerede?','Yurtiçi Kargo ile yolda – yarın 18:00’e kadar teslim. Takip numarası e-postayla gelir. ✓'],
+   c3:['WhatsApp siparişi · Pizzeria Napoli','Sipariş asistanı · İstanbul',[['Sipariş','2× Margherita, 1× Kola'],['Teslimat','Bağdat Cad. 112 · 35 dk'],['Durum','ONAYLANDI · 940 ₺ ödendi ✓']]],
+   c4:['Bu hafta','görüşme','çözüldü','bekleme']},
+ az:{tag:'az-AZ',n:['Telefon','Sayt çatı','E-poçt','WhatsApp','Görüşlər','Sifarişlər'],core:'7/24 · yalnız sizin məlumatlar',
+   c1:['Daxil olan zəng · Dr. Əliyev Stomatologiya','Telefon agenti “Lea” · ','Diş təmizliyi üçün qəbula yazılmaq istəyirəm.','Əlbəttə – çərşənbə axşamı 09:30, yoxsa cümə axşamı 15:00?'],
+   c2:['Sayt çatı · Nordlicht Outdoor','Dəstək agenti · 1,2 saniyəyə cavab verir','4711 nömrəli sifarişim haradadır?','Azərpoçt ilə yoldadır – sabah saat 18:00-a qədər çatdırılacaq. İzləmə nömrəsi e-poçtla gələcək. ✓'],
+   c3:['WhatsApp sifarişi · Pizzeria Napoli','Sifariş agenti · Bakı',[['Sifariş','2× Margherita, 1× Kola'],['Çatdırılma','Nizami küç. 45 · 35 dəq'],['Status','TƏSDİQLƏNDİ · 38 ₼ ödənildi ✓']]],
+   c4:['Bu həftə','söhbət','həll olundu','gözləmə']},
+ es:{tag:'es-ES',n:['Teléfono','Chat de la web','Correo','WhatsApp','Citas','Pedidos'],core:'24/7 · solo con tus datos',
+   c1:['Llamada entrante · Clínica Dental Dra. García','Agente telefónico «Lea» · ','Quería pedir cita para una limpieza dental.','Claro – ¿el martes a las 9:30 o el jueves a las 15:00?'],
+   c2:['Chat de la web · Nordlicht Outdoor','Agente de soporte · responde en 1,2 s','¿Dónde está mi pedido 4711?','En camino con SEUR – entrega mañana antes de las 18:00. El número de seguimiento llega por correo. ✓'],
+   c3:['Pedido por WhatsApp · Pizzeria Napoli','Agente de pedidos · Madrid',[['Pedido','2× Margherita, 1× Coca-Cola'],['Entrega','C/ Fuencarral 48 · 35 min'],['Estado','CONFIRMADO · 24,50 € pagado ✓']]],
+   c4:['Esta semana','conversaciones','resueltas','de espera']},
+ it:{tag:'it-IT',n:['Telefono','Chat del sito','E-mail','WhatsApp','Appuntamenti','Ordini'],core:'24/7 · solo i tuoi dati',
+   c1:['Chiamata in arrivo · Studio Dentistico Dr. Rossi','Agente telefonico «Lea» · ','Vorrei un appuntamento per la pulizia dei denti.','Certo – martedì alle 9:30 o giovedì alle 15:00?'],
+   c2:['Chat del sito · Nordlicht Outdoor','Agente di supporto · risponde in 1,2 s','Dov’è il mio ordine 4711?','In viaggio con BRT – consegna domani entro le 18:00. Il numero di tracking arriva via e-mail. ✓'],
+   c3:['Ordine WhatsApp · Pizzeria Napoli','Agente ordini · Milano',[['Ordine','2× Margherita, 1× Coca-Cola'],['Consegna','Via Torino 21 · 35 min'],['Stato','CONFERMATO · 22,50 € pagato ✓']]],
+   c4:['Questa settimana','conversazioni','risolte','di attesa']},
+ en:{tag:'en-GB',n:['Phone','Website chat','Email','WhatsApp','Appointments','Orders'],core:'works 24/7 · only your facts',
+   c1:['Incoming call · Bright Smile Dental','Phone agent “Lea” · ','I’d like to book a dental cleaning, please.','Of course – Tuesday at 9:30 or Thursday at 3 pm?'],
+   c2:['Website chat · Nordlicht Outdoor','Support agent · replies in 1.2 s','Where is my order 4711?','On its way with Royal Mail – delivery tomorrow by 6 pm. Tracking number comes by email. ✓'],
+   c3:['WhatsApp order · Pizzeria Napoli','Order agent · London',[['Order','2× Margherita, 1× Coke'],['Delivery','14 Camden High St · 35 min'],['Status','CONFIRMED · £27.50 paid ✓']]],
+   c4:['This week','conversations','resolved','waiting']},
+ ru:{tag:'ru-RU',n:['Телефон','Чат на сайте','E-mail','WhatsApp','Записи','Заказы'],core:'24/7 · только ваши факты',
+   c1:['Входящий звонок · Стоматология доктора Ивановой','Телефонный агент «Лея» · ','Хочу записаться на чистку зубов.','Конечно – во вторник в 9:30 или в четверг в 15:00?'],
+   c2:['Чат на сайте · Nordlicht Outdoor','Агент поддержки · отвечает за 1,2 с','Где мой заказ 4711?','В пути со СДЭК – доставка завтра до 18:00. Трек-номер придёт по e-mail. ✓'],
+   c3:['Заказ в WhatsApp · Pizzeria Napoli','Агент заказов · Москва',[['Заказ','2× Маргарита, 1× кола'],['Доставка','ул. Покровка, 12 · 35 мин'],['Статус','ПОДТВЕРЖДЁН · оплачено 2 450 ₽ ✓']]],
+   c4:['На этой неделе','разговоров','решено','ожидание']},
+ nl:{tag:'nl-NL',n:['Telefoon','Websitechat','E-mail','WhatsApp','Afspraken','Bestellingen'],core:'werkt 24/7 · alleen jouw feiten',
+   c1:['Inkomend gesprek · Tandartspraktijk De Vries','Telefoonagent ‘Lea’ · ','Ik wil graag een afspraak voor een gebitsreiniging.','Natuurlijk – dinsdag 9:30 of donderdag 15:00 uur?'],
+   c2:['Websitechat · Nordlicht Outdoor','Supportagent · antwoordt in 1,2 s','Waar is mijn bestelling 4711?','Onderweg met PostNL – bezorging morgen vóór 18:00 uur. De track-and-tracecode komt per e-mail. ✓'],
+   c3:['WhatsApp-bestelling · Pizzeria Napoli','Bestelagent · Amsterdam',[['Bestelling','2× Margherita, 1× cola'],['Bezorging','Utrechtsestraat 48 · 35 min'],['Status','BEVESTIGD · € 25,50 betaald ✓']]],
+   c4:['Deze week','gesprekken','opgelost','wachttijd']},
+ sv:{tag:'sv-SE',n:['Telefon','Webbchatt','E-post','WhatsApp','Bokningar','Beställningar'],core:'dygnet runt · bara dina fakta',
+   c1:['Inkommande samtal · Tandläkarna på Söder','Telefonagent ”Lea” · ','Jag vill boka en tandrengöring.','Absolut – tisdag 9.30 eller torsdag 15.00?'],
+   c2:['Webbchatt · Nordlicht Outdoor','Supportagent · svarar på 1,2 s','Var är min beställning 4711?','På väg med PostNord – leverans i morgon före kl. 18. Spårningsnumret kommer via e-post. ✓'],
+   c3:['WhatsApp-beställning · Pizzeria Napoli','Beställningsagent · Stockholm',[['Beställning','2× Margherita, 1× Cola'],['Leverans','Götgatan 48 · 35 min'],['Status','BEKRÄFTAD · 289 kr betalt ✓']]],
+   c4:['Den här veckan','samtal','lösta','väntetid']},
+ no:{tag:'nb-NO',n:['Telefon','Nettsidechat','E-post','WhatsApp','Timebestilling','Bestillinger'],core:'døgnet rundt · bare dine fakta',
+   c1:['Innkommende anrop · Tannlegene på Grünerløkka','Telefonagent «Lea» · ','Jeg vil gjerne bestille time til tannrens.','Selvsagt – tirsdag 09.30 eller torsdag 15.00?'],
+   c2:['Nettsidechat · Nordlicht Outdoor','Supportagent · svarer på 1,2 s','Hvor er bestillingen min 4711?','På vei med Posten – levering i morgen innen kl. 18. Sporingsnummeret kommer på e-post. ✓'],
+   c3:['WhatsApp-bestilling · Pizzeria Napoli','Bestillingsagent · Oslo',[['Bestilling','2× Margherita, 1× Cola'],['Levering','Markveien 48 · 35 min'],['Status','BEKREFTET · 329 kr betalt ✓']]],
+   c4:['Denne uken','samtaler','løst','ventetid']},
+ fi:{tag:'fi-FI',n:['Puhelin','Verkkosivun chat','Sähköposti','WhatsApp','Ajanvaraukset','Tilaukset'],core:'24/7 · vain sinun tietosi',
+   c1:['Saapuva puhelu · Hammaslääkäriasema Kallio','Puhelinagentti ”Lea” · ','Haluaisin varata ajan hammaskiven poistoon.','Totta kai – tiistaina klo 9.30 vai torstaina klo 15?'],
+   c2:['Verkkochat · Nordlicht Outdoor','Tukiagentti · vastaa 1,2 sekunnissa','Missä tilaukseni 4711 on?','Matkalla Postin kyydissä – toimitus huomenna klo 18 mennessä. Seurantakoodi tulee sähköpostiin. ✓'],
+   c3:['WhatsApp-tilaus · Pizzeria Napoli','Tilausagentti · Helsinki',[['Tilaus','2× Margherita, 1× Cola'],['Toimitus','Fleminginkatu 12 · 35 min'],['Tila','VAHVISTETTU · 27,50 € maksettu ✓']]],
+   c4:['Tällä viikolla','keskustelua','ratkaistu','odotusaika']},
+ ja:{tag:'ja-JP',n:['電話','サイトチャット','メール','WhatsApp','予約','注文'],core:'24時間稼働・あなたの情報だけ',
+   c1:['着信 · さくら歯科クリニック','電話エージェント「Lea」 · ','歯のクリーニングの予約をしたいのですが。','かしこまりました。火曜9:30か木曜15:00はいかがですか？'],
+   c2:['サイトチャット · Nordlicht Outdoor','サポートエージェント · 1.2秒で返信','注文4711はどこですか？','ヤマト運輸で配送中です。明日18時までにお届けします。追跡番号はメールでお送りします。✓'],
+   c3:['WhatsApp注文 · Pizzeria Napoli','注文エージェント · 東京',[['注文','マルゲリータ×2、コーラ×1'],['配達','渋谷区神南1-12 · 35分'],['状況','確定 · ¥4,200 支払い済み ✓']]],
+   c4:['今週','件の会話','解決','待ち時間']}
+};
+const T=L10N[LANG]||L10N.de, DE=LANG==='de';
 const CX=800,CY=460,RX=430,RY=175;
-const NODES=[
- {l:'Telefon',       a:-2.00, c:C.indigo, icon:'phone'},
- {l:'Website-Chat',  a:-1.10, c:C.teal,   icon:'chat'},
- {l:'E-Mail',        a: 0.00, c:C.rose,   icon:'mail'},
- {l:'Kanzlei & Recht',a: 1.10, c:C.gold,   icon:'para'},
- {l:'Buchhaltung',   a: 2.00, c:C.indigo, icon:'chart'},
- {l:'Inkasso',       a: Math.PI, c:C.teal, icon:'euro'}];
+const NODES=DE?[
+ {l:T.n[0], a:-2.00, c:C.indigo, icon:'phone'},
+ {l:T.n[1], a:-1.10, c:C.teal,   icon:'chat'},
+ {l:T.n[2], a: 0.00, c:C.rose,   icon:'mail'},
+ {l:T.n[3], a: 1.10, c:C.gold,   icon:'para'},
+ {l:T.n[4], a: 2.00, c:C.indigo, icon:'chart'},
+ {l:T.n[5], a: Math.PI, c:C.teal, icon:'euro'}]:[
+ {l:T.n[0], a:-2.00, c:C.indigo, icon:'phone'},
+ {l:T.n[1], a:-1.10, c:C.teal,   icon:'chat'},
+ {l:T.n[2], a: 0.00, c:C.rose,   icon:'mail'},
+ {l:T.n[3], a: 1.10, c:C.wa,     icon:'wa'},
+ {l:T.n[4], a: 2.00, c:C.indigo, icon:'cal'},
+ {l:T.n[5], a: Math.PI, c:C.gold, icon:'bag'}];
 const ease=x=>1-Math.pow(1-x,3), clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 function fade(t,s,e,f=.5){ if(t<s||t>e) return 0; return Math.min(1, clamp((t-s)/f), clamp((e-t)/f)); }
 function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
@@ -30,6 +109,13 @@ function icon(kind,x,y,s,col){
   else if(kind==='para'){ctx.font=`700 ${s*.95}px Inter, "DejaVu Sans", sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('§',0,s*.04);}
   else if(kind==='chart'){[[-.3,.1],[-.1,-.1],[.1,.05],[.3,-.3]].forEach(([dx,dy])=>{rr(dx*s-s*.07,dy*s,s*.14,s*.4-dy*s,s*.04);ctx.fill();});}
   else if(kind==='euro'){ctx.font=`700 ${s*.9}px Inter, "DejaVu Sans", sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('€',0,s*.03);}
+  else if(kind==='wa'){ /* Sprechblase rund mit Hörer (sprachneutral) */
+    ctx.beginPath();ctx.arc(0,-s*.02,s*.38,0,7);ctx.stroke();ctx.beginPath();ctx.moveTo(-s*.26,s*.26);ctx.lineTo(-s*.36,s*.42);ctx.lineTo(-s*.12,s*.34);ctx.stroke();
+    ctx.save();ctx.scale(.55,.55);ctx.translate(-s*.02,-s*.06);ctx.beginPath();ctx.moveTo(-s*.32,-s*.38);ctx.quadraticCurveTo(-s*.36,-s*.1,-s*.1,s*.2);ctx.quadraticCurveTo(s*.12,s*.4,s*.38,s*.3);ctx.lineTo(s*.26,s*.08);ctx.lineTo(s*.06,s*.14);ctx.quadraticCurveTo(-s*.14,s*.02,-s*.16,-s*.18);ctx.lineTo(-s*.1,-s*.3);ctx.closePath();ctx.fill();ctx.restore();}
+  else if(kind==='cal'){rr(-s*.4,-s*.32,s*.8,s*.72,s*.12);ctx.stroke();ctx.beginPath();ctx.moveTo(-s*.4,-s*.08);ctx.lineTo(s*.4,-s*.08);ctx.moveTo(-s*.18,-s*.44);ctx.lineTo(-s*.18,-s*.22);ctx.moveTo(s*.18,-s*.44);ctx.lineTo(s*.18,-s*.22);ctx.stroke();
+    [[-.2,.1],[0,.1],[.2,.1],[-.2,.26],[0,.26]].forEach(([dx,dy])=>{ctx.beginPath();ctx.arc(dx*s,dy*s,s*.045,0,7);ctx.fill();});}
+  else if(kind==='bag'){ctx.beginPath();ctx.moveTo(-s*.34,-s*.14);ctx.lineTo(s*.34,-s*.14);ctx.lineTo(s*.28,s*.4);ctx.lineTo(-s*.28,s*.4);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.arc(0,-s*.14,s*.17,Math.PI,0);ctx.stroke();}
   ctx.restore();
 }
 function card(x,y,w,h,alpha,accent){
@@ -39,13 +125,17 @@ function card(x,y,w,h,alpha,accent){
   if(accent){ctx.fillStyle=accent;rr(x,y,w,5,3);ctx.fill();}
   return true;
 }
-function text(s,x,y,font,col,align='left'){ctx.font=font;ctx.fillStyle=col;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.fillText(s,x,y);}
-function typed(s,p){return s.slice(0,Math.floor(clamp(p)*s.length));}
-function bubble(x,y,w,txt,me,alpha,p=1){ if(alpha<=0)return; ctx.save();ctx.globalAlpha=alpha;ctx.font='500 17px Inter, "DejaVu Sans", sans-serif';
+/* Text; mit maxW wird die Schrift so weit verkleinert, dass er in die Breite passt (lange Übersetzungen) */
+function text(s,x,y,font,col,align='left',maxW){if(!DE)font=font.replace('Inter, "DejaVu Sans", sans-serif',FONT);ctx.font=font;
+  if(maxW&&ctx.measureText(s).width>maxW){const m=/(\d+(?:\.\d+)?)px/.exec(font);if(m){let px=+m[1];while(px>9&&ctx.measureText(s).width>maxW){px-=.5;ctx.font=font.replace(m[0],px+'px');}}}
+  ctx.fillStyle=col;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.fillText(s,x,y);}
+/* tippen: bei Japanisch zeichenweise (keine Leerzeichen) – Array.from für Mehrbyte-Zeichen */
+function typed(s,p){const a=Array.from(s);return a.slice(0,Math.floor(clamp(p)*a.length)).join('');}
+function bubble(x,y,w,txt,me,alpha,p=1){ if(alpha<=0)return; ctx.save();ctx.globalAlpha=alpha;ctx.font='500 17px '+(DE?'Inter, "DejaVu Sans", sans-serif':FONT);
   const s=typed(txt,p); const tw=Math.min(w-30,ctx.measureText(txt).width)+30; const lines=wrap(txt,w-30); const h=22*lines.length+20;
   ctx.fillStyle=me?C.ink:'#f4f5f9'; rr(me?x+w-tw:x,y,tw,h,14); ctx.fill();
   ctx.fillStyle=me?'#fff':C.ink; let yy=y+27; const shown=wrap(s,w-30); shown.forEach(l=>{ctx.textAlign='left';ctx.fillText(l,(me?x+w-tw:x)+15,yy);yy+=22;}); ctx.restore(); return h;}
-function wrap(s,w){const words=s.split(' '),out=[];let cur='';for(const wd of words){const tst=cur?cur+' '+wd:wd;if(ctx.measureText(tst).width>w&&cur){out.push(cur);cur=wd;}else cur=tst;}if(cur)out.push(cur);return out;}
+function wrap(s,w){const cjk=LANG==='ja';const words=cjk?Array.from(s):s.split(' '),out=[];let cur='';for(const wd of words){const tst=cur?cur+(cjk?'':' ')+wd:wd;if(ctx.measureText(tst).width>w&&cur){out.push(cur);cur=wd;}else cur=tst;}if(cur)out.push(cur);return out;}
 function wave(x,y,w,h,t,alpha,col){ if(alpha<=0)return; ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle=col;const n=34,bw=w/n*0.55;for(let i=0;i<n;i++){const a=(Math.sin(t*9+i*0.9)+Math.sin(t*13+i*0.37))*0.5;const bh=h*(0.18+0.82*Math.abs(a)*(0.5+0.5*Math.sin(i/n*Math.PI)));rr(x+i*(w/n),y+(h-bh)/2,bw,bh,bw/2);ctx.fill();}ctx.restore();}
 
 function draw(t){
@@ -76,7 +166,7 @@ function draw(t){
     icon(n.icon,0,0,44,n.c);
     if(pop){const a=Math.sin(clamp((loc-2.55)/0.95)*Math.PI);ctx.globalAlpha=a;ctx.fillStyle=C.ok;ctx.beginPath();ctx.arc(34,-34,15,0,7);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=3.2;ctx.beginPath();ctx.moveTo(27,-34);ctx.lineTo(32.5,-28.5);ctx.lineTo(41,-40);ctx.stroke();ctx.globalAlpha=1;}
     ctx.restore();
-    text(n.l,p.x,p.y+78,'600 17px Inter, "DejaVu Sans", sans-serif',C.ink2,'center');
+    text(n.l,p.x,p.y+78,'600 17px Inter, "DejaVu Sans", sans-serif',C.ink2,'center',DE?undefined:200);
   });
 
   /* core */
@@ -92,35 +182,40 @@ function draw(t){
   const sp=0.6+0.4*Math.sin(t*4);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(34,-34,6*sp,0,7);ctx.fill();
   ctx.restore();
   text('ChatHelp Agent',CX,CY+128,'700 22px Inter, "DejaVu Sans", sans-serif',C.ink,'center');
-  text('arbeitet 24/7 · nur deine Fakten',CX,CY+154,'500 15px Inter, "DejaVu Sans", sans-serif',C.mute,'center');
+  text(T.core,CX,CY+154,'500 15px Inter, "DejaVu Sans", sans-serif',C.mute,'center',DE?undefined:232);
 
   /* ---- floating cards ---- */
+  const fw=DE?undefined:1;   // Breitenbegrenzung nur für Übersetzungen (Deutsch bleibt pixelgleich)
   /* 1) phone call (top-left) */
   { const a=fade(t,0.6,4.9); if(card(70,90,470,230,a,C.indigo)){ ctx.save();ctx.globalAlpha=a;
-      icon('phone',108,134,34,C.indigo); text('Eingehender Anruf · Zahnarztpraxis Dr. Weber',140,131,'700 17px Inter, "DejaVu Sans", sans-serif',C.ink);
-      text('Telefon-Agent „Lea“ · '+(t<4?('00:'+String(Math.floor(12+(t-0.6)*7)).padStart(2,'0')):'00:36'),140,154,'500 13.5px Inter, "DejaVu Sans", sans-serif',C.mute);
+      icon('phone',108,134,34,C.indigo); text(T.c1[0],140,131,'700 17px Inter, "DejaVu Sans", sans-serif',C.ink,'left',fw&&385);
+      text(T.c1[1]+(t<4?('00:'+String(Math.floor(12+(t-0.6)*7)).padStart(2,'0')):'00:36'),140,154,'500 13.5px Inter, "DejaVu Sans", sans-serif',C.mute,'left',fw&&385);
       wave(100,170,420,36,t,a*(t<3.4?1:0.35),C.indigo);
       ctx.restore();
-      bubble(100,218,420,'Ich hätte gern einen Termin zur Zahnreinigung.',true,a*fade(t,1.2,4.9,.3),clamp((t-1.2)/1.1));
-      bubble(100,262,420,'Gern – Dienstag 9:30 oder Donnerstag 15:00 Uhr?',false,a*fade(t,2.7,4.9,.3),clamp((t-2.7)/1.1)); } }
+      bubble(100,218,420,T.c1[2],true,a*fade(t,1.2,4.9,.3),clamp((t-1.2)/1.1));
+      bubble(100,262,420,T.c1[3],false,a*fade(t,2.7,4.9,.3),clamp((t-2.7)/1.1)); } }
   /* 2) website chat (right) */
   { const a=fade(t,3.4,7.9); if(card(1090,60,440,240,a,C.teal)){ ctx.save();ctx.globalAlpha=a;
-      icon('chat',1128,98,32,C.teal); text('Website-Chat · Nordlicht Outdoor',1158,96,'700 17px Inter, "DejaVu Sans", sans-serif',C.ink);
-      text('Support-Agent · antwortet in 1,2 s',1158,118,'500 13.5px Inter, "DejaVu Sans", sans-serif',C.mute); ctx.restore();
-      bubble(1120,140,390,'Wo ist meine Bestellung 4711?',true,a*fade(t,3.9,7.9,.3),clamp((t-3.9)/0.9));
-      bubble(1120,186,390,'Unterwegs mit DHL – Zustellung morgen bis 18 Uhr. Sendungsnummer kommt per E-Mail. ✓',false,a*fade(t,5.0,7.9,.3),clamp((t-5.0)/1.4)); } }
-  /* 3) law firm intake (bottom-left) */
-  { const a=fade(t,6.4,10.9); if(card(70,600,520,230,a,C.gold)){ ctx.save();ctx.globalAlpha=a;
-      icon('para',106,642,34,C.gold); text('Mandantenaufnahme · Kanzlei Berger & Partner',134,640,'700 17px Inter, "DejaVu Sans", sans-serif',C.ink);
-      text('Kanzlei-Agent · Fristen-Vorprüfung',134,662,'500 13.5px Inter, "DejaVu Sans", sans-serif',C.mute);
-      const rows=[['Anliegen','Kündigung erhalten (Zugang 14.10.)'],['Frist','3 Wochen · § 4 KSchG → 04.11.'],['Status','DRINGEND · Rückruf heute 16:00 ✓']];
-      rows.forEach((r,i)=>{const p=clamp((t-7.0-i*0.9)/0.7); if(p<=0)return; ctx.globalAlpha=a*p; text(r[0],100,706+i*38,'600 14px Inter, "DejaVu Sans", sans-serif',C.mute); text(typed(r[1],p),200,706+i*38,'600 16px Inter, "DejaVu Sans", sans-serif',i===2?C.rose:C.ink);});
+      icon('chat',1128,98,32,C.teal); text(T.c2[0],1158,96,'700 17px Inter, "DejaVu Sans", sans-serif',C.ink,'left',fw&&350);
+      text(T.c2[1],1158,118,'500 13.5px Inter, "DejaVu Sans", sans-serif',C.mute,'left',fw&&350); ctx.restore();
+      bubble(1120,140,390,T.c2[2],true,a*fade(t,3.9,7.9,.3),clamp((t-3.9)/0.9));
+      bubble(1120,186,390,T.c2[3],false,a*fade(t,5.0,7.9,.3),clamp((t-5.0)/1.4)); } }
+  /* 3) Deutsch: Mandantenaufnahme Kanzlei · sonst: Bestellung per WhatsApp (bottom-left) */
+  { const a=fade(t,6.4,10.9); const ac=DE?C.gold:C.wa; if(card(70,600,520,230,a,ac)){ ctx.save();ctx.globalAlpha=a;
+      icon(DE?'para':'wa',106,642,34,ac); text(T.c3[0],134,640,'700 17px Inter, "DejaVu Sans", sans-serif',C.ink,'left',fw&&430);
+      text(T.c3[1],134,662,'500 13.5px Inter, "DejaVu Sans", sans-serif',C.mute,'left',fw&&430);
+      const rows=T.c3[2];
+      rows.forEach((r,i)=>{const p=clamp((t-7.0-i*0.9)/0.7); if(p<=0)return; ctx.globalAlpha=a*p; text(r[0],100,706+i*38,'600 14px Inter, "DejaVu Sans", sans-serif',C.mute,'left',fw&&92); text(typed(r[1],p),200,706+i*38,'600 16px Inter, "DejaVu Sans", sans-serif',i===2?(DE?C.rose:C.ok):C.ink,'left',fw&&370);});
       ctx.restore(); } }
   /* 4) stats (bottom-right) */
   { const a=fade(t,8.3,11.9); if(card(1100,630,430,200,a,C.ok)){ ctx.save();ctx.globalAlpha=a; const p=ease(clamp((t-8.5)/1.8));
-      text('Diese Woche',1132,670,'600 13px Inter, "DejaVu Sans", sans-serif',C.mute);
-      const st=[[Math.round(1248*p).toLocaleString('de-DE'),'Gespräche'],[Math.round(94*p)+' %','gelöst'],['0 s','Wartezeit']];
-      st.forEach((s,i)=>{text(s[0],1132+i*135,716,'800 30px Inter, "DejaVu Sans", sans-serif',C.ink);text(s[1],1132+i*135,739,'500 13px Inter, "DejaVu Sans", sans-serif',C.mute);});
+      text(T.c4[0],1132,670,'600 13px Inter, "DejaVu Sans", sans-serif',C.mute,'left',fw&&360);
+      /* Zahlenformat fest je Sprache (Headless-Chromium hat nicht für jede Sprache ICU-Daten): [Tausender, Prozent-Muster, Sekunden] */
+      const F={fr:['\u00a0','{n}\u00a0%','0\u00a0s'],tr:['.','%{n}','0 sn'],az:['.','{n}%','0 san'],es:['','{n}\u00a0%','0 s'],it:['.','{n}%','0 s'],en:[',','{n}%','0 s'],ru:['\u00a0','{n}\u00a0%','0 с'],
+        nl:['.','{n}%','0 s'],sv:['\u00a0','{n}\u00a0%','0 s'],no:['\u00a0','{n}\u00a0%','0 s'],fi:['\u00a0','{n}\u00a0%','0 s'],ja:[',','{n}%','0秒']}[LANG];
+      const num=n=>F?String(n).replace(/\B(?=(\d{3})+(?!\d))/g,F[0]):n.toLocaleString('de-DE');
+      const st=[[num(Math.round(1248*p)),T.c4[1]],[F?F[1].replace('{n}',Math.round(94*p)):Math.round(94*p)+' %',T.c4[2]],[F?F[2]:'0 s',T.c4[3]]];
+      st.forEach((s,i)=>{text(s[0],1132+i*135,716,'800 30px Inter, "DejaVu Sans", sans-serif',C.ink,'left',fw&&128);text(s[1],1132+i*135,739,'500 13px Inter, "DejaVu Sans", sans-serif',C.mute,'left',fw&&128);});
       /* mini bars */
       for(let i=0;i<13;i++){const h=16+((i*37)%41)*p;ctx.fillStyle=i>=11?C.gold2:'rgba(79,70,229,.35)';rr(1132+i*28,804-h,17,h,5);ctx.fill();}
       ctx.restore(); } }
