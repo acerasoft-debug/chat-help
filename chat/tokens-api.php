@@ -19,6 +19,8 @@
  *   POST /chat/tokens-api.php/v1/agent/config {plan, company, tone, lang, kb, widget_on, widget_domain}
  *   GET|POST /v1/appt/settings · GET /v1/appt/slots?date&service · GET /v1/appt/bookings · POST /v1/appt/book|cancel|status   → Terminbuchung (appt-lib)
  *   GET|POST /v1/order/settings · POST /v1/order/menu|drivers · GET /v1/order/check?address · GET /v1/order/orders · POST /v1/order/create|status → Bestellannahme (order-lib)
+ *   GET|POST /v1/sites · GET /v1/sites/slug-check · GET|POST /v1/sites/<id> · POST /v1/sites/<id>/generate|translate|upload|asset-delete|publish|unpublish|delete|lead-status
+ *        GET /v1/sites/<id>/leads|export → Website-Baukasten „Website erstellen“ (site-lib)
  * Auth: Authorization: Bearer ch_live_…   Fiyat: sabit task tarifesi (plans.php CH_PRICING).
  * Model: CLAUDE_KEY varsa Claude, yoksa DeepSeek (db.php). Sektör/paket eklemek = plans.php'ye bir satır.
  */
@@ -28,6 +30,7 @@ require_once __DIR__.'/appt-lib.php';
 require_once __DIR__.'/order-lib.php';
 require_once __DIR__.'/agent-tools.php';   // Werkzeug-Register + Fachmodule (Taxi, Hotel, Rückruf, Training)
 require_once __DIR__.'/profile-lib.php';   // Konto-Profil aus der Registrierung (Branche, Bedarf, Sprachen) + Empfehlungen
+require_once __DIR__.'/site-lib.php';      // Website-Baukasten (/v1/sites…)
 header('Access-Control-Allow-Origin: *'); header('Access-Control-Allow-Headers: Authorization, Content-Type'); header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 if($_SERVER['REQUEST_METHOD']==='OPTIONS'){ http_response_code(204); exit; }
 th_bootstrap();
@@ -142,6 +145,8 @@ $planId=preg_replace('/[^a-z0-9-]/','',strtolower($b['plan']??($_GET['plan']??''
 ch_heartbeat();   // fällige KI-Rückrufe nach der Antwort anstoßen
 /* Fachmodule (ride/…, hotel/…, callbacks/…, train/…) beantworten ihre eigenen Routen */
 if(($res=ch_module_api($r,$m,$aid,$b,$acc))!==null) th_json((int)$res[0],(array)$res[1]);
+/* Website-Baukasten: /v1/sites… (Besitzprüfung in site_api, fremde IDs → 404) */
+if(($res=site_api($r,$m,$aid,$b,$acc))!==null) th_json((int)$res[0],(array)$res[1]);
 
 switch(true){
   case $r==='me' && $m==='GET':
@@ -322,5 +327,5 @@ switch(true){
       'phone_webhook'=>'https://chat-help.com/chat/phone-webhook.php?key='.$c['widget_key']]);
 
   default:
-    th_json(404,['error'=>'not_found','routes'=>['GET /v1/sectors','GET /v1/categories','GET /v1/pricing','GET /v1/billing','GET /v1/usage','POST /v1/connections/ai-test','POST /v1/auth/request','POST /v1/auth/verify','GET /v1/me','GET|POST /v1/profile','GET /v1/balance','POST /v1/generate','POST /v1/translate','POST /v1/subtitles','POST /v1/agent','GET|POST /v1/agent/config','GET /v1/phone/calls','GET|POST /v1/appt/settings','GET /v1/appt/slots','GET /v1/appt/bookings','POST /v1/appt/book|cancel|status','GET|POST /v1/order/settings','POST /v1/order/menu','POST /v1/order/drivers','GET /v1/order/check','GET /v1/order/orders','POST /v1/order/create|status']]);
+    th_json(404,['error'=>'not_found','routes'=>['GET /v1/sectors','GET /v1/categories','GET /v1/pricing','GET /v1/billing','GET /v1/usage','POST /v1/connections/ai-test','POST /v1/auth/request','POST /v1/auth/verify','GET /v1/me','GET|POST /v1/profile','GET /v1/balance','POST /v1/generate','POST /v1/translate','POST /v1/subtitles','POST /v1/agent','GET|POST /v1/agent/config','GET /v1/phone/calls','GET|POST /v1/appt/settings','GET /v1/appt/slots','GET /v1/appt/bookings','POST /v1/appt/book|cancel|status','GET|POST /v1/order/settings','POST /v1/order/menu','POST /v1/order/drivers','GET /v1/order/check','GET /v1/order/orders','POST /v1/order/create|status','GET|POST /v1/sites','GET|POST /v1/sites/<id>','POST /v1/sites/<id>/generate|translate|upload|publish|unpublish','GET /v1/sites/<id>/leads|export']]);
 }

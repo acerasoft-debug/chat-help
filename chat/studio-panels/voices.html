@@ -1,0 +1,50 @@
+<style>
+/* Stimmen der Agenten – nur auf #panel-voices begrenzt (Karten, Stufen-Abzeichen, Tabs Frau/Mann), Farben aus den Studio-Variablen. */
+#panel-voices .vc-head{display:flex;flex-wrap:wrap;gap:14px;align-items:end;margin-bottom:14px}
+#panel-voices .vc-head>div{min-width:220px;flex:1 1 220px}
+#panel-voices .vc-head label{margin-top:0}
+#panel-voices .vc-tabs{display:inline-flex;padding:4px;border-radius:14px;background:var(--sur2);border:1px solid var(--line);gap:4px;margin:6px 0 12px}
+#panel-voices .vc-tabs button{border:0;background:transparent;padding:9px 18px;border-radius:10px;font:600 14px var(--sans);color:var(--ink2);cursor:pointer}
+#panel-voices .vc-tabs button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(15,18,34,.08),0 4px 12px rgba(15,18,34,.08)}
+#panel-voices .vc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+#panel-voices .vc-card{display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:18px;background:#fff;min-width:0;transition:border-color .15s,box-shadow .15s,background .15s}
+#panel-voices .vc-card:hover{border-color:#e2cf9c}
+#panel-voices .vc-card.on{border-color:var(--gold);background:#fffbf2;box-shadow:0 0 0 3px rgba(184,134,43,.14)}
+#panel-voices .vc-card .sel{flex:1;min-width:0;min-height:64px;text-align:left;border:0;background:transparent;padding:12px 4px 12px 16px;cursor:pointer;border-radius:16px;color:var(--mute);font-size:12.5px;line-height:1.4}
+#panel-voices .vc-card .sel b{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:15px;margin-bottom:3px}
+#panel-voices .vc-card.on .sel b::after{content:"✓";display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--gold);color:#fff;font-size:11px;font-weight:800}
+#panel-voices .vc-card .pl{flex:0 0 auto;margin-right:10px;min-width:44px;min-height:44px;border-radius:999px;border:1px solid #eadbb0;background:var(--goldl);color:#5c4411;font:700 12.5px var(--sans);padding:0 14px;cursor:pointer;white-space:nowrap}
+#panel-voices .vc-card .pl:hover{background:#efdcae}
+#panel-voices .vc-card .pl.playing{background:var(--ink);border-color:var(--ink);color:#fff}
+#panel-voices .vc-tier{display:inline-block;flex:0 0 auto;font:700 9.5px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;padding:4px 6px;border-radius:999px;background:var(--okl);color:#15703f;border:1px solid #bfe8cf}
+#panel-voices .vc-tier.t-variant{background:var(--sur2);color:var(--mute);border-color:var(--line2)}
+#panel-voices .vc-tier.t-premium{background:var(--goldl);color:#7a5a12;border-color:#eadbb0}
+#panel-voices .vc-card .sel b .vc-tier{margin-left:auto}
+#panel-voices .vc-card.on .sel b .vc-tier{margin-right:4px}
+#panel-voices .vc-mb{color:var(--mute2);white-space:nowrap}
+#panel-voices .vc-cur{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--sur2);font-size:13.5px}
+#panel-voices .vc-cur b{color:var(--ink)}
+#panel-voices .vc-cur .btn{margin-left:auto}
+#panel-voices .vc-note{margin-top:10px;font-size:12.5px;color:var(--mute);line-height:1.5}
+#panel-voices .vc-pip{margin-top:8px;font-size:12.5px;color:var(--mute)}
+#panel-voices .vc-pip:empty{display:none}
+#panel-voices .vc-pip button{font:inherit;font-weight:600;color:#8a6420;background:rgba(184,134,43,.10);border:1px solid rgba(184,134,43,.45);border-radius:999px;padding:6px 12px;min-height:32px;margin-right:6px;cursor:pointer}
+@media(max-width:820px){#panel-voices .vc-grid{grid-template-columns:minmax(0,1fr)}#panel-voices .vc-cur .btn{margin-left:0;width:100%}}
+</style>
+<div class="row" style="justify-content:space-between;margin-bottom:14px">
+  <div style="min-width:0;flex:1 1 420px"><h2 style="font-size:26px" data-i18n="vc.p.title">Stimmen der Agenten</h2>
+    <p class="mute" style="margin:4px 0 0" data-i18n="vc.p.sub">Welche Stimme Kunden hören – am Telefon und in Sprachnachrichten. Je Sprache mindestens sechs Stimmen, Frau und Mann.</p></div>
+</div>
+<div class="card">
+  <div class="vc-head">
+    <div><label for="vcPlan" data-i18n="vc.p.agent">Agent</label><select id="vcPlan"></select></div>
+    <div><label data-i18n="vc.p.lang">Sprache der Stimme</label><div id="vcLang" style="min-height:40px;display:flex;align-items:center;font-weight:600"></div><div class="mute small" data-i18n="vc.p.langNote">Die Sprache folgt der Telefonsprache des Agenten (Telefon → Stimme / Sprache).</div></div>
+  </div>
+  <div class="vc-tabs" id="vcTabs" role="tablist"><button type="button" role="tab" data-g="f" aria-selected="true" data-i18n="vc.woman">Frau</button><button type="button" role="tab" data-g="m" aria-selected="false" data-i18n="vc.man">Mann</button></div>
+  <div class="vc-grid" id="vcGrid" role="list"></div>
+  <div class="vc-pip" id="vcPip"></div>
+  <div class="vc-cur" id="vcCur"></div>
+  <div id="vcMsg" role="status" aria-live="polite" style="margin-top:8px"></div>
+  <div class="vc-note" data-i18n="vc.p.phoneNote">Telefon (Twilio): Premium- und Browser-Stimmen werden am Telefon durch die nächste natürliche Google-HD-Stimme desselben Geschlechts ersetzt.</div>
+  <div class="vc-note hidden" id="vcPremOff" data-i18n="vc.p.premiumOff">Premium-Stimmen erscheinen, sobald der Betreiber einen Sprachdienst-Schlüssel hinterlegt hat.</div>
+</div>

@@ -500,8 +500,20 @@ function assistant_profile_save(int $acc, array $d, ?array &$err=null): array {
             /* Nur die Stimme gewählt (Stimm-Chip im Panel)? Dann folgt die Sprechweise der Stimme – sonst widersprächen sich Stimme und Sprechanweisung */
             if(!isset($vo['tone']) && $v['gender']===$c['gender'] && ($t=assistant_preset_tone($pid))!==null) $v['voice']['tone']=$t; }
     }
+    if(array_key_exists('lang',$d)){ $l=strtolower(assistant_str($d['lang'],8)); if($l==='nb') $l='no'; if(!in_array($l,ASSISTANT_LANGS,true)) return $bad('lang','Diese Sprache wird nicht unterstützt.'); $v['lang']=$l; }
+    /* Katalogstimme (voice.id, voice-catalog.php): muss zu Sprache und Geschlecht passen; Voreinstellung und Sprechweise folgen der Stimme */
+    if(array_key_exists('voice',$d) && is_array($d['voice']) && isset($d['voice']['id']) && $d['voice']['id']!=='' && function_exists('vc_entry')){
+        $vid=assistant_str($d['voice']['id'],40); $ce=vc_entry($vid);
+        if(!$ce) return $bad('voice.id','Diese Stimme gibt es nicht.');
+        if($ce['gender']!==$v['gender'] || $ce['lang']!==vc_lang($v['lang'])){
+            if($v['gender']===$c['gender'] && $v['lang']===$c['lang']) return $bad('voice.id','Die Stimme passt nicht zu Sprache oder Geschlecht.');
+            $vid=vc_fit($vid,$v['lang'],$v['gender'],$ce['preset']); $ce=vc_entry($vid); }   // Geschlecht/Sprache wechselt gerade → passende Stimme derselben Art
+        if($ce && !vc_available($ce)) return $bad('voice.id','Diese Premium-Stimme braucht einen Sprachdienst-Schlüssel des Betreibers.');
+        if($ce){ $v['voice']['id']=$ce['id']; $v['voice']['preset']=$ce['preset']; if(!isset($d['voice']['tone']) && ($t=assistant_preset_tone($ce['preset']))!==null) $v['voice']['tone']=$t; }
+    }
     $pre=assistant_voice_presets(); $pid=(string)($v['voice']['preset'] ?? '');
     if(!isset($pre[$pid]) || $pre[$pid]['gender']!==$v['gender']) $v['voice']['preset']=assistant_preset_for($v['gender'],$v['voice']['tone']);
+    $v['voice']['id']=assistant_voice_id($v);
     if(array_key_exists('personality',$d)){
         if(!is_array($d['personality'])) return $bad('personality','Ungültige Persönlichkeit.'); $pe=$d['personality'];
         if(isset($pe['address'])){ if(!in_array($pe['address'],['du','sie'],true)) return $bad('personality.address','Anrede: du oder Sie.'); $v['personality']['address']=$pe['address']; }
@@ -509,7 +521,6 @@ function assistant_profile_save(int $acc, array $d, ?array &$err=null): array {
         if(isset($pe['humor'])){ if(!is_numeric($pe['humor']) || (int)$pe['humor']<0 || (int)$pe['humor']>2) return $bad('personality.humor','Humor: 0, 1 oder 2.'); $v['personality']['humor']=(int)$pe['humor']; }
         if(isset($pe['detail'])){ if(!in_array($pe['detail'],['kurz','ausführlich'],true)) return $bad('personality.detail','Antwortlänge: kurz oder ausführlich.'); $v['personality']['detail']=$pe['detail']; }
     }
-    if(array_key_exists('lang',$d)){ $l=strtolower(assistant_str($d['lang'],8)); if($l==='nb') $l='no'; if(!in_array($l,ASSISTANT_LANGS,true)) return $bad('lang','Diese Sprache wird nicht unterstützt.'); $v['lang']=$l; }
     th_db()->prepare("INSERT INTO assistant_profiles(account_id,name,gender,portrait,portrait_data,voice,personality,lang) VALUES(?,?,?,?,?,?,?,?)
         ON DUPLICATE KEY UPDATE name=VALUES(name),gender=VALUES(gender),portrait=VALUES(portrait),portrait_data=VALUES(portrait_data),voice=VALUES(voice),personality=VALUES(personality),lang=VALUES(lang),updated_at=NOW()")
       ->execute([$acc,$v['name'],$v['gender'],$v['portrait'],$v['portrait_data'],json_encode($v['voice']),json_encode($v['personality'],JSON_UNESCAPED_UNICODE),$v['lang']]);
@@ -564,6 +575,9 @@ function assistant_voice(array $pr, array $over=[], string $lang=''): array {
     $v=['gender'=>$g,'preset'=>$pid,'openai'=>$vm['openai'],'google'=>$vm['google'],'azure'=>$azure,'lang'=>$L['tag'],'instructions'=>mb_substr($ins,0,1500),
         'rate'=>round(max(0.7,min(1.3,$rate*(float)$vm['rate'])),2),'pitch'=>round(max(0.7,min(1.3,$pitch*(float)$vm['pitch'])),2)];
     if(!empty($vm['elevenlabs'])) $v['elevenlabs']=$vm['elevenlabs']; if(!empty($vm['eleven'])) $v['eleven']=$vm['eleven'];
+    /* Katalogstimme (Premium): Stimmname des Anbieters aus dem Katalog – Hörprobe (over.id) oder gespeicherte Profilstimme, nur wenn sie zu Sprache + Geschlecht passt */
+    if(function_exists('vc_entry')){ $cid=is_string($over['id'] ?? null) ? $over['id'] : ($g===$pr['gender'] && $lang===assistant_lang($pr['lang']) ? (string)($pr['voice']['id'] ?? '') : '');
+        $ce=vc_entry($cid); if($ce && $ce['gender']===$g && $ce['lang']===$lang && $ce['source']['type']==='cloud') $v=vc_apply_tts($v,$ce['id']); }
     return $v;
 }
 /** Antworttext → vorlesbare Sätze (ohne Markdown, Links, Emojis). */
@@ -1259,7 +1273,7 @@ function assistant_speak_source(int $aid, array $pr, array $body): array {
         if($name==='' || mb_strlen($name)>30 || !preg_match('/^\p{L}[\p{L}\p{M} \-]*$/u',$name)) $name=$pr['name'];
         $g=in_array($pv['gender'] ?? '',['f','m'],true) ? $pv['gender'] : $pr['gender'];
         $psie=in_array($pv['address'] ?? '',['du','sie'],true) ? $pv['address']==='sie' : $sie;
-        $over=array_intersect_key($pv,array_flip(['gender','tone','rate','pitch','preset']));
+        $over=array_intersect_key($pv,array_flip(['gender','tone','rate','pitch','preset','id']));
         return [assistant_preview_text($lang,$name,$psie,$g!=='m'),$lang,$over];
     }
     $mid=is_numeric($body['mid'] ?? null) ? (int)$body['mid'] : 0; $i=is_numeric($body['i'] ?? null) ? (int)$body['i'] : -1;
@@ -1287,7 +1301,8 @@ function assistant_api(string $route, string $method, int $aid, array $body, arr
     assistant_bootstrap();
     /* tts_active: Server-Stimme eingerichtet UND nutzbar (Guthaben oder aktiver Agent, wie bei /speak) – für die ehrliche Statuszeile im Panel */
     $pub=fn()=>['profile'=>assistant_profile_public(assistant_profile($aid)),'tts_active'=>assistant_tts_ready() && (th_balance($aid)>0 || (bool)assistant_active_plans($aid)),'portraits'=>array_map(fn($p)=>['id'=>$p['id'],'url'=>$p['url'],'gender'=>$p['gender'],'label'=>$p['label']],assistant_portraits()),
-        'voices'=>assistant_voice_presets_public(),'langs'=>assistant_langs_public(),'tts'=>assistant_tts_ready(),'tts_langs'=>assistant_tts_langs(),'tools_ready'=>assistant_tools_ready(),'photo_max'=>ASSISTANT_PHOTO_MAX];
+        'voices'=>assistant_voice_presets_public(),'langs'=>assistant_langs_public(),'tts'=>assistant_tts_ready(),'tts_langs'=>assistant_tts_langs(),'tools_ready'=>assistant_tools_ready(),'photo_max'=>ASSISTANT_PHOTO_MAX,
+        'voice_providers'=>function_exists('vc_providers') ? vc_providers() : [],'voice_api'=>'/chat/voice-api.php/v1/voices'];   // Stimmenkatalog je Sprache: GET voice_api?lang=xx
     switch(true){
         case $route==='assistant/profile' && $method==='GET': return [200,$pub()];
         case $route==='assistant/profile' && $method==='POST':

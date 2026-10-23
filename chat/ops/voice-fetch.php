@@ -3,7 +3,8 @@
  * ChatHelp ops — voice-fetch: lädt die Bausteine der Browser-Stimmen (Piper, Open Source) auf den eigenen Server, damit Browser
  * nichts bei Drittanbietern laden: onnxruntime-web 1.20.1 (MIT), piper_phonemize/espeak-ng (GPL-3.0) und die Stimmen von
  * Hugging Face (rhasspy/piper-voices, Prüfsumme MD5 aus voices.json). Ziel: chat/vendor/voice/{lib,models}/ (nicht im Snapshot).
- * args: models = kommagetrennte Modell-Schlüssel (de_DE-kerstin-low,…), lib = 1 (Bibliothek laden), list = 1 (nur Bestand zeigen)
+ * args: models = kommagetrennte Modell-Schlüssel (de_DE-kerstin-low,…) oder „catalog“ (alle Piper-Modelle aus voice-catalog.php, ≥ 6 Stimmen je Sprache/Geschlecht),
+ *       lib = 1 (Bibliothek laden), list = 1 (nur Bestand zeigen), catalog = 1 (zusätzlich chat/voice/catalog.json aus dem Katalog schreiben)
  * Schreibt nur in chat/vendor/voice/, nie in bestehende Dateien anderer Bereiche. Gibt keine Schlüssel oder Personendaten aus.
  */
 header('Content-Type: text/plain; charset=UTF-8');
@@ -46,7 +47,13 @@ if (!empty($_GET['lib'])) {
         . "Piper – MIT – https://github.com/rhasspy/piper · Stimmen: https://huggingface.co/rhasspy/piper-voices (Lizenz je Stimme in models/*.card.txt)\n");
 }
 
-$keys = array_values(array_filter(array_map('trim', explode(',', (string)($_GET['models'] ?? ''))), fn($k) => preg_match('/^[a-z]{2}_[A-Z]{2}-[a-z0-9_]+-(x_low|low|medium|high)$/', $k)));
+$want = (string)($_GET['models'] ?? '');
+if ($want === 'catalog' || !empty($_GET['catalog'])) {   // Stimmenkatalog: alle dort genutzten Piper-Modelle (+ Browser-Export catalog.json)
+    require_once dirname(__DIR__) . '/voice-catalog.php'; require_once dirname(__DIR__) . '/i18n.php';
+    if ($want === 'catalog') $want = implode(',', vc_models());
+    $cj = dirname(__DIR__) . '/voice/catalog.json'; file_put_contents($cj, json_encode(vc_browser_json(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); echo "Katalog: $cj (" . filesize($cj) . " Bytes)\n";
+}
+$keys = array_values(array_filter(array_map('trim', explode(',', $want)), fn($k) => preg_match('/^[a-z]{2}_[A-Z]{2}-[a-z0-9_]+-(x_low|low|medium|high)$/', $k)));
 if ($keys) {
     $HF = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/';
     $DS = 'https://huggingface.co/diffusionstudio/piper-voices/resolve/main/tr/tr_TR/';

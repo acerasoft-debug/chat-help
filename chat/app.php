@@ -960,7 +960,7 @@ function renderMehr(){
   const el=$('#p-mehr');const theme=LS.get('ch_app_theme','system');
   const plans=(ME&&ME.plans||[]).filter(p=>p.active);
   let h='<div class="card" style="margin-top:6px"><div style="display:flex;gap:12px;align-items:center"><span class="av" style="background:var(--goldl);color:var(--gold2)">'+esc(initials(ME&&ME.email||'?'))+'</span><div style="min-width:0;flex:1"><b class="ell" style="display:block">'+esc(ME&&ME.email||'')+'</b><span class="small mute">'+esc(_T('a.balance',{n:de(ME&&ME.balance)}))+'</span></div></div>'+
-    (plans.length?'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">'+plans.map(p=>'<span class="pill gold">'+esc(p.name.replace(/\s*\(.*\)$/,''))+'</span>').join('')+'</div>':'')+'</div>';
+    (plans.length?'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">'+plans.map(p=>'<span class="pill gold">'+esc((!DE_UI&&I.has&&I.has('pl.'+p.id+'.n')?_T('pl.'+p.id+'.n'):p.name).replace(/\s*\(.*\)$/,''))+'</span>').join('')+'</div>':'')+'</div>';
   h+='<div class="sec"><h2>Studio</h2></div><div class="group">'+
     '<a class="row" href="/chat/studio.php#home"><span class="ti t-mute" style="width:36px;height:36px;border-radius:12px">'+ic('grid','s')+'</span><span class="bd"><b>'+esc(_T('a.mx.studio'))+'</b><span>'+esc(_T('a.mx.studio.p'))+'</span></span>'+ic('chev','s chev')+'</a>'+
     '<a class="row" href="/chat/studio.php#assistant"><span class="ti t-gold" style="width:36px;height:36px;border-radius:12px">'+ic('spark','s')+'</span><span class="bd"><b>'+esc(_T('a.mx.asst'))+'</b><span>'+esc(_T('a.mx.asst.p'))+'</span></span>'+ic('chev','s chev')+'</a>'+

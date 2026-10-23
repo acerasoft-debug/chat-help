@@ -35,11 +35,18 @@ function sti_lang(): array {
     return ['de','default'];
 }
 function sti_file(string $l): string { return STI_DIR.'/'.$l.'.json'; }
+/* Zusatz-Wörterbücher eigener Bereiche (gleiches Format, gleiche Sprachen) – z. B. studio-i18n-voice/<lang>.json für den Stimmenkatalog; Hauptwörterbuch hat Vorrang. */
+const STI_EXTRA_DIRS = [__DIR__.'/studio-i18n-voice'];
 function sti_ver(string $l): string {
     $f=[__FILE__,sti_file('de'),sti_file('en'),sti_file($l),__DIR__.'/studio-i18n.js'];
+    foreach(STI_EXTRA_DIRS as $d) foreach(['de','en',$l] as $x) $f[]=$d.'/'.$x.'.json';
     return substr(md5(implode('|',array_map(fn($x)=>$x.':'.(string)@filemtime($x),$f))),0,10);
 }
-function sti_read(string $l): array { $j=json_decode((string)@file_get_contents(sti_file($l)),true); return is_array($j) ? $j : []; }
+function sti_read(string $l): array {
+    $j=json_decode((string)@file_get_contents(sti_file($l)),true); $j=is_array($j) ? $j : [];
+    foreach(STI_EXTRA_DIRS as $d){ $x=json_decode((string)@file_get_contents($d.'/'.$l.'.json'),true); if(is_array($x)) foreach($x as $k=>$v) if(!array_key_exists($k,$j)) $j[$k]=$v; }
+    return $j;
+}
 /** Zusammengeführtes Wörterbuch: Deutsch ← Englisch ← Sprache; dazu die Rückübersetzung deutscher Servertexte. */
 function sti_dict(string $l): array {
     $l=sti_norm($l) ?: 'de'; $de=sti_read('de'); $d=$de;

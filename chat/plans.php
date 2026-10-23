@@ -95,6 +95,7 @@ const CH_PLANS = [
   'edu-material'    => ['Lernmaterial-Studio',         2900,  7000, 'bildung', 'abo',   'Arbeitsblätter, Zusammenfassungen, Karteikarten pro Niveau'],
   // Marketing
   'mkt-seo'         => ['SEO-Studio',                  5900, 15000, 'marketing', 'abo',   'Keyword-Recherche, Blogartikel, Meta-Daten, interne Verlinkung'],
+  'website-pro'     => ['Website (ChatHelp-Seite)',     900,  1000, 'marketing', 'abo',   'Eigene Website aus dem Baukasten veröffentlichen: 8 Vorlagen, 13 Sprachen, eigene Adresse, Kontaktformular, Impressum & Datenschutz, ZIP-Export – inkl. 1.000 Tokens/Monat für KI-Texte und Übersetzungen'],
   // Logistik
   'log-doku'        => ['Doku-Übersetzung',            4900, 12000, 'logistik', 'abo',   'Technische Doku, Datenblätter, Sicherheitshinweise – fachgerecht'],
   'log-liefer'      => ['Lieferkommunikation',         5900, 15000, 'logistik', 'abo',   'Lieferavis, Verzögerungen, Schadensmeldungen – mehrsprachig'],
@@ -1129,7 +1130,7 @@ const CH_CATEGORIES = [
   'oeffentlich'    => ['label'=>'Behörden, Stadtwerke & Verwaltung','short'=>'Bürgerservice: Termine, Unterlagenlisten, Zuständigkeiten und Formulare in einfacher Sprache.','icon'=>'🏛','order'=>100,'home_group'=>'Dienstleistung',
     'plans'=>['agent-behoerde']],
   'marketing'      => ['label'=>'Marketing & Inhalte','short'=>'Website-Texte, Social Media, YouTube und SEO – in deiner Tonalität.','icon'=>'✍️','order'=>110,'home_group'=>null,
-    'plans'=>['agent-website','buy-website','agent-content','buy-content','creator-social','creator-youtube','mkt-seo']],
+    'plans'=>['agent-website','buy-website','website-pro','agent-content','buy-content','creator-social','creator-youtube','mkt-seo']],
   'team'           => ['label'=>'Personal & Bildung','short'=>'Stellenanzeigen, Bewerber-Vorauswahl, Onboarding, Kurse und Lernmaterial.','icon'=>'🎓','order'=>120,'home_group'=>null,
     'plans'=>['hr-anzeigen','hr-screening','hr-onboarding','edu-kurs','edu-material']],
   'privat'         => ['label'=>'Für dich privat','short'=>'Briefe und Kündigungen, Behördengänge, Bank & Geld, Hotel & Reise – und Anrufe, die der Assistent nach deiner Bestätigung für dich erledigt.','icon'=>'🙋','order'=>130,'home_group'=>null,

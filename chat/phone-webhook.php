@@ -15,6 +15,7 @@
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 require_once __DIR__.'/agent-tools.php';   // Fachmodule (Termine, Bestellungen, Taxi, Hotel, Rückruf) + Werkzeug-Register
+if(is_file(__DIR__.'/voice-catalog.php')) require_once __DIR__.'/voice-catalog.php';   // Stimmenkatalog: agent_configs.voice_id → Twilio-Stimme (vc_twilio)
 th_nocache();
 header('Content-Type: text/xml; charset=UTF-8');
 
@@ -42,6 +43,8 @@ const PH_CHIRP_POOL=['f'=>['Aoede','Kore','Leda','Zephyr'],'m'=>['Charon','Fenri
 function voice_for(string $lang): string {
     $lang=ph_say_locale($lang);
     if(defined('TWILIO_VOICE') && TWILIO_VOICE && $lang===($GLOBALS['ph_def_locale'] ?? 'de-DE')) return TWILIO_VOICE;
+    /* Vom Betrieb im Studio gewählte Katalogstimme (agent_configs.voice_id): Chirp3-HD-Stimme desselben Geschlechts, in jeder Sprache des Anrufs; sonst wie bisher */
+    $vid=(string)($GLOBALS['ph_voice_id'] ?? ''); if($vid!=='' && function_exists('vc_twilio') && ($tv=vc_twilio($vid,$lang))!==null) return $tv;
     $g=$GLOBALS['ph_gender'] ?? 'f'; $chirp=fn(string $l,bool $m,string $n='')=>'Google.'.$l.'-Chirp3-HD-'.($n!=='' ? $n : ($m?'Charon':'Aoede'));
     if($g==='g' || $g==='gm') return $chirp($lang,$g==='gm');
     $m=$g==='m'; $v=PH_VOICES[$lang][$m?1:0] ?? null;
@@ -156,6 +159,7 @@ if(preg_match('/^([a-z]{2}-[A-Z]{2})(?:-(m|f|g|gm))?$/',(string)$cfg['phone_voic
 /* Sprachen: Standard = Sprache der eingestellten Stimme (phone_voice), erlaubt = agent_configs.langs (leer = alle 13, i18n.php) */
 $GLOBALS['ph_def_locale']=$lang; ch_i18n_bootstrap(); $defL=ph_l2($lang);
 $GLOBALS['ph_vseed']=$aid.'|'.(string)$cfg['plan'];   // eigene Telefonstimme je Agent (voice_for)
+$GLOBALS['ph_voice_id']=(string)($cfg['voice_id'] ?? '');   // im Studio gewählte Katalogstimme (leer = Vorrat)
 $allowed=ch_cfg_langs(['lang'=>ch_lang_norm($defL) ?: ch_cfg_default($cfg),'langs'=>(string)($cfg['langs'] ?? '')]); if(!in_array($defL,$allowed,true)) array_unshift($allowed,$defL);
 $planId=ch_plan_active_any($aid,(string)$cfg['plan']) ? (string)$cfg['plan'] : null;
 $pl=$planId ? ch_plan($planId) : null;

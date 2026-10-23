@@ -393,21 +393,57 @@
      Jede Voreinstellung hat ein eigenes Stimmmodell bzw. einen eigenen Sprecher. Das Modell lädt einmalig (21–77 MB, danach im Browser
      gespeichert); bis es da ist, spricht die Systemstimme. Ohne Datensparmodus/Mobilfunk lädt es bei der ersten Hörprobe von selbst. */
   var PIP = { st: {}, pct: {}, js: null };
+  /* ---- Stimmenkatalog (voice-catalog.php über /chat/voice-api.php/v1/voices?lang=…): je Sprache f/m ≥ 6 Stimmen, beste zuerst.
+     Einträge {id, label, desc[], tier real|variant|premium, gender, lang, preset, mb, speaker, source{type,…}, available}. CAT.by = alle geladenen, CAT.lang[l] = {f,m}. */
+  var CAT = { by: {}, lang: {}, loading: {}, prov: null };
+  function catLoad(lng) {
+    lng = normLang(lng || (PROF && PROF.lang) || 'de');
+    if (CAT.lang[lng]) return Promise.resolve(CAT.lang[lng]);
+    if (CAT.loading[lng]) return CAT.loading[lng];
+    var p = fetch('/chat/voice-api.php/v1/voices?lang=' + encodeURIComponent(lng) + '&_=' + Date.now(), { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + key() } })
+      .then(function (r) { if (!r.ok) throw new Error('voices ' + r.status); return r.json(); })
+      .then(function (j) {
+        var L = { f: (j.voices && j.voices.f) || [], m: (j.voices && j.voices.m) || [], def: j['default'] || {} };
+        CAT.lang[lng] = L; CAT.prov = j.providers || CAT.prov;
+        var all = L.f.concat(L.m); all.forEach(function (e) { CAT.by[e.id] = e; });
+        if (window.CHVoice && CHVoice.register) CHVoice.register(all);
+        return L;
+      });
+    p.then(function () { delete CAT.loading[lng]; }, function () { delete CAT.loading[lng]; });
+    CAT.loading[lng] = p; return p;
+  }
+  /** Verfügbare Stimmen (Premium nur mit Schlüssel – der Server blendet sie sonst aus) der Sprache und des Geschlechts. */
+  function catList(lng, gender) { var L = CAT.lang[normLang(lng)]; return L ? (L[gender === 'm' ? 'm' : 'f'] || []).filter(function (e) { return e.available !== false; }) : []; }
+  function catEntry(id) { return (id && CAT.by[String(id)]) || null; }
+  function catLoaded(lng) { return !!CAT.lang[normLang(lng)]; }
+  /** Passende Katalogstimme: dieselbe id, wenn sie zu Sprache + Geschlecht passt, sonst erste Stimme derselben Voreinstellung, sonst die erste. '' ohne Katalog. */
+  function catFit(id, lng, gender, preset) {
+    var e = catEntry(id); if (e && e.lang === normLang(lng) && e.gender === gender) return e.id;
+    var L = catList(lng, gender), want = (e && e.preset) || preset || DEFAULT_PRESET[gender] || '';
+    var hit = L.filter(function (x) { return x.preset === want; })[0] || L[0]; return hit ? hit.id : '';
+  }
+  function catDesc(e) { return ((e && e.desc) || []).map(function (t) { return I18N.has('vc.d.' + t) ? _t('vc.d.' + t) : t; }).join(' · '); }
+  function tierBadge(e) { var t = (e && e.tier) || 'real'; return '<span class="as-tier t-' + h(t) + '" title="' + h(_t('vc.tierT.' + t)) + '">' + h(_t('vc.tier.' + t)) + '</span>'; }
+  /** Alle Katalogstimmen der Sprache nachladen und danach neu zeichnen (einmal je Sprache). */
+  function catSync(lng, after) { if (catLoaded(lng)) return; catLoad(lng).then(function () { if (window.CHVoice) pipCheck(); if (after) after(); voiceInfo(); }).catch(function () { /* Karten aus den Voreinstellungen */ }); }
   function pipLib() {
     if (window.CHVoice || PIP.js) return;
-    PIP.js = document.createElement('script'); PIP.js.src = '/chat/voice/voice.js?v=3'; PIP.js.async = true;
-    PIP.js.onload = function () { pipCheck(); voiceInfo(); };
+    PIP.js = document.createElement('script'); PIP.js.src = '/chat/voice/voice.js?v=4'; PIP.js.async = true;
+    PIP.js.onload = function () { if (CHVoice.register) { var all = []; Object.keys(CAT.by).forEach(function (k) { all.push(CAT.by[k]); }); CHVoice.register(all); } pipCheck(); voiceInfo(); };
     document.head.appendChild(PIP.js);
   }
-  function pipOf(gender, preset, lng) {
+  /** Echte Stimme (Piper) zur Katalog-ID; ohne Katalog (oder Cloud-Stimme) wie bisher über Sprache + Geschlecht + Voreinstellung. null = keine. */
+  function pipOf(gender, preset, lng, id) {
     if (!window.CHVoice || !CHVoice.ok()) return null;
+    var e = catEntry(id || (PROF && PROF.voice && PROF.voice.id));
+    if (e && (!gender || e.gender === gender) && (!lng || e.lang === normLang(lng))) { if (e.source && e.source.type !== 'piper') return null; var v = CHVoice.pickId ? CHVoice.pickId(e.id) : null; if (v) return v; }
     return CHVoice.pick(normLang(lng || convLang()), gender || (PROF && PROF.gender), preset || (PROF && PROF.voice && PROF.voice.preset));
   }
-  function pipOver(over, lng) { return pipOf(over && over.gender, over && over.preset, lng); }
+  function pipOver(over, lng) { return pipOf(over && over.gender, over && over.preset, lng, over && over.id); }
   function pipReady(v) { return !!v && PIP.st[v.key] === 'ready'; }
   /** Ist die Stimme schon im Browser gespeichert? Dann gleich als bereit markieren. */
   function pipCheck() {
-    var v = pipOf(null, null, PROF && PROF.lang); if (!v || PIP.st[v.key]) return;
+    var v = pipOf(null, null, PROF && PROF.lang, PROF && PROF.voice && PROF.voice.id); if (!v || PIP.st[v.key]) return;
     CHVoice.stored(v).then(function (ok) { if (ok && !PIP.st[v.key]) { PIP.st[v.key] = 'ready'; voiceInfo(); } });
   }
   function pipLoad(v, asked) {
@@ -419,7 +455,7 @@
       if (p >= (PIP.pct[v.key] || 0) + 4) { PIP.pct[v.key] = p; voiceInfo(); }
     }).then(function () {
       PIP.st[v.key] = 'ready'; voiceInfo();
-      note(h(_t('asj.pipReady',{n:personaOf(presetOf((PROF && PROF.voice && PROF.voice.preset) || '', PROF && PROF.gender))})), 'ok');
+      var ce = catEntry(v.id); note(h(_t('asj.pipReady',{n:ce ? ce.label : personaOf(presetOf((PROF && PROF.voice && PROF.voice.preset) || '', PROF && PROF.gender))})), 'ok');
     }, function () { PIP.st[v.key] = 'fail'; voiceInfo(); });
   }
   /** Wie speakServer, nur dass der Ton im Browser entsteht; nächster Satz wird schon berechnet, während der aktuelle läuft. */
@@ -465,17 +501,20 @@
     var gen = SPK.gen, lng = src.lang || convLang();
     setState('speaking');
     var done = function () { if (gen !== SPK.gen) return; setState('idle'); if (onend) onend(); };
-    if ((src.mid || src.preview) && serverCan(lng)) speakServer(list, gen, done, { mid: src.mid, preview: src.preview, lang: lng }, over);
+    /* Welche Stimme klingt: die gewählte Katalogstimme entscheidet – Premium (Cloud) über den Server, echte Stimme/Variante (Piper) im Browser
+       (lädt beim ersten Mal, bis dahin Systemstimme); ohne Katalog wie bisher Server zuerst. */
+    var pv = pipOver(over, lng), piperWanted = !!(pv && pv.id);
+    if ((src.mid || src.preview) && serverCan(lng) && !piperWanted) speakServer(list, gen, done, { mid: src.mid, preview: src.preview, lang: lng }, over);
     else {
-      var pv = pipOver(over, lng);
       if (pipReady(pv)) speakPiper(list, gen, done, pv, over, tagOf(lng));
       else { if (pv) pipLoad(pv, false); speakBrowser(list, gen, done, over, tagOf(lng)); }
     }
   }
   function speakMsg(m, onend) { if (m) speakList(m.speech && m.speech.length ? m.speech : sentences(m.content), onend, null, { mid: m.speech && m.speech.length ? m.id : 0, lang: m.lang }); }
   /** Ehrliche Statuszeile: KI-Stimme nur, wenn der Server sie wirklich liefert – sonst sagen, dass es die Systemstimme ist und warum. */
-  function voiceStatus(lng) {
+  function voiceStatus(lng, id) {
     var L = LANGS.filter(function (l) { return l.code === normLang(lng); })[0];
+    var e = catEntry(id); if (e && e.source && e.source.type === 'piper' && window.speechSynthesis && !SPK.trouble) return { k: 'info', t: _t('asj.vs.op') };   // echte Stimme gewählt, lädt noch → Systemstimme
     if (serverCan(lng)) return { k: 'ok', t: _t('asj.vs.ok') };
     if (!window.speechSynthesis || SPK.trouble) return { k: 'warn', t: NO_VOICE_TXT };
     if (TTS && SPK.serverOk && !serverLangOk(lng)) return { k: 'info', t: _t('asj.vs.lang',{l:L ? lname(L) : _t('asj.thisLang')}) };
@@ -486,9 +525,10 @@
   /** Wird gerade die Browserstimme benutzt (kein Sprachdienst, aber Ton möglich)? Dann zeigen wir ehrlich, welche. */
   function browserUsed(lng) { return voiceStatus(lng).k === 'info'; }
   /** Tooltip-Zusatz „ · Browserstimme: Katja“ für Chips und Hörprobe-Knöpfe (leer, wenn die Server-Stimme spricht). */
-  function voiceTip(gender, preset, lng) {
-    if (!serverCan(lng) && pipReady(pipOf(gender, preset, lng))) return ' · ' + _t('asj.real');
-    if (!browserUsed(lng)) return '';
+  function voiceTip(gender, preset, lng, id) {
+    var pv = pipOf(gender, preset, lng, id);
+    if (pipReady(pv) && (!serverCan(lng) || pv.id)) return ' · ' + _t('asj.real');
+    if (!browserUsed(lng) && !(pv && pv.id)) return '';
     var pk = pickVoiceEx(gender, preset, tagOf(lng));
     return pk.v ? ' · ' + _t('asj.bvoice',{n:voiceLabel(pk.v)}) + (pk.shared ? ' ' + _t('asj.shared') : '') : '';
   }
@@ -520,15 +560,15 @@
     if (s === 'fail') return '<span class="as-vpip">' + _t('asj.pipFail') + ' <button type="button" class="as-pipload" data-pip="1">' + _t('pw.retry') + '</button></span>';
     return '<span class="as-vpip"><button type="button" class="as-pipload" data-pip="1">' + _t('asj.pipLoad') + '</button> ' + h(_t('asj.pipOnce',{mb:I18N.num(v.mb)})) + '</span>';
   }
-  function paintStatus(el, gender, preset, lng, nameEl, hintEl) {
-    var pv = serverCan(lng) ? null : pipOf(gender, preset, lng);
+  function paintStatus(el, gender, preset, lng, nameEl, hintEl, id) {
+    var pv = pipOf(gender, preset, lng, id); if (serverCan(lng) && !(pv && pv.id)) pv = null;   // Katalog-Piperstimme gilt auch neben der Server-Stimme
     if (pipReady(pv)) {
       if (el) { el.textContent = _t('asj.pipOn'); el.setAttribute('data-k', 'ok'); el.title = _t('asj.model',{n:pv.name}); }
-      if (nameEl) nameEl.innerHTML = '<span class="as-vpip">' + h(_t('asj.oss',{n:pv.name})) + ' · <a href="/chat/vendor/voice/LICENSES.txt" target="_blank" rel="noopener">' + _t('asj.lic') + '</a></span>';
+      if (nameEl) nameEl.innerHTML = '<span class="as-vpip">' + h(_t('asj.oss',{n:pv.name})) + (pv.tier === 'variant' ? ' · ' + h(_t('vc.tier.variant')) : '') + ' · <a href="/chat/vendor/voice/LICENSES.txt" target="_blank" rel="noopener">' + _t('asj.lic') + '</a></span>';
       if (hintEl) { hintEl.textContent = ''; hintEl.classList.add('hidden'); }
       return;
     }
-    var st = voiceStatus(lng), used = st.k === 'info', pk = used ? pickVoiceEx(gender, preset, tagOf(lng)) : null;
+    var st = voiceStatus(lng, pv && pv.id ? id : null), used = st.k === 'info', pk = used ? pickVoiceEx(gender, preset, tagOf(lng)) : null;
     if (el) {
       el.textContent = st.t; el.setAttribute('data-k', st.k);
       if (pk && pk.v) el.title = _t('asj.bvoice',{n:voiceLabel(pk.v)}); else el.removeAttribute('title');
@@ -537,21 +577,26 @@
     if (hintEl) { hintEl.textContent = used && !pv ? kiHint(gender) : ''; hintEl.classList.toggle('hidden', !used || !!pv); }
   }
   /** Tooltips der Stimm-Chips und Hörprobe-Knöpfe nachziehen (Stimmenliste kommt asynchron). */
+  /** Name + Klang einer Stimmkarte: Katalogstimme (Vorname, Stichworte) oder Voreinstellung. */
+  function cardOf(idOrPreset, gender) {
+    var e = catEntry(idOrPreset); if (e) return { id: e.id, name: e.label, desc: catDesc(e), preset: e.preset, e: e };
+    var v = presetOf(idOrPreset, gender); return v ? { id: v.id, name: vpL(v), desc: vpD(v), preset: v.id, e: null } : null;
+  }
   function voiceTips() {
     if (PROF) document.querySelectorAll('#asTones button[data-v]').forEach(function (b) {
-      var v = presetOf(b.dataset.v, PROF.gender); if (v) b.title = vpL(v) + (v.desc ? ' – ' + vpD(v) : '') + voiceTip(PROF.gender, v.id, PROF.lang);
+      var c = cardOf(b.dataset.v, PROF.gender); if (c) b.title = c.name + (c.desc ? ' – ' + c.desc : '') + voiceTip(PROF.gender, c.preset, PROF.lang, c.e ? c.id : null);
     });
     if (D) {
       document.querySelectorAll('#' + (isCho() ? 'asCTones' : 'asFVoices') + ' .pl[data-play]').forEach(function (b) {
-        var v = presetOf(b.dataset.play, D.gender); if (v) b.title = _t('asj.sampleOf',{n:vpL(v)}) + voiceTip(D.gender, v.id, D.lang);
+        var c = cardOf(b.dataset.play, D.gender); if (c) b.title = _t('asj.sampleOf',{n:c.name}) + voiceTip(D.gender, c.preset, D.lang, c.e ? c.id : null);
       });
-      var main = g(isCho() ? 'asChoPlay' : 'asFPreview'), pre = presetOf(D.voice.preset, D.gender);
-      if (main) main.title = (pre ? _t('asj.sampleOf',{n:vpL(pre)}) : _t('asj.sampleW')) + voiceTip(D.gender, D.voice.preset, D.lang);
+      var main = g(isCho() ? 'asChoPlay' : 'asFPreview'), cur = cardOf(D.voice.id || D.voice.preset, D.gender);
+      if (main) main.title = (cur ? _t('asj.sampleOf',{n:cur.name}) : _t('asj.sampleW')) + voiceTip(D.gender, D.voice.preset, D.lang, D.voice.id);
     }
   }
   function voiceInfo() {
-    if (PROF) paintStatus(g('asVoiceInfo'), PROF.gender, PROF.voice && PROF.voice.preset, PROF.lang, g('asVoiceName'), null);
-    if (D) { var cho = D.mode === 'cho'; paintStatus(g(cho ? 'asCVoiceStat' : 'asFPrevInfo'), D.gender, D.voice.preset, D.lang, g(cho ? 'asCVoiceName' : 'asFVoiceName'), g(cho ? 'asCVoiceHint' : 'asFVoiceHint')); }
+    if (PROF) paintStatus(g('asVoiceInfo'), PROF.gender, PROF.voice && PROF.voice.preset, PROF.lang, g('asVoiceName'), null, PROF.voice && PROF.voice.id);
+    if (D) { var cho = D.mode === 'cho'; paintStatus(g(cho ? 'asCVoiceStat' : 'asFPrevInfo'), D.gender, D.voice.preset, D.lang, g(cho ? 'asCVoiceName' : 'asFVoiceName'), g(cho ? 'asCVoiceHint' : 'asFVoiceHint'), D.voice.id); }
     voiceTips();
   }
 
@@ -624,35 +669,47 @@
     document.querySelectorAll('#' + PANEL + ' .as-av').forEach(function (a) { a.src = url; });
     voiceBtn(); if (window.CHVoice) pipCheck(); voiceInfo();
   }
-  /** Stimm-Chips auf der Karte: alle Voreinstellungen des Geschlechts, aktive markiert – Antippen wechselt sofort (gespeichert) und spielt eine Hörprobe. */
+  /** Stimmkarten (Katalog) oder Voreinstellungen (Ersatz) für Sprache + Geschlecht: [{id, name, desc, tier, preset, e}], die aktive zuerst markiert vom Aufrufer. */
+  function voiceCards(lng, gender) {
+    var L = catList(lng, gender);
+    if (L.length) return L.map(function (e) { return { id: e.id, name: e.label, desc: catDesc(e), tier: e.tier, preset: e.preset, e: e, mb: e.mb }; });
+    return VOICES.filter(function (v) { return v.gender === gender; }).map(function (v) { return { id: v.id, name: vpL(v), desc: vpD(v), tier: null, preset: v.id, e: null }; });
+  }
+  /** Stimmkarten auf der Profilkarte: alle Stimmen der Sprache und des Geschlechts (echt, Variante, Premium), aktive markiert – Antippen wechselt sofort (gespeichert) und spielt eine Hörprobe. */
   function renderToneChips() {
     var box = g('asTones'); if (!box || !PROF) return;
-    box.innerHTML = VOICES.filter(function (v) { return v.gender === PROF.gender; }).map(function (v) {
-      var on = PROF.voice && PROF.voice.preset === v.id;
-      return '<button type="button" data-v="' + h(v.id) + '" data-play="chip:' + h(v.id) + '" data-label="' + h(on ? _t('asj.chipOn',{n:vpL(v)}) : _t('asj.chipPick',{n:vpL(v)})) + '" aria-pressed="' + (on ? 'true' : 'false') + '" title="' + h(vpL(v) + (v.desc ? ' – ' + vpD(v) : '') + voiceTip(PROF.gender, v.id, PROF.lang)) + '" aria-label="' + h(_t('asj.voiceN',{n:vpL(v)})) + '">' + h(I18N.lang === 'de' ? shortLabel(v) : vpL(v).split(/\s*&\s*/)[0]) + '</button>';
+    var cur = PROF.voice && (PROF.voice.id || PROF.voice.preset), cards = voiceCards(PROF.lang, PROF.gender);
+    box.innerHTML = cards.map(function (c) {
+      var on = c.id === cur || (!catEntry(cur) && c.preset === PROF.voice.preset && !c.e);
+      return '<button type="button" data-v="' + h(c.id) + '" data-play="chip:' + h(c.id) + '" data-label="' + h(on ? _t('asj.chipOn',{n:c.name}) : _t('asj.chipPick',{n:c.name})) + '" aria-pressed="' + (on ? 'true' : 'false') + '" title="' + h(c.name + (c.desc ? ' – ' + c.desc : '') + voiceTip(PROF.gender, c.preset, PROF.lang, c.e ? c.id : null)) + '" aria-label="' + h(_t('asj.voiceN',{n:c.name})) + '"><span class="as-vn">' + h(c.name) + '</span>' + (c.tier ? tierBadge(c.e) : '') + '</button>';
     }).join('');
+    box.classList.toggle('as-many', cards.length > 6);
+    var lb = g('asTonesL'); if (lb) lb.innerHTML = h(_t('asj.voice')) + (cards.length ? ' <i class="as-vcount">' + cards.length + '</i>' : '') + '<span>' + h(_t('asj.tapSwitch')) + '</span>';
     markPlaying();
   }
-  /** Profilwerte als Hörprobe-Beschreibung. */
-  function profVoice(p, preset) {
-    return { name: p.name, gender: p.gender, address: p.personality.address, lang: p.lang || 'de', tone: toneOf(preset) || p.voice.tone, rate: Number(p.voice.rate) || 1, pitch: Number(p.voice.pitch) || 1, preset: preset };
+  /** Profilwerte als Hörprobe-Beschreibung. $voice = Katalog-ID oder Voreinstellung. */
+  function profVoice(p, voice) {
+    var c = cardOf(voice, p.gender) || {};
+    return { name: p.name, gender: p.gender, address: p.personality.address, lang: p.lang || 'de', tone: toneOf(c.preset) || p.voice.tone, rate: Number(p.voice.rate) || 1, pitch: Number(p.voice.pitch) || 1, preset: c.preset || p.voice.preset, id: c.e ? c.id : null };
   }
   var toneBusy = 0;
   function quickTone(id) {
     if (!PROF || !id) return;
     unlockAudio();
-    var pre = presetOf(id, PROF.gender); if (!pre || pre.id !== id) return;
-    if (PROF.voice.preset === id) { playPreview(profVoice(PROF, id), 'chip:' + id); return; }   // aktive Stimme: nur anhören
-    var old = { preset: PROF.voice.preset, tone: PROF.voice.tone }, tone = toneOf(id) || PROF.voice.tone, my = ++toneBusy;
-    PROF.voice.preset = id; PROF.voice.tone = tone; renderToneChips(); voiceInfo();
+    var c = cardOf(id, PROF.gender); if (!c || c.id !== id) return;
+    var cur = PROF.voice.id || PROF.voice.preset;
+    if (cur === id) { playPreview(profVoice(PROF, id), 'chip:' + id); return; }   // aktive Stimme: nur anhören
+    var old = { preset: PROF.voice.preset, tone: PROF.voice.tone, id: PROF.voice.id }, tone = toneOf(c.preset) || PROF.voice.tone, my = ++toneBusy;
+    PROF.voice.preset = c.preset; PROF.voice.tone = tone; PROF.voice.id = c.e ? c.id : PROF.voice.id; renderToneChips(); voiceInfo();
     playPreview(profVoice(PROF, id), 'chip:' + id);
-    api('/assistant/profile', { method: 'POST', body: JSON.stringify({ voice: { preset: id, tone: tone } }) }).then(function (j) {
+    var body = c.e ? { voice: { id: c.id } } : { voice: { preset: c.preset, tone: tone } };
+    api('/assistant/profile', { method: 'POST', body: JSON.stringify(body) }).then(function (j) {
       if (my !== toneBusy) return;
       takeProfile(j); renderToneChips(); voiceInfo();
-      note(h(_t('asj.switched',{n:vpL(pre)})), 'ok');
+      note(h(_t('asj.switched',{n:c.name})), 'ok');
     }).catch(function (e) {
       if (my !== toneBusy) return;
-      PROF.voice.preset = old.preset; PROF.voice.tone = old.tone; renderToneChips(); voiceInfo();
+      PROF.voice.preset = old.preset; PROF.voice.tone = old.tone; PROF.voice.id = old.id; renderToneChips(); voiceInfo();
       note(h(((e && e.message) || _t('asj.voiceFail'))), 'err');
     });
   }
@@ -819,6 +876,7 @@
     if (typeof j.tools_ready === 'boolean') TOOLS = j.tools_ready;
     if (j.langs && j.langs.length) { LANGS = j.langs; LANG_TAG = {}; LANGS.forEach(function (l) { LANG_TAG[l.code] = l.tag; }); }
     langOptions(g('asFLang'), false);
+    if (PROF) catSync(PROF.lang, function () { if (PROF) renderToneChips(); if (D) redraw(); });   // Stimmenkatalog der Profilsprache → Karten
   }
 
   /* ======================================================================= Entwurf (Auswahl beim ersten Besuch + „Person & Stimme ändern“) */
@@ -826,8 +884,14 @@
   var D = null, lastFocus = null;
   function draftFrom(p) {
     return { name: p.name, gender: p.gender, portrait: p.portrait, photo: null, remove_photo: false, photoUrl: p.portrait === 'custom' ? p.portrait_url : (p.photo_url || null),
-      voice: { tone: p.voice.tone, rate: Number(p.voice.rate) || 1, pitch: Number(p.voice.pitch) || 1, preset: p.voice.preset },
+      voice: { tone: p.voice.tone, rate: Number(p.voice.rate) || 1, pitch: Number(p.voice.pitch) || 1, preset: p.voice.preset, id: p.voice.id || null },
       personality: { address: p.personality.address, mood: p.personality.mood, humor: Number(p.personality.humor), detail: p.personality.detail }, lang: p.lang || 'de', autoName: true, mode: 'drawer' };
+  }
+  /** Entwurfsstimme an Sprache/Geschlecht anpassen (Katalog nachladen, dann id + Voreinstellung nachziehen). */
+  function draftFit() {
+    if (!D) return;
+    var fix = function () { if (!D) return; var id = catFit(D.voice.id, D.lang, D.gender, D.voice.preset); if (id) { var e = catEntry(id); D.voice.id = id; if (e) { D.voice.preset = e.preset; D.voice.tone = toneOf(e.preset) || D.voice.tone; } } };
+    if (catLoaded(D.lang)) fix(); else catSync(D.lang, function () { fix(); redraw(); });
   }
   function isCho() { return !!D && D.mode === 'cho'; }
   function nameEl() { return g(isCho() ? 'asCName' : 'asFName'); }
@@ -848,12 +912,14 @@
     tiles.push('<button type="button" class="up"' + (upId ? ' id="' + upId + '"' : '') + ' aria-label="' + h(_t('asj.ownUp')) + '"><i aria-hidden="true">＋</i>' + h(_t('asj.own')) + '</button>');
     return tiles.join('');
   }
-  /** Stimmkarten: Auswahl-Knopf (data-v, aria-pressed) + eigener ▶-Hörprobe-Knopf (data-play) je Voreinstellung. */
+  /** Stimmkarten (Katalog der Entwurfssprache, ≥ 6 je Geschlecht: Name, Klang, Stufe echt/Variante/Premium): Auswahl-Knopf (data-v, aria-pressed) + ▶-Hörprobe (data-play). */
   function toneCards() {
-    return VOICES.filter(function (v) { return v.gender === D.gender; }).map(function (v) {
-      var on = D.voice.preset === v.id;
-      return '<div class="as-tcard' + (on ? ' on' : '') + '"><button type="button" class="sel" data-v="' + h(v.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '"><b>' + h(vpL(v)) + '</b>' + h(vpD(v)) + '</button>' +
-        '<button type="button" class="pl" data-play="' + h(v.id) + '" data-label="' + h(_t('asj.sampleOf',{n:vpL(v)})) + '" aria-label="' + h(_t('asj.sampleOf',{n:vpL(v)})) + '" title="' + h(_t('asj.sampleOf',{n:vpL(v)}) + voiceTip(D.gender, v.id, D.lang)) + '">' + _t('asj.sample') + '</button></div>';
+    var cards = voiceCards(D.lang, D.gender), cur = D.voice.id || D.voice.preset;
+    if (!cards.length) return '<div class="mute small as-vempty">' + h(catLoaded(D.lang) ? _t('vc.none') : _t('vc.loading')) + '</div>';
+    return cards.map(function (c) {
+      var on = c.id === cur || (!catEntry(cur) && !c.e && c.preset === D.voice.preset);
+      return '<div class="as-tcard' + (on ? ' on' : '') + '" data-tier="' + h(c.tier || '') + '"><button type="button" class="sel" data-v="' + h(c.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '" aria-label="' + h(_t('vc.pickN',{n:c.name})) + '"><b>' + h(c.name) + (c.tier ? tierBadge(c.e) : '') + '</b>' + h(c.desc) + (c.e && c.e.source && c.e.source.type === 'piper' && c.mb ? ' <span class="as-vmb">· ' + h(_t('vc.onceMb',{mb:I18N.num(c.mb)})) + '</span>' : '') + '</button>' +
+        '<button type="button" class="pl" data-play="' + h(c.id) + '" data-label="' + h(_t('asj.sampleOf',{n:c.name})) + '" aria-label="' + h(_t('asj.sampleOf',{n:c.name})) + '" title="' + h(_t('asj.sampleOf',{n:c.name}) + voiceTip(D.gender, c.preset, D.lang, c.e ? c.id : null)) + '">' + _t('asj.sample') + '</button></div>';
     }).join('');
   }
   function drawDrawer() {
@@ -875,12 +941,12 @@
     voiceInfo(); markPlaying();
   }
   function drawChooser() {
-    var f = D.gender !== 'm', sie = D.personality.address === 'sie', nm = draftName(), pre = presetOf(D.voice.preset, D.gender);
+    var f = D.gender !== 'm', sie = D.personality.address === 'sie', nm = draftName(), cur = cardOf(D.voice.id || D.voice.preset, D.gender);
     var img = g('asChoImg'), u = draftImg(); if (img.getAttribute('src') !== u) img.src = u;
     img.alt = _t('asj.portraitOf',{n:nm});
     g('asChoName').textContent = nm; g('asChoRole').textContent = draftRole();
     g('asChoWho').textContent = f ? _t('asj.she') : _t('asj.he');
-    g('asChoVoice').textContent = pre ? vpL(pre) : '';
+    g('asChoVoice').textContent = cur ? cur.name + (cur.desc ? ' · ' + cur.desc : '') : '';
     g('asChoTitle').textContent = sie ? _t('asj.who.f') : _t('asj.who');
     g('asChoLead').textContent = sie ? _t('asj.lead.f') : _t('asj.lead');
     g('asCHint').textContent = sie ? _t('asj.hint.f') : _t('asj.hint');
@@ -893,7 +959,7 @@
   }
   function showChooser() {
     if (!PROF) return;
-    D = draftFrom(PROF); D.mode = 'cho';
+    D = draftFrom(PROF); D.mode = 'cho'; draftFit();
     g('asCName').value = D.name; msg(g('asCMsg'), '');
     g('asCho').classList.remove('hidden');
     document.querySelectorAll('#' + PANEL + ' .as-grid, #' + PANEL + ' .as-titlerow').forEach(function (el) { el.classList.add('hidden'); });
@@ -906,7 +972,7 @@
   }
   function openDrawer() {
     if (!PROF) return;
-    D = draftFrom(PROF); lastFocus = document.activeElement;
+    D = draftFrom(PROF); lastFocus = document.activeElement; draftFit();
     g('asFName').value = D.name; msg(g('asFMsg'), '');
     drawDrawer();
     g('asDrawer').classList.remove('hidden');
@@ -932,7 +998,12 @@
     var map = { f: { warm: 'f_warm', ruhig: 'f_sanft', energisch: 'f_frisch', sachlich: 'f_klar' }, m: { warm: 'm_freundlich', ruhig: 'm_ruhig', energisch: 'm_freundlich', sachlich: 'm_souveraen' } };   // wie ASSISTANT_TONE_PRESET; fehlt eine Stimme, nimmt presetOf die erste passende
     var id = (map[gender] || map.f)[tone]; return presetOf(id, gender) ? presetOf(id, gender).id : (presetOf('', gender) || {}).id;
   }
-  function pickPreset(id) { var v = presetOf(id, D.gender); if (!v || v.id !== id) return false; D.voice.preset = id; D.voice.tone = toneOf(id) || D.voice.tone; return true; }
+  /** Stimme im Entwurf wählen: Katalog-ID (setzt Voreinstellung + Sprechweise nach) oder Voreinstellung (ohne Katalog). */
+  function pickPreset(id) {
+    var e = catEntry(id);
+    if (e) { if (e.gender !== D.gender || e.lang !== normLang(D.lang)) return false; D.voice.id = e.id; D.voice.preset = e.preset; D.voice.tone = toneOf(e.preset) || D.voice.tone; return true; }
+    var v = presetOf(id, D.gender); if (!v || v.id !== id) return false; D.voice.preset = id; D.voice.tone = toneOf(id) || D.voice.tone; D.voice.id = catFit(null, D.lang, D.gender, id) || null; return true;
+  }
   function setGender(gd) {
     if (D.gender === gd) return;
     var oldP = portraitById(D.portrait);
@@ -943,6 +1014,7 @@
     }
     var cur = VOICES.filter(function (v) { return v.id === D.voice.preset; })[0];   // exakt nachschlagen – presetOf fiele auf die erste Stimme des neuen Geschlechts zurück
     if (!cur || cur.gender !== gd) D.voice.preset = toneToPreset(gd, D.voice.tone);
+    D.voice.id = catFit(null, D.lang, gd, D.voice.preset) || null;   // Katalogstimme des neuen Geschlechts mit derselben Voreinstellung
     stopSpeaking(); redraw();
   }
   function pickPortrait(id) {
@@ -991,14 +1063,14 @@
     unlockAudio();
     if (pvId && SPK.pv === pvId && speaking()) { stopSpeaking(); return; }
     var t = previewText(o);
-    var over = { gender: o.gender, tone: o.tone, rate: o.rate, pitch: o.pitch, preset: o.preset };
-    var pv = { name: t.name, lang: o.lang, gender: o.gender, address: o.address, tone: o.tone, rate: o.rate, pitch: o.pitch, preset: o.preset };
+    var over = { gender: o.gender, tone: o.tone, rate: o.rate, pitch: o.pitch, preset: o.preset, id: o.id || null };
+    var pv = { name: t.name, lang: o.lang, gender: o.gender, address: o.address, tone: o.tone, rate: o.rate, pitch: o.pitch, preset: o.preset, id: o.id || null };
     speakList([t.text], function () { SPK.pv = null; markPlaying(); }, over, { preview: pv, lang: o.lang });
     if (pvId && speaking()) { SPK.pv = pvId; markPlaying(); }
   }
   function draftVoice() {
     var nm = (nameEl().value || '').replace(/\s+/g, ' ').trim();
-    return { name: nm, gender: D.gender, address: D.personality.address, lang: D.lang, tone: D.voice.tone, rate: D.voice.rate, pitch: D.voice.pitch, preset: D.voice.preset };
+    return { name: nm, gender: D.gender, address: D.personality.address, lang: D.lang, tone: D.voice.tone, rate: D.voice.rate, pitch: D.voice.pitch, preset: D.voice.preset, id: D.voice.id || null };
   }
   function preview(pvId) { if (D) playPreview(draftVoice(), pvId || 'main'); }
   /** Entwurf speichern – aus der Auswahl („Mit … starten“) oder der Seitenleiste („Speichern“). */
@@ -1008,7 +1080,8 @@
     var name = (inp.value || '').replace(/\s+/g, ' ').trim();
     var ok = false; try { ok = new RegExp('^\\p{L}[\\p{L}\\p{M} \\-]*$', 'u').test(name); } catch (e) { ok = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ \-]*$/.test(name); }
     if (!name || name.length > 30 || !ok) { msg(box, _t('asj.nameRule'), 'err'); inp.focus(); return; }
-    var body = { name: name, gender: D.gender, voice: D.voice, personality: D.personality, lang: D.lang };
+    var body = { name: name, gender: D.gender, voice: { tone: D.voice.tone, rate: D.voice.rate, pitch: D.voice.pitch, preset: D.voice.preset }, personality: D.personality, lang: D.lang };
+    if (D.voice.id && catEntry(D.voice.id)) body.voice.id = D.voice.id;   // Katalogstimme (Server prüft Sprache + Geschlecht)
     if (D.photo) body.photo = D.photo; else body.portrait = D.portrait;
     if (D.remove_photo && !D.photo) body.remove_photo = 1;
     var btn = g(cho ? 'asCStart' : 'asFSave'); btn.disabled = true; msg(box, _t('asj.saving'), 'info');
@@ -1043,7 +1116,7 @@
     g(PANEL).addEventListener('click', function (e) {   // „Echte Stimme laden“ – für den offenen Entwurf oder das gespeicherte Profil
       if (!e.target.closest('[data-pip]')) return;
       unlockAudio();
-      pipLoad(D ? pipOf(D.gender, D.voice.preset, D.lang) : pipOf(null, null, PROF && PROF.lang), true);
+      pipLoad(D ? pipOf(D.gender, D.voice.preset, D.lang, D.voice.id) : pipOf(null, null, PROF && PROF.lang, PROF && PROF.voice && PROF.voice.id), true);
     });
     form.addEventListener('submit', function (e) { e.preventDefault(); send(input.value); });
     input.addEventListener('keydown', function (e) {
@@ -1141,14 +1214,14 @@
       var b = e.target.closest('button[data-v]'); if (b && pickPreset(b.dataset.v)) { stopSpeaking(); drawDrawer(); }
     });
     var segBind = function (id, fn) { g(id).addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b && D && !isCho()) { fn(b.dataset.v); drawDrawer(); } }); };
-    segBind('asFTone', function (v) { D.voice.tone = v; D.voice.preset = toneToPreset(D.gender, v); });
+    segBind('asFTone', function (v) { D.voice.tone = v; D.voice.preset = toneToPreset(D.gender, v); D.voice.id = catFit(null, D.lang, D.gender, D.voice.preset) || null; });
     segBind('asFAddress', function (v) { D.personality.address = v; });
     segBind('asFMood', function (v) { D.personality.mood = v; });
     segBind('asFHumor', function (v) { D.personality.humor = Number(v); });
     segBind('asFDetail', function (v) { D.personality.detail = v; });
     g('asFRate').addEventListener('input', function () { if (D) { D.voice.rate = Number(this.value); g('asFRateO').textContent = fx(D.voice.rate); } });
     g('asFPitch').addEventListener('input', function () { if (D) { D.voice.pitch = Number(this.value); g('asFPitchO').textContent = fx(D.voice.pitch); } });
-    g('asFLang').addEventListener('change', function () { if (D) { D.lang = this.value; drawDrawer(); } });
+    g('asFLang').addEventListener('change', function () { if (D) { D.lang = this.value; draftFit(); drawDrawer(); } });
     g('asMicLang').addEventListener('change', function () { micLangPick = this.value; LS.set('ch_as_miclang', micLangPick); micLangUi(); if (REC.on) abortListen(); });
     /* Browserstimmen laden asynchron */
     var onVoices = function () { voicesReady(); voiceInfo(); };

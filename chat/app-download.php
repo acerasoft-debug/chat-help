@@ -11,7 +11,10 @@
  * Keine Anmeldung, keine Kundendaten, keine externen Skripte (QR-Code wird im Browser erzeugt).
  */
 require_once __DIR__.'/pagever.php';
-ch_page_version(__FILE__);
+require_once __DIR__.'/app-i18n.php';   // Sprache wie in der App: ?lang= → Cookie ch_lang → Accept-Language → de
+[$L, $LSRC] = apl_lang();
+ch_page_version(__FILE__, apl_files($L));
+$T = apl_t($L);
 header('Content-Type: text/html; charset=UTF-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0');
 header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store');
@@ -30,18 +33,18 @@ $selfUrl = $scheme.'://'.$host.'/chat/app-download.php?ref=qr';
 $bv = substr(md5((string)@filemtime(__DIR__.'/app-bridge.js')), 0, 8);
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 ?><!DOCTYPE html>
-<html lang="de">
+<html lang="<?= $L === 'no' ? 'nb' : $L ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ChatHelp Business App – für iPhone, Android und Computer</title>
-<meta name="description" content="Die ChatHelp Business App: Bestellungen, Termine, Fahrten, Hotel und Rückrufe deiner KI-Agenten live auf dem Handy – mit Benachrichtigungen. Für iPhone, Android und Computer.">
+<title><?= $h($T('dl.title')) ?></title>
+<meta name="description" content="<?= $h($T('dl.desc')) ?>">
 <link rel="manifest" href="/chat/app.webmanifest">
 <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#0b0d18" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <link rel="apple-touch-icon" href="/chat/icons/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/chat/icons/icon-32.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ChatHelp">
-<meta property="og:title" content="ChatHelp Business App"><meta property="og:description" content="Aufträge deiner KI-Agenten live auf dem Handy – mit Benachrichtigungen."><meta property="og:image" content="https://chat-help.com/chat/icons/icon-512.png">
+<meta property="og:title" content="ChatHelp Business App"><meta property="og:description" content="<?= $h($T('dl.ogdesc')) ?>"><meta property="og:image" content="https://chat-help.com/chat/icons/icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
 <script src="/chat/app-bridge.js?v=<?= $bv ?>" defer></script>
@@ -126,67 +129,67 @@ footer a{color:var(--ink2)}
 <body data-plat="<?= $h($plat) ?>">
 <div class="wrap">
   <nav class="nav">
-    <a class="brand" href="/" aria-label="ChatHelp Startseite"><span class="em" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp <span>Business</span></a>
+    <a class="brand" href="/" aria-label="<?= $h($T('dl.home')) ?>"><span class="em" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp <span>Business</span></a>
     <span class="sp"></span>
-    <a class="btn o s" href="/chat/app.php">Im Browser öffnen</a>
+    <a class="btn o s" href="/chat/app.php"><?= $h($T('dl.inBrowser')) ?></a>
   </nav>
 
   <header class="hero">
     <div>
-      <span class="kick">App für deinen Betrieb</span>
-      <h1>Jeder Auftrag. <em>Sofort</em> auf dem Handy.</h1>
-      <p class="lead">Bestellungen, Termine, Taxifahrten, Hotelanfragen und Rückrufe deiner KI-Agenten – live, mit Benachrichtigung und Ton. Ein Tipp, und der Auftrag ist bestätigt.</p>
-      <div class="tabs" role="tablist" aria-label="Gerät wählen">
+      <span class="kick"><?= $h($T('dl.kick')) ?></span>
+      <h1><?= $T('dl.h1') ?></h1>
+      <p class="lead"><?= $h($T('dl.lead')) ?></p>
+      <div class="tabs" role="tablist" aria-label="<?= $h($T('dl.choose')) ?>">
         <button type="button" role="tab" data-p="ios"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.7zM14.2 5.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z"/></svg>iPhone & iPad</button>
         <button type="button" role="tab" data-p="android"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.5l1.6-2.8a.4.4 0 0 0-.7-.4l-1.7 2.9A10 10 0 0 0 12 8.2c-1.7 0-3.3.4-4.8 1L5.5 6.3a.4.4 0 1 0-.7.4l1.6 2.8A9.3 9.3 0 0 0 1.5 17h21a9.3 9.3 0 0 0-4.9-7.5zM7 14.3a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>Android</button>
-        <button type="button" role="tab" data-p="desktop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M9 20h6M12 16.5V20"/></svg>Computer</button>
+        <button type="button" role="tab" data-p="desktop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M9 20h6M12 16.5V20"/></svg><?= $h($T('dl.computer')) ?></button>
       </div>
 
       <!-- iPhone -->
       <div class="pane" data-pane="ios">
         <div class="ctas">
-          <?php if ($LINKS['appstore']): ?><a class="store" id="lnkAppStore" href="<?= $h($LINKS['appstore']) ?>" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.7zM14.2 5.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z"/></svg><span><small>Laden im</small><b>App Store</b></span></a>
-          <?php elseif ($LINKS['testflight']): ?><a class="store" id="lnkTestflight" href="<?= $h($LINKS['testflight']) ?>" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.2 6.8H21l-5.5 4 2.1 6.7L12 16.4l-5.6 4.1 2.1-6.7-5.5-4h6.8z"/></svg><span><small>Vorab testen über</small><b>TestFlight</b></span></a>
-          <?php else: ?><span class="store soon" id="lnkAppStore" aria-disabled="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.7zM14.2 5.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z"/></svg><span><small>Bald im</small><b>App Store</b></span></span><?php endif; ?>
-          <a class="btn g" href="#ios-steps" id="iosGuideBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3.5v11M8 7.5l4-4 4 4"/><path d="M7 11H5.5v9.5h13V11H17"/></svg>Jetzt zum Home-Bildschirm</a>
+          <?php if ($LINKS['appstore']): ?><a class="store" id="lnkAppStore" href="<?= $h($LINKS['appstore']) ?>" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.7zM14.2 5.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z"/></svg><span><small><?= $h($T('dl.loadIn')) ?></small><b>App Store</b></span></a>
+          <?php elseif ($LINKS['testflight']): ?><a class="store" id="lnkTestflight" href="<?= $h($LINKS['testflight']) ?>" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.2 6.8H21l-5.5 4 2.1 6.7L12 16.4l-5.6 4.1 2.1-6.7-5.5-4h6.8z"/></svg><span><small><?= $h($T('dl.testVia')) ?></small><b>TestFlight</b></span></a>
+          <?php else: ?><span class="store soon" id="lnkAppStore" aria-disabled="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.7zM14.2 5.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z"/></svg><span><small><?= $h($T('dl.soonIn')) ?></small><b>App Store</b></span></span><?php endif; ?>
+          <a class="btn g" href="#ios-steps" id="iosGuideBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3.5v11M8 7.5l4-4 4 4"/><path d="M7 11H5.5v9.5h13V11H17"/></svg><?= $h($T('dl.toHome')) ?></a>
         </div>
-        <p class="note">Sofort startklar ohne App Store: In <b>Safari</b> öffnen, „Teilen“ → „Zum Home-Bildschirm“. Benachrichtigungen ab iOS 16.4.</p>
-        <?php if ($inApp && $plat === 'ios'): ?><div class="alert" id="inAppHint"><b>Bitte in Safari öffnen:</b> Du bist in einem App-Browser (z. B. Instagram oder Facebook). Tippe auf „…“ bzw. das Kompass-Symbol und wähle „In Safari öffnen“.</div><?php endif; ?>
-        <div class="alert" id="iosNotSafari" hidden><b>Bitte Safari verwenden:</b> Nur Safari kann ChatHelp auf dem iPhone mit Benachrichtigungen zum Home-Bildschirm hinzufügen. Link kopieren und in Safari öffnen.</div>
+        <p class="note"><?= $T('dl.iosNote') ?></p>
+        <?php if ($inApp && $plat === 'ios'): ?><div class="alert" id="inAppHint"><?= $T('dl.inAppIos') ?></div><?php endif; ?>
+        <div class="alert" id="iosNotSafari" hidden><?= $T('dl.notSafari') ?></div>
       </div>
 
       <!-- Android -->
       <div class="pane" data-pane="android">
         <div class="ctas">
-          <?php if ($LINKS['play']): ?><a class="store" id="lnkPlay" href="<?= $h($LINKS['play']) ?>" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 2.8v18.4c0 .5.5.8.9.6l10.6-9.2L4.9 2.2c-.4-.2-.9.1-.9.6zM16.6 13.6l2.9 1.7c.7.4.7 1.4 0 1.8L6.7 23l9.9-9.4zM16.6 10.4L6.7 1l12.8 6.9c.7.4.7 1.4 0 1.8l-2.9 1.7z"/></svg><span><small>Jetzt bei</small><b>Google Play</b></span></a>
-          <?php else: ?><span class="store soon" id="lnkPlay" aria-disabled="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 2.8v18.4c0 .5.5.8.9.6l10.6-9.2L4.9 2.2c-.4-.2-.9.1-.9.6zM16.6 13.6l2.9 1.7c.7.4.7 1.4 0 1.8L6.7 23l9.9-9.4zM16.6 10.4L6.7 1l12.8 6.9c.7.4.7 1.4 0 1.8l-2.9 1.7z"/></svg><span><small>Bald bei</small><b>Google Play</b></span></span><?php endif; ?>
-          <button class="btn g" type="button" id="installBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg>App installieren</button>
-          <?php if ($LINKS['apk']): ?><a class="btn o" id="lnkApk" href="<?= $h($LINKS['apk']) ?>" rel="noopener">APK herunterladen</a><?php endif; ?>
+          <?php if ($LINKS['play']): ?><a class="store" id="lnkPlay" href="<?= $h($LINKS['play']) ?>" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 2.8v18.4c0 .5.5.8.9.6l10.6-9.2L4.9 2.2c-.4-.2-.9.1-.9.6zM16.6 13.6l2.9 1.7c.7.4.7 1.4 0 1.8L6.7 23l9.9-9.4zM16.6 10.4L6.7 1l12.8 6.9c.7.4.7 1.4 0 1.8l-2.9 1.7z"/></svg><span><small><?= $h($T('dl.nowAt')) ?></small><b>Google Play</b></span></a>
+          <?php else: ?><span class="store soon" id="lnkPlay" aria-disabled="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 2.8v18.4c0 .5.5.8.9.6l10.6-9.2L4.9 2.2c-.4-.2-.9.1-.9.6zM16.6 13.6l2.9 1.7c.7.4.7 1.4 0 1.8L6.7 23l9.9-9.4zM16.6 10.4L6.7 1l12.8 6.9c.7.4.7 1.4 0 1.8l-2.9 1.7z"/></svg><span><small><?= $h($T('dl.soonAt')) ?></small><b>Google Play</b></span></span><?php endif; ?>
+          <button class="btn g" type="button" id="installBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg><?= $h($T('dl.install')) ?></button>
+          <?php if ($LINKS['apk']): ?><a class="btn o" id="lnkApk" href="<?= $h($LINKS['apk']) ?>" rel="noopener"><?= $h($T('dl.apk')) ?></a><?php endif; ?>
         </div>
-        <p class="note" id="installNote">Ein Tipp installiert ChatHelp direkt aus Chrome – mit eigenem Symbol und Benachrichtigungen. Kein Store nötig.</p>
-        <?php if ($LINKS['apk']): ?><p class="note">APK: Beim ersten Mal fragt Android, ob dein Browser Apps installieren darf → „Zulassen“, dann „Installieren“.</p><?php endif; ?>
-        <?php if ($inApp && $plat === 'android'): ?><div class="alert"><b>Bitte in Chrome öffnen:</b> Tippe oben rechts auf ⋮ und wähle „In Chrome öffnen“ bzw. „Im Browser öffnen“.</div><?php endif; ?>
+        <p class="note" id="installNote"><?= $h($T('dl.installNote')) ?></p>
+        <?php if ($LINKS['apk']): ?><p class="note"><?= $h($T('dl.apkNote')) ?></p><?php endif; ?>
+        <?php if ($inApp && $plat === 'android'): ?><div class="alert"><?= $T('dl.inAppAndroid') ?></div><?php endif; ?>
       </div>
 
       <!-- Computer -->
       <div class="pane" data-pane="desktop">
-        <div class="ctas"><a class="btn p" href="/chat/app.php">App im Browser öffnen</a><button class="btn o" type="button" id="installBtnD">Als App installieren</button></div>
-        <p class="note">Am schnellsten aufs Handy: QR-Code unten mit der Kamera scannen.</p>
+        <div class="ctas"><a class="btn p" href="/chat/app.php"><?= $h($T('dl.openInBrowser')) ?></a><button class="btn o" type="button" id="installBtnD"><?= $h($T('dl.installAsApp')) ?></button></div>
+        <p class="note"><?= $h($T('dl.qrFast')) ?></p>
       </div>
     </div>
 
     <div class="shot" aria-hidden="true"><div class="glow"></div>
       <div class="phone"><div class="isl"></div><div class="scr">
-        <div style="padding:40px 14px 10px;background:linear-gradient(#fff,#fbfbfd)"><div style="font:600 22px Fraunces,Georgia,serif;color:#0f1222">Heute</div><div style="font-size:10.5px;color:#6b7083">Guten Abend · Pizzeria Napoli</div></div>
-        <div style="margin:4px 12px 8px;padding:10px;border-radius:14px;background:linear-gradient(135deg,#fffaf0,#f6ecd3);border:1px solid #ecdcb2;font-size:10px;color:#2a2010"><b style="font:600 12px Fraunces,Georgia,serif;display:block">Keinen Auftrag verpassen</b>Neue Bestellungen kommen sofort mit Ton.</div>
+        <div style="padding:40px 14px 10px;background:linear-gradient(#fff,#fbfbfd)"><div style="font:600 22px Fraunces,Georgia,serif;color:#0f1222"><?= $h($T('dl.ph.today')) ?></div><div style="font-size:10.5px;color:#6b7083"><?= $h($T('dl.ph.greet')) ?></div></div>
+        <div style="margin:4px 12px 8px;padding:10px;border-radius:14px;background:linear-gradient(135deg,#fffaf0,#f6ecd3);border:1px solid #ecdcb2;font-size:10px;color:#2a2010"><b style="font:600 12px Fraunces,Georgia,serif;display:block"><?= $h($T('dl.ph.miss')) ?></b><?= $h($T('dl.ph.missP')) ?></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 12px 8px">
-          <div style="background:#fff;border:1px solid #e4e6ee;border-radius:12px;padding:8px"><div style="font:600 20px Fraunces,Georgia,serif;color:#8f6519">4</div><div style="font-size:9px;color:#6b7083">offene Bestellungen</div></div>
-          <div style="background:#fff;border:1px solid #e4e6ee;border-radius:12px;padding:8px"><div style="font:600 20px Fraunces,Georgia,serif;color:#0f1222">6</div><div style="font-size:9px;color:#6b7083">Termine heute</div></div></div>
-        <?php foreach ([['Lieferung · 26,50 €','2× Margherita, 1× Cola','Neu','#f6ecd3','#8f6519'],['Sofort · Hauptbahnhof','→ Flughafen · 1 Pers.','Eingegangen','#e6eefc','#2f6fde'],['14:30 · Färben & Schnitt','Mia Wagner','Heute','#ece9fb','#6d5bd0']] as [$t,$s,$p,$bg,$fg]): ?>
+          <div style="background:#fff;border:1px solid #e4e6ee;border-radius:12px;padding:8px"><div style="font:600 20px Fraunces,Georgia,serif;color:#8f6519">4</div><div style="font-size:9px;color:#6b7083"><?= $h($T('dl.ph.orders')) ?></div></div>
+          <div style="background:#fff;border:1px solid #e4e6ee;border-radius:12px;padding:8px"><div style="font:600 20px Fraunces,Georgia,serif;color:#0f1222">6</div><div style="font-size:9px;color:#6b7083"><?= $h($T('dl.ph.appts')) ?></div></div></div>
+        <?php foreach ([[$T('dl.ph.i1'),$T('dl.ph.i1s'),$T('dl.ph.i1p'),'#f6ecd3','#8f6519'],[$T('dl.ph.i2'),$T('dl.ph.i2s'),$T('dl.ph.i2p'),'#e6eefc','#2f6fde'],[$T('dl.ph.i3'),'Mia Wagner',$T('dl.ph.today'),'#ece9fb','#6d5bd0']] as [$t,$s,$p,$bg,$fg]): ?>
         <div style="margin:0 12px 6px;background:#fff;border:1px solid #e4e6ee;border-radius:12px;padding:8px;display:flex;gap:7px"><span style="width:24px;height:24px;border-radius:8px;background:<?= $bg ?>;flex:0 0 auto"></span><span style="min-width:0"><b style="display:block;font-size:10.5px;color:#0f1222"><?= $h($t) ?></b><span style="font-size:9px;color:#3b4055"><?= $h($s) ?></span><br><span style="display:inline-block;margin-top:3px;padding:1px 6px;border-radius:9px;background:<?= $bg ?>;color:<?= $fg ?>;font-size:8.5px;font-weight:700"><?= $h($p) ?></span></span></div>
         <?php endforeach; ?>
-        <div style="position:absolute;left:0;right:0;bottom:0;height:46px;background:rgba(255,255,255,.95);border-top:1px solid #e4e6ee;display:flex;justify-content:space-around;align-items:center;font-size:8.5px;color:#6b7083"><span style="color:#0f1222;font-weight:700">Heute</span><span>Aufträge</span><span>Kunden</span><span>Meldungen</span><span>Mehr</span></div>
-        <div style="position:absolute;left:8px;right:8px;top:36px;background:rgba(255,255,255,.97);border-radius:14px;padding:8px 10px;box-shadow:0 8px 24px rgba(15,18,34,.22);display:flex;gap:8px;align-items:center;animation:drop 4s ease-in-out infinite"><span style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#f3dfa6,#c9972f);flex:0 0 auto"></span><span style="font-size:9px;color:#3b4055;min-width:0"><b style="color:#0f1222;display:block;font-size:9.5px">Neue Bestellung A7K2Q9 · 18,50 €</b>Lieferung · 2× Pizza Margherita</span></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:46px;background:rgba(255,255,255,.95);border-top:1px solid #e4e6ee;display:flex;justify-content:space-around;align-items:center;font-size:8.5px;color:#6b7083"><span style="color:#0f1222;font-weight:700"><?= $h($T('dl.ph.today')) ?></span><span><?= $h($T('dl.ph.jobs')) ?></span><span><?= $h($T('dl.ph.cust')) ?></span><span><?= $h($T('dl.ph.alerts')) ?></span><span><?= $h($T('dl.ph.more')) ?></span></div>
+        <div style="position:absolute;left:8px;right:8px;top:36px;background:rgba(255,255,255,.97);border-radius:14px;padding:8px 10px;box-shadow:0 8px 24px rgba(15,18,34,.22);display:flex;gap:8px;align-items:center;animation:drop 4s ease-in-out infinite"><span style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#f3dfa6,#c9972f);flex:0 0 auto"></span><span style="font-size:9px;color:#3b4055;min-width:0"><b style="color:#0f1222;display:block;font-size:9.5px"><?= $h($T('dl.ph.notif')) ?></b><?= $h($T('dl.ph.notifP')) ?></span></div>
       </div></div>
     </div>
   </header>
@@ -194,72 +197,72 @@ footer a{color:var(--ink2)}
 
   <!-- ===== Anleitung iPhone ===== -->
   <section class="sec pane" data-pane="ios" id="ios-steps">
-    <h2>In 20 Sekunden auf dem iPhone</h2>
-    <p class="sub">Funktioniert mit <b>Safari</b> ab iOS 16.4 – danach kommen Benachrichtigungen wie bei jeder App.</p>
+    <h2><?= $h($T('dl.ios.h')) ?></h2>
+    <p class="sub"><?= $T('dl.ios.sub') ?></p>
     <div class="steps">
       <div class="step"><div class="ill"><div class="mini"><div class="s"><div style="padding:22px 10px 6px;font:600 13px Fraunces,Georgia,serif">ChatHelp</div><div style="margin:0 10px;height:60px;border-radius:8px;background:#f1f2f7"></div><div style="margin:6px 10px;height:40px;border-radius:8px;background:#f1f2f7"></div>
         <div style="position:absolute;left:0;right:0;bottom:0;height:52px;background:#f7f7f9;border-top:1px solid #e4e6ee"><div style="margin:6px 8px;height:16px;border-radius:6px;background:#e9e9ee;font-size:7.5px;color:#6b7083;display:grid;place-items:center">chat-help.com</div>
         <div style="display:flex;justify-content:space-around;align-items:center;color:#2f6fde;font-size:11px;padding:0 4px"><span>‹</span><span>›</span><span class="hl" style="display:grid;place-items:center;width:20px;height:18px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2f6fde" stroke-width="2.4" stroke-linecap="round"><path d="M12 3.5v11M8 7.5l4-4 4 4"/><path d="M7 11H5.5v9.5h13V11H17"/></svg></span><span>▢</span><span>⧉</span></div></div></div></div></div>
-        <h3><i>1</i>„Teilen“ tippen</h3><p>Unten in Safari das Quadrat mit dem Pfeil nach oben antippen.</p></div>
+        <h3><i>1</i><?= $h($T('dl.ios.s1')) ?></h3><p><?= $h($T('dl.ios.s1p')) ?></p></div>
       <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:#e9e9ee"><div style="position:absolute;left:0;right:0;bottom:0;top:46px;background:#f2f2f7;border-radius:12px 12px 0 0;padding:8px">
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px"><span style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#f3dfa6,#c9972f)"></span><span><b style="display:block;font-size:8.5px">ChatHelp Business</b><span style="font-size:7px;color:#6b7083">chat-help.com</span></span></div>
-        <div style="background:#fff;border-radius:8px;overflow:hidden"><div style="padding:6px 8px;border-bottom:1px solid #eee">Kopieren</div><div style="padding:6px 8px;border-bottom:1px solid #eee">Zur Leseliste</div><div style="padding:6px 8px;border-bottom:1px solid #eee">Lesezeichen</div>
-        <div class="hl" style="padding:6px 8px;display:flex;justify-content:space-between;align-items:center;gap:4px;background:#fff;white-space:nowrap;font-size:8px">Zum Home-Bildschirm <span style="border:1.4px solid #0f1222;border-radius:3px;width:11px;height:11px;display:grid;place-items:center;font-size:9px;line-height:1">+</span></div></div></div></div></div></div>
-        <h3><i>2</i>„Zum Home-Bildschirm“</h3><p>In der Liste etwas nach unten wischen und den Eintrag wählen.</p></div>
-      <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:#f2f2f7"><div style="display:flex;justify-content:space-between;align-items:center;gap:4px;padding:24px 7px 8px;font-size:7.5px;white-space:nowrap"><span style="color:#2f6fde">Abbrechen</span><b style="font-size:7px">Home-Bildschirm</b><span class="hl" style="color:#2f6fde;font-weight:800;padding:1px 3px">Hinzufügen</span></div>
+        <div style="background:#fff;border-radius:8px;overflow:hidden"><div style="padding:6px 8px;border-bottom:1px solid #eee"><?= $h($T('dl.m.copy')) ?></div><div style="padding:6px 8px;border-bottom:1px solid #eee"><?= $h($T('dl.m.reading')) ?></div><div style="padding:6px 8px;border-bottom:1px solid #eee"><?= $h($T('dl.m.bookmarks')) ?></div>
+        <div class="hl" style="padding:6px 8px;display:flex;justify-content:space-between;align-items:center;gap:4px;background:#fff;white-space:nowrap;font-size:8px"><?= $h($T('dl.m.toHome')) ?> <span style="border:1.4px solid #0f1222;border-radius:3px;width:11px;height:11px;display:grid;place-items:center;font-size:9px;line-height:1">+</span></div></div></div></div></div></div>
+        <h3><i>2</i><?= $h($T('dl.ios.s2')) ?></h3><p><?= $h($T('dl.ios.s2p')) ?></p></div>
+      <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:#f2f2f7"><div style="display:flex;justify-content:space-between;align-items:center;gap:4px;padding:24px 7px 8px;font-size:7.5px;white-space:nowrap"><span style="color:#2f6fde"><?= $h($T('dl.m.cancel')) ?></span><b style="font-size:7px"><?= $h($T('dl.m.homeScreen')) ?></b><span class="hl" style="color:#2f6fde;font-weight:800;padding:1px 3px"><?= $h($T('dl.m.add')) ?></span></div>
         <div style="margin:4px 8px;background:#fff;border-radius:10px;padding:8px;display:flex;gap:8px;align-items:center"><span style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#f3dfa6,#c9972f);display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span><span><b style="display:block;font-size:10px">ChatHelp</b><span style="font-size:7.5px;color:#6b7083">chat-help.com</span></span></div>
-        <div style="margin:10px 10px;font-size:7.5px;color:#6b7083;font-weight:500">Ein Symbol wird zum Home-Bildschirm hinzugefügt, damit du schnell auf die Website zugreifen kannst.</div></div></div></div>
-        <h3><i>3</i>„Hinzufügen“</h3><p>Oben rechts bestätigen – der Name „ChatHelp“ ist schon eingetragen.</p></div>
-      <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:linear-gradient(160deg,#2b2f4a,#0f1222)"><div style="margin:20px 6px 0;background:rgba(255,255,255,.92);border-radius:10px;padding:6px 7px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 16px rgba(0,0,0,.3)"><span style="width:16px;height:16px;border-radius:5px;background:linear-gradient(135deg,#f3dfa6,#c9972f);flex:0 0 auto"></span><span style="font-size:7px;color:#3b4055;min-width:0"><b style="display:block;color:#0f1222;font-size:7.5px">Neue Bestellung · 18,50 €</b>2× Pizza Margherita</span></div>
+        <div style="margin:10px 10px;font-size:7.5px;color:#6b7083;font-weight:500"><?= $h($T('dl.m.addNote')) ?></div></div></div></div>
+        <h3><i>3</i><?= $h($T('dl.ios.s3')) ?></h3><p><?= $h($T('dl.ios.s3p')) ?></p></div>
+      <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:linear-gradient(160deg,#2b2f4a,#0f1222)"><div style="margin:20px 6px 0;background:rgba(255,255,255,.92);border-radius:10px;padding:6px 7px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 16px rgba(0,0,0,.3)"><span style="width:16px;height:16px;border-radius:5px;background:linear-gradient(135deg,#f3dfa6,#c9972f);flex:0 0 auto"></span><span style="font-size:7px;color:#3b4055;min-width:0"><b style="display:block;color:#0f1222;font-size:7.5px"><?= $h($T('dl.m.notif')) ?></b>2× Pizza Margherita</span></div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:14px 10px">
         <?php for ($i = 0; $i < 11; $i++): ?><span style="aspect-ratio:1;border-radius:7px;background:rgba(255,255,255,<?= $i % 3 ? '.18' : '.28' ?>)"></span><?php endfor; ?>
         <span class="hl" style="aspect-ratio:1;border-radius:7px;background:linear-gradient(135deg,#f3dfa6,#c9972f);display:grid;place-items:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span></div></div></div></div>
-        <h3><i>4</i>Öffnen & aktivieren</h3><p>ChatHelp über das neue Symbol öffnen, anmelden und „Benachrichtigungen aktivieren“ tippen.</p></div>
+        <h3><i>4</i><?= $h($T('dl.s4')) ?></h3><p><?= $h($T('dl.ios.s4p')) ?></p></div>
     </div>
   </section>
 
   <!-- ===== Anleitung Android ===== -->
   <section class="sec pane" data-pane="android" id="android-steps">
-    <h2>So geht’s auf Android</h2>
-    <p class="sub">Mit Chrome (oder Edge, Samsung Internet). Falls oben kein Knopf „App installieren“ erscheint:</p>
+    <h2><?= $h($T('dl.and.h')) ?></h2>
+    <p class="sub"><?= $h($T('dl.and.sub')) ?></p>
     <div class="steps">
       <div class="step"><div class="ill"><div class="mini"><div class="s"><div style="display:flex;align-items:center;gap:5px;padding:20px 6px 6px;background:#f7f7f9;border-bottom:1px solid #e4e6ee"><span style="flex:1;height:16px;border-radius:9px;background:#e9e9ee;font-size:7px;color:#6b7083;display:grid;place-items:center">chat-help.com/chat/app.php</span><span class="hl" style="width:14px;height:18px;display:grid;place-items:center;font-size:12px;line-height:1">⋮</span></div>
-        <div style="padding:8px 10px;font:600 13px Fraunces,Georgia,serif">Heute</div><div style="margin:0 10px;height:50px;border-radius:8px;background:#f1f2f7"></div><div style="margin:6px 10px;height:50px;border-radius:8px;background:#f1f2f7"></div></div></div></div>
-        <h3><i>1</i>Menü ⋮ öffnen</h3><p>Oben rechts in Chrome auf die drei Punkte tippen.</p></div>
+        <div style="padding:8px 10px;font:600 13px Fraunces,Georgia,serif"><?= $h($T('dl.ph.today')) ?></div><div style="margin:0 10px;height:50px;border-radius:8px;background:#f1f2f7"></div><div style="margin:6px 10px;height:50px;border-radius:8px;background:#f1f2f7"></div></div></div></div>
+        <h3><i>1</i><?= $h($T('dl.and.s1')) ?></h3><p><?= $h($T('dl.and.s1p')) ?></p></div>
       <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:#f1f2f7"><div style="position:absolute;right:6px;top:22px;width:108px;background:#fff;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.18);padding:4px 0;font-weight:500">
-        <div style="padding:5px 8px">Neuer Tab</div><div style="padding:5px 8px">Verlauf</div><div style="padding:5px 8px">Downloads</div><div style="padding:5px 8px">Lesezeichen</div><div class="hl" style="margin:2px 4px;padding:5px 6px;font-weight:700">App installieren</div><div style="padding:5px 8px">Teilen …</div><div style="padding:5px 8px">Einstellungen</div></div></div></div></div>
-        <h3><i>2</i>„App installieren“</h3><p>Bei älteren Versionen heißt es „Zum Startbildschirm hinzufügen“.</p></div>
-      <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:rgba(15,18,34,.45)"><div style="position:absolute;left:8px;right:8px;top:70px;background:#fff;border-radius:14px;padding:10px"><b style="display:block;font-size:10px;margin-bottom:6px">App installieren?</b>
+        <div style="padding:5px 8px"><?= $h($T('dl.m.newTab')) ?></div><div style="padding:5px 8px"><?= $h($T('dl.m.history')) ?></div><div style="padding:5px 8px">Downloads</div><div style="padding:5px 8px"><?= $h($T('dl.m.bookmarks')) ?></div><div class="hl" style="margin:2px 4px;padding:5px 6px;font-weight:700"><?= $h($T('dl.install')) ?></div><div style="padding:5px 8px"><?= $h($T('dl.m.share')) ?></div><div style="padding:5px 8px"><?= $h($T('dl.m.settings')) ?></div></div></div></div></div>
+        <h3><i>2</i><?= $h($T('dl.and.s2')) ?></h3><p><?= $h($T('dl.and.s2p')) ?></p></div>
+      <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:rgba(15,18,34,.45)"><div style="position:absolute;left:8px;right:8px;top:70px;background:#fff;border-radius:14px;padding:10px"><b style="display:block;font-size:10px;margin-bottom:6px"><?= $h($T('dl.m.installQ')) ?></b>
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px"><span style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#f3dfa6,#c9972f)"></span><span><b style="display:block;font-size:8.5px">ChatHelp Business</b><span style="font-size:7px;color:#6b7083">chat-help.com</span></span></div>
-        <div style="display:flex;justify-content:flex-end;gap:10px;font-size:8.5px;color:#2f6fde;font-weight:700"><span>Abbrechen</span><span class="hl" style="padding:1px 4px">Installieren</span></div></div></div></div></div>
-        <h3><i>3</i>„Installieren“</h3><p>Bestätigen – ChatHelp landet als App auf dem Startbildschirm.</p></div>
-      <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:linear-gradient(160deg,#2b2f4a,#0f1222)"><div style="margin:18px 6px 0;background:#fff;border-radius:12px;padding:7px;box-shadow:0 6px 16px rgba(0,0,0,.3)"><div style="display:flex;gap:5px;align-items:center;font-size:7px;color:#6b7083;margin-bottom:3px"><span style="width:10px;height:10px;border-radius:50%;background:#b8862b"></span>ChatHelp · jetzt</div><b style="display:block;font-size:8px">Neue Taxifahrt · sofort</b><span style="font-size:7.5px;color:#3b4055">Hauptbahnhof → Flughafen</span><div style="display:flex;gap:10px;margin-top:5px;font-size:7.5px;color:#2f6fde;font-weight:700"><span class="hl" style="padding:1px 4px">Öffnen</span></div></div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;font-size:8.5px;color:#2f6fde;font-weight:700"><span><?= $h($T('dl.m.cancel')) ?></span><span class="hl" style="padding:1px 4px"><?= $h($T('dl.m.install')) ?></span></div></div></div></div></div>
+        <h3><i>3</i><?= $h($T('dl.and.s3')) ?></h3><p><?= $h($T('dl.and.s3p')) ?></p></div>
+      <div class="step"><div class="ill"><div class="mini"><div class="s" style="background:linear-gradient(160deg,#2b2f4a,#0f1222)"><div style="margin:18px 6px 0;background:#fff;border-radius:12px;padding:7px;box-shadow:0 6px 16px rgba(0,0,0,.3)"><div style="display:flex;gap:5px;align-items:center;font-size:7px;color:#6b7083;margin-bottom:3px"><span style="width:10px;height:10px;border-radius:50%;background:#b8862b"></span><?= $h($T('dl.m.now')) ?></div><b style="display:block;font-size:8px"><?= $h($T('dl.m.ride')) ?></b><span style="font-size:7.5px;color:#3b4055"><?= $h($T('dl.m.rideP')) ?></span><div style="display:flex;gap:10px;margin-top:5px;font-size:7.5px;color:#2f6fde;font-weight:700"><span class="hl" style="padding:1px 4px"><?= $h($T('dl.m.open')) ?></span></div></div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:14px 10px"><?php for ($i = 0; $i < 7; $i++): ?><span style="aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.2)"></span><?php endfor; ?><span style="aspect-ratio:1;border-radius:50%;background:linear-gradient(135deg,#f3dfa6,#c9972f)"></span></div></div></div></div>
-        <h3><i>4</i>Öffnen & aktivieren</h3><p>App öffnen, anmelden und „Benachrichtigungen aktivieren“ tippen – fertig.</p></div>
+        <h3><i>4</i><?= $h($T('dl.s4')) ?></h3><p><?= $h($T('dl.and.s4p')) ?></p></div>
     </div>
   </section>
 
   <!-- ===== Computer: QR ===== -->
   <section class="sec" id="qr-sec">
-    <h2 data-only="desktop">Auf dem Handy öffnen</h2><h2 data-only="mobile">Auch auf anderen Geräten</h2>
-    <p class="sub">Kamera-App öffnen, QR-Code scannen, Link antippen – die richtige Anleitung erscheint automatisch.</p>
+    <h2 data-only="desktop"><?= $h($T('dl.qr.h')) ?></h2><h2 data-only="mobile"><?= $h($T('dl.qr.h2')) ?></h2>
+    <p class="sub"><?= $h($T('dl.qr.sub')) ?></p>
     <div class="qrbox">
-      <div class="qr" id="qr" role="img" aria-label="QR-Code zu <?= $h($selfUrl) ?>" data-url="<?= $h($selfUrl) ?>"></div>
-      <div class="tx"><b style="font-size:17px">Scannen mit iPhone oder Android</b><p class="note" style="margin:6px 0 12px">Oder Link selbst senden: <a href="<?= $h(strtok($selfUrl, '?')) ?>" id="selfLink"><?= $h(preg_replace('~^https?://~', '', strtok($selfUrl, '?'))) ?></a></p>
-        <div class="ctas" style="margin:0"><button class="btn o s" type="button" id="copyLink">Link kopieren</button><a class="btn o s" href="mailto:?subject=ChatHelp%20Business%20App&amp;body=<?= rawurlencode('Hier die ChatHelp Business App: '.strtok($selfUrl, '?')) ?>">Per E-Mail senden</a></div></div>
+      <div class="qr" id="qr" role="img" aria-label="<?= $h($T('dl.qr.aria', ['u' => $selfUrl])) ?>" data-url="<?= $h($selfUrl) ?>"></div>
+      <div class="tx"><b style="font-size:17px"><?= $h($T('dl.qr.scan')) ?></b><p class="note" style="margin:6px 0 12px"><?= $h($T('dl.qr.self')) ?> <a href="<?= $h(strtok($selfUrl, '?')) ?>" id="selfLink"><?= $h(preg_replace('~^https?://~', '', strtok($selfUrl, '?'))) ?></a></p>
+        <div class="ctas" style="margin:0"><button class="btn o s" type="button" id="copyLink"><?= $h($T('dl.copy')) ?></button><a class="btn o s" href="mailto:?subject=ChatHelp%20Business%20App&amp;body=<?= rawurlencode($T('dl.mailBody', ['u' => strtok($selfUrl, '?')])) ?>"><?= $h($T('dl.mail')) ?></a></div></div>
     </div>
   </section>
 
   <section class="sec">
-    <h2>Was die App kann</h2>
-    <p class="sub">Alles, was deine Agenten annehmen – an einem Ort, für unterwegs gebaut.</p>
+    <h2><?= $h($T('dl.f.h')) ?></h2>
+    <p class="sub"><?= $h($T('dl.f.sub')) ?></p>
     <div class="feat">
-      <?php foreach ([['bell','Benachrichtigungen mit Ton','Neue Bestellungen, Fahrten und Termine kommen sofort – auch bei geschlossener App. Ruhezeiten inklusive.'],
-        ['bolt','Ein Tipp statt Telefonat','Bestellung bestätigen, Fahrer zuweisen, Gästewunsch erledigen – direkt aus der Liste.'],
-        ['users','Kunden über alle Kanäle','Telefon, WhatsApp, Website: ein Verlauf pro Kunde, Antwort per WhatsApp aus der App.'],
-        ['wifi','Auch bei schlechtem Netz','Letzter Stand bleibt sichtbar, die App startet offline und lädt nach, sobald das Netz zurück ist.'],
-        ['moon','Hell & dunkel','Passt sich deinem Handy an – angenehm in der Küche, an der Rezeption und nachts im Taxi.'],
-        ['shield','DSGVO & EU-Server','Gleiche Anmeldung wie im Studio, Daten bleiben in der EU, kein Passwort nötig.']] as [$i, $t, $s]): ?>
+      <?php foreach ([['bell',$T('dl.f.bell'),$T('dl.f.bell.p')],
+        ['bolt',$T('dl.f.bolt'),$T('dl.f.bolt.p')],
+        ['users',$T('dl.f.users'),$T('dl.f.users.p')],
+        ['wifi',$T('dl.f.wifi'),$T('dl.f.wifi.p')],
+        ['moon',$T('dl.f.moon'),$T('dl.f.moon.p')],
+        ['shield',$T('dl.f.shield'),$T('dl.f.shield.p')]] as [$i, $t, $s]): ?>
       <div class="fc"><div class="ti"><?= [
         'bell' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 16v-4.8a6 6 0 1 1 12 0V16l1.6 2.2H4.4z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg>',
         'bolt' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></svg>',
@@ -272,17 +275,18 @@ footer a{color:var(--ink2)}
   </section>
 
   <section class="sec">
-    <h2>Häufige Fragen</h2>
-    <details><summary>Was kostet die App?</summary><p>Nichts extra. Die App gehört zu deinem ChatHelp-Konto – du meldest dich mit derselben E-Mail an wie im Studio.</p></details>
-    <details><summary>Web-App oder App aus dem Store – was ist der Unterschied?</summary><p>Beide zeigen dieselben Aufträge und schicken Benachrichtigungen. Die Web-App (Home-Bildschirm) ist sofort ohne Store verfügbar und aktualisiert sich selbst. Die Store-App startet etwas schneller und nutzt die Benachrichtigungs-Kanäle von Android bzw. iOS direkt.</p></details>
-    <details><summary>Warum kommen auf dem iPhone keine Benachrichtigungen?</summary><p>Apple erlaubt sie nur für Web-Apps auf dem Home-Bildschirm (ab iOS 16.4) und nur, wenn du sie in der App erlaubst. Prüfe außerdem: Einstellungen → Mitteilungen → ChatHelp → „Mitteilungen erlauben“ sowie den Fokus-Modus.</p></details>
-    <details><summary>Können mehrere Mitarbeitende die App nutzen?</summary><p>Ja. Jedes Gerät meldet sich einzeln für Benachrichtigungen an; in der App unter „Meldungen“ siehst du alle Geräte. Fahrer und Küchen-Tablets nutzen ihre eigenen Links aus dem Studio.</p></details>
-    <details><summary>Was passiert ohne Internet?</summary><p>Die App öffnet sich trotzdem und zeigt den letzten Stand. Deine Agenten arbeiten weiter – sobald das Netz zurück ist, kommen alle neuen Aufträge an.</p></details>
+    <h2><?= $h($T('dl.faq.h')) ?></h2>
+    <details><summary><?= $h($T('dl.q.cost')) ?></summary><p><?= $h($T('dl.q.cost.a')) ?></p></details>
+    <details><summary><?= $h($T('dl.q.diff')) ?></summary><p><?= $h($T('dl.q.diff.a')) ?></p></details>
+    <details><summary><?= $h($T('dl.q.ios')) ?></summary><p><?= $h($T('dl.q.ios.a')) ?></p></details>
+    <details><summary><?= $h($T('dl.q.team')) ?></summary><p><?= $h($T('dl.q.team.a')) ?></p></details>
+    <details><summary><?= $h($T('dl.q.offline')) ?></summary><p><?= $h($T('dl.q.offline.a')) ?></p></details>
   </section>
 
-  <footer>ChatHelp Business · <a href="/chat/app.php">App öffnen</a> · <a href="/chat/studio.php">Studio</a> · <a href="/impressum.html">Impressum</a> · DSGVO · EU-Server</footer>
+  <footer>ChatHelp Business · <a href="/chat/app.php"><?= $h($T('dl.openApp')) ?></a> · <a href="/chat/studio.php">Studio</a> · <a href="/impressum.html"><?= $h($T('a.imprint')) ?></a> · <?= $h($T('a.gdpr')) ?></footer>
 </div>
 
+<script>window.DL_T=<?= json_encode(['open' => $T('dl.openApp'), 'qrNA' => $T('dl.js.qrNA'), 'copied' => $T('dl.js.copied'), 'copyPrompt' => $T('dl.js.copyPrompt'), 'note' => $T('dl.js.note'), 'alert' => $T('dl.js.alert'), 'installed' => $T('dl.js.installed')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>;</script>
 <script>
 /* ---------- QR-Code (Byte-Modus, Fehlerkorrektur M, Version 1–10) – eigenständig, ohne externe Bibliothek ---------- */
 window.chQR=(function(){
@@ -355,21 +359,21 @@ window.chQR=(function(){
   /* iPhone: nur Safari kann zum Home-Bildschirm mit Benachrichtigungen hinzufügen */
   if(plat==='ios'&&/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua))$('#iosNotSafari').hidden=false;
   /* Bereits installiert → direkt zur App */
-  if(standalone){$$('.ctas').forEach(c=>c.insertAdjacentHTML('afterbegin','<a class="btn p" href="/chat/app.php">App öffnen</a>'));}
+  if(standalone){$$('.ctas').forEach(c=>{c.insertAdjacentHTML('afterbegin','<a class="btn p" href="/chat/app.php"></a>');c.firstElementChild.textContent=DL_T.open;});}
   /* QR-Code */
-  try{const el=$('#qr');el.innerHTML=window.chQR.svg(el.dataset.url);}catch(e){$('#qr').textContent='QR-Code nicht verfügbar';}
-  $('#copyLink').addEventListener('click',async e=>{const u=$('#selfLink').href;try{await navigator.clipboard.writeText(u);e.currentTarget.textContent='Kopiert ✓';}catch(x){prompt('Link kopieren:',u);}});
+  try{const el=$('#qr');el.innerHTML=window.chQR.svg(el.dataset.url);}catch(e){$('#qr').textContent=DL_T.qrNA;}
+  $('#copyLink').addEventListener('click',async e=>{const u=$('#selfLink').href;try{await navigator.clipboard.writeText(u);e.currentTarget.textContent=DL_T.copied;}catch(x){prompt(DL_T.copyPrompt,u);}});
   /* Installieren (Android/Computer: beforeinstallprompt über app-bridge.js) */
   function paintInstall(){const A=window.ChatHelpApp;const can=!!(A&&A.canInstall);
     ['#installBtn','#installBtnD'].forEach(s=>{const b=$(s);if(!b)return;b.dataset.can=can?'1':'0';});
-    const n=$('#installNote');if(n&&!can&&plat==='android')n.innerHTML='Falls der Knopf nichts anbietet: Chrome-Menü <b>⋮</b> → <b>„App installieren“</b> (Anleitung unten). Kein Store nötig.';}
+    const n=$('#installNote');if(n&&!can&&plat==='android')n.innerHTML=DL_T.note;}
   async function doInstall(){const A=window.ChatHelpApp;if(A&&A.canInstall){const r=await A.install();if(r.ok)return;}
     const t=plat==='desktop'?null:$('#'+plat+'-steps');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
-    else alert('In Chrome oder Edge: rechts in der Adressleiste auf das Installieren-Symbol klicken (Bildschirm mit Pfeil) bzw. Menü ⋮ → „App installieren“.');}
+    else alert(DL_T.alert);}
   ['#installBtn','#installBtnD'].forEach(s=>{const b=$(s);if(b)b.addEventListener('click',doInstall);});
   $('#iosGuideBtn')&&$('#iosGuideBtn').addEventListener('click',e=>{e.preventDefault();$('#ios-steps').scrollIntoView({behavior:'smooth',block:'start'});});
   document.addEventListener('DOMContentLoaded',()=>{const A=window.ChatHelpApp;if(A){try{A.init({});}catch(e){}}paintInstall();});
-  window.addEventListener('chathelp:installable',paintInstall);window.addEventListener('chathelp:installed',()=>{const b=$('#installBtn');if(b)b.textContent='Installiert ✓';});
+  window.addEventListener('chathelp:installable',paintInstall);window.addEventListener('chathelp:installed',()=>{const b=$('#installBtn');if(b)b.textContent=DL_T.installed;});
 })();
 </script>
 </body>
