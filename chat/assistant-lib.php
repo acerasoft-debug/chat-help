@@ -425,7 +425,7 @@ function assistant_profile(int $acc): array {
     assistant_bootstrap(); $d=assistant_profile_defaults($acc);
     if($acc<=0) return $d;
     $s=th_db()->prepare("SELECT * FROM assistant_profiles WHERE account_id=?"); $s->execute([$acc]); $r=$s->fetch(PDO::FETCH_ASSOC);
-    if(!$r) return $d;
+    if(!$r){ $d['voice']['id']=assistant_voice_id($d); return $d; }
     $v=json_decode((string)($r['voice'] ?? ''),true); $p=json_decode((string)($r['personality'] ?? ''),true);
     $o=['account_id'=>$acc,'name'=>(string)$r['name'] ?: 'Lea','gender'=>$r['gender']==='m' ? 'm' : 'f','portrait'=>(string)$r['portrait'],'portrait_data'=>$r['portrait_data'] ?: null,
         'voice'=>array_merge($d['voice'],is_array($v) ? $v : []),'personality'=>array_merge($d['personality'],is_array($p) ? $p : []),'lang'=>in_array($r['lang'],ASSISTANT_LANGS,true) ? $r['lang'] : 'de','saved'=>true];
@@ -507,7 +507,7 @@ function assistant_profile_save(int $acc, array $d, ?array &$err=null): array {
         if(!$ce) return $bad('voice.id','Diese Stimme gibt es nicht.');
         if($ce['gender']!==$v['gender'] || $ce['lang']!==vc_lang($v['lang'])){
             if($v['gender']===$c['gender'] && $v['lang']===$c['lang']) return $bad('voice.id','Die Stimme passt nicht zu Sprache oder Geschlecht.');
-            $vid=vc_fit($vid,$v['lang'],$v['gender'],$ce['preset']); $ce=vc_entry($vid); }   // Geschlecht/Sprache wechselt gerade → passende Stimme derselben Art
+            $vid=vc_fit($vid,$v['lang'],$v['gender'],assistant_preset_for($v['gender'],assistant_preset_tone($ce['preset']) ?? $v['voice']['tone'])); $ce=vc_entry($vid); }   // Geschlecht/Sprache wechselt gerade → passende Stimme derselben Art
         if($ce && !vc_available($ce)) return $bad('voice.id','Diese Premium-Stimme braucht einen Sprachdienst-Schlüssel des Betreibers.');
         if($ce){ $v['voice']['id']=$ce['id']; $v['voice']['preset']=$ce['preset']; if(!isset($d['voice']['tone']) && ($t=assistant_preset_tone($ce['preset']))!==null) $v['voice']['tone']=$t; }
     }

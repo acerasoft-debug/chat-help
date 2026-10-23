@@ -118,8 +118,9 @@ function vc_cloud_list(string $lang, string $g, array $names, int $from): array 
     foreach(VC_AZURE[$lang][$g] ?? [] as [$v,$d]){ $short=preg_replace('/^[a-z]{2}-[A-Z]{2}-|(Multilingual)?Neural$/','',$v); $out[]=vc_cloud($lang,$g,$short,$d,'azure',$v,'az-'.strtolower($short)); }
     foreach(VC_GOOGLE[$g] as [$v,$d]) $out[]=vc_cloud($lang,$g,$v,$d,'google',$gl.'-Chirp3-HD-'.$v,'gg-'.strtolower($v));
     if(in_array($lang,VC_ELEVEN_LANGS,true) && function_exists('ch_tts_voices')){
+        $ED=['f_warm'=>['warm','herzlich'],'f_klar'=>['klar','professionell'],'f_frisch'=>['frisch','lebendig'],'f_sanft'=>['sanft','geduldig'],'m_ruhig'=>['ruhig','warm'],'m_freundlich'=>['freundlich','locker'],'m_souveraen'=>['souveraen','deutlich'],'m_tief'=>['tief','gelassen']];
         foreach(ch_tts_voices() as $pid=>$p){ if($p['gender']!==$g) continue; $persona=str_contains($p['label'],' · ') ? trim(explode(' · ',$p['label'],2)[0]) : ucfirst(substr($pid,2));
-            $out[]=vc_cloud($lang,$g,$persona,explode(' & ',trim((string)preg_replace('/^[^·]*·\s*/u','',$p['label']))) ?: ['warm'],'elevenlabs',$p['elevenlabs'],'el-'.substr($pid,2)); }
+            $out[]=vc_cloud($lang,$g,$persona,$ED[$pid] ?? ['warm'],'elevenlabs',$p['elevenlabs'],'el-'.substr($pid,2)); }
     }
     return $out;
 }
@@ -246,7 +247,9 @@ function vc_default(string $lang, string $gender, string $preset=''): string {
 function vc_fit(?string $id, string $lang, string $gender, string $preset=''): string {
     $e=vc_entry($id); $l=vc_lang($lang); $g=$gender==='m' ? 'm' : 'f';
     if($e && $e['lang']===$l && $e['gender']===$g) return $e['id'];
-    return vc_default($l,$g,$e ? $e['preset'] : $preset);
+    /* passt nicht (Sprache/Geschlecht gewechselt): gewünschte Voreinstellung des Zielgeschlechts, sonst die der alten Stimme (nur wenn sie zum Zielgeschlecht gehört) */
+    $pp=in_array($preset,VC_PRESETS[$g],true) ? $preset : ($e && in_array($e['preset'],VC_PRESETS[$g],true) ? $e['preset'] : '');
+    return vc_default($l,$g,$pp);
 }
 /** Cloud-Stimmname der Katalogstimme für einen Anbieter (null = Piper-Stimme oder anderer Anbieter → Voreinstellung gilt). */
 function vc_cloud_voice(array $e, string $provider): ?string { $s=$e['source']; return $s['type']==='cloud' && $s['provider']===$provider ? $s['voice'] : null; }
