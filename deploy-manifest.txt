@@ -164,6 +164,16 @@ chat/i18n.php                chat/i18n.php
 chat/onboarding-lib.php      chat/onboarding-lib.php
 chat/studio-panels/einrichtung.html chat/studio-panels/einrichtung.html
 chat/studio-panels/einrichtung.js chat/studio-panels/einrichtung.js
+# Website-Baukasten „Website erstellen“: Bibliothek (Datenmodell, KI, Bilder, Anfragen, ZIP), Rendering, öffentliche Seite, Studio-Panel; Upload-Ordner nur mit Schutzdateien (Bilder liegen auf dem Server)
+chat/site-lib.php            chat/site-lib.php
+chat/site-render.php         chat/site-render.php
+chat/site.php                chat/site.php
+chat/site-page.js            chat/site-page.js
+chat/studio-panels/website-builder.html chat/studio-panels/website-builder.html
+chat/studio-panels/website-builder.js chat/studio-panels/website-builder.js
+chat/uploads/.htaccess       chat/uploads/.htaccess
+chat/uploads/index.html      chat/uploads/index.html
+chat/uploads/sites/index.html chat/uploads/sites/index.html
 # Konto-Profil aus der Registrierung (Betrieb/privat, Branchen, Bedarf, Sprachen) → Empfehlungen + Studio-Navigation
 chat/profile-lib.php         chat/profile-lib.php
 # Business-App (PWA) + Download-Seite
