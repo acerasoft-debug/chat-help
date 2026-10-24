@@ -284,7 +284,7 @@ function th_secrets_table(): void {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(account_id,k)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 /** Zulässige Schlüssel: twilio_sid, twilio_token, twilio_from, meta_app_secret, claude_key, deepseek_key (eigene KI-Schlüssel, billing-lib) */
-const TH_SECRET_KEYS=['twilio_sid','twilio_token','twilio_from','meta_app_secret','claude_key','deepseek_key'];
+const TH_SECRET_KEYS=['twilio_sid','twilio_token','twilio_from','meta_app_secret','claude_key','deepseek_key','keepa_key'];
 function th_secret(int $acc, string $k): string {
     if($acc<=0 || !in_array($k,TH_SECRET_KEYS,true)) return '';
     if(isset($GLOBALS['__th_sec'][$acc][$k])) return $GLOBALS['__th_sec'][$acc][$k];

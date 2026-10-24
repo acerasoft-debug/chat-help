@@ -43,6 +43,7 @@ const CH_PLANS = [
   'buy-hotel'       => ['Hotel-Rezeptions-Agent (Einmalkauf)', 149000, 200000, 'hotel', 'buy', 'Hotel-Agent: Einrichtung von Zimmertypen, Preisen, Rezeptions-Board und Telefon + Lizenz + 200.000 Tokens Startguthaben + 3 Monate Betrieb inklusive – danach Betrieb 39 €/Monat oder eigener KI-Schlüssel 19 €/Monat'],
   'buy-bestellung'  => ['Bestell-Agent (Einmalkauf)', 129000, 180000, 'gastro', 'buy', 'Bestell-Agent: Einrichtung von Speisekarte, Liefergebiet, WhatsApp-Anbindung und Fahrer-Links + Lizenz + 180.000 Tokens Startguthaben + 3 Monate Betrieb inklusive – danach Betrieb 29 €/Monat oder eigener KI-Schlüssel 14 €/Monat'],
   'buy-support'     => ['Support-Agent (Einmalkauf)', 99000, 150000, 'ecommerce', 'buy', 'Support-Agent: Widget-Einrichtung auf deiner Website + Lizenz + 150.000 Tokens Startguthaben + 3 Monate Betrieb inklusive – danach Betrieb 19 €/Monat oder eigener KI-Schlüssel 9 €/Monat'],
+  'buy-amazon-fba'  => ['Amazon-FBA-Produktfinder (Lizenz)', 86000, 500000, 'ecommerce', 'buy', 'Amazon-FBA-Agent: Produktsuche und Gewinnrechnung mit Keepa-Daten für Amazon.de, .fr, .it, .es, .co.uk und .com – Verkaufspreis, Amazon-Gebühren, FBA-Gebühr, Marge, ROI, Konkurrenz, Beobachtungsliste, täglicher E-Mail-Report, Listing-Texte + Lizenz + 500.000 Tokens + 1 Jahr Betrieb inklusive (2 Jahre wählbar) – danach Betrieb 39 €/Monat oder eigener KI-Schlüssel 19 €/Monat'],
   'buy-content'     => ['Content-Planer (Einmalkauf)', 69000, 100000, 'marketing', 'buy', 'Content-Planer: Lizenz + 100.000 Tokens Startguthaben + 3 Monate Betrieb inklusive – danach Betrieb 19 €/Monat oder eigener KI-Schlüssel 9 €/Monat'],
   // Bank & Behörden (Kunden-Agenten mit Telefon + WhatsApp + Web-Chat)
   'agent-bank'      => ['Bank- & Sparkassen-Agent', 13900, 35000, 'bank', 'agent', 'Telefon-, WhatsApp- und Chat-Service für Filialen: Karten-Sperre sofort lotsen (116 116), Filial- und Beratungstermine, Öffnungszeiten, Kontofragen allgemein, Phishing-Warnungen – fragt nie nach PIN, TAN oder Kontodaten'],
@@ -123,16 +124,27 @@ function ch_plan(string $id): ?array {
   $base = CH_PLAN_BASE[$id] ?? $id;
   $o=['id'=>$id,'name'=>$name,'cents'=>$cents,'tokens'=>$tokens,'sector'=>$sector,'kind'=>$kind,'desc'=>$desc,'rules'=>CH_AGENT_RULES[$id] ?? (CH_AGENT_RULES[$base] ?? ''),'base'=>$base,
     'channels'=>ch_plan_channels($id),'category'=>ch_plan_category($id)];
-  if($kind==='buy'){ $o['tier']=CH_BUY_TIER[$id] ?? null; $o['included_days']=CH_BUY_INCLUDED_DAYS; }
+  if($kind==='buy'){ $o['tier']=CH_BUY_TIER[$id] ?? null; $o['included_days']=ch_buy_included_days($id); if(isset(CH_BUY_TERMS[$id])) $o['terms']=CH_BUY_TERMS[$id]; }
   return $o;
 }
 /* Einmalkauf-Pakete → zugrunde liegender Agent (Rolle/Vorlagen) */
 const CH_PLAN_BASE = ['buy-website'=>'agent-website','buy-support'=>'agent-support','buy-content'=>'agent-content','buy-phone'=>'agent-phone','buy-inkasso'=>'agent-inkasso','buy-kanzlei'=>'agent-kanzlei','buy-steuer'=>'agent-steuer','buy-termine'=>'agent-termine','buy-bestellung'=>'agent-bestellung','buy-taxi'=>'agent-taxi','buy-hotel'=>'agent-hotel',
-  'buy-beauty'=>'agent-beauty','buy-aesthetic'=>'agent-aesthetic','buy-hair-tr'=>'agent-hair-tr','buy-dental-tr'=>'agent-dental-tr'];
+  'buy-beauty'=>'agent-beauty','buy-aesthetic'=>'agent-aesthetic','buy-hair-tr'=>'agent-hair-tr','buy-dental-tr'=>'agent-dental-tr','buy-amazon-fba'=>'agent-amazon-fba'];
 
 /* ---- Preise nach dem Einmalkauf: Betrieb (inkl. Tokens) oder eigener KI-Schlüssel (BYOK) ---- */
 /** So viele Tage Betrieb sind im Einmalkauf enthalten (danach Betrieb- oder BYOK-Abo). Bestandskäufe ohne Enddatum bleiben unbefristet. */
 const CH_BUY_INCLUDED_DAYS = 90;
+/** Lizenzen mit Laufzeitwahl: term => Preis (EUR-Cent) und enthaltene Betriebstage. Term 1 = Katalogpreis. USD-Festpreise: CH_LOCAL_PRICE_FIX (i18n.php). */
+const CH_BUY_TERMS = ['buy-amazon-fba'=>[1=>['cents'=>86000,'days'=>365,'label'=>'1 Jahr'],2=>['cents'=>155000,'days'=>730,'label'=>'2 Jahre']]];
+/** Enthaltene Betriebstage eines Einmalkaufs (Laufzeitwahl, sonst CH_BUY_INCLUDED_DAYS). */
+function ch_buy_included_days(string $id, int $term=1): int {
+  $t=CH_BUY_TERMS[$id] ?? null; if(!$t) return CH_BUY_INCLUDED_DAYS;
+  return (int)($t[$term]['days'] ?? $t[1]['days']);
+}
+/** Laufzeit-Angebot: ['term','cents','days','label'] oder null, wenn der Plan keine Laufzeitwahl hat bzw. der Term unbekannt ist. */
+function ch_buy_term(string $id, int $term): ?array {
+  $t=CH_BUY_TERMS[$id][$term] ?? null; return $t ? ['term'=>$term]+$t : null;
+}
 /** Stufen der Folge-Abos (Cent/Monat netto, Tokens/Monat). S = Website-/Content-Bots, M = Termine/Bestellung/Taxi, L = Telefon/Hotel/Kanzlei/Steuer/Inkasso. */
 const CH_RUN_TIERS = [
   'S' => ['label'=>'Basis',    'betrieb_cents'=>1900, 'betrieb_tokens'=>4000, 'byok_cents'=>900],
@@ -140,7 +152,7 @@ const CH_RUN_TIERS = [
   'L' => ['label'=>'Profi',    'betrieb_cents'=>3900, 'betrieb_tokens'=>8000, 'byok_cents'=>1900],
 ];
 const CH_BUY_TIER = ['buy-website'=>'S','buy-content'=>'S','buy-support'=>'S','buy-termine'=>'M','buy-bestellung'=>'M','buy-taxi'=>'M',
-  'buy-phone'=>'L','buy-hotel'=>'L','buy-kanzlei'=>'L','buy-steuer'=>'L','buy-inkasso'=>'L','buy-beauty'=>'M','buy-aesthetic'=>'L','buy-hair-tr'=>'L','buy-dental-tr'=>'L'];
+  'buy-phone'=>'L','buy-hotel'=>'L','buy-kanzlei'=>'L','buy-steuer'=>'L','buy-inkasso'=>'L','buy-beauty'=>'M','buy-aesthetic'=>'L','buy-hair-tr'=>'L','buy-dental-tr'=>'L','buy-amazon-fba'=>'L'];
 /** Folge-Tarife eines Einmalkaufs: ['betrieb'=>plan,'byok'=>plan] (leer, wenn kein Einmalkauf). */
 function ch_followups(string $buyId): array {
   if(!str_starts_with($buyId,'buy-') || !isset(CH_PLANS[$buyId])) return [];
@@ -229,6 +241,7 @@ const CH_AGENT_RULES = [
   'agent-sales'     => 'Rolle: Vertriebsassistent. Qualifiziere Leads nach BANT (Budget, Entscheider, Bedarf, Zeitrahmen) mit max. 2 Fragen pro Nachricht. Schreibe Follow-up-E-Mails (Betreff + Text), fasse Gespräche als CRM-Notiz zusammen (Kontakt · Bedarf · nächster Schritt · Datum). Ehrlich, kein Druckverkauf.',
   'agent-content'   => 'Rolle: Content-Planer. Erstelle Redaktionspläne (Tabelle: Datum · Kanal · Thema · Format · Hook · CTA), fertige Posts mit Caption + Hashtags pro Kanal (Instagram, TikTok, LinkedIn), in der Tonalität des Unternehmens. Lizenzfrei, keine fremden Markennamen ohne Kontext.',
   'agent-backoffice'=> 'Rolle: Backoffice-Assistent. Erkläre Belege/Bescheide, erstelle Rechnungstexte, Zahlungserinnerungen (3 Stufen), Fristenlisten mit Erinnerungsdaten (14/7/1 Tage vorher). Strukturierte Ausgabe (Listen/Tabellen). Keine verbindliche Steuerberatung.',
+  'agent-amazon-fba'=> 'Rolle: Amazon-FBA-Produktrecherche für Händler (Private Label, Arbitrage, Großhandel). Nutze für Zahlen IMMER die Werkzeuge fba_analyze (ASIN/EAN prüfen, Gewinnrechnung) und fba_find (neue Produkte nach Kriterien suchen); erfinde nie Preise, Verkaufsränge, Gebühren oder Verkaufszahlen. Nenne bei jeder Einschätzung Marktplatz, Verkaufspreis, Amazon-Gebühren, FBA-Gebühr, Gewinn je Stück, Marge, ROI und Konkurrenz (Anzahl FBA-Anbieter, Amazon selbst im Angebot?) und markiere Schätzwerte als Schätzung. Prüfe Risiken: Marken-/Herstellerbeschränkungen, Gefahrgut, Saisonalität, Preisverfall, Amazon als Verkäufer, Größe/Gewicht. Für Listing-Texte: Titel, 5 Bullet Points, Beschreibung und Suchbegriffe in der Sprache des Marktplatzes, ohne fremde Markennamen und ohne unzulässige Werbeaussagen. Beobachtungsliste und Report-Einstellungen mit fba_watch und fba_settings. Keine Garantie für Umsätze; der Händler entscheidet über den Einkauf.',
   'immo-agent'      => 'Rolle: Interessenten-Agent eines Immobilienbüros. 1) Objekt klären (Objektnummer, Adresse oder Beschreibung) und Fragen nur aus der Objektliste beantworten. 2) Qualifizieren, ohne zu verhören: Kauf/Miete, Budget bzw. Finanzierung (Bestätigung vorhanden?), Personen/Haushalt, gewünschter Einzug, Haustiere – maximal zwei Fragen pro Antwort. 3) Besichtigung: Termine mit den Termin-Werkzeugen anbieten und buchen, falls verfügbar; sonst Wunschzeiten aufnehmen. 4) Rückruf: request_callback mit Objekt und Anliegen, wenn der Interessent es wünscht oder der Makler entscheiden muss. 5) Am Ende Lead-Zusammenfassung in einem Satz (Name, Objekt, Budget, Einzug, nächster Schritt). Keine Zusagen zu Zuschlag, Preisverhandlung oder Bonität; Provision und Energieausweis nur laut Objektliste. Diskriminierungsfrei und DSGVO-sparsam.',
   'praxis-agent'    => 'Rolle: Rezeption einer Praxis. Beantworte NUR organisatorische Fragen (Öffnungszeiten, Anfahrt, Unterlagen, Rezept-/Überweisungsabholung, Terminarten) aus der Wissensbasis. Bei medizinischen Fragen oder Notfällen: freundlich auf Praxisteam/Arzt bzw. 112/116117 verweisen. Keine Diagnosen.',
   'hr-screening'    => 'Rolle: Recruiting-Assistent. Erstelle aus Stellenprofil + Bewerbung eine strukturierte Vorauswahl (Muss-/Kann-Kriterien, Passung 1-5, Begründung), 6-8 Interviewfragen, sowie Absage-/Einladungs-E-Mails (AGG-konform, wertschätzend). Keine Bewertung nach geschützten Merkmalen.',
@@ -1126,7 +1139,7 @@ const CH_CATEGORIES = [
   'immobilien'     => ['label'=>'Immobilien & Hausverwaltung','short'=>'Interessenten qualifizieren, Besichtigungen, Schadensmeldungen und Nebenkostenfragen.','icon'=>'🏠','order'=>80,'home_group'=>'Immobilien',
     'plans'=>['immo-agent','immo-expose','agent-hausverwaltung']],
   'handel'         => ['label'=>'Shop & Kundenservice','short'=>'Support aus deiner Wissensbasis, Retouren, Produkttexte und Vertrieb.','icon'=>'🛍','order'=>90,'home_group'=>null,
-    'plans'=>['agent-support','buy-support','ec-support','ec-texte','ec-retouren','agent-sales']],
+    'plans'=>['agent-support','buy-support','buy-amazon-fba','ec-support','ec-texte','ec-retouren','agent-sales']],
   'oeffentlich'    => ['label'=>'Behörden, Stadtwerke & Verwaltung','short'=>'Bürgerservice: Termine, Unterlagenlisten, Zuständigkeiten und Formulare in einfacher Sprache.','icon'=>'🏛','order'=>100,'home_group'=>'Dienstleistung',
     'plans'=>['agent-behoerde']],
   'marketing'      => ['label'=>'Marketing & Inhalte','short'=>'Website-Texte, Social Media, YouTube und SEO – in deiner Tonalität.','icon'=>'✍️','order'=>110,'home_group'=>null,
@@ -1163,7 +1176,7 @@ function ch_categories_public(): array {
     foreach($c['plans'] as $pid){ $p=ch_plan($pid); if(!$p) continue;
       $row=['id'=>$pid,'name'=>$p['name'],'price'=>$p['cents']/100,'price_cents'=>$p['cents'],'interval'=>$p['kind']==='buy' ? 'once' : 'month','tokens'=>$p['tokens'],'kind'=>$p['kind'],
         'sector'=>$p['sector'],'desc'=>$p['desc'],'channels'=>$p['channels'],'demo'=>isset(CH_DEMO[$p['base']]) ? $p['base'] : null,'base'=>$p['base']];
-      if($p['kind']==='buy'){ $row['included_days']=CH_BUY_INCLUDED_DAYS; foreach(ch_followups($pid) as $k=>$f) $row['followups'][$k]=['id'=>$f['id'],'name'=>$f['name'],'price'=>$f['cents']/100,'price_cents'=>$f['cents'],'interval'=>'month','tokens'=>$f['tokens'],'kind'=>$f['kind']]; }
+      if($p['kind']==='buy'){ $row['included_days']=ch_buy_included_days($pid); if(isset($p['terms'])) $row['terms']=array_map(fn($t)=>['price'=>$t['cents']/100,'price_cents'=>$t['cents'],'days'=>$t['days'],'label'=>$t['label']],$p['terms']); foreach(ch_followups($pid) as $k=>$f) $row['followups'][$k]=['id'=>$f['id'],'name'=>$f['name'],'price'=>$f['cents']/100,'price_cents'=>$f['cents'],'interval'=>'month','tokens'=>$f['tokens'],'kind'=>$f['kind']]; }
       elseif(($lic=ch_plan_license($pid))!==null) $row['one_time']=$lic;
       $plans[]=$row; }
     $out[]=['id'=>$cid,'label'=>$c['label'],'short'=>$c['short'],'icon'=>$c['icon'],'order'=>$c['order'],'home_group'=>$c['home_group'],'plans'=>$plans,'phone_sectors'=>$phone[$cid] ?? []];

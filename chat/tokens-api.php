@@ -64,7 +64,7 @@ function charged(array $acc, int $cost, string $task, string $sector, callable $
     th_json(200,array_merge(['result'=>$result,'tokens_used'=>$cost,'balance'=>th_balance((int)$acc['id'])],$extra));
 }
 function plans_public(): array { $o=[]; foreach(CH_PLANS as $id=>$v){ $pl=ch_plan($id); $o[]=['id'=>$id,'name'=>$v[0],'eur_month'=>$v[1]/100,'tokens_month'=>$v[2],'sector'=>$v[3],'kind'=>$v[4],'desc'=>$v[5],
-    'channels'=>$pl['channels'],'category'=>$pl['category'],'demo'=>isset(CH_DEMO[$pl['base']]) ? $pl['base'] : null]+($v[4]==='buy' ? ['followups'=>array_map(fn($f)=>['id'=>$f['id'],'kind'=>$f['kind'],'eur_month'=>$f['cents']/100,'tokens_month'=>$f['tokens']],ch_followups($id)),'included_days'=>CH_BUY_INCLUDED_DAYS] : []); } return $o; }
+    'channels'=>$pl['channels'],'category'=>$pl['category'],'demo'=>isset(CH_DEMO[$pl['base']]) ? $pl['base'] : null]+($v[4]==='buy' ? ['followups'=>array_map(fn($f)=>['id'=>$f['id'],'kind'=>$f['kind'],'eur_month'=>$f['cents']/100,'tokens_month'=>$f['tokens']],ch_followups($id)),'included_days'=>ch_buy_included_days($id)] : []); } return $o; }
 /** Öffentliche, für alle gleiche Antwort: kurz cachebar (Browser 5 Min., Edge 10 Min.), ETag → 304. */
 function public_json(array $data): void {
     $body=json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); $etag='"'.substr(md5($body),0,20).'"';
@@ -76,7 +76,7 @@ function public_json(array $data): void {
 function pricing_public(): array {
     $buys=[]; foreach(CH_PLANS as $id=>$v){ if($v[4]!=='buy') continue; $pl=ch_plan($id); $fu=ch_followups($id);
         $buys[]=['id'=>$id,'name'=>$v[0],'price'=>$v[1]/100,'start_tokens'=>$v[2],'base'=>$pl['base'],'monthly_alternative'=>isset(CH_PLANS[$pl['base']]) ? ['id'=>$pl['base'],'price'=>CH_PLANS[$pl['base']][1]/100,'tokens'=>CH_PLANS[$pl['base']][2]] : null,
-          'tier'=>$pl['tier'],'channels'=>$pl['channels'],'category'=>$pl['category'],'included_days'=>CH_BUY_INCLUDED_DAYS,
+          'tier'=>$pl['tier'],'channels'=>$pl['channels'],'category'=>$pl['category'],'included_days'=>ch_buy_included_days($id)]+(isset($pl['terms']) ? ['terms'=>$pl['terms']] : [])+[
           'betrieb'=>isset($fu['betrieb']) ? ['id'=>$fu['betrieb']['id'],'price'=>$fu['betrieb']['cents']/100,'tokens'=>$fu['betrieb']['tokens']] : null,
           'byok'=>isset($fu['byok']) ? ['id'=>$fu['byok']['id'],'price'=>$fu['byok']['cents']/100] : null]; }
     return ['currency'=>'EUR','vat'=>'zzgl. USt.','included_days'=>CH_BUY_INCLUDED_DAYS,'tiers'=>CH_RUN_TIERS,'one_time'=>$buys,

@@ -6,6 +6,7 @@
  *   /chat/tokens-checkout.php?tokens=37000[&email=..]  → istediği miktar (kademeli tarife, price_data, tek seferlik)
  *   /chat/tokens-checkout.php?plan=agent-support       → AYLIK abonelik (plans.php; price_data + recurring; dahil tokenlar her ay yüklenir)
  *   /chat/tokens-checkout.php?plan=buy-termine         → Einmalkauf (Lizenz + Startguthaben + CH_BUY_INCLUDED_DAYS Tage Betrieb)
+ *   /chat/tokens-checkout.php?plan=buy-amazon-fba&term=2  → Lizenz mit Laufzeitwahl (CH_BUY_TERMS: Preis + Betriebstage je Laufzeit)
  *   /chat/tokens-checkout.php?plan=betrieb-termine&email=…  bzw. byok-termine  → Folge-Abo zur Lizenz (Lizenz muss zum Konto gehören;
  *                                                         während des Inklusiv-Betriebs startet die Abrechnung erst danach: trial_end)
  * db.php: define('STRIPE_SK','sk_live_…')  (alternatif adlar: STRIPE_SECRET, STRIPE_SECRET_KEY)
@@ -45,6 +46,11 @@ if($email) $params['customer_email']=$email;
 if($planId !== ''){                                                    /* ---- AYLIK PAKET / AGENT / EINMALKAUF / BETRIEB / EIGENER SCHLÜSSEL ---- */
   $pl = ch_plan($planId);
   if(!$pl){ http_response_code(404); header('Content-Type: text/plain; charset=UTF-8'); exit("Bilinmeyen paket: $planId\nMevcut: ".implode(', ',array_keys(CH_PLANS))); }
+  if(isset(CH_BUY_TERMS[$pl['id']])){                                 // Laufzeitwahl (z. B. buy-amazon-fba: &term=1|2 Jahre)
+    $tm=ch_buy_term($pl['id'],(int)($_GET['term'] ?? 1));
+    if(!$tm){ http_response_code(400); header('Content-Type: text/plain; charset=UTF-8'); exit('Unbekannte Laufzeit. Erlaubt: term='.implode('|',array_keys(CH_BUY_TERMS[$pl['id']]))); }
+    $pl['term']=$tm;
+  }
   $res = bl_checkout_plan_params($pl,$email,SITE);   // billing-lib: Lizenzprüfung, trial_end bis Ende des Inklusiv-Betriebs, Metadaten
   if(isset($res['error'])){ http_response_code((int)$res['status']); header('Content-Type: text/plain; charset=UTF-8'); exit($res['message']); }
   $params = $res['params'];

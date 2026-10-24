@@ -76,8 +76,8 @@ function bl_license_row(int $acc, string $buyId): ?array {
  * Einmalkauf verbuchen: Lizenz + enthaltener Betrieb bis jetzt + CH_BUY_INCLUDED_DAYS (verlängert, nie verkürzt).
  * Bestandskäufe ohne Enddatum (unbefristet) bleiben unbefristet. Gibt das Ende des enthaltenen Betriebs zurück (null = unbefristet).
  */
-function bl_license_activate(int $acc, string $buyId): ?string {
-    $days=defined('CH_BUY_INCLUDED_DAYS') ? (int)CH_BUY_INCLUDED_DAYS : 90;
+function bl_license_activate(int $acc, string $buyId, int $days=0): ?string {
+    if($days<=0) $days=function_exists('ch_buy_included_days') ? ch_buy_included_days($buyId) : (defined('CH_BUY_INCLUDED_DAYS') ? (int)CH_BUY_INCLUDED_DAYS : 90);
     $row=bl_license_row($acc,$buyId);
     if($row && $row['period_end']===null && $row['status']==='active') return null;   // Bestandskauf: unbefristet
     $end=(new DateTimeImmutable('now'))->modify('+'.$days.' days');
@@ -331,12 +331,14 @@ function bl_checkout_plan_params(array $pl, string $email, string $site): array 
     $p['mode']=$buy ? 'payment' : 'subscription';
     $p['success_url']=$site.'/chat/studio.php?welcome='.$pl['id'].'&session_id={CHECKOUT_SESSION_ID}';
     $p['line_items[0][price_data][currency]']='eur';
-    $p['line_items[0][price_data][unit_amount]']=$pl['cents'];
+    $term=($buy && isset($pl['term'])) ? $pl['term'] : null;   // Laufzeitwahl (CH_BUY_TERMS): Preis und Tage der gewählten Laufzeit
+    $p['line_items[0][price_data][unit_amount]']=$term ? (int)$term['cents'] : $pl['cents'];
     if(!$buy) $p['line_items[0][price_data][recurring][interval]']='month'; else $p['invoice_creation[enabled]']='true';
     $p['line_items[0][price_data][tax_behavior]']='exclusive';
     $label=$buy ? 'Einmalkauf' : (['agent'=>'Agent','betrieb'=>'Betrieb','byok'=>'Plattform (eigener KI-Schlüssel)'][$kind] ?? 'Paket');
     $p['line_items[0][price_data][product_data][name]']='ChatHelp '.$label.': '.$pl['name'];
-    $days=defined('CH_BUY_INCLUDED_DAYS') ? (int)CH_BUY_INCLUDED_DAYS : 90;
+    $days=$term ? (int)$term['days'] : (function_exists('ch_buy_included_days') ? ch_buy_included_days((string)$pl['id']) : (defined('CH_BUY_INCLUDED_DAYS') ? (int)CH_BUY_INCLUDED_DAYS : 90));
+    if($term) $p['line_items[0][price_data][product_data][name]'].=' – '.$term['label'];
     $desc=$buy ? $pl['desc'].' · Lizenz + '.number_format($pl['tokens'],0,',','.').' Tokens Startguthaben (verfallen nicht) · '.$days.' Tage Betrieb inklusive'
         : ($kind==='byok' ? $pl['desc'].' · monatlich kündbar' : $pl['desc'].' · inkl. '.number_format($pl['tokens'],0,',','.').' Tokens / Monat · monatlich kündbar');
     $p['line_items[0][price_data][product_data][description]']=mb_substr($desc,0,500);
@@ -344,6 +346,7 @@ function bl_checkout_plan_params(array $pl, string $email, string $site): array 
     foreach($buy ? ['metadata'] : ['metadata','subscription_data[metadata]'] as $m){
         $p[$m.'[type]']='plan'; $p[$m.'[plan]']=$pl['id']; $p[$m.'[tokens]']=$pl['tokens']; $p[$m.'[kind]']=$kind;
         if($run) $p[$m.'[license]']=(string)$pl['license'];
+        if($term){ $p[$m.'[term]']=(int)$term['term']; $p[$m.'[days]']=$days; }
     }
     return ['params'=>$p];
 }

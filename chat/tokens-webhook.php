@@ -69,7 +69,8 @@ if($type==='checkout.session.completed'){
         if($subId && $sk){ $sub=stripe_get('subscriptions/'.$subId,$sk); if(!empty($sub['current_period_end'])) $periodEnd=date('Y-m-d H:i:s',(int)$sub['current_period_end']);
             if(in_array($sub['status'] ?? '',['active','trialing','past_due'],true)) $subStatus=(string)$sub['status']; }
         $until=null;
-        if($pl['kind']==='buy') $until=bl_license_activate($aid,$pl['id']);   // Lizenz + Inklusiv-Betrieb (Bestandskauf ohne Enddatum bleibt unbefristet)
+        if($pl['kind']==='buy'){ $tm=isset($o['metadata']['term']) ? ch_buy_term($pl['id'],(int)$o['metadata']['term']) : null;   // Laufzeitwahl: Tage aus CH_BUY_TERMS (nicht aus den Metadaten)
+            $until=bl_license_activate($aid,$pl['id'],$tm ? (int)$tm['days'] : 0); }   // Lizenz + Inklusiv-Betrieb (Bestandskauf ohne Enddatum bleibt unbefristet)
         else th_plan_upsert($aid,$pl['id'],$subId,$subStatus,$periodEnd);
         /* Betrieb und eigener Schlüssel schließen sich aus: das andere Folge-Abo derselben Lizenz endet zum Periodenende */
         if($run && $sk){ $other=($pl['kind']==='betrieb' ? 'byok-' : 'betrieb-').substr((string)$pl['license'],4);

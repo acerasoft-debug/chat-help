@@ -459,8 +459,11 @@ function ch_price_nice(float $x): float {
     return ceil($x);
 }
 /** EUR-Cent → Landespreis in kleinster Einheit (Cent/Öre/Kuruş bzw. Yen bei dec 0). EUR und unbekannte Währungen: unverändert. */
+/** Feste Landespreise statt Umrechnung (EUR-Cent => [Währung => kleinste Einheit]): Amazon-FBA-Lizenz 1 Jahr = 1.000 $, 2 Jahre = 1.800 $. */
+const CH_LOCAL_PRICE_FIX = [86000=>['USD'=>100000],155000=>['USD'=>180000]];
 function ch_price_local(int $eurCents, string $cur, ?array $fx=null): int {
     $c=ch_cur_norm($cur); if($c==='' || $c==='EUR' || $eurCents<=0) return $eurCents;
+    if(isset(CH_LOCAL_PRICE_FIX[$eurCents][$c])) return (int)CH_LOCAL_PRICE_FIX[$eurCents][$c];
     $rate=(float)(($fx ?? ch_fx_rates())['rates'][$c] ?? CH_CURRENCIES[$c]['rate']);
     $p=ch_price_nice($eurCents/100*$rate);
     return CH_CURRENCIES[$c]['dec']===0 ? (int)$p : (int)round($p*100);
@@ -483,6 +486,7 @@ function ch_catalog_eur_cents(): array {
     $c=[4900,19900,20000,69000,24900,99000];   // Token-Pakete 10k/50k (Anzeige 199 €, Checkout 200 €)/200k, API-Pro, Enterprise ab
     if(defined('CH_PLANS')) foreach(CH_PLANS as $v) $c[]=(int)$v[1];
     if(defined('CH_RUN_TIERS')) foreach(CH_RUN_TIERS as $t){ $c[]=(int)$t['betrieb_cents']; $c[]=(int)$t['byok_cents']; }
+    if(defined('CH_BUY_TERMS')) foreach(CH_BUY_TERMS as $ts) foreach($ts as $t) $c[]=(int)$t['cents'];
     $c=array_values(array_unique(array_filter($c,fn($x)=>$x>0))); sort($c); return $c;
 }
 /**

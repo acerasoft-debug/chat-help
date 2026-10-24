@@ -1,0 +1,71 @@
+<?php
+/* Amazon-FBA-Produktfinder: Lizenz/Laufzeit/Preis, Checkout-Parameter, Gewinnrechnung, Keepa (gemockt).
+ * Aufruf: php tools/tests/fba_test.php  – Sandbox: chat/*.php in ein Temp-Verzeichnis mit leerer db.php (keine DB, kein Netz zu Keepa). */
+define('FBA_NO_TICK',true);
+$root=sys_get_temp_dir().'/ch-fba-'.bin2hex(random_bytes(4)); mkdir($root,0777,true);
+foreach(glob(dirname(__DIR__,2).'/chat/*.php') as $f) copy($f,$root.'/'.basename($f));
+file_put_contents($root.'/db.php',"<?php\n"); define('CH_FX_CACHE_DIR',$root.'/cache');
+require $root.'/fba-lib.php';
+require_once $root.'/billing-lib.php';
+$ok=0;$fail=0; $t=function($n,$c)use(&$ok,&$fail){ if($c){$ok++;echo "  ok   $n\n";}else{$fail++;echo "  HATA $n\n";} };
+echo "== plan / lizenz ==\n";
+$p=ch_plan('buy-amazon-fba');
+$t('plan var, buy, 500k token, 860 € (1 yil)',$p && $p['kind']==='buy' && $p['tokens']===500000 && $p['cents']===86000);
+$t('base agent-amazon-fba, tier L, 365 gun',$p['base']==='agent-amazon-fba' && $p['tier']==='L' && $p['included_days']===365);
+$t('terms 1/2: 365/730 gun, 860/1550 €',$p['terms'][1]['days']===365 && $p['terms'][2]['days']===730 && $p['terms'][2]['cents']===155000);
+$t('ch_buy_included_days diger lisans 90',ch_buy_included_days('buy-support')===90 && ch_buy_included_days('buy-amazon-fba',2)===730);
+$t('ch_buy_term bilinmeyen term null',ch_buy_term('buy-amazon-fba',3)===null && ch_buy_term('buy-support',1)===null);
+$t('lisans esleme agent-amazon-fba -> buy-amazon-fba',ch_plan_license('agent-amazon-fba')==='buy-amazon-fba');
+$v=ch_plan_variants('agent-amazon-fba');
+$t('varyantlar: buy/betrieb/byok',in_array('buy-amazon-fba',$v,true) && in_array('betrieb-amazon-fba',$v,true) && in_array('byok-amazon-fba',$v,true));
+$fu=ch_followups('buy-amazon-fba');
+$t('sonrasi: betrieb 39 €/8000 token, byok 19 €',$fu['betrieb']['cents']===3900 && $fu['betrieb']['tokens']===8000 && $fu['byok']['cents']===1900);
+$t('kategori handel, kanal web',$p['category']==='handel' && $p['channels']===['web']);
+$t('ajan kurallari dolu',str_contains($p['rules'],'fba_analyze'));
+echo "== fiyat ==\n";
+$t('USD sabit: 1 yil 1000 $',ch_price_local(86000,'USD')===100000);
+$t('USD sabit: 2 yil 1800 $',ch_price_local(155000,'USD')===180000);
+$t('EUR degismez',ch_price_local(86000,'EUR')===86000);
+$t('GBP donusum normal (sabit degil)',ch_price_local(86000,'GBP')>0 && ch_price_local(86000,'GBP')!==86000);
+$t('katalog 155000 iceriyor',in_array(155000,ch_catalog_eur_cents(),true));
+echo "== checkout params ==\n";
+$pl=$p; $pl['term']=ch_buy_term('buy-amazon-fba',2);
+$r=bl_checkout_plan_params($pl,'',"https://chat-help.com");
+$pp=$r['params'] ?? [];
+$t('2 yil: unit_amount 155000, payment',($pp['line_items[0][price_data][unit_amount]'] ?? 0)===155000 && ($pp['mode'] ?? '')==='payment');
+$t('metadata term=2 days=730',($pp['metadata[term]'] ?? 0)===2 && ($pp['metadata[days]'] ?? 0)===730);
+$t('aciklama 730 Tage',str_contains($pp['line_items[0][price_data][product_data][description]'],'730 Tage') && str_contains($pp['line_items[0][price_data][product_data][name]'],'2 Jahre'));
+$r1=bl_checkout_plan_params(ch_plan('buy-support'),'',"https://chat-help.com")['params'];
+$t('diger lisans: term yok, 90 gun',!isset($r1['metadata[term]']) && str_contains($r1['line_items[0][price_data][product_data][description]'],'90 Tage'));
+echo "== fba saf fonksiyonlar ==\n";
+$t('ident ASIN',fba_ident('b0c1234567')===['asin','B0C1234567']);
+$t('ident link',fba_ident('https://www.amazon.de/Some-Thing/dp/B0ABCDEFGH?ref=x')===['asin','B0ABCDEFGH']);
+$t('ident EAN',fba_ident('4006381333931')===['code','4006381333931']);
+$t('ident bos',fba_ident('hello')===null);
+$prod=['asin'=>'B0ABCDEFGH','title'=>'Yoga Matte','brand'=>'X','monthlySold'=>300,'referralFeePercentage'=>15.0,'fbaFees'=>['pickAndPackFee'=>320],
+ 'stats'=>['buyBoxPrice'=>2999,'current'=>array_replace(array_fill(0,19,-1),[3=>12000,18=>2999]),'avg90'=>array_replace(array_fill(0,19,-1),[3=>15000,18=>3099]),'offerCountFBA'=>4,'offerCountFBM'=>2],
+ 'categoryTree'=>[['name'=>'Sport'],['name'=>'Yoga']]];
+$f=fba_product_facts($prod,'de');
+$t('facts: fiyat, bsr, satis, fba teklif, amazon yok',$f['price']===2999 && $f['bsr']===12000 && $f['monthly_sold']===300 && $f['fba_offers']===4 && !$f['amazon_sells'] && $f['referral_pct']===0.15 && $f['fba_fee']===320);
+$c=fba_profit($f,800,100,true);
+// net 2999/1.19=2520, ref 450, fee 320, landed 900 -> 850
+$t('kar 8,50 €, marj ~28 %, ROI ~94 %, gute Chance',$c['profit']===850 && abs($c['margin_pct']-28.3)<0.2 && abs($c['roi_pct']-94.4)<0.2 && $c['verdict']==='gute Chance');
+$t('break-even 16,50 € (inbound dahil)',$c['break_even_cost']===1650);
+$c2=fba_profit(['market'=>'us','price'=>2000,'price_avg90'=>null,'monthly_sold'=>null,'fba_offers'=>20,'amazon_sells'=>true,'referral_pct'=>null,'fba_fee'=>null],1500,0,true);
+$t('US: KDV yok, tahmini ucret, flagler, karli degil',$c2['net']===2000 && $c2['fba_fee_estimated'] && $c2['verdict']==='nicht profitabel' && count($c2['flags'])>=3);
+$t('cevirme USD->EUR',fba_convert(1160,'USD','EUR',['USD'=>1.16])===1000 && fba_convert(500,'EUR','EUR')===500);
+$t('cents parse',fba_cents('12,50 €')===1250 && fba_cents('1,234.50')===123450 && fba_cents(3)===300);
+$t('markets in',fba_markets_in('de, co.uk,com,xx')===['de','uk','us'] && fba_markets_in([])===['de']);
+echo "== keepa mock ==\n";
+$GLOBALS['fba_http']=function($url){ global $prod; if(str_contains($url,'/query')) return [200,json_encode(['asinList'=>['B0ABCDEFGH'],'totalResults'=>1])];
+  if(str_contains($url,'/product')) return [200,json_encode(['products'=>[$prod],'tokensLeft'=>99])]; return [404,''];};
+define('CH_KEEPA_KEY','TESTKEY');
+$a=fba_analyze(0,'B0ABCDEFGH',['de','us'],800,'EUR',100);
+$t('analyze 2 pazar, kar hesap',isset($a['markets']['de']['calc']['profit'],$a['markets']['us']['calc']['profit']) && $a['tokens_left']===99);
+$fd=fba_find(0,['market'=>'de','keyword'=>'yoga','price_max'=>40,'limit'=>5]);
+$t('find: 1 aday, max alis fiyati',$fd['count']===1 && $fd['items'][0]['max_buy_cost_for_break_even']===1750-0 + 0 && $fd['items'][0]['max_buy_cost_for_30pct_roi']===(int)floor(1750/1.3));
+$GLOBALS['fba_http']=fn($u)=>[429,json_encode(['refillIn'=>6000])];
+$t('429 -> keepa_rate',(fba_analyze(0,'B0ABCDEFGH',['de'],0,'EUR',0)['markets']['de']['error'] ?? '')==='keepa_rate');
+$t('tools 4 adet',count(fba_tools())===4);
+$t('anahtar URL hic loga yazilmiyor (hint icermez)',!str_contains(json_encode($a),'TESTKEY'));
+echo "\n$ok ok, $fail hata\n"; exit($fail?1:0);
