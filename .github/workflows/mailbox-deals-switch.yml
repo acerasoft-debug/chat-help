@@ -20,6 +20,10 @@ on:
         description: "Açarken (isteğe bağlı): BUGÜNKÜ indirim payı (ör. 490). Yalnız bugün geçerli, sunucu tavanını aşamaz; boş = varsayılan (300)"
         required: false
         default: ""
+      unpause_today:
+        description: "Açarken (isteğe bağlı): true = durdurulan ülkeler (Almanya) YALNIZ BUGÜN açık; yarın kendiliğinden yine durur"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -33,12 +37,13 @@ jobs:
           ON: ${{ github.event.inputs.enable }}
           START: ${{ github.event.inputs.start }}
           QUOTA: ${{ github.event.inputs.quota }}
+          UNPAUSE: ${{ github.event.inputs.unpause_today }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: ON,START,QUOTA
+          envs: ON,START,QUOTA,UNPAUSE
           command_timeout: 2m
           script: |
             cd ~/public_html
@@ -50,6 +55,7 @@ jobs:
             $cfg = vestra_mailbox_cfg(); $cfg['deals'] = $on; $cfg['followup'] = $on; $cfg['deals_switch_at'] = date('c');
             $q = (int)preg_replace('/\D/', '', (string)getenv('QUOTA'));
             if ($on && $q > 0) { $cfg['deals_quota'] = min($q, VESTRA_MAILBOX_MAX_CAP); $cfg['deals_quota_day'] = date('Y-m-d'); echo "bugunku indirim payi: ".$cfg['deals_quota']." (".date('Y-m-d').")\n"; }
+            if ($on && strtolower(trim((string)getenv('UNPAUSE'))) === 'true') { $cfg['paused_off_day'] = date('Y-m-d'); echo "durdurulan ulkeler YALNIZ BUGUN acik (".date('Y-m-d').")\n"; }
             if ($on && strtolower(trim((string)getenv('START'))) === 'now' && (string)($cfg['deals_empty'] ?? '') === date('Y-m-d')) { unset($cfg['deals_empty']); echo "bugunku 'alici yok' isareti silindi (yeni kampanya icin yeniden aranir)\n"; }
             if ($on && strtolower(trim((string)getenv('START'))) !== 'now') {   // bugünün denemeleri ve 23:45 turu tükenmiş sayılır
               $cfg['deals_day'] = date('Y-m-d'); $cfg['deals_tries'] = defined('VESTRA_MAILBOX_DEALS_TRIES') ? VESTRA_MAILBOX_DEALS_TRIES : 3; $cfg['followup_day'] = date('Y-m-d');
