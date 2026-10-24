@@ -24,7 +24,8 @@
 #wbRoot .wb-bar h2{font-size:24px;min-width:0;overflow-wrap:anywhere;flex:1 1 200px}
 #wbRoot .wb-save{font-size:12.5px;color:var(--mute);min-width:90px}
 #wbRoot .wb-ed{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:18px;align-items:start}
-@media(max-width:1100px){#wbRoot .wb-ed{grid-template-columns:1fr}}
+#wbRoot .wb-ed>div{min-width:0}
+@media(max-width:1100px){#wbRoot .wb-ed{grid-template-columns:minmax(0,1fr)}}
 #wbRoot .wb-tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:4px;background:var(--sur2);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
 #wbRoot .wb-tabs::-webkit-scrollbar{display:none}
 #wbRoot .wb-tab{flex:0 0 auto;min-height:40px;padding:8px 12px;border-radius:10px;border:0;background:transparent;color:var(--ink2);font:600 13.5px var(--sans);cursor:pointer;white-space:nowrap}
