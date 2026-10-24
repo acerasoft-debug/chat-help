@@ -49,9 +49,14 @@ if (!empty($_GET['lib'])) {
 
 $want = (string)($_GET['models'] ?? '');
 if ($want === 'catalog' || !empty($_GET['catalog'])) {   // Stimmenkatalog: alle dort genutzten Piper-Modelle (+ Browser-Export catalog.json)
-    require_once dirname(__DIR__) . '/voice-catalog.php'; require_once dirname(__DIR__) . '/i18n.php';
-    if ($want === 'catalog') $want = implode(',', vc_models());
-    $cj = dirname(__DIR__) . '/voice/catalog.json'; file_put_contents($cj, json_encode(vc_browser_json(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); echo "Katalog: $cj (" . filesize($cj) . " Bytes)\n";
+    /* Der Ops-Lauf kopiert dieses Skript nach chat/ – der Katalog liegt dann neben der Kopie (__DIR__), im Repo eine Ebene höher */
+    $base = is_file(__DIR__ . '/voice-catalog.php') ? __DIR__ : dirname(__DIR__);
+    if (!is_file($base . '/voice-catalog.php')) { echo "Hinweis: voice-catalog.php noch nicht auf dem Server – bitte models=<Liste> angeben.\n"; if ($want === 'catalog') $want = ''; }
+    else {
+        require_once $base . '/voice-catalog.php'; require_once $base . '/i18n.php';
+        if ($want === 'catalog') $want = implode(',', vc_models());
+        $cj = $base . '/voice/catalog.json'; file_put_contents($cj, json_encode(vc_browser_json(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); echo "Katalog: $cj (" . filesize($cj) . " Bytes)\n";
+    }
 }
 $keys = array_values(array_filter(array_map('trim', explode(',', $want)), fn($k) => preg_match('/^[a-z]{2}_[A-Z]{2}-[a-z0-9_]+-(x_low|low|medium|high)$/', $k)));
 if ($keys) {
