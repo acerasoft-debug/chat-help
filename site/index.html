@@ -1795,7 +1795,7 @@ function vStop(){V.turn++;V.busy=false;try{V.ac&&V.ac.abort();}catch(e){}V.ac=wi
   if(e)e();vTalk(false);liveState();}
 function vServer(){return V.tts&&!V.ttsDead&&Date.now()>V.ttsPause;}
 /* Server-Stimme: {demo, sector (nur Telefon-Agent), text, t, voice (gewählte Voreinstellung)} */
-async function vFetch(it){if(!vServer()||!it||!it.t)return null;const ac=V.ac;const body={demo:V.demo};if(V.sector)body.sector=V.sector;body.text=it.text;body.t=it.t;const pid=vPresetId();if(pid)body.voice=pid;
+async function vFetch(it){if(!vServer()||!it||!it.t)return null;const ac=V.ac;const body={demo:V.demo};if(V.sector)body.sector=V.sector;body.text=it.text;body.t=it.t;body.lang=vLangNow();const pid=vPresetId();if(pid)body.voice=pid;
   try{const r=await fetch(TTS_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store',signal:ac?ac.signal:undefined});
     if(r.status===501){V.ttsDead=true;ttsHintUI();}else if(r.status===429)V.ttsPause=Date.now()+120000;
     if(!r.ok)return null;const ct=(r.headers.get('content-type')||'').toLowerCase();if(ct&&!/audio|octet-stream/.test(ct))return null;

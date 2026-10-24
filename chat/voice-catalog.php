@@ -123,6 +123,10 @@ function vc_cloud_list(string $lang, string $g, array $names, int $from): array 
         $label=preg_match('/^\p{L}{2,20}$/u',$first) ? $first : ($names[$from+$i] ?? 'Voice '.($i+1));
         $B['elevenlabs'][]=vc_cloud($lang,$g,$label,['natuerlich','klar'],'elevenlabs',$n['voice'],'eln-'.strtolower(substr((string)preg_replace('/[^A-Za-z0-9]/','',$n['voice']),0,12)));
     }
+    /* ElevenLabs-Standardstimmen, die ops/voice-scout (mode=premade) im Konto geprüft hat – für jede Sprache wählbar (Sprache wird beim Vorlesen festgehalten) */
+    if(function_exists('ch_tts_native_all')){ $pre=function_exists('ch_tts_voices') ? array_column(ch_tts_voices(),'elevenlabs') : [];
+        foreach(ch_tts_native_all()['elevenlabs']['*'][$g] ?? [] as $n){ if(in_array($n['voice'],$pre,true)) continue; $m=json_decode($n['meta'] ?? '',true) ?: [];
+            $B['elevenlabs'][]=vc_cloud($lang,$g,$n['label'] ?: 'Voice',is_array($m['desc'] ?? null) ? $m['desc'] : ['natuerlich'],'elevenlabs',$n['voice'],'elp-'.strtolower(substr((string)preg_replace('/[^A-Za-z0-9]/','',$n['voice']),0,12))); } }
     if(in_array($lang,VC_ELEVEN_LANGS,true) && function_exists('ch_tts_voices')){
         $ED=['f_warm'=>['warm','herzlich'],'f_klar'=>['klar','professionell'],'f_frisch'=>['frisch','lebendig'],'f_sanft'=>['sanft','geduldig'],'m_ruhig'=>['ruhig','warm'],'m_freundlich'=>['freundlich','locker'],'m_souveraen'=>['souveraen','deutlich'],'m_tief'=>['tief','gelassen']];
         foreach(ch_tts_voices() as $pid=>$p){ if($p['gender']!==$g) continue; $persona=str_contains($p['label'],' · ') ? trim(explode(' · ',$p['label'],2)[0]) : ucfirst(substr($pid,2));

@@ -159,7 +159,9 @@ function ch_lang_directive(string $lang, array $cfg=[], bool $detected=true): st
     } else {
         $s=' SPRACHE: Standardsprache ist '.$nm($def).'. Schreibt oder spricht der Kunde erkennbar eine andere Sprache, antworte in dessen Sprache.';
     }
-    return $s.$offer.$fmt.($style!=='' ? ' '.$style : '');
+    /* Eine Sprache je Antwort: keine fremdsprachigen Floskeln (Persona-Flair), Zahlen in der Gesprächssprache – Stimmen lesen sonst Teile in der falschen Sprache vor */
+    $one=' Bleib in jeder Antwort vollständig in dieser einen Sprache: keine fremdsprachigen Grüße, Ausrufe oder Floskeln (auch nicht als Persona-Flair), Zahlen, Preise, Uhrzeiten und Daten immer in dieser Sprache; nur Eigennamen (Gerichte wie „Margherita“, Produkte, Firmen, Straßen) bleiben unverändert.';
+    return $s.$one.$offer.$fmt.($style!=='' ? ' '.$style : '');
 }
 const CH_LANG_STYLE = [
   'ja'=>'Japanisch in höflicher Form (です・ます調), natürliche japanische Satzzeichen (、。), keine Leerzeichen zwischen Wörtern, Kunde mit „お客様“ oder Name + 様 ansprechen.',

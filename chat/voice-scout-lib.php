@@ -156,6 +156,53 @@ function vs_scout_elevenlabs(array $langs, int $per, bool $add, array &$log): vo
     }
 }
 
+/* ---------------------------------------------------------------- ElevenLabs: Standardstimmen + Modelle per Sprachausgabe prüfen
+   (braucht nur die Berechtigung text_to_speech; je Probe 2–30 Zeichen) */
+const VS_PREMADE = [
+  ['Aria','9BWtsMINqrJLrRacOk9x','f',['lebendig','natuerlich']], ['Sarah','EXAVITQu4vr4xnSDxMaL','f',['sanft','warm']], ['Laura','FGY2WhTYpPnrIDTdsKH5','f',['frisch','hell']],
+  ['Charlotte','XB0fDUnXU5powFXDhCwa','f',['klar','ruhig']], ['Alice','Xb7hH8MSUJpSbSDYk0k2','f',['souveraen','britisch']], ['Matilda','XrExE9yKIg1WjnnlVkGX','f',['freundlich','warm']],
+  ['Jessica','cgSgspJ2msm6clMCkdW9','f',['jung','lebendig']], ['Lily','pFZP5JQG7iQjIQuC4Bku','f',['warm','britisch']], ['Rachel','21m00Tcm4TlvDq8ikWAM','f',['ruhig','klar']],
+  ['Roger','CwhRBWXzGAHq8TQ4Fs17','m',['souveraen','klar']], ['Charlie','IKne3meq5aSn9XLyUdCD','m',['locker','natuerlich']], ['George','JBFqnCBsd6RMkjVDRZzb','m',['warm','britisch']],
+  ['Callum','N2lVS1w4EtoT3dr4eOWO','m',['tief','sonor']], ['Liam','TX3LPaxmHKxFdv7VOQHJ','m',['jung','deutlich']], ['Will','bIHbv24MWmeRgasZH58o','m',['freundlich','locker']],
+  ['Eric','cjVigY5qzO86Huf0OWal','m',['freundlich','ruhig']], ['Chris','iP95p4xoKVk53GoZ742B','m',['locker','lebendig']], ['Brian','nPczCjzI2devNBz1zQrb','m',['tief','ruhig']],
+  ['Daniel','onwK4e9ZLuTAKqWW03F9','m',['souveraen','britisch']], ['Bill','pqHfZKP75CvOlQylNhV4','m',['reif','warm']], ['Adam','pNInz6obpgDQGcFmaJgB','m',['tief','gelassen']],
+  ['Josh','TxGEqnHWrfWFTfGW9XjX','m',['jung','freundlich']],
+];
+const VS_EL_MODELS = ['eleven_v4','eleven_v3','eleven_flash_v2_5','eleven_turbo_v2_5','eleven_multilingual_v2'];
+function vs_el_tts(string $voice, string $model, string $text, ?string $lc): array {
+    $c=ch_tts_creds('elevenlabs'); if(!$c) return ['code'=>0,'bytes'=>0,'msg'=>'kein Schlüssel'];
+    $body=['text'=>$text,'model_id'=>$model]; if($lc!==null) $body['language_code']=$lc;
+    $r=vs_http('POST',ch_tts_base('https://api.elevenlabs.io').'/v1/text-to-speech/'.rawurlencode($voice).'?output_format=mp3_22050_32',['xi-api-key: '.$c['key'],'Content-Type: application/json','Accept: audio/mpeg'],json_encode($body,JSON_UNESCAPED_UNICODE),[$c['key']]);
+    $ok=$r['code']===200 && strlen($r['raw'])>300;
+    return ['code'=>$r['code'],'bytes'=>$ok ? strlen($r['raw']) : 0,'msg'=>$ok ? '' : vs_err($r)];
+}
+/** Welche Modelle gibt es im Konto, und welche halten die Sprache fest (language_code)? → model => ['ok'=>bool,'lc'=>bool] */
+function vs_el_probe_models(array &$log): array {
+    $o=[];
+    foreach(VS_EL_MODELS as $m){
+        $a=vs_el_tts('EXAVITQu4vr4xnSDxMaL',$m,'Zwei Pizzen kosten 19 Euro.','de');
+        $b=$a['bytes'] ? $a : vs_el_tts('EXAVITQu4vr4xnSDxMaL',$m,'Hallo.',null);
+        $o[$m]=['ok'=>$b['bytes']>0,'lc'=>$a['bytes']>0];
+        $log[]=sprintf('Modell %-24s %s%s',$m,$a['bytes'] ? 'OK · hält die Sprache fest (language_code)' : ($b['bytes'] ? 'OK · ohne language_code' : 'nicht verfügbar'),$a['bytes'] ? '' : ' – '.mb_substr($a['msg'],0,110));
+    }
+    /* Ergebnis merken: Modelle mit Sprach-Festlegung (speech-lib wählt daraus, Reihenfolge = VS_EL_MODELS) */
+    $lcm=array_keys(array_filter($o,fn($x)=>$x['lc']));
+    $p=th_db(); $p->prepare("DELETE FROM tts_native WHERE provider='elmodel'")->execute();
+    $q=$p->prepare("INSERT INTO tts_native(provider,lang,gender,pos,voice,label,meta) VALUES('elmodel','--','l',?,?,'',NULL)"); foreach($lcm as $i=>$m) $q->execute([$i,$m]);
+    $log[]='Sprach-Festlegung möglich mit: '.($lcm ? implode(', ',$lcm) : 'keinem Modell – es bleibt bei eleven_multilingual_v2 / eleven_v3');
+    return $o;
+}
+/** Standardstimmen prüfen (je 2 Zeichen) und die nutzbaren für alle Sprachen in tts_native (lang '*') eintragen – Auswahl im Studio. */
+function vs_el_premade(bool $store, array &$log): int {
+    $rows=['f'=>[],'m'=>[]];
+    foreach(VS_PREMADE as [$n,$id,$g,$d]){ $r=vs_el_tts($id,'eleven_multilingual_v2','Hi',null);
+        if($r['bytes']) $rows[$g][]=['voice'=>$id,'label'=>$n,'meta'=>['premade'=>true,'desc'=>$d]];
+        else $log[]="Standardstimme $n: nicht nutzbar (".mb_substr($r['msg'],0,80).')'; }
+    if($store) foreach($rows as $g=>$rr) if($rr) vs_store('elevenlabs','*',$g,$rr);
+    $n=count($rows['f'])+count($rows['m']); $log[]="Standardstimmen nutzbar: $n (".count($rows['f'])." Frauen, ".count($rows['m'])." Männer)".($store ? ' – gespeichert' : '');
+    return $n;
+}
+
 /* ---------------------------------------------------------------- Azure */
 function vs_azure_locales(string $lc): array { $t=function_exists('ch_lang_tag') ? ch_lang_tag($lc) : ''; return array_values(array_unique(array_filter($lc==='en' ? [$t,'en-US','en-GB'] : ($lc==='no' ? ['nb-NO'] : [$t])))); }
 function vs_scout_azure(array $langs, array &$log): void {

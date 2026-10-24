@@ -2,7 +2,7 @@
 /**
  * ChatHelp — Server-Stimme für die Live-Demos der Startseite
  * ===========================================================
- * POST /chat/tts.php  JSON {demo:<planId>, sector?:<Branche, nur agent-phone>, text:<ein Satz aus speech[]/fillers[]>, t:<Token>, voice?:<Voreinstellung>}
+ * POST /chat/tts.php  JSON {demo:<planId>, sector?:<Branche, nur agent-phone>, text:<ein Satz aus speech[]/fillers[]>, t:<Token>, voice?:<Voreinstellung>, lang?:<Gesprächssprache, 2 Buchstaben>}
  *   200 audio/mpeg (Binärdaten, Cache-Control: no-store, Content-Length, X-TTS-Voice, X-TTS-Cache: hit|miss)
  *   400 {error}                 ungültige Eingabe (JSON, Demo, Text leer/> 400 Zeichen, Token fehlt)
  *   403 {error:'bad_token'}     Token falsch/abgelaufen – nur Sätze, die der Demo-Agent selbst erzeugt hat (demo|sector|exp|text), werden vertont
@@ -34,7 +34,9 @@ if(!ch_tts_verify($demo,$text,$t,$sector)) th_json(403,['error'=>'bad_token']);
 if(ch_tts_provider()===null) th_json(501,['error'=>'tts_unavailable']);
 
 $vid=(is_string($in['voice'] ?? null) && ch_tts_preset($in['voice'])) ? $in['voice'] : null;   // unbekannte Stimme → Standard der Demo/Branche
-$voice=ch_tts_voice_for(ch_demo_conf($demo,$sector)['voice'] ?? [],$vid);
+/* Sprache des Gesprächs (Startseite: Sprache der Antwort) – sonst würde jeder Satz einzeln erkannt und z. B. „Perfetto! … 19 Euro“ italienisch vorgelesen */
+$lang=is_string($in['lang'] ?? null) && preg_match('/^[a-z]{2}$/',$in['lang']) && ch_lang_norm($in['lang'])===$in['lang'] ? $in['lang'] : '';
+$voice=ch_tts_voice_for(ch_demo_conf($demo,$sector)['voice'] ?? [],$vid,$lang);
 $voice['channel']='demo';   // Kostenbremse: eigenes Demo-Budget je Anbieter (ch_tts_budget_ok)
 if(ch_tts_provider_for(ch_tts_lang_fix($text,$voice)['lang'],$voice)===null) th_json(501,['error'=>'tts_unavailable']);   // Budget aufgebraucht → Browserstimme für den Rest
 try{

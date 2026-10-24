@@ -2,6 +2,7 @@
 /**
  * ChatHelp ops — voice-scout: beste muttersprachliche Stimme je Sprache finden und eintragen (Tabelle tts_native), danach Übersicht.
  *   args (JSON → $_GET):  mode   = scout (Standard) | status (nur Übersicht) | dry (suchen und zeigen, nichts übernehmen/speichern)
+ *                                  | models (ElevenLabs-Modelle + Sprach-Festlegung prüfen) | premade (zusätzlich Standardstimmen prüfen und für alle Sprachen eintragen)
  *                         langs  = all (Standard) | z. B. "az,tr,de"
  *                         per    = Stimmen je Sprache und Geschlecht bei ElevenLabs: auto (Standard, nach freien Stimmenplätzen) | 1–4 (4 = eigene Stimme je Persona)
  *                         providers = elevenlabs,azure,google (Standard: alle mit Schlüssel)
@@ -14,7 +15,7 @@ require_once __DIR__.'/plans.php';
 require_once __DIR__.'/voice-scout-lib.php';
 if(is_file(__DIR__.'/voice-catalog.php')) require_once __DIR__.'/voice-catalog.php';
 
-$mode=in_array($_GET['mode'] ?? '',['status','dry'],true) ? $_GET['mode'] : 'scout';
+$mode=in_array($_GET['mode'] ?? '',['status','dry','models','premade'],true) ? $_GET['mode'] : 'scout';
 $langs=strtolower(trim((string)($_GET['langs'] ?? 'all')));
 $langs=$langs==='' || $langs==='all' ? VS_LANGS : array_values(array_intersect(VS_LANGS,array_map('trim',explode(',',$langs))));
 $perArg=strtolower((string)($_GET['per'] ?? 'auto'));
@@ -27,9 +28,13 @@ if(defined('TTS_PROVIDER') && !in_array(strtolower(trim((string)TTS_PROVIDER)),[
 echo "\n";
 
 try{ vs_bootstrap(); }catch(Throwable $e){ echo "FEHLER: Tabelle tts_native: ".$e->getMessage()."\n"; exit(1); }
-if($per===0){ $elLangs=count(array_diff($langs,['en'])); $a=vs_el_auto_per($elLangs); $per=$a ?? 1; echo "Stimmen je Sprache und Geschlecht: $per (".($a!==null ? 'aus den freien Stimmenplätzen des ElevenLabs-Tarifs' : 'Standard').")\n\n"; }
+if($per===0 && !in_array($mode,['models','premade','status'],true)){ $elLangs=count(array_diff($langs,['en'])); $a=vs_el_auto_per($elLangs); $per=$a ?? 1; echo "Stimmen je Sprache und Geschlecht: $per (".($a!==null ? 'aus den freien Stimmenplätzen des ElevenLabs-Tarifs' : 'Standard').")\n\n"; }
 
-if($mode!=='status'){
+if($mode==='models' || $mode==='premade'){   // nur Sprachausgabe-Berechtigung nötig
+    $log=[]; vs_el_probe_models($log); if($mode==='premade') vs_el_premade(true,$log);
+    echo "— ElevenLabs-Prüfung —\n".implode("\n",$log)."\n\n"; ch_tts_native_all(true);
+}
+elseif($mode!=='status'){
     $log=[];
     if(in_array('elevenlabs',$provs,true)) vs_scout_elevenlabs($langs,$per,$mode==='scout',$log);
     if($mode==='scout' && in_array('azure',$provs,true)) vs_scout_azure($langs,$log);

@@ -743,7 +743,7 @@ function ch_tts_creds(string $provider): ?array {
 function ch_tts_native_all(bool $reload=false): array {
     static $all=null; if($all!==null && !$reload) return $all; $all=[];
     if(!function_exists('th_db')) return $all;
-    try{ foreach(th_db()->query("SELECT provider,lang,gender,voice,label FROM tts_native ORDER BY provider,lang,gender,pos") as $r) $all[$r['provider']][$r['lang']][$r['gender']][]=['voice'=>(string)$r['voice'],'label'=>(string)$r['label']]; }
+    try{ foreach(th_db()->query("SELECT provider,lang,gender,voice,label,meta FROM tts_native ORDER BY provider,lang,gender,pos") as $r) $all[$r['provider']][$r['lang']][$r['gender']][]=['voice'=>(string)$r['voice'],'label'=>(string)$r['label'],'meta'=>(string)($r['meta'] ?? '')]; }
     catch(Throwable $e){ $all=[]; }
     return $all;
 }
@@ -910,9 +910,13 @@ function ch_tts_resolve(string $provider, array $voice): array {
                 $id=$nat[ch_tts_persona_idx((string)($voice['preset'] ?? $pre['id'])) % count($nat)];
             $st=is_array($voice['eleven'] ?? null) ? $voice['eleven'] : $pre['eleven'];
             $num=fn($k,$d)=>round(max(0.0,min(1.0,(float)($st[$k] ?? $d))),2);
-            /* Multilingual v2 kann kein Aserbaidschanisch und kein Norwegisch → dafür Eleven v3 (74 Sprachen); eigenes Modell je Sprache: TTS_ELEVENLABS_MODEL_AZ usw. */
-            $elModel=ch_tts_const('TTS_ELEVENLABS_MODEL_'.strtoupper($lc)) ?: (in_array($lc,['az','no'],true) ? 'eleven_v3' : (ch_tts_const('TTS_ELEVENLABS_MODEL') ?: 'eleven_multilingual_v2'));
-            return ['model'=>$elModel,'voice'=>$id,
+            /* Modell: db.php TTS_ELEVENLABS_MODEL_<LC> / TTS_ELEVENLABS_MODEL, sonst das beste Modell, das die Sprache festhält (language_code; ops/voice-scout mode=models
+               prüft das im Konto) – sonst liest ElevenLabs z. B. „Perfetto! … 19 Euro“ italienisch. Ohne Prüfergebnis wie bisher: Multilingual v2, für az/no Eleven v3. */
+            $lcm=array_column(ch_tts_native_all()['elmodel']['--']['l'] ?? [],'voice');
+            $elModel=ch_tts_const('TTS_ELEVENLABS_MODEL_'.strtoupper($lc)) ?: ch_tts_const('TTS_ELEVENLABS_MODEL');
+            if($elModel===''){ foreach($lc==='az' ? ['eleven_v4','eleven_v3'] : ['eleven_v4','eleven_v3','eleven_turbo_v2_5','eleven_flash_v2_5'] as $cand) if(in_array($cand,$lcm,true)){ $elModel=$cand; break; }
+                if($elModel==='') $elModel=in_array($lc,['az','no'],true) ? 'eleven_v3' : 'eleven_multilingual_v2'; }
+            return ['model'=>$elModel,'voice'=>$id,'language_code'=>in_array($elModel,$lcm,true) ? $lc : null,
                 'settings'=>['stability'=>$num('stability',0.5),'similarity_boost'=>$num('similarity_boost',0.8),'style'=>$num('style',0.25),'use_speaker_boost'=>true,'speed'=>round(max(0.7,min(1.2,$rate)),2)]];
         case 'google':
             /* Chirp3-HD-Stimmen tragen in jeder Sprache denselben Namen: de-DE-Chirp3-HD-Aoede → ja-JP-Chirp3-HD-Aoede. az: keine Google-Stimme → tr-TR. */
@@ -944,6 +948,7 @@ function ch_tts_request(string $provider, string $text, array $voice, array $cre
                     'headers'=>['Authorization: Bearer '.$cred['key'],'Content-Type: application/json','Accept: audio/mpeg']];
         case 'elevenlabs':
             $body=['text'=>$text,'model_id'=>$r['model'],'voice_settings'=>$r['settings']];
+            if(!empty($r['language_code'])) $body['language_code']=$r['language_code'];   // Sprache festhalten (kein Wechsel mitten im Satz)
             return ['url'=>ch_tts_base('https://api.elevenlabs.io').'/v1/text-to-speech/'.rawurlencode($r['voice']).'?output_format=mp3_44100_128','mode'=>'binary','body'=>json_encode($body,$J),
                     'headers'=>['xi-api-key: '.$cred['key'],'Content-Type: application/json','Accept: audio/mpeg']];
         case 'google':
