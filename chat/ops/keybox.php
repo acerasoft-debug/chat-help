@@ -81,7 +81,14 @@ if($mode==='check'){
         if($code===200 && is_array($s)){
             printf("ElevenLabs: Schlüssel gültig · Tarif %s · Zeichen %s / %s · Stimmenplätze %s · Status %s\n",$s['tier'] ?? '?',number_format((int)($s['character_count'] ?? 0),0,',','.'),number_format((int)($s['character_limit'] ?? 0),0,',','.'),$s['voice_limit'] ?? '?',$s['status'] ?? '?');
             [$c2,$v]=$get('/v1/voices'); if($c2===200 && is_array($v)){ $own=0; foreach((array)($v['voices'] ?? []) as $x) if(($x['category'] ?? '')!=='premade') $own++; echo "ElevenLabs: eigene/übernommene Stimmen in der Bibliothek: $own\n"; }
-        } else echo "ElevenLabs: Prüfung fehlgeschlagen (HTTP $code".(is_array($s) ? ' · '.json_encode($s['detail']['status'] ?? ($s['detail'] ?? ''),JSON_UNESCAPED_UNICODE) : '').") – Schlüssel oder Berechtigungen prüfen\n";
+        } else echo "ElevenLabs: Konto-Abfrage nicht erlaubt (HTTP $code".(is_array($s) ? ' · '.json_encode($s['detail']['status'] ?? ($s['detail'] ?? ''),JSON_UNESCAPED_UNICODE) : '').") – Berechtigung „User: Read“ fehlt (nur für Tarif-/Platz-Anzeige nötig)\n";
+        /* Berechtigungen einzeln prüfen: Sprachausgabe (6 Zeichen), Stimmen lesen (Library-Suche), Stimmen schreiben wird beim Scout geprüft */
+        $ch=curl_init('https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL?output_format=mp3_22050_32');
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode(['text'=>'Hallo.','model_id'=>'eleven_multilingual_v2']),CURLOPT_HTTPHEADER=>['xi-api-key: '.$c['key'],'Content-Type: application/json','Accept: audio/mpeg'],CURLOPT_TIMEOUT=>20]);
+        $a=curl_exec($ch); $tc=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+        echo "ElevenLabs Sprachausgabe (text_to_speech): ".($tc===200 && is_string($a) && strlen($a)>500 ? 'OK ('.strlen($a).' Bytes Audio)' : 'FEHLER HTTP '.$tc.(is_string($a) ? ' '.mb_substr(preg_replace('/\s+/',' ',$a),0,160) : ''))."\n";
+        [$vc,$vj]=$get('/v1/shared-voices?page_size=1&language=tr');
+        echo "ElevenLabs Stimmen lesen (voices_read): ".($vc===200 ? 'OK' : 'FEHLT (HTTP '.$vc.') – im ElevenLabs-Konto beim Schlüssel „Voices“ auf Lesen + Schreiben stellen')."\n";
     }
 }
 echo "FERTIG\n";
