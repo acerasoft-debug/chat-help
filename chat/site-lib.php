@@ -346,7 +346,7 @@ function site_clean_data(array $in, array $cur, array $assets): array {
     $d=$cur; $aok=fn($v)=>(is_int($v) || (is_string($v) && ctype_digit($v))) && in_array((int)$v,$assets,true) ? (int)$v : null;
     if(isset($in['biz']) && is_array($in['biz'])){ $b=$in['biz']+($cur['biz'] ?? []);
         $d['biz']=['name'=>site_txt($b['name'] ?? '',120),'phone'=>site_phone_clean($b['phone'] ?? ''),'whatsapp'=>site_phone_clean($b['whatsapp'] ?? ''),'email'=>site_email_clean($b['email'] ?? ''),
-          'street'=>site_txt($b['street'] ?? '',160),'zip'=>site_txt($b['zip'] ?? '',12),'city'=>site_txt($b['city'] ?? '',80),'country'=>preg_match('/^[A-Z]{2}$/',strtoupper((string)($b['country'] ?? ''))) ? strtoupper((string)$b['country']) : 'DE',
+          'street'=>site_txt($b['street'] ?? '',160),'zip'=>site_txt($b['zip'] ?? '',12),'city'=>site_txt($b['city'] ?? '',80),'country'=>isset(SITE_CC[strtoupper((string)($b['country'] ?? ''))]) ? strtoupper((string)$b['country']) : ((string)($cur['biz']['country'] ?? '') ?: 'DE'),
           'lat'=>is_numeric($b['lat'] ?? null) && abs((float)$b['lat'])<=90 ? round((float)$b['lat'],6) : null,'lon'=>is_numeric($b['lon'] ?? null) && abs((float)$b['lon'])<=180 ? round((float)$b['lon'],6) : null]; }
     if(array_key_exists('hours',$in)) $d['hours']=site_hours_clean($in['hours']);
     if(isset($in['sections']) && is_array($in['sections'])){ $seen=[]; $o=[];
@@ -364,7 +364,7 @@ function site_clean_data(array $in, array $cur, array $assets): array {
     if(array_key_exists('widget',$in)) $d['widget']=!empty($in['widget']);
     if(isset($in['legal']) && is_array($in['legal'])){ $l=$in['legal']+($cur['legal'] ?? []);
         $d['legal']=['owner'=>site_txt($l['owner'] ?? '',160),'form'=>site_txt($l['form'] ?? '',80),'rep'=>site_txt($l['rep'] ?? '',200),'street'=>site_txt($l['street'] ?? '',160),'zip'=>site_txt($l['zip'] ?? '',12),
-          'city'=>site_txt($l['city'] ?? '',80),'country'=>preg_match('/^[A-Z]{2}$/',strtoupper((string)($l['country'] ?? ''))) ? strtoupper((string)$l['country']) : 'DE','email'=>site_email_clean($l['email'] ?? ''),
+          'city'=>site_txt($l['city'] ?? '',80),'country'=>isset(SITE_CC[strtoupper((string)($l['country'] ?? ''))]) ? strtoupper((string)$l['country']) : ((string)($cur['legal']['country'] ?? '') ?: 'DE'),'email'=>site_email_clean($l['email'] ?? ''),
           'phone'=>site_phone_clean($l['phone'] ?? ''),'register'=>site_txt($l['register'] ?? '',200),'vat'=>site_txt($l['vat'] ?? '',40),'authority'=>site_txt($l['authority'] ?? '',300,true),
           'responsible'=>site_txt($l['responsible'] ?? '',200),'extra'=>site_txt($l['extra'] ?? '',3000,true),'privacy_extra'=>site_txt($l['privacy_extra'] ?? '',4000,true)]; }
     if(isset($in['texts']) && is_array($in['texts'])) foreach($in['texts'] as $l=>$tx){ $l=site_lang($l); if($l==='' || !is_array($tx)) continue; $o=[];

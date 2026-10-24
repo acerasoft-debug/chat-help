@@ -1,0 +1,6 @@
+<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh|html?|svg|js)$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "^index\.html$">
+  Require all granted
+</FilesMatch>

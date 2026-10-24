@@ -4,3 +4,6 @@ marketing/*.zip
 chat/.appt_reminder
 chat/.ai_model.json
 chat/cache/
+
+# Hochgeladene Website-Bilder (Testdaten lokal, auf dem Server echte Daten)
+chat/uploads/sites/*/
