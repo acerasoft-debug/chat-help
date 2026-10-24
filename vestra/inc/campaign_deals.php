@@ -199,12 +199,29 @@ function vestra_deals_pick(int $n = 6, ?array $all = null, ?int $now = null): ar
   return $out;
 }
 
-/* LACOSTE DALGASI (24 Eki 2026, operatör: "bugün kalan gönderimi kullan 435 email gönder lacoste indirimi"): indirim
-   mektubunu ALMIŞ ve 5+ gün dinlenmiş dükkânlara yalnız Lacoste indirimleri (aynı tasarım, tek marka). Takip sırasında
-   'deals'tan sonra gelir (VESTRA_MAILBOX_FOLLOWUP_ORDER) ve yalnız VESTRA_DEALS_LACOSTE_UNTIL gününe kadar kampanya
-   listesinde durur -- sonra kendiliğinden düşer, ertesi günlerin otomatik indirim partisi eskisi gibi yalnız 'deals'. */
-const VESTRA_DEALS_LACOSTE_UNTIL = '2026-10-24';
-function vestra_deals_lacoste_on(?int $now = null): bool { return !defined('VESTRA_DEALS_LACOSTE_OFF') && date('Y-m-d', $now ?? time()) <= VESTRA_DEALS_LACOSTE_UNTIL; }   // VESTRA_DEALS_LACOSTE_OFF: eski testler (yalnız 'deals')
+/* MARKA DALGALARI (24 Eki 2026, operatör: "bugün kalan gönderimi kullan 435 email gönder lacoste indirimi" + "email
+   kampanyalarına her gün otomatik gitmeli"): indirim mektubunu ALMIŞ ve 5+ gün dinlenmiş dükkânlara sırayla TEK MARKA
+   indirim mektubu (aynı tasarım). Sıra: öne çıkan marka (Lacoste) önce, sonra en yüksek indirim. Yalnız ≥ %20 indirimde
+   ürünü olan marka dalga olur; indirimi biten marka kendiliğinden düşer, yeni indirimli marka kendiliğinden eklenir.
+   Anahtar: Lacoste 'lacoste' (24 Eki ilk dalga bu adla gitti), diğerleri 'w:<marka>'. Her dükkân her dalgayı bir kez alır. */
+const VESTRA_DEALS_WAVE_MIN_PCT = 20;
+function vestra_deals_waves_on(): bool { return !defined('VESTRA_DEALS_WAVES_OFF'); }   // VESTRA_DEALS_WAVES_OFF: eski testler (yalnız 'deals')
+function vestra_deals_wave_key(string $label): string {
+  $s = trim((string)preg_replace('/[^a-z0-9]+/', '-', strtolower($label)), '-');
+  return $s === 'lacoste' ? 'lacoste' : 'w:'.$s;
+}
+function vestra_deals_is_wave_key(string $k): bool { return $k === 'lacoste' || str_starts_with($k, 'w:'); }
+/** Dalgalar sırayla: [anahtar => ['label', 'pct', 'pick']]. */
+function vestra_deals_waves(?array $all = null, ?int $now = null): array {
+  if (!vestra_deals_waves_on()) return [];
+  $p = vestra_deals_pick(200, $all, $now); $out = [];
+  foreach ($p['brands'] as $label => $pct) {
+    if ((int)$pct < VESTRA_DEALS_WAVE_MIN_PCT) continue;
+    $bp = vestra_deals_pick_brand((string)$label, 6, $all, $now);
+    if ($bp['items']) $out[vestra_deals_wave_key((string)$label)] = ['label' => (string)$label, 'pct' => (int)$pct, 'pick' => $bp];
+  }
+  return $out;
+}
 
 /** Tek markanın indirimli ürünleri (vestra_deals_pick biçiminde; yalnız gerçekten indirimdekiler, en çok $n). */
 function vestra_deals_pick_brand(string $brand, int $n = 6, ?array $all = null, ?int $now = null): array {

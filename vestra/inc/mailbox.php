@@ -448,9 +448,7 @@ const VESTRA_MAILBOX_FOLLOWUP_MIN_DAYS = 5;
    yalnız İNDİRİM mektubu (inc/campaign_deals.php). Eski sıra (polos → edit → lesgarage → standard) kalktı: polo
    promosyonu sabit eski fiyat yazıyordu, edit / lesgarage ilk mektubun kendisi. İndirimli ürün yoksa 'deals' kampanya
    listesinde olmaz ve takip alıcısı çıkmaz (boş mektup gitmez). */
-/* 24 Eki 2026: 'lacoste' (yalnız Lacoste indirimleri) 'deals'tan sonra -- kampanya listesinde yalnız VESTRA_DEALS_LACOSTE_UNTIL'e
-   kadar durur (vestra_finder_campaigns); listede yoksa vestra_mailbox_followup_next atlar. */
-const VESTRA_MAILBOX_FOLLOWUP_ORDER = ['deals', 'lacoste'];
+const VESTRA_MAILBOX_FOLLOWUP_ORDER = ['deals'];   // ardından marka dalgaları (vestra_deals_waves, kampanya listesindeki sırayla)
 /* 17 Eki 2026 (operatör: "noreply@g-star.com buna neden e-mail gönderiyorsun? distribütör ve büyük zincir butiklere ya da
    marketlere göndermemen gerektiğini söylemiştim"): takip havuzunun %95'i Tem/Ağu OSM listesindendi — bugünkü bulucu
    süzgecinden (sitede birden çok tanınan marka) hiç geçmemiş kayıtlar; ilk 93 alıcının ~20'si marka mağazası / zincir /
@@ -531,6 +529,10 @@ function vestra_lead_letters(array $l): array {
    durdurulmuşsa (auto_send=false, mailbox-pause.yml) indirim partisi de durur. Bir günde en çok VESTRA_MAILBOX_DEALS_TRIES
    istek (ertelenen / bu arada yazılan kayıtlar yüzünden eksik kalırsa yeniden dener, sonsuza dek değil). */
 const VESTRA_MAILBOX_DEALS_DAILY = 300;
+/* GÜNLÜK DOLDURMA (24 Eki 2026, operatör: "email kampanyalarına her gün otomatik gitmeli, kotayı doldur"): sabah pay 300
+   (yeni butiklere yer kalsın); Avrupa saatiyle VESTRA_MAILBOX_DEALS_TOPUP_AT'ten sonra pay günün sunucu tavanına çıkar --
+   yeni butiklerin kullanmadığı hak aynı gün indirim / marka dalgası mektuplarıyla dolar (vestra_mailbox_deals_quota_at). */
+const VESTRA_MAILBOX_DEALS_TOPUP_AT = '16:00';
 const VESTRA_MAILBOX_DEALS_AT = '08:30';
 const VESTRA_MAILBOX_DEALS_TRIES = 3;
 
@@ -560,6 +562,12 @@ function vestra_mailbox_deals_quota(?array $leads = null): int {
   return min(VESTRA_MAILBOX_DEALS_DAILY, intdiv(vestra_mailbox_cap_today($leads) * VESTRA_MAILBOX_DEALS_DAILY, VESTRA_MAILBOX_MAX_CAP));
 }
 
+/** Saate göre pay: doldurma saatinden sonra günün tavanı (operatörün o güne özel payı daha büyükse o). */
+function vestra_mailbox_deals_quota_at(?int $now = null): int {
+  $now = $now ?? time(); $q = vestra_mailbox_deals_quota();
+  return $now >= vestra_mailbox_at(VESTRA_MAILBOX_DEALS_TOPUP_AT, $now) ? max($q, vestra_mailbox_cap_today()) : $q;
+}
+
 function vestra_mailbox_deals_on(): bool {
   $c = vestra_mailbox_cfg();
   return vestra_mailbox_auto()['auto_send'] && (!array_key_exists('deals', $c) || !empty($c['deals']));
@@ -573,7 +581,7 @@ function vestra_mailbox_deals_reserve(?int $now = null): int {
   $cfg = vestra_mailbox_cfg(); $day = date('Y-m-d', $now);
   if ((string)($cfg['deals_empty'] ?? '') === $day) return 0;
   if ((string)($cfg['deals_day'] ?? '') === $day && (int)($cfg['deals_tries'] ?? 0) >= VESTRA_MAILBOX_DEALS_TRIES) return 0;
-  return max(0, vestra_mailbox_deals_quota() - vestra_mailbox_followups_today('deals', null, $now));
+  return max(0, vestra_mailbox_deals_quota() - vestra_mailbox_followups_today('', null, $now));   // yalnız sabah payı ayrılır; doldurma yeni butikleri bekletmez
 }
 
 /** Bugünün Brevo olay eşitlemesi (inc/ops_tick.php, 08:00) yapıldı mı? Brevo anahtarı yoksa beklenecek bir şey yok.
@@ -598,7 +606,7 @@ function vestra_mailbox_deals_daily(?int $now = null): string {
   $tries = (string)($cfg['deals_day'] ?? '') === $day ? (int)($cfg['deals_tries'] ?? 0) : 0;
   if ($tries >= VESTRA_MAILBOX_DEALS_TRIES) return '';
   foreach (vestra_mailbox_runs() as $r) if (vestra_mailbox_is_open($r)) return '';
-  $want = min(vestra_mailbox_deals_quota() - vestra_mailbox_followups_today('deals', null, $now), vestra_mailbox_left_today());
+  $want = min(vestra_mailbox_deals_quota_at($now) - vestra_mailbox_followups_today('', null, $now), vestra_mailbox_left_today());
   if ($want <= 0 || vestra_mailbox_bounce_stats()['stop']) return '';
   $save = static function (array $set): void {
     $c = vestra_mailbox_cfg(); foreach ($set as $k => $v) $c[$k] = $v;
@@ -614,10 +622,9 @@ function vestra_mailbox_deals_daily(?int $now = null): string {
 
 /** Dükkânın henüz almadığı ilk takip kampanyası; hepsini almışsa ''. */
 function vestra_mailbox_followup_next(array $had, ?array $camps = null): string {
-  foreach (VESTRA_MAILBOX_FOLLOWUP_ORDER as $k) {
-    if ($k === 'lacoste' && !(function_exists('vestra_deals_lacoste_on') && vestra_deals_lacoste_on())) continue;   // yalnız 24 Eki dalgası
-    if (!in_array($k, $had, true) && ($camps === null || isset($camps[$k]))) return $k;
-  }
+  $order = VESTRA_MAILBOX_FOLLOWUP_ORDER;
+  if ($camps !== null && function_exists('vestra_deals_is_wave_key')) foreach (array_keys($camps) as $k) if (vestra_deals_is_wave_key((string)$k)) $order[] = (string)$k;   // 24 Eki 2026: marka dalgaları
+  foreach ($order as $k) if (!in_array($k, $had, true) && ($camps === null || isset($camps[$k]))) return $k;
   return '';
 }
 

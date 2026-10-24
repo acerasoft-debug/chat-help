@@ -499,10 +499,11 @@ function vestra_finder_campaigns(): array {
     $out['deals'] = ['🏷️ İndirimli ürünler — eski müşterilere takip (−% rozetli seçki, fiyatsız)', 'Daha önce yazılmış dükkânlara: şu an indirimdeki premium ürünler (marka başına bir, −% rozetiyle), markaya göre indirim satırı, "indirimli ürünler" + "ücretsiz kayıt" düğmeleri. Dil: EN, DE, FR, IT, ES, NL, PT.',
       function (array $l) use ($tok) { [$s, $b, $o] = vestra_campaign_deals((string)($l['company'] ?? ''), vestra_finder_lead_lang($l)); return [$s, $tok($b, $l), $o, 'VESTRA']; }];
   }
-  /* 24 Eki 2026 (operatör: "lacoste indirimi"): indirim mektubunu almış dükkânlara yalnız Lacoste -- yalnız VESTRA_DEALS_LACOSTE_UNTIL'e kadar. */
-  if (vestra_deals_lacoste_on() && ($lp = vestra_deals_pick_brand('Lacoste'))['items']) {
-    $out['lacoste'] = ['🐊 Lacoste indirimleri — indirim mektubunu almış dükkânlara ikinci dalga', 'Yalnız Lacoste: indirimdeki ilanlar (−% rozetli, fiyatsız), depo fotoğrafları, "indirimli ürünler" + "ücretsiz kayıt". Dil: EN, DE, FR, IT, ES, NL, PT.',
-      function (array $l) use ($tok, $lp) { [$s, $b, $o] = vestra_campaign_deals((string)($l['company'] ?? ''), vestra_finder_lead_lang($l), $lp); return [$s, $tok($b, $l), $o, 'VESTRA']; }];
+  /* 24 Eki 2026: marka dalgaları (vestra_deals_waves) -- indirim mektubunu almış dükkânlara sırayla tek marka. */
+  foreach (vestra_deals_waves() as $wk => $w) {
+    $wp = $w['pick'];
+    $out[$wk] = ['🏷️ '.$w['label'].' indirimleri (−'.$w['pct'].'%) — indirim mektubunu almış dükkânlara marka dalgası', 'Yalnız '.$w['label'].': indirimdeki ilanlar (−% rozetli, fiyatsız), "indirimli ürünler" + "ücretsiz kayıt". Dil: EN, DE, FR, IT, ES, NL, PT.',
+      function (array $l) use ($tok, $wp) { [$s, $b, $o] = vestra_campaign_deals((string)($l['company'] ?? ''), vestra_finder_lead_lang($l), $wp); return [$s, $tok($b, $l), $o, 'VESTRA']; }];
   }
   if (is_readable(__DIR__.'/ai_campaign.php')) {
     require_once __DIR__.'/ai_campaign.php';
@@ -601,6 +602,7 @@ function vestra_send_paused_countries(): array {
   if (defined('VESTRA_SEND_PAUSED_OVERRIDE')) return (array)VESTRA_SEND_PAUSED_OVERRIDE;   // yalnız testler
   $f = vestra_data_dir().'/mailbox.json';
   $c = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+  if (is_array($c) && (string)($c['paused_off_day'] ?? '') === date('Y-m-d')) return [];   // 24 Eki 2026: yalnız o gün durdurma kalkar (mailbox-deals-switch unpause_today)
   return (is_array($c) && isset($c['paused_countries']) && is_array($c['paused_countries'])) ? array_values($c['paused_countries']) : VESTRA_SEND_PAUSED_DEFAULT;
 }
 function vestra_lead_send_paused(array $l, ?array $paused = null): bool {

@@ -25,7 +25,7 @@ $sand = sys_get_temp_dir().'/vestra_finder_'.bin2hex(random_bytes(4));
 define('VESTRA_DATA_DIR', $sand.'/data');
 define('VESTRA_FINDER_ON', true);
 define('VESTRA_SEND_PAUSED_OVERRIDE', []);   // eski bölümlerin Alman örnek dükkânları; durdurma kuralı 8m'de ayrıca sınanır   // web araması 8 Eki'de kapatıldı; kapı mantığı yine de sınanır
-define('VESTRA_DEALS_LACOSTE_OFF', true);   // 24 Eki 2026 Lacoste dalgasi ayri sinanir (tests/lacoste_wave_test.php)
+define('VESTRA_DEALS_WAVES_OFF', true);   // 24 Eki 2026 marka dalgalari ayri sinanir (tests/lacoste_wave_test.php)
 require $root.'/inc/products.php';
 require_once $root.'/inc/finder.php';
 
