@@ -50,6 +50,7 @@ jobs:
             $cfg = vestra_mailbox_cfg(); $cfg['deals'] = $on; $cfg['followup'] = $on; $cfg['deals_switch_at'] = date('c');
             $q = (int)preg_replace('/\D/', '', (string)getenv('QUOTA'));
             if ($on && $q > 0) { $cfg['deals_quota'] = min($q, VESTRA_MAILBOX_MAX_CAP); $cfg['deals_quota_day'] = date('Y-m-d'); echo "bugunku indirim payi: ".$cfg['deals_quota']." (".date('Y-m-d').")\n"; }
+            if ($on && strtolower(trim((string)getenv('START'))) === 'now' && (string)($cfg['deals_empty'] ?? '') === date('Y-m-d')) { unset($cfg['deals_empty']); echo "bugunku 'alici yok' isareti silindi (yeni kampanya icin yeniden aranir)\n"; }
             if ($on && strtolower(trim((string)getenv('START'))) !== 'now') {   // bugünün denemeleri ve 23:45 turu tükenmiş sayılır
               $cfg['deals_day'] = date('Y-m-d'); $cfg['deals_tries'] = defined('VESTRA_MAILBOX_DEALS_TRIES') ? VESTRA_MAILBOX_DEALS_TRIES : 3; $cfg['followup_day'] = date('Y-m-d');
             }
