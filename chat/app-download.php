@@ -87,9 +87,42 @@ h1 em{font-style:normal;color:var(--gold)}
 .shot{position:relative;display:grid;place-items:center}
 .glow{position:absolute;inset:10% 6%;background:radial-gradient(closest-side,rgba(201,151,47,.35),transparent);filter:blur(10px)}
 .phone{position:relative;width:260px;max-width:100%;aspect-ratio:9/19;border-radius:40px;background:var(--ph);padding:10px;box-shadow:var(--shadow2)}
-.phone .scr{position:relative;height:100%;border-radius:31px;overflow:hidden;background:var(--scr);color:#0f1222}
-@media (prefers-color-scheme:dark){.phone .scr{color:var(--ink)}}
+.phone .scr{position:relative;height:100%;border-radius:31px;overflow:hidden;background:#f6f7fb;color:#0f1222}
 .phone .isl{position:absolute;top:8px;left:50%;width:78px;height:22px;margin-left:-39px;border-radius:12px;background:#000;z-index:3}
+/* Handy-Mockup: Inhalt endet weich über der Leiste, nichts liegt übereinander */
+.pm{position:absolute;inset:0 0 48px;overflow:hidden;background:linear-gradient(#fff 0,#f6f7fb 150px);color:#0f1222;line-height:1.3;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)}
+.pm b{font-weight:700}
+.pn{display:flex;gap:8px;align-items:center;margin:38px 8px 0;padding:8px 10px;border-radius:14px;background:rgba(255,255,255,.98);box-shadow:0 0 0 1px rgba(15,18,34,.06),0 8px 22px rgba(15,18,34,.16);animation:pnIn .7s .3s cubic-bezier(.2,.8,.2,1) both}
+.pn-i{width:24px;height:24px;border-radius:7px;flex:0 0 auto;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#e7c873,#b8862b);animation:pnRing 3.2s 1.2s ease-out infinite}
+.pn-i svg{width:13px;height:13px}
+.pn-t{min-width:0;font-size:9px;color:#3b4055}
+.pn-t b,.pn-t span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pn-t b{font-size:9.5px;color:#0f1222}
+@keyframes pnIn{from{transform:translateY(-14px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+@keyframes pnRing{0%,60%,100%{box-shadow:0 0 0 0 rgba(201,151,47,0)}75%{box-shadow:0 0 0 5px rgba(201,151,47,.28)}}
+.ph-hd{padding:10px 14px 8px}
+.ph-h1{font:600 22px/1.1 Fraunces,Georgia,serif;letter-spacing:-.01em}
+.ph-gr{font-size:10px;color:#6b7083;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-miss{margin:0 12px 8px;padding:9px 10px;border-radius:14px;background:linear-gradient(135deg,#fffaf0,#f6ecd3);border:1px solid #ecdcb2;font-size:9.5px;color:#2a2010}
+.ph-miss b{display:block;font:600 11.5px/1.2 Fraunces,Georgia,serif;margin-bottom:2px}
+.ph-kpi{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 12px 8px}
+.ph-kpi>div{background:#fff;border:1px solid #e4e6ee;border-radius:12px;padding:7px 8px}
+.ph-kpi b{display:block;font:600 19px/1.1 Fraunces,Georgia,serif}
+.ph-kpi span{display:block;font-size:8.5px;color:#6b7083;margin-top:1px}
+.ph-it{margin:0 12px 6px;background:#fff;border:1px solid #e4e6ee;border-radius:12px;padding:7px 8px;display:flex;gap:7px;align-items:center}
+.ph-ic{width:24px;height:24px;border-radius:8px;flex:0 0 auto}
+.ph-tx{min-width:0;flex:1}
+.ph-tx>b{display:block;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-rw{display:flex;gap:5px;align-items:center;margin-top:2px}
+.ph-sb{flex:1;min-width:0;font-size:8.5px;color:#3b4055;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-pl{flex:0 0 auto;padding:1px 6px;border-radius:9px;font-size:8px;font-weight:700;white-space:nowrap}
+.pnav{position:absolute;left:0;right:0;bottom:0;height:48px;padding:0 8px 6px;background:#fff;border-top:1px solid #e9ebf2;display:flex;justify-content:space-between;align-items:center;color:#8d91a6}
+.pnav span{position:relative;display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;height:26px;padding:0 6px}
+.pnav svg{width:15px;height:15px;flex:0 0 auto}
+.pnav .on{padding:0 9px 0 7px;border-radius:13px;background:#0f1222;color:#fff;max-width:46%}
+.pnav .on svg{color:#e7c873}
+.pnav em{font:normal 700 8.5px Inter,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pnav .dot::after{content:"";position:absolute;top:3px;right:5px;width:6px;height:6px;border-radius:50%;background:#e2455f;box-shadow:0 0 0 1.5px #fff}
 .sec{padding:34px 0 8px}
 .sec h2{font:600 clamp(24px,4vw,32px)/1.15 Fraunces,Georgia,serif;margin:0 0 6px;letter-spacing:-.01em}
 .sec .sub{color:var(--ink2);margin:0 0 20px}
@@ -180,20 +213,19 @@ footer a{color:var(--ink2)}
 
     <div class="shot" aria-hidden="true"><div class="glow"></div>
       <div class="phone"><div class="isl"></div><div class="scr">
-        <div style="padding:40px 14px 10px;background:linear-gradient(#fff,#fbfbfd)"><div style="font:600 22px Fraunces,Georgia,serif;color:#0f1222"><?= $h($T('dl.ph.today')) ?></div><div style="font-size:10.5px;color:#6b7083"><?= $h($T('dl.ph.greet')) ?></div></div>
-        <div style="margin:4px 12px 8px;padding:10px;border-radius:14px;background:linear-gradient(135deg,#fffaf0,#f6ecd3);border:1px solid #ecdcb2;font-size:10px;color:#2a2010"><b style="font:600 12px Fraunces,Georgia,serif;display:block"><?= $h($T('dl.ph.miss')) ?></b><?= $h($T('dl.ph.missP')) ?></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 12px 8px">
-          <div style="background:#fff;border:1px solid #e4e6ee;border-radius:12px;padding:8px"><div style="font:600 20px Fraunces,Georgia,serif;color:#8f6519">4</div><div style="font-size:9px;color:#6b7083"><?= $h($T('dl.ph.orders')) ?></div></div>
-          <div style="background:#fff;border:1px solid #e4e6ee;border-radius:12px;padding:8px"><div style="font:600 20px Fraunces,Georgia,serif;color:#0f1222">6</div><div style="font-size:9px;color:#6b7083"><?= $h($T('dl.ph.appts')) ?></div></div></div>
-        <?php foreach ([[$T('dl.ph.i1'),$T('dl.ph.i1s'),$T('dl.ph.i1p'),'#f6ecd3','#8f6519'],[$T('dl.ph.i2'),$T('dl.ph.i2s'),$T('dl.ph.i2p'),'#e6eefc','#2f6fde'],[$T('dl.ph.i3'),'Mia Wagner',$T('dl.ph.today'),'#ece9fb','#6d5bd0']] as [$t,$s,$p,$bg,$fg]): ?>
-        <div style="margin:0 12px 6px;background:#fff;border:1px solid #e4e6ee;border-radius:12px;padding:8px;display:flex;gap:7px"><span style="width:24px;height:24px;border-radius:8px;background:<?= $bg ?>;flex:0 0 auto"></span><span style="min-width:0"><b style="display:block;font-size:10.5px;color:#0f1222"><?= $h($t) ?></b><span style="font-size:9px;color:#3b4055"><?= $h($s) ?></span><br><span style="display:inline-block;margin-top:3px;padding:1px 6px;border-radius:9px;background:<?= $bg ?>;color:<?= $fg ?>;font-size:8.5px;font-weight:700"><?= $h($p) ?></span></span></div>
-        <?php endforeach; ?>
-        <div style="position:absolute;left:0;right:0;bottom:0;height:46px;background:rgba(255,255,255,.95);border-top:1px solid #e4e6ee;display:flex;justify-content:space-around;align-items:center;font-size:8.5px;color:#6b7083"><span style="color:#0f1222;font-weight:700"><?= $h($T('dl.ph.today')) ?></span><span><?= $h($T('dl.ph.jobs')) ?></span><span><?= $h($T('dl.ph.cust')) ?></span><span><?= $h($T('dl.ph.alerts')) ?></span><span><?= $h($T('dl.ph.more')) ?></span></div>
-        <div style="position:absolute;left:8px;right:8px;top:36px;background:rgba(255,255,255,.97);border-radius:14px;padding:8px 10px;box-shadow:0 8px 24px rgba(15,18,34,.22);display:flex;gap:8px;align-items:center;animation:drop 4s ease-in-out infinite"><span style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#f3dfa6,#c9972f);flex:0 0 auto"></span><span style="font-size:9px;color:#3b4055;min-width:0"><b style="color:#0f1222;display:block;font-size:9.5px"><?= $h($T('dl.ph.notif')) ?></b><?= $h($T('dl.ph.notifP')) ?></span></div>
+        <div class="pm">
+          <div class="pn"><span class="pn-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span><span class="pn-t"><b><?= $h($T('dl.ph.notif')) ?></b><span><?= $h($T('dl.ph.notifP')) ?></span></span></div>
+          <div class="ph-hd"><div class="ph-h1"><?= $h($T('dl.ph.today')) ?></div><div class="ph-gr"><?= $h($T('dl.ph.greet')) ?></div></div>
+          <div class="ph-miss"><b><?= $h($T('dl.ph.miss')) ?></b><span><?= $h($T('dl.ph.missP')) ?></span></div>
+          <div class="ph-kpi"><div><b style="color:#8f6519">4</b><span><?= $h($T('dl.ph.orders')) ?></span></div><div><b>6</b><span><?= $h($T('dl.ph.appts')) ?></span></div></div>
+          <?php foreach ([[$T('dl.ph.i1'),$T('dl.ph.i1s'),$T('dl.ph.i1p'),'#f6ecd3','#8f6519'],[$T('dl.ph.i2'),$T('dl.ph.i2s'),$T('dl.ph.i2p'),'#e6eefc','#2f6fde'],[$T('dl.ph.i3'),'Mia Wagner',$T('dl.ph.today'),'#ece9fb','#6d5bd0']] as [$t,$s,$p,$bg,$fg]): ?>
+          <div class="ph-it"><span class="ph-ic" style="background:<?= $bg ?>"></span><span class="ph-tx"><b><?= $h($t) ?></b><span class="ph-rw"><span class="ph-sb"><?= $h($s) ?></span><span class="ph-pl" style="background:<?= $bg ?>;color:<?= $fg ?>"><?= $h($p) ?></span></span></span></div>
+          <?php endforeach; ?>
+        </div>
+        <div class="pnav"><span class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><em><?= $h($T('dl.ph.today')) ?></em></span><span title="<?= $h($T('dl.ph.jobs')) ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></span><span title="<?= $h($T('dl.ph.cust')) ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.5A6.5 6.5 0 0 1 21.5 20"/></svg></span><span title="<?= $h($T('dl.ph.alerts')) ?>" class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span><span title="<?= $h($T('dl.ph.more')) ?>"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></span></div>
       </div></div>
     </div>
   </header>
-  <style>@keyframes drop{0%,12%{transform:translateY(-130%);opacity:0}20%,80%{transform:none;opacity:1}90%,100%{transform:translateY(-130%);opacity:0}}</style>
 
   <!-- ===== Anleitung iPhone ===== -->
   <section class="sec pane" data-pane="ios" id="ios-steps">
