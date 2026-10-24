@@ -901,6 +901,13 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
                 $h .= '<p class="hint" style="margin:0">📎 '.t('Receipt received').' '
                     . htmlspecialchars(substr((string)($rcpt['uploaded_at'] ?? ''), 0, 10)).' — '.t('awaiting confirmation.').'</p>';
             } else {
+                /* Onceki dekont GECERSIZ sayildiysa (havale geri dondu, 24 Eki 2026):
+                   alici neden yeniden istendigini gormeli ve elden odemenin makbuzunun
+                   da buraya yuklenecegini bilmeli. */
+                if (!empty($statusEntry['payment_receipts_void'])) {
+                    $h .= '<p class="hint" style="margin:0 0 8px;color:#8a6420">↩ '
+                        . t('Your earlier transfer was returned by the bank. Please upload the receipt of your new transfer — or, if you paid in cash, the signed payment receipt.').'</p>';
+                }
                 $h .= '<p class="hint" style="margin:0 0 10px">'
                     . t('Already paid by bank transfer? Attach the receipt here and we will confirm your order.').'</p>'
                     . vestra_receipt_upload_form($formHref, $ref);

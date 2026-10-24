@@ -13070,3 +13070,15 @@ E-postaların "View my order" düğmesi tam bu sayfaya açılıyor.
   DURUR; yarım taşıma geri alınır; geri okunur. E-posta göndermez, kayıt değiştirmez.
 - İş akışı: `seller-products.yml admin_mode=invoice_restore issue_ref=<ref> payload='<satıcı|boş=vestra>[|stamp=…]'`
   (kuru koşu varsayılan, `move_apply=true` uygular). Test: `tests/invoice_restore_test.php` (18).
+
+## Dekontu geçersiz sayma (24 Eki 2026) — `vestra_receipt_void`
+- Operatör: *"o havale müşteriye geri geleceğinden yeni bir havale ya da elden ödeme için belge yüklemesi gerek"* (VES-EC6D6B0D).
+  Dekont durdukça sipariş `has_receipt`: alıcı sayfasında "receipt received — awaiting confirmation", yükleme kutusu yok, saat duruyor.
+- `vestra_receipt_void($ref,$reason,$by,$deadlineTs=null,$apply)` (inc/receipts.php): dekontu `payment_receipts_void[]`'e taşır
+  (dosya SİLİNMEZ), tarihçeye yazar; `$deadlineTs` verilirse saat, son tarih söz verilen günden ÖNCE bitmeyecek en erken başlangıçla
+  kurulur ve `payment_reminder_sent_at` yazılır (cron ikinci "5 iş günü" mektubu yollamaz; süre geçerse otomatik iptal).
+  Ödenmiş/iptal/gönderilmiş siparişte DURUR. Alıcı sayfası void varken "transfer was returned — upload new receipt / signed cash
+  receipt" notunu ve yükleme kutusunu gösterir.
+- İş akışı: `seller-products.yml admin_mode=receipt_void issue_ref=<ref> payload='<neden>|deadline=YYYY-MM-DD'`. Test:
+  `tests/receipt_void_test.php` (15).
+- Not: 24 Eki mektubunda "Friday, 31 October" yazdı — 31 Ekim CUMARTESİ. Saat 31 Ekim'i tam kapsayacak şekilde kuruldu (Pzt 2 Kas 00:59 UTC).

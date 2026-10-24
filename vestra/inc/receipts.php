@@ -80,6 +80,62 @@ function vestra_order_receipt(string $ref): ?array {
     return $r;
 }
 
+/**
+ * DEKONTU GECERSIZ SAY (24 Eki 2026). Operator: "o havale musteriye geri gelecegi icin
+ * yeni bir havale ya da elden odeme icin belge yuklemesi gerek" (VES-EC6D6B0D: dekont
+ * yuklendi, havale kapali/haczedilmis hesaptan geri dondu). Dekont DURDUKCA siparis
+ * 'has_receipt' fazinda kalir: alici sayfasinda "dekont alindi, onay bekleniyor" yazar,
+ * yukleme kutusu cikmaz ve odeme saati DURUR -- yani alici yeni belgeyi yukleyemez.
+ *
+ * Dosya SILINMEZ (iz kalir): kayit payment_receipts_void[]'e tasinir (neden + kim + ne
+ * zaman), tarihceye satir duser. $deadlineTs verilirse odeme saati o ana bitecek sekilde
+ * yeniden kurulur ve "uyari gitti" sayilir (operatorun mektubu uyaridir): cron ikinci bir
+ * "5 is gunu" mektubu YOLLAMAZ, ama son tarih gecerse otomatik iptal eder.
+ * Odenmis / iptal / gonderilmis sipariste DURUR. Yazma geri okunur.
+ */
+function vestra_receipt_void(string $ref, string $reason, string $by = 'operator', ?int $deadlineTs = null, bool $apply = true): array {
+    $ref = trim($ref);
+    $out = ['ok' => false, 'error' => '', 'file' => '', 'deadline' => null];
+    if ($ref === '') { $out['error'] = 'ref bos'; return $out; }
+    $all = vestra_read_json('order_statuses.json');
+    $e = (array)($all[$ref] ?? []);
+    $r = $e['payment_receipt'] ?? null;
+    if (!is_array($r) || empty($r['file'])) { $out['error'] = 'bu sipariste kayitli dekont yok'; return $out; }
+    $status = (string)($e['status'] ?? 'pending');
+    if ($status !== 'pending') { $out['error'] = "siparis durumu '{$status}' -- yalniz 'pending' sipariste dekont gecersiz sayilir"; return $out; }
+    if (function_exists('vestra_order_payment_settled') && !empty(vestra_order_payment_settled($ref, $e)['settled'])) {
+        $out['error'] = 'siparisin parasi GELMIS gorunuyor -- dekont gecersiz sayilmaz'; return $out;
+    }
+    $out['file'] = (string)$r['file'];
+    $start = null;
+    if ($deadlineTs !== null) {
+        /* Saat GERIYE dogru kurulur: son tarih = baslangic + N is gunu
+           (vestra_order_payment_grace ile ayni hesap, tek kaynak). Son tarihi
+           KARSILAYAN en gec baslangic aranir -- soz verilen gunden once bitmesin. */
+        if (!function_exists('vestra_business_days_after')) require_once __DIR__.'/escrow.php';
+        $n = defined('VESTRA_ORDER_PAYMENT_GRACE_DAYS') ? (int)VESTRA_ORDER_PAYMENT_GRACE_DAYS : 5;
+        $start = $deadlineTs - 14 * 86400;
+        while (vestra_business_days_after($start, $n) < $deadlineTs) $start += 3600;
+        $out['deadline'] = vestra_business_days_after($start, $n);
+    }
+    if (!$apply) { $out['ok'] = true; return $out; }
+    $r['void_at'] = date('c'); $r['void_by'] = $by; $r['void_reason'] = mb_substr(trim($reason), 0, 300);
+    $e['payment_receipts_void'] = array_values(array_merge((array)($e['payment_receipts_void'] ?? []), [$r]));
+    unset($e['payment_receipt']);
+    if ($start !== null) {
+        $e['payment_grace_start'] = date('c', $start);
+        $e['payment_reminder_sent_at'] = date('c');
+    }
+    $e['history'][] = vestra_order_history_entry($status, $by, 'Payment receipt voided ('.$out['file'].'): '.$r['void_reason']);
+    $e['updated_at'] = date('c');
+    $all[$ref] = $e;
+    vestra_write_json('order_statuses.json', $all);
+    $back = (array)(vestra_read_json('order_statuses.json')[$ref] ?? []);
+    if (!empty($back['payment_receipt']) || empty($back['payment_receipts_void'])) { $out['error'] = 'geri okuma tutmadi'; return $out; }
+    $out['ok'] = true;
+    return $out;
+}
+
 /** Buyer-facing upload form — same shape as inc/docs.php's vestra_doc_upload_form(),
  *  keyed by order ref instead of a document-request id, so the two forms share the
  *  same accept list, size limit and client-side photo-shrink script (vestra_doc_upload_js). */
