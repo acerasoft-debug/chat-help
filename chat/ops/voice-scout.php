@@ -42,4 +42,8 @@ foreach(vs_status() as $r){
     if($r['native']) $nat++;
     printf("%-3s %-11s %s\n     F: %s\n     M: %s%s\n",$r['lang'],$r['provider'] ?? 'Browser',$r['native'] ? '✓ muttersprachlich' : '· '.$r['note'],$r['f'],$r['m'],"");
 }
-echo "\nMuttersprachlich: $nat von ".count(VS_LANGS)." Sprachen.\nFERTIG\n";
+echo "\nMuttersprachlich: $nat von ".count(VS_LANGS)." Sprachen.\n";
+echo "\n— Kostenbremse ".ch_tts_ym()." (Zeichen: verbraucht / Monatsgrenze · Demo / Demo-Grenze; 0 = ohne Grenze) —\n";
+$br=ch_tts_budget_report(); if(!$br) echo "kein Anbieter eingerichtet\n";
+foreach($br as $p=>$b) printf("%-11s %s / %s · Demo %s / %s%s\n",$p,number_format($b['used'],0,',','.'),number_format($b['limit'],0,',','.'),number_format($b['demo'],0,',','.'),number_format($b['demo_limit'],0,',','.'),$b['blocked_until'] ? ' · Kontingent leer, pausiert bis '.gmdate('d.m. H:i',$b['blocked_until']).' UTC' : '');
+echo "FERTIG\n";

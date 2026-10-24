@@ -74,7 +74,7 @@ function ph_play_voice(string $lang): ?array {
     $want=$set==='all' || ($auto && $l2==='az') || (!$auto && in_array($l2,array_map('trim',explode(',',$set)),true));
     if(!$want || ch_lang_norm($l2)!==$l2) return $memo[$lang]=null;
     $g=(string)($GLOBALS['ph_gender'] ?? 'f'); $vid=(string)($GLOBALS['ph_voice_id'] ?? '');
-    $v=ch_tts_voice_for(['gender'=>in_array($g,['m','gm'],true) ? 'm' : 'f'],$vid!=='' && ch_tts_catalog_entry($vid) ? $vid : null,$l2);
+    $v=ch_tts_voice_for(['gender'=>in_array($g,['m','gm'],true) ? 'm' : 'f'],$vid!=='' && ch_tts_catalog_entry($vid) ? $vid : null,$l2); $v['channel']='phone';
     $p=ch_tts_provider_for($v['lang'],$v);
     $native=$p==='azure' || ($p==='google' && $l2!=='az') || ($p==='elevenlabs' && ($l2==='en' || ch_tts_native($l2,'elevenlabs')!==[]));
     return $memo[$lang]=(!$p || ($auto && !$native)) ? null : $v;

@@ -7,7 +7,7 @@
  *   400 {error}                 ungültige Eingabe (JSON, Demo, Text leer/> 400 Zeichen, Token fehlt)
  *   403 {error:'bad_token'}     Token falsch/abgelaufen – nur Sätze, die der Demo-Agent selbst erzeugt hat (demo|sector|exp|text), werden vertont
  *   429 {error:'rate_limited'}  pro IP (ch_rate_ip: Proxy-Header nur von Cloudflare/lokalen Proxys) 120/Stunde, insgesamt 6000 neue Vertonungen/Tag (CH_TTS_RATE_IP / CH_TTS_RATE_DAY)
- *   501 {error:'tts_unavailable'} kein Anbieter in db.php → Startseite nutzt die Browser-Stimme
+ *   501 {error:'tts_unavailable'} kein Anbieter in db.php oder Demo-/Monatsbudget aller Anbieter aufgebraucht (Kostenbremse, speech-lib) → Startseite nutzt die Browser-Stimme
  *   503 {error:'tts_failed'|'busy'} Anbieter/DB gestört → Browser-Stimme
  *   GET/andere → 405
  * sector: nur bei agent-phone; unbekannt/leer → Standardbranche (zahnarzt) – genau wie beim Signieren in concierge.php.
@@ -35,6 +35,8 @@ if(ch_tts_provider()===null) th_json(501,['error'=>'tts_unavailable']);
 
 $vid=(is_string($in['voice'] ?? null) && ch_tts_preset($in['voice'])) ? $in['voice'] : null;   // unbekannte Stimme → Standard der Demo/Branche
 $voice=ch_tts_voice_for(ch_demo_conf($demo,$sector)['voice'] ?? [],$vid);
+$voice['channel']='demo';   // Kostenbremse: eigenes Demo-Budget je Anbieter (ch_tts_budget_ok)
+if(ch_tts_provider_for(ch_tts_lang_fix($text,$voice)['lang'],$voice)===null) th_json(501,['error'=>'tts_unavailable']);   // Budget aufgebraucht → Browserstimme für den Rest
 try{
     if(!th_rate('tts:ip:'.ch_rate_ip(), tts_limit('CH_TTS_RATE_IP',120), 3600)){ header('Retry-After: 900'); th_json(429,['error'=>'rate_limited']); }
     /* Tageslimit zählt nur neue Vertonungen (Cache-Treffer kosten beim Anbieter nichts) */

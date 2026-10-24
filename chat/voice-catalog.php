@@ -359,7 +359,7 @@ function vc_api(string $route, string $method, int $aid, array $body, array $acc
             $pre=function_exists('ch_tts_preset') ? (ch_tts_preset($e['preset']) ?? []) : [];
             $voice=vc_apply_tts(['gender'=>$e['gender'],'preset'=>$e['preset'],'lang'=>ch_lang_tag($e['lang']),'rate'=>(float)($pre['rate'] ?? 1.0),'pitch'=>(float)($pre['pitch'] ?? 1.0),
                 'instructions'=>(string)($pre['instructions'] ?? ''),'openai'=>$pre['openai'] ?? '','google'=>$pre['google'] ?? '','azure'=>$pre['azure'] ?? '','elevenlabs'=>$pre['elevenlabs'] ?? '','eleven'=>$pre['eleven'] ?? null],$e['id']);
-            $voice['lang_auto']=false;
+            $voice['lang_auto']=false; $voice['channel']='studio';
             $mp3=null; try{ $mp3=ch_tts_synth(vc_sample_text($e['lang'],$name),$voice); }catch(Throwable $x){ error_log('CH voice sample: '.$x->getMessage()); }
             if(!is_string($mp3) || $mp3==='') return [502,['error'=>'tts_failed','message'=>'Die Hörprobe konnte gerade nicht erzeugt werden.']];
             if(PHP_SAPI==='cli') return [200,['audio'=>true,'content_type'=>'audio/mpeg','bytes'=>strlen($mp3)]];

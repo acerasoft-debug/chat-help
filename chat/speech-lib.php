@@ -771,19 +771,73 @@ function ch_tts_rank(string $lc): array {
 /**
  * Anbieter für eine Vertonung: TTS_PROVIDER erzwingt global, TTS_PROVIDER_<LC> je Sprache ('off' = Browserstimme);
  * eine im Studio gewählte Cloud-Katalogstimme derselben Sprache behält ihren Anbieter; sonst ch_tts_rank. null = keine Server-Stimme.
+ * Kostenbremse: Anbieter über ihrem Monatsbudget (gesamt bzw. Demo, ch_tts_budget_ok) werden übersprungen → nächster Anbieter, zuletzt Browserstimme.
  */
 function ch_tts_provider_for(string $lang, array $voice=[]): ?string {
-    if(defined('TTS_PROVIDER') && !in_array(strtolower(trim((string)TTS_PROVIDER)),['','auto'],true)) return ch_tts_provider();
+    $ch=(string)($voice['channel'] ?? 'app');
+    if(defined('TTS_PROVIDER') && !in_array(strtolower(trim((string)TTS_PROVIDER)),['','auto'],true)){ $p=ch_tts_provider(); return $p && ch_tts_budget_ok($p,$ch) ? $p : null; }
     $lc=ch_lang_norm($lang) ?: 'de';
     $per=strtolower(ch_tts_const('TTS_PROVIDER_'.strtoupper($lc)));
     if($per!=='' && $per!=='auto'){
         if(in_array($per,['off','none','browser'],true)) return null;
-        if(in_array($per,CH_TTS_PROVIDERS,true) && ch_tts_creds($per)) return $per;
+        if(in_array($per,CH_TTS_PROVIDERS,true) && ch_tts_creds($per) && ch_tts_budget_ok($per,$ch)) return $per;
     }
     $cid=(string)($voice['catalog_id'] ?? '');
-    if($cid!=='' && ($e=ch_tts_catalog_entry($cid)) && $e['source']['type']==='cloud' && $e['lang']===$lc && ch_tts_creds($e['source']['provider'])) return $e['source']['provider'];
-    foreach(ch_tts_rank($lc) as $p) if(ch_tts_creds($p)) return $p;
+    if($cid!=='' && ($e=ch_tts_catalog_entry($cid)) && $e['source']['type']==='cloud' && $e['lang']===$lc && ch_tts_creds($e['source']['provider']) && ch_tts_budget_ok($e['source']['provider'],$ch)) return $e['source']['provider'];
+    foreach(ch_tts_rank($lc) as $p) if(ch_tts_creds($p) && ch_tts_budget_ok($p,$ch)) return $p;
     return null;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Kostenbremse: Zeichen je Anbieter, Monat und Kanal (demo = Live-Demos der Startseite, phone, studio, app) in tts_usage.
+   Nur echte Vertonungen zählen (Cache-Treffer kosten beim Anbieter nichts). db.php (Zeichen pro Monat, 0 = ohne Grenze):
+     TTS_BUDGET_<ANBIETER>       gesamt   – Standard: azure 450000 (bleibt im kostenlosen Kontingent), elevenlabs 90000, google 500000, openai 300000
+     TTS_DEMO_BUDGET_<ANBIETER>  Demo     – Standard: elevenlabs 15000 (Credits bleiben für zahlende Kunden), sonst 60 % des Gesamtbudgets
+   Meldet ein Anbieter „Kontingent/Guthaben aufgebraucht“, wird er 6 Stunden übersprungen. */
+const CH_TTS_BUDGET_DEFAULT = ['azure'=>450000,'elevenlabs'=>90000,'google'=>500000,'openai'=>300000];
+const CH_TTS_DEMO_DEFAULT = ['elevenlabs'=>15000];
+function ch_tts_ym(): string { return gmdate('Y-m'); }
+/** Verbrauch dieses Monats: provider → channel → Zeichen (channel 'blocked' = gesperrt bis Unix-Zeit). */
+function ch_tts_usage_all(bool $reload=false): array {
+    static $u=null; if($u!==null && !$reload) return $u; $u=[];
+    if(!function_exists('th_db')) return $u;
+    try{ $q=th_db()->prepare("SELECT provider,channel,chars FROM tts_usage WHERE ym=?"); $q->execute([ch_tts_ym()]); foreach($q->fetchAll(PDO::FETCH_ASSOC) as $r) $u[$r['provider']][$r['channel']]=(int)$r['chars']; }
+    catch(Throwable $e){ $u=[]; }
+    return $u;
+}
+function ch_tts_usage_table(): void { static $t=false; if($t) return; th_db()->exec("CREATE TABLE IF NOT EXISTS tts_usage (provider VARCHAR(16) NOT NULL, ym CHAR(7) NOT NULL, channel VARCHAR(12) NOT NULL, chars INT NOT NULL DEFAULT 0, PRIMARY KEY(provider,ym,channel)) ENGINE=InnoDB"); $t=true; }
+function ch_tts_usage_add(string $provider, string $channel, int $chars): void {
+    if(!function_exists('th_db') || $chars<=0) return;
+    try{ ch_tts_usage_table(); th_db()->prepare("INSERT INTO tts_usage(provider,ym,channel,chars) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE chars=chars+VALUES(chars)")->execute([$provider,ch_tts_ym(),$channel,$chars]); ch_tts_usage_all(true); }
+    catch(Throwable $e){ error_log('CH tts usage: '.$e->getMessage()); }
+}
+function ch_tts_block(string $provider, int $sec=21600): void {
+    if(!function_exists('th_db')) return;
+    try{ ch_tts_usage_table(); th_db()->prepare("INSERT INTO tts_usage(provider,ym,channel,chars) VALUES(?,?,'blocked',?) ON DUPLICATE KEY UPDATE chars=VALUES(chars)")->execute([$provider,ch_tts_ym(),time()+$sec]); ch_tts_usage_all(true); }
+    catch(Throwable $e){ error_log('CH tts block: '.$e->getMessage()); }
+}
+/** Monatsgrenze (Zeichen) gesamt bzw. für die Demo; 0 = ohne Grenze. */
+function ch_tts_budget(string $provider, bool $demo=false): int {
+    $P=strtoupper($provider); $tot=defined('TTS_BUDGET_'.$P) ? max(0,(int)constant('TTS_BUDGET_'.$P)) : (CH_TTS_BUDGET_DEFAULT[$provider] ?? 0);
+    if(!$demo) return $tot;
+    if(defined('TTS_DEMO_BUDGET_'.$P)) return max(0,(int)constant('TTS_DEMO_BUDGET_'.$P));
+    return CH_TTS_DEMO_DEFAULT[$provider] ?? (int)floor($tot*0.6);
+}
+/** Darf der Anbieter für diesen Kanal noch vertonen? (gesperrt nach Kontingent-Meldung, Gesamt- und Demo-Budget) */
+function ch_tts_budget_ok(string $provider, string $channel='app'): bool {
+    $u=ch_tts_usage_all()[$provider] ?? [];
+    if(($u['blocked'] ?? 0)>time()) return false;
+    $used=0; foreach($u as $c=>$n) if($c!=='blocked') $used+=$n;
+    $tot=ch_tts_budget($provider); if($tot>0 && $used>=$tot) return false;
+    if($channel==='demo'){ $d=ch_tts_budget($provider,true); if($d>0 && ($u['demo'] ?? 0)>=$d) return false; }
+    return true;
+}
+/** Übersicht für ops/voice-scout.php: Verbrauch und Grenzen je eingerichtetem Anbieter. */
+function ch_tts_budget_report(): array {
+    $o=[];
+    foreach(CH_TTS_PROVIDERS as $p){ if(!ch_tts_creds($p)) continue; $u=ch_tts_usage_all()[$p] ?? []; $used=0; foreach($u as $c=>$n) if($c!=='blocked') $used+=$n;
+        $o[$p]=['used'=>$used,'demo'=>(int)($u['demo'] ?? 0),'limit'=>ch_tts_budget($p),'demo_limit'=>ch_tts_budget($p,true),'blocked_until'=>($u['blocked'] ?? 0)>time() ? (int)$u['blocked'] : 0]; }
+    return $o;
 }
 /** Persona-Index einer Voreinstellung (f_warm 0, f_klar 1 …) – verteilt mehrere muttersprachliche Stimmen fest auf die Personas. */
 function ch_tts_persona_idx(string $preset): int { $i=array_search($preset,['f_warm','f_klar','f_frisch','f_sanft'],true); if($i===false) $i=array_search($preset,['m_freundlich','m_ruhig','m_souveraen','m_tief'],true); return $i===false ? 0 : (int)$i; }
@@ -939,12 +993,22 @@ function ch_tts_prune(?string $dir=null, int $days=14): int {
     foreach(glob($dir.'/*.tmp*') ?: [] as $f) if(@filemtime($f)<time()-3600) @unlink($f);
     return $n;
 }
-/** Text → MP3-Bytes (Cache zuerst). null bei jedem Fehler (dann spricht der Browser). $info → ['provider','cache'=>'hit'|'miss','preset']. */
+/** Text → MP3-Bytes (Cache zuerst). null bei jedem Fehler (dann spricht der Browser). $info → ['provider','cache'=>'hit'|'miss','preset'].
+ *  voice['channel'] (demo|phone|studio|app) zählt für die Kostenbremse; meldet ein Anbieter „Kontingent aufgebraucht“, übernimmt sofort der nächste. */
 function ch_tts_synth(string $text, array $voice, ?array &$info=null): ?string {
     $info=['provider'=>null,'cache'=>null,'preset'=>$voice['preset'] ?? null];
     $text=trim($text); if($text==='' || mb_strlen($text)>CH_TTS_MAXLEN) return null;
     $voice=ch_tts_lang_fix($text,$voice);
-    $prov=ch_tts_provider_for($voice['lang'],$voice); if(!$prov) return null;   // bester Anbieter für die Sprache des Textes
+    for($try=0; $try<2; $try++){
+        $a=ch_tts_synth_one($text,$voice,$info,$quota);
+        if($a!==null || !$quota) return $a;
+        ch_tts_block((string)$info['provider']);   // Kontingent/Guthaben weg → 6 h überspringen, nächsten Anbieter versuchen
+    }
+    return null;
+}
+function ch_tts_synth_one(string $text, array $voice, ?array &$info, ?bool &$quota): ?string {
+    $quota=false; $info['provider']=null; $info['cache']=null;
+    $prov=ch_tts_provider_for($voice['lang'],$voice); if(!$prov) return null;   // bester Anbieter für die Sprache des Textes (im Budget)
     $cred=ch_tts_creds($prov); if(!$cred) return null;
     $info['provider']=$prov;
     $file=ch_tts_cache_path($text,$voice,$prov);
@@ -962,10 +1026,13 @@ function ch_tts_synth(string $text, array $voice, ?array &$info=null): ?string {
     $redact=fn(string $m): string => str_replace([$cred['key'],rawurlencode($cred['key'])],'***',$m);
     if($code!==200){
         $msg=$raw!=='' && !ch_tts_is_mp3($raw) ? (string)preg_replace('/\s+/',' ',mb_substr(mb_scrub($raw,'UTF-8'),0,200)) : $err;
-        error_log('CH tts '.$prov.' http '.($code ?: 'curl').' '.$redact($msg)); return null;
+        error_log('CH tts '.$prov.' http '.($code ?: 'curl').' '.$redact($msg));
+        $quota=in_array($code,[401,402,403,429],true) && preg_match('/quota|credit|insufficient|exceed|limit|balance|billing/i',$msg)===1;
+        return null;
     }
     $audio=$req['mode']==='google_b64' ? base64_decode((string)(json_decode($raw,true)['audioContent'] ?? ''),true) : $raw;
     if(!is_string($audio) || !ch_tts_is_mp3($audio)){ error_log('CH tts '.$prov.' keine MP3-Antwort ('.strlen($raw).' Bytes)'); return null; }
+    ch_tts_usage_add($prov,(string)($voice['channel'] ?? 'app'),mb_strlen($text));   // nur echte Vertonungen zählen
     if($file){
         $tmp=$file.'.tmp'.bin2hex(random_bytes(4));
         if(@file_put_contents($tmp,$audio)!==false){ @chmod($tmp,0600); if(!@rename($tmp,$file)) @unlink($tmp); }

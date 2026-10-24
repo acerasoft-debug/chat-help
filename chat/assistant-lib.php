@@ -1323,7 +1323,7 @@ function assistant_api(string $route, string $method, int $aid, array $body, arr
             if(!assistant_tts_ready($lang)) return [501,['error'=>'tts_lang_unavailable','lang'=>$lang,'message'=>'Die Studio-Stimme spricht '.assistant_lang_name($lang).' noch nicht – dafür liest die Browserstimme vor.']];
             if(!th_rate('as:tts:'.$aid,300,86400)) return [429,['error'=>'rate_limited','message'=>'Tageslimit für die Sprachausgabe erreicht – ab jetzt spricht die Browserstimme.']];
             $mp3=null;
-            try{ $mp3=ch_tts_synth($text,assistant_voice($pr,is_array($over) ? $over : [],$lang)); }catch(Throwable $e){ error_log('CH assistant tts: '.$e->getMessage()); }
+            try{ $mp3=ch_tts_synth($text,['channel'=>'studio']+assistant_voice($pr,is_array($over) ? $over : [],$lang)); }catch(Throwable $e){ error_log('CH assistant tts: '.$e->getMessage()); }
             if(!is_string($mp3) || $mp3==='') return [502,['error'=>'tts_failed','message'=>'Die Stimme konnte gerade nicht erzeugt werden.']];
             return assistant_emit_audio($mp3);
         case $route==='assistant/reset' && $method==='POST':
