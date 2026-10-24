@@ -21,7 +21,7 @@
 
   /* ---------- Übersicht ---------- */
   function load(){
-    return api('/sites').then(function(j){META=j;LIST=j.sites||[];if(S){var cur=LIST.find(function(x){return x.id===S.id;});if(!cur){S=null;}}renderHome();}).catch(function(e){g('wbMain').innerHTML='<div class="card"><div class="msg err">'+h(err(e))+'</div></div>';});
+    return api('/sites').then(function(j){META=j;LIST=j.sites||[];if(S){var cur=LIST.find(function(x){return x.id===S.id;});if(cur)return;S=null;}renderHome();})   // offener Editor bleibt (z. B. nach Veröffentlichen), Übersicht nur ohne Website.catch(function(e){g('wbMain').innerHTML='<div class="card"><div class="msg err">'+h(err(e))+'</div></div>';});
   }
   function tplCard(t,sel){
     return '<button type="button" class="wb-tpl" data-tpl="'+h(t.id)+'" aria-pressed="'+(sel?'true':'false')+'">'+(t.recommended?'<span class="wb-rec">'+_t('wbj.rec')+'</span>':'')
