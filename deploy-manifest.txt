@@ -152,6 +152,9 @@ chat/studio-panels/training.js chat/studio-panels/training.js
 # Live-Modus: Sprachaufbereitung + Server-Stimmen
 chat/speech-lib.php          chat/speech-lib.php
 chat/tts.php                 chat/tts.php
+# Beste Stimme je Sprache: Stimmen-Scout (ElevenLabs Voice Library, Azure HD, Google Chirp 3 HD) + Telefon-Audio (Twilio <Play>)
+chat/voice-scout-lib.php     chat/voice-scout-lib.php
+chat/tts-play.php            chat/tts-play.php
 # Phase 2: Lizenzen/Betrieb/eigener Schlüssel + Anruf-Assistent (privat)
 chat/billing-lib.php         chat/billing-lib.php
 chat/privat-lib.php          chat/privat-lib.php

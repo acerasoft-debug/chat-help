@@ -26,8 +26,8 @@ function x(string $s): string { return htmlspecialchars($s, ENT_XML1|ENT_QUOTES,
  * phone_voice: "de-DE" (weiblich, beste Stimme) · "de-DE-m" (männlich) · "de-DE-g" / "de-DE-gm" (Google Chirp3-HD weiblich/männlich) – das Geschlecht gilt für jede Sprache des Anrufs.
  *   Amazon Polly „Generative“ (mit SSML-Pausen): DE, EN (US/GB), FR, ES, IT.  Amazon Polly „Neural“: SV (Elin), NO (Ida), FI (Suvi), JA (Kazuha/Takumi).
  *   Google Chirp3-HD (Aoede/Charon): TR, NL, PL, RU sowie männliche Stimmen ohne Polly-Gegenstück und als Alternative ("-g"/"-gm").
- *   AZ: Twilio hat keine aserbaidschanische Stimme → tr-TR-Stimme (Aserbaidschanisch ist für türkische Hörer gut verständlich; ə/x/q werden für die
- *   Aussprache angenähert), Spracherkennung (Gather) aber az-AZ.  db.php: TWILIO_GATHER_AZ (z. B. 'tr-TR'), falls az-AZ im Konto nicht freigegeben ist.
+ *   AZ: Twilio hat keine aserbaidschanische Stimme → mit Azure-Schlüssel oder ElevenLabs-Profisprecher echte az-Stimme über <Play> (ph_play),
+ *   sonst tr-TR-Stimme (Aserbaidschanisch ist für türkische Hörer gut verständlich; ə/x/q werden angenähert), Spracherkennung (Gather) aber az-AZ.  db.php: TWILIO_GATHER_AZ (z. B. 'tr-TR'), falls az-AZ im Konto nicht freigegeben ist.
  * db.php: TWILIO_VOICE (fester Wert für die eingestellte Telefonsprache) · TWILIO_VOICE_TIER='neural' (Polly Neural statt Generative, falls im Twilio-Konto nicht freigeschaltet).
  */
 const PH_VOICES=[ // [weiblich, männlich] – null = Google Chirp3-HD
@@ -60,9 +60,40 @@ function voice_for(string $lang): string {
 }
 /** Aserbaidschanisch mit türkischer Stimme: ə→e, x→h, q→g (nächstliegende türkische Laute). */
 function ph_az_for_tr(string $t): string { return strtr($t,['ə'=>'e','Ə'=>'E','x'=>'h','X'=>'H','q'=>'g','Q'=>'G']); }
+/**
+ * Muttersprachliche Server-Stimme am Telefon (Twilio <Play> statt <Say>) – db.php TWILIO_PLAY_LANGS:
+ *   'auto' (Standard): nur Sprachen ohne eigene Twilio-Stimme (Aserbaidschanisch), sobald dafür eine echte muttersprachliche Stimme da ist
+ *                      (Azure Banu/Babek oder ein ElevenLabs-Profisprecher aus voice-scout) · 'all': jede Sprache mit Server-Stimme
+ *                      (z. B. die ElevenLabs-Sprecher auch am Telefon) · 'az,tr,…': diese Sprachen · 'off'.
+ * Stimme wie im Studio gewählt (Katalog) bzw. Geschlecht des Agenten. null = <Say> wie bisher.
+ */
+function ph_play_voice(string $lang): ?array {
+    static $memo=[]; if(array_key_exists($lang,$memo)) return $memo[$lang];
+    if(!function_exists('ch_tts_provider_for')) return $memo[$lang]=null;
+    $l2=ph_l2($lang); $set=defined('TWILIO_PLAY_LANGS') ? strtolower(trim((string)TWILIO_PLAY_LANGS)) : 'auto'; $auto=$set==='' || $set==='auto';
+    $want=$set==='all' || ($auto && $l2==='az') || (!$auto && in_array($l2,array_map('trim',explode(',',$set)),true));
+    if(!$want || ch_lang_norm($l2)!==$l2) return $memo[$lang]=null;
+    $g=(string)($GLOBALS['ph_gender'] ?? 'f'); $vid=(string)($GLOBALS['ph_voice_id'] ?? '');
+    $v=ch_tts_voice_for(['gender'=>in_array($g,['m','gm'],true) ? 'm' : 'f'],$vid!=='' && ch_tts_catalog_entry($vid) ? $vid : null,$l2);
+    $p=ch_tts_provider_for($v['lang'],$v);
+    $native=$p==='azure' || ($p==='google' && $l2!=='az') || ($p==='elevenlabs' && ($l2==='en' || ch_tts_native($l2,'elevenlabs')!==[]));
+    return $memo[$lang]=(!$p || ($auto && !$native)) ? null : $v;
+}
+/** Text → <Play>-Folge (vertont + im Cache, signierte Adressen) oder null, wenn etwas fehlt (dann <Say>). Auch zum Vorwärmen im Hintergrund. */
+function ph_play(string $text, string $lang): ?string {
+    $v=ph_play_voice($lang); if(!$v) return null;
+    $parts=ch_tts_chunks($text); if(!$parts || count($parts)>6) return null;
+    $xml='';
+    foreach($parts as $c){ $file=ch_tts_cache_path($c,$v); $info=null;
+        if(!$file || ch_tts_synth($c,$v,$info)===null || !is_file($file)) return null;
+        $xml.='<Play>'.x(ch_tts_play_url($file)).'</Play>'; }
+    return $xml;
+}
 /** Gesprochener Text → SSML: Sätze mit kurzen Atempausen, damit es nach Mensch klingt statt nach Durchlesen. $lang = Locale des Anrufs (z. B. ja-JP, az-AZ). */
 function say(string $text, string $lang): string {
-    $v=voice_for($lang); $sl=ph_say_locale($lang); $text=trim(preg_replace('/\s+/u',' ',$text));
+    $text=trim(preg_replace('/\s+/u',' ',$text));
+    if($text!=='' && ($pl=ph_play($text,$lang))!==null) return $pl;   // muttersprachliche Server-Stimme (z. B. Aserbaidschanisch)
+    $v=voice_for($lang); $sl=ph_say_locale($lang);
     if($lang==='az-AZ') $text=ph_az_for_tr($text);
     if(!str_starts_with($v,'Polly.')) return '<Say voice="'.x($v).'" language="'.x($sl).'">'.x($text).'</Say>';
     $parts=$sl==='ja-JP' ? (preg_split('/(?<=[。！？])/u',$text,-1,PREG_SPLIT_NO_EMPTY) ?: [$text]) : (preg_split('/(?<=[.!?…])\s+(?=[\p{Lu}0-9„"(¿¡])/u',$text) ?: [$text]); $ssml='';
@@ -329,6 +360,7 @@ $twr='<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">'.
 if(th_finish_response($twr,'text/xml; charset=UTF-8')){
     $bg=true;
     try{ $res=$work(); }catch(Throwable $e){ error_log('CH phone work: '.$e->getMessage()); $res=['spoken'=>ph_t('glitch',$lang),'forward'=>false,'end'=>false,'turns'=>$turns,'failed'=>true]; }
+    try{ if(($res['spoken'] ?? '')!=='') ph_play((string)$res['spoken'],$lang); }catch(Throwable $e){}   // Server-Stimme vorab vertonen, solange der Anrufer noch die Überbrückung hört
     th_db()->prepare("UPDATE phone_calls SET pending=? WHERE call_sid=? AND pending LIKE ?")->execute([json_encode(['state'=>'ready','id'=>$pid,'at'=>time(),'reply'=>$res],JSON_UNESCAPED_UNICODE),$sid,'%"id":"'.$pid.'"%']);
     exit;
 }

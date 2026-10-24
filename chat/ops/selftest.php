@@ -417,6 +417,25 @@ try {
     } else ok(false,'growth-lib.php nicht geladen');
 } catch(Throwable $e){ ok(false,'Marketing/Amazon: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
 
+/* ---------- Phase 6: beste Stimme je Sprache (Anbieter-Routing, Stimmen-Scout, Telefon-Audio) ---------- */
+try {
+    sec('Phase 6: Stimme je Sprache, Telefon-Audio');
+    if(is_file(__DIR__.'/voice-scout-lib.php')) require_once __DIR__.'/voice-scout-lib.php';
+    if(function_exists('vs_status')){
+        $st=vs_status(); $nat=array_sum(array_map(fn($r)=>$r['native'] ? 1 : 0,$st));
+        ok(count($st)===13,'Übersicht für 13 Sprachen',"$nat muttersprachlich · ".implode(' ',array_map(fn($r)=>$r['lang'].'='.($r['provider'] ?? 'browser'),$st)));
+        $ra=ch_tts_rank('az'); $rd=ch_tts_rank('de');
+        ok(in_array($ra[0],['azure','elevenlabs'],true) && $ra[3]==='google' && array_search('google',$rd,true)<array_search('openai',$rd,true),'Rangfolge: az Azure/ElevenLabs zuerst, de Google vor OpenAI',implode('>',$ra).' · '.implode('>',$rd));
+        ok(ch_tts_chunks('Eins. Zwei!')===['Eins. Zwei!'] && ch_tts_chunks(str_repeat('x',500).'.')===[],'Telefon-Audio: Satz-Stücke');
+        $f=bin2hex(random_bytes(32)); $e=time()+600;
+        $r=http('GET',"$BASE/chat/tts-play.php?f=$f&e=$e&s=".str_repeat('A',43).'&_='.rnd(4)); ok($r['code']===403,'tts-play.php: falsche Signatur → 403',"HTTP {$r['code']}");
+        $r=http('GET',"$BASE/chat/tts-play.php?f=$f&e=$e&s=".ch_tts_play_sig($f,$e).'&_='.rnd(4)); ok($r['code']===404,'tts-play.php: gültig signiert, aber nicht erzeugt → 404 (erzeugt nie selbst Audio)',"HTTP {$r['code']}");
+        $pa=ch_tts_provider_for('az-AZ',ch_tts_voice_for(['gender'=>'f'],null,'az'));
+        if(in_array($pa,['azure','elevenlabs'],true)){ $info=null; $a=ch_tts_synth('Salam, xoş gəlmisiniz.',ch_tts_voice_for(['gender'=>'f'],null,'az'),$info); ok($a!==null,'Aserbaidschanisch mit echter Stimme vertont',($info['provider'] ?? '-').' · '.($info['cache'] ?? '-')); }
+        else echo "  · az: keine muttersprachliche Server-Stimme eingerichtet (Azure-Schlüssel oder ElevenLabs + voice-scout) – Telefon nutzt die türkische Twilio-Stimme\n";
+    } else ok(false,'voice-scout-lib.php nicht geladen');
+} catch(Throwable $e){ ok(false,'Stimmen: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
+
 /* ---------- Twilio-Doku (vom Server geladen) ---------- */
 if($DOCS){
     sec('Twilio: gültige Stimmen laut offizieller Doku');

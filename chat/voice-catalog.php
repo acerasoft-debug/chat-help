@@ -113,15 +113,23 @@ function vc_variants(string $lang, string $g, array $real, int $want, array $nam
     return $out;
 }
 function vc_cloud_list(string $lang, string $g, array $names, int $from): array {
-    $out=[]; $tag=function_exists('ch_lang_tag') ? ch_lang_tag($lang) : 'de-DE'; $gl=$lang==='az' ? 'tr-TR' : $tag;
-    foreach(VC_OPENAI[$g] as [$v,$d]) $out[]=vc_cloud($lang,$g,ucfirst($v),$d,'openai',$v,'oa-'.$v);
-    foreach(VC_AZURE[$lang][$g] ?? [] as [$v,$d]){ $short=preg_replace('/^[a-z]{2}-[A-Z]{2}-|(Multilingual)?Neural$/','',$v); $out[]=vc_cloud($lang,$g,$short,$d,'azure',$v,'az-'.strtolower($short)); }
-    foreach(VC_GOOGLE[$g] as [$v,$d]) $out[]=vc_cloud($lang,$g,$v,$d,'google',$gl.'-Chirp3-HD-'.$v,'gg-'.strtolower($v));
+    $B=['openai'=>[],'azure'=>[],'google'=>[],'elevenlabs'=>[]]; $tag=function_exists('ch_lang_tag') ? ch_lang_tag($lang) : 'de-DE'; $gl=$lang==='az' ? 'tr-TR' : $tag;
+    foreach(VC_OPENAI[$g] as [$v,$d]) $B['openai'][]=vc_cloud($lang,$g,ucfirst($v),$d,'openai',$v,'oa-'.$v);
+    foreach(VC_AZURE[$lang][$g] ?? [] as [$v,$d]){ $short=preg_replace('/^[a-z]{2}-[A-Z]{2}-|(Multilingual)?Neural$/','',$v); $B['azure'][]=vc_cloud($lang,$g,$short,$d,'azure',$v,'az-'.strtolower($short)); }
+    foreach(VC_GOOGLE[$g] as [$v,$d]) $B['google'][]=vc_cloud($lang,$g,$v,$d,'google',$gl.'-Chirp3-HD-'.$v,'gg-'.strtolower($v));
+    /* Muttersprachliche Profi-Sprecher aus der ElevenLabs Voice Library (voice-scout, Tabelle tts_native) – vor den englischen Standardstimmen */
+    if(function_exists('ch_tts_native_all')) foreach(ch_tts_native_all()['elevenlabs'][$lang][$g] ?? [] as $i=>$n){
+        $first=trim((string)preg_split('/\s+[-–—|,·(]\s*|\s*[,(]/u',$n['label'])[0]);
+        $label=preg_match('/^\p{L}{2,20}$/u',$first) ? $first : ($names[$from+$i] ?? 'Voice '.($i+1));
+        $B['elevenlabs'][]=vc_cloud($lang,$g,$label,['natuerlich','klar'],'elevenlabs',$n['voice'],'eln-'.strtolower(substr((string)preg_replace('/[^A-Za-z0-9]/','',$n['voice']),0,12)));
+    }
     if(in_array($lang,VC_ELEVEN_LANGS,true) && function_exists('ch_tts_voices')){
         $ED=['f_warm'=>['warm','herzlich'],'f_klar'=>['klar','professionell'],'f_frisch'=>['frisch','lebendig'],'f_sanft'=>['sanft','geduldig'],'m_ruhig'=>['ruhig','warm'],'m_freundlich'=>['freundlich','locker'],'m_souveraen'=>['souveraen','deutlich'],'m_tief'=>['tief','gelassen']];
         foreach(ch_tts_voices() as $pid=>$p){ if($p['gender']!==$g) continue; $persona=str_contains($p['label'],' · ') ? trim(explode(' · ',$p['label'],2)[0]) : ucfirst(substr($pid,2));
-            $out[]=vc_cloud($lang,$g,$persona,$ED[$pid] ?? ['warm'],'elevenlabs',$p['elevenlabs'],'el-'.substr($pid,2)); }
+            $B['elevenlabs'][]=vc_cloud($lang,$g,$persona,$ED[$pid] ?? ['warm'],'elevenlabs',$p['elevenlabs'],'el-'.substr($pid,2)); }
     }
+    /* Reihenfolge = beste muttersprachliche Aussprache der Sprache zuerst (ch_tts_rank) */
+    $out=[]; foreach(function_exists('ch_tts_rank') ? ch_tts_rank($lang) : array_keys($B) as $p) $out=array_merge($out,$B[$p] ?? []);
     return $out;
 }
 /** Voreinstellung je Eintrag: Reihenfolge innerhalb des Geschlechts (0 → f_warm/m_freundlich, 1 → f_klar/m_ruhig, …), premium nach Klang. */

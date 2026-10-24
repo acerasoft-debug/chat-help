@@ -730,7 +730,65 @@ function ch_tts_creds(string $provider): ?array {
     }
     return null;
 }
-/** Erster verfügbarer Anbieter (oder TTS_PROVIDER); null = keine Server-Stimme → Browser-Stimme. */
+/* ---------------------------------------------------------------------- */
+/* Muttersprachliche Stimmen je Sprache (Tabelle tts_native, gefüllt von voice-scout-lib.php über ops/voice-scout.php):
+   elevenlabs = Profi-Sprecher aus der ElevenLabs Voice Library (in die eigene Bibliothek übernommen), azure = beste (HD-)Stimmen der Sprache,
+   google = vorhandene Chirp-3-HD-Stimmen der Locale. db.php ELEVENLABS_VOICE_<LC>_F / _M (kommagetrennt) gehen der Tabelle vor. */
+/** Alle Zeilen einmal je Anfrage: provider → lang → g → [['voice','label'], …] (Reihenfolge = pos). Ohne DB/Tabelle leer. */
+function ch_tts_native_all(bool $reload=false): array {
+    static $all=null; if($all!==null && !$reload) return $all; $all=[];
+    if(!function_exists('th_db')) return $all;
+    try{ foreach(th_db()->query("SELECT provider,lang,gender,voice,label FROM tts_native ORDER BY provider,lang,gender,pos") as $r) $all[$r['provider']][$r['lang']][$r['gender']][]=['voice'=>(string)$r['voice'],'label'=>(string)$r['label']]; }
+    catch(Throwable $e){ $all=[]; }
+    return $all;
+}
+/** Muttersprachliche Stimmen eines Anbieters für Sprache (+ Geschlecht); [] = keine bekannt. */
+function ch_tts_native(string $lc, string $provider, ?string $g=null): array {
+    $o=[];
+    foreach($g===null ? ['f','m'] : [$g] as $gg){
+        $c=$provider==='elevenlabs' ? ch_tts_const('ELEVENLABS_VOICE_'.strtoupper($lc).'_'.strtoupper($gg)) : '';
+        $ids=$c!=='' ? array_values(array_filter(array_map('trim',explode(',',$c)),fn($v)=>preg_match('/^[A-Za-z0-9]{10,40}$/',$v)===1)) : array_column(ch_tts_native_all()[$provider][$lc][$gg] ?? [],'voice');
+        $o=array_merge($o,$ids);
+    }
+    return $o;
+}
+/** Hat der Scout für diese Sprache beim Anbieter ausdrücklich keine passende Stimme gefunden? (Merkzeile gender '-') */
+function ch_tts_native_none(string $lc, string $provider): bool { return isset(ch_tts_native_all()[$provider][$lc]['-']); }
+/**
+ * Anbieter je Sprache, natürlichste muttersprachliche Aussprache zuerst:
+ *   ElevenLabs nur vorne, wenn für die Sprache ein muttersprachlicher Profi-Sprecher hinterlegt ist – die Standardstimmen von ElevenLabs sind
+ *   englische Sprecher und haben in anderen Sprachen einen Akzent. Google Chirp 3 HD: muttersprachlich in 12 Sprachen (nicht Aserbaidschanisch).
+ *   Azure: muttersprachlich in allen 13 (az: Banu/Babek). OpenAI: mehrsprachig mit leichtem Akzent → außer im Englischen zuletzt.
+ */
+function ch_tts_rank(string $lc): array {
+    $el=ch_tts_native($lc,'elevenlabs')!==[];
+    if($lc==='en') return ['elevenlabs','google','openai','azure'];
+    if($lc==='az') return $el ? ['elevenlabs','azure','openai','google'] : ['azure','elevenlabs','openai','google'];
+    $google=!ch_tts_native_none($lc,'google');   // Scout fand für die Sprache keine Chirp-3-HD-Stimme → nach hinten
+    $r=$el ? ['elevenlabs','google','azure','openai'] : ['google','azure','elevenlabs','openai'];
+    return $google ? $r : array_merge(array_values(array_diff($r,['google'])),['google']);
+}
+/**
+ * Anbieter für eine Vertonung: TTS_PROVIDER erzwingt global, TTS_PROVIDER_<LC> je Sprache ('off' = Browserstimme);
+ * eine im Studio gewählte Cloud-Katalogstimme derselben Sprache behält ihren Anbieter; sonst ch_tts_rank. null = keine Server-Stimme.
+ */
+function ch_tts_provider_for(string $lang, array $voice=[]): ?string {
+    if(defined('TTS_PROVIDER') && !in_array(strtolower(trim((string)TTS_PROVIDER)),['','auto'],true)) return ch_tts_provider();
+    $lc=ch_lang_norm($lang) ?: 'de';
+    $per=strtolower(ch_tts_const('TTS_PROVIDER_'.strtoupper($lc)));
+    if($per!=='' && $per!=='auto'){
+        if(in_array($per,['off','none','browser'],true)) return null;
+        if(in_array($per,CH_TTS_PROVIDERS,true) && ch_tts_creds($per)) return $per;
+    }
+    $cid=(string)($voice['catalog_id'] ?? '');
+    if($cid!=='' && ($e=ch_tts_catalog_entry($cid)) && $e['source']['type']==='cloud' && $e['lang']===$lc && ch_tts_creds($e['source']['provider'])) return $e['source']['provider'];
+    foreach(ch_tts_rank($lc) as $p) if(ch_tts_creds($p)) return $p;
+    return null;
+}
+/** Persona-Index einer Voreinstellung (f_warm 0, f_klar 1 …) – verteilt mehrere muttersprachliche Stimmen fest auf die Personas. */
+function ch_tts_persona_idx(string $preset): int { $i=array_search($preset,['f_warm','f_klar','f_frisch','f_sanft'],true); if($i===false) $i=array_search($preset,['m_freundlich','m_ruhig','m_souveraen','m_tief'],true); return $i===false ? 0 : (int)$i; }
+
+/** Erster verfügbarer Anbieter (oder TTS_PROVIDER); null = keine Server-Stimme → Browser-Stimme. Je Vertonung entscheidet ch_tts_provider_for. */
 function ch_tts_provider(): ?string {
     if(defined('TTS_PROVIDER')){
         $f=strtolower(trim((string)TTS_PROVIDER));
@@ -756,6 +814,8 @@ const CH_TTS_AZURE_NATIVE = ['de'=>['de-DE-SeraphinaMultilingualNeural','de-DE-F
   'fr'=>['fr-FR-DeniseNeural','fr-FR-HenriNeural'],'es'=>['es-ES-ElviraNeural','es-ES-AlvaroNeural'],'tr'=>['tr-TR-EmelNeural','tr-TR-AhmetNeural'],'ru'=>['ru-RU-SvetlanaNeural','ru-RU-DmitryNeural'],
   'it'=>['it-IT-ElsaNeural','it-IT-DiegoNeural'],'nl'=>['nl-NL-FennaNeural','nl-NL-MaartenNeural'],'sv'=>['sv-SE-SofieNeural','sv-SE-MattiasNeural'],'no'=>['nb-NO-PernilleNeural','nb-NO-FinnNeural'],
   'fi'=>['fi-FI-NooraNeural','fi-FI-HarriNeural'],'ja'=>['ja-JP-NanamiNeural','ja-JP-KeitaNeural'],'az'=>['az-AZ-BanuNeural','az-AZ-BabekNeural']];
+/** Gültiger Azure-Stimmname: Neural (de-DE-KatjaNeural) oder HD (de-DE-Seraphina:DragonHDLatestNeural). */
+const CH_TTS_AZURE_RE = '/^[a-z]{2,3}-[A-Z]{2}-[A-Za-z]{2,60}(:DragonHD[A-Za-z]{0,30})?Neural$/';
 /** Sprache der Stimme festlegen: voice['lang'] (BCP-47) – bei lang_auto oder ohne gültige Angabe aus dem Text erkannt (unsicher → bisherige bzw. de-DE). */
 function ch_tts_lang_fix(string $text, array $voice): array {
     $tag=(string)($voice['lang'] ?? ''); $ok=preg_match('/^[a-z]{2,3}-[A-Z]{2}$/',$tag)===1;
@@ -786,6 +846,9 @@ function ch_tts_resolve(string $provider, array $voice): array {
         case 'elevenlabs':
             $id=(string)($voice['elevenlabs'] ?? '');
             if(!preg_match('/^[A-Za-z0-9]{10,40}$/',$id)) $id=$pre['elevenlabs'];
+            /* Standardstimmen (englische Sprecher) außerhalb des Englischen → muttersprachlicher Profi-Sprecher der Sprache, fest je Persona */
+            if($lc!=='en' && in_array($id,array_column(CH_TTS_VOICES,'elevenlabs'),true) && ($nat=ch_tts_native($lc,'elevenlabs',$m ? 'm' : 'f')))
+                $id=$nat[ch_tts_persona_idx((string)($voice['preset'] ?? $pre['id'])) % count($nat)];
             $st=is_array($voice['eleven'] ?? null) ? $voice['eleven'] : $pre['eleven'];
             $num=fn($k,$d)=>round(max(0.0,min(1.0,(float)($st[$k] ?? $d))),2);
             /* Multilingual v2 kann kein Aserbaidschanisch und kein Norwegisch → dafür Eleven v3 (74 Sprachen); eigenes Modell je Sprache: TTS_ELEVENLABS_MODEL_AZ usw. */
@@ -799,8 +862,12 @@ function ch_tts_resolve(string $provider, array $voice): array {
             if(!str_starts_with($n,$loc.'-')) $n=preg_match('/^[a-z]{2,3}-[A-Z]{2}-(Chirp3-HD-[A-Za-z]+)$/',$n,$cm) ? $loc.'-'.$cm[1] : $loc.'-Chirp3-HD-'.($m ? 'Charon' : 'Aoede');
             return ['voice'=>$n,'rate'=>round($rate,2),'lang'=>$loc];
         case 'azure':
-            $n=(string)($voice['azure'] ?? ''); if(!preg_match('/^[a-z]{2}-[A-Z]{2}-[A-Za-z]{2,60}Neural$/',$n)) $n=$pre['azure'];
-            if(!str_starts_with($n,$tag.'-') && !($lc==='en' && str_starts_with($n,'en-'))) $n=CH_TTS_AZURE_NATIVE[$lc][$m ? 1 : 0] ?? $n;   // native Stimme der Sprache
+            $n=(string)($voice['azure'] ?? ''); if(!preg_match(CH_TTS_AZURE_RE,$n)) $n=$pre['azure'];
+            $nat=ch_tts_native($lc,'azure',$m ? 'm' : 'f');   // vom Scout gefunden, HD zuerst
+            if(!str_starts_with($n,$tag.'-') && !($lc==='en' && str_starts_with($n,'en-')))   // native Stimme der Sprache
+                $n=$nat ? $nat[ch_tts_persona_idx((string)($voice['preset'] ?? $pre['id'])) % count($nat)] : (CH_TTS_AZURE_NATIVE[$lc][$m ? 1 : 0] ?? $n);
+            /* gleicher Sprecher in HD-Qualität, wenn der Scout ihn gefunden hat (de-DE-SeraphinaMultilingualNeural → de-DE-Seraphina:DragonHDLatestNeural) */
+            if(!str_contains($n,':') && preg_match('/^([a-z]{2}-[A-Z]{2}-[A-Z][a-z]+)/',$n,$sp)) foreach($nat as $h) if(str_starts_with($h,$sp[1].':DragonHD')){ $n=$h; break; }
             return ['voice'=>$n,'rate'=>round($rate,2),'pitch'=>round($pitch,2),'lang'=>substr($n,0,5)];
     }
     return [];
@@ -827,7 +894,9 @@ function ch_tts_request(string $provider, string $text, array $voice, array $cre
         case 'azure':
             $pct=fn(float $f): string => (($p=(int)round(($f-1)*100))>=0 ? '+' : '').$p.'%';
             $x=fn(string $v): string => htmlspecialchars($v,ENT_XML1|ENT_QUOTES,'UTF-8');
-            $ssml="<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='".$x($r['lang'])."'><voice name='".$x($r['voice'])."'><prosody rate='".$x($pct($r['rate']))."' pitch='".$x($pct($r['pitch']))."'>".$x($text)."</prosody></voice></speak>";
+            /* HD-Stimmen bestimmen Tempo und Melodie selbst aus dem Kontext → ohne prosody (wird dort nicht durchgängig unterstützt) */
+            $inner=str_contains($r['voice'],':DragonHD') ? $x($text) : "<prosody rate='".$x($pct($r['rate']))."' pitch='".$x($pct($r['pitch']))."'>".$x($text)."</prosody>";
+            $ssml="<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='".$x($r['lang'])."'><voice name='".$x($r['voice'])."'>".$inner."</voice></speak>";
             return ['url'=>ch_tts_base('https://'.$cred['region'].'.tts.speech.microsoft.com').'/cognitiveservices/v1','mode'=>'binary','body'=>$ssml,
                     'headers'=>['Ocp-Apim-Subscription-Key: '.$cred['key'],'Content-Type: application/ssml+xml','X-Microsoft-OutputFormat: audio-24khz-48kbitrate-mono-mp3','User-Agent: ChatHelp-TTS']];
     }
@@ -840,9 +909,23 @@ function ch_tts_cache_dir(): ?string {
 }
 /** Cache-Datei für Text + aufgelöste Stimme beim aktuellen Anbieter (null = kein Anbieter / kein Cache-Ordner). */
 function ch_tts_cache_path(string $text, array $voice, ?string $provider=null): ?string {
-    $provider=$provider ?? ch_tts_provider(); if(!$provider) return null;
-    $d=ch_tts_cache_dir(); if(!$d) return null; $voice=ch_tts_lang_fix($text,$voice);
+    $voice=ch_tts_lang_fix($text,$voice);
+    $provider=$provider ?? ch_tts_provider_for($voice['lang'],$voice); if(!$provider) return null;
+    $d=ch_tts_cache_dir(); if(!$d) return null;
     return $d.'/'.hash('sha256','v2|'.$provider.'|'.json_encode(ch_tts_resolve($provider,$voice),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).'|'.trim($text)).'.mp3';
+}
+/** Telefon (Twilio <Play>): signierter Abruf einer schon erzeugten Cache-Datei über chat/tts-play.php (f = Dateiname ohne .mp3, e = Ablauf). */
+const CH_TTS_PLAY_TTL = 7200;
+function ch_tts_play_sig(string $f, int $e): string { return ch_tts_b64u(hash_hmac('sha256','play|'.$f.'|'.$e,ch_tts_key(),true)); }
+function ch_tts_play_url(string $file): string { $f=basename($file,'.mp3'); $e=time()+CH_TTS_PLAY_TTL; return 'https://chat-help.com/chat/tts-play.php?f='.$f.'&e='.$e.'&s='.ch_tts_play_sig($f,$e); }
+/** Text in Stücke ≤ $max Zeichen an Satzgrenzen; ein einzelner zu langer Satz → [] (dann spricht Twilio selbst). */
+function ch_tts_chunks(string $text, int $max=380): array {
+    $out=[]; $cur='';
+    foreach(preg_split('/(?<=[.!?…。！？])\s*/u',trim($text),-1,PREG_SPLIT_NO_EMPTY) ?: [] as $s){ $s=trim($s); if($s==='') continue;
+        if(mb_strlen($s)>$max) return [];
+        if($cur!=='' && mb_strlen($cur.' '.$s)>$max){ $out[]=$cur; $cur=$s; } else $cur=$cur==='' ? $s : $cur.' '.$s; }
+    if($cur!=='') $out[]=$cur;
+    return $out;
 }
 function ch_tts_is_mp3(string $b): bool {
     if(strlen($b)<64) return false;
@@ -860,9 +943,9 @@ function ch_tts_prune(?string $dir=null, int $days=14): int {
 function ch_tts_synth(string $text, array $voice, ?array &$info=null): ?string {
     $info=['provider'=>null,'cache'=>null,'preset'=>$voice['preset'] ?? null];
     $text=trim($text); if($text==='' || mb_strlen($text)>CH_TTS_MAXLEN) return null;
-    $prov=ch_tts_provider(); if(!$prov) return null;
-    $cred=ch_tts_creds($prov); if(!$cred) return null;
     $voice=ch_tts_lang_fix($text,$voice);
+    $prov=ch_tts_provider_for($voice['lang'],$voice); if(!$prov) return null;   // bester Anbieter für die Sprache des Textes
+    $cred=ch_tts_creds($prov); if(!$cred) return null;
     $info['provider']=$prov;
     $file=ch_tts_cache_path($text,$voice,$prov);
     if($file && is_file($file) && filesize($file)>0){
