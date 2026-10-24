@@ -1033,7 +1033,13 @@ function locCached(){if(ccParam())return null;try{const o=JSON.parse(sessionStor
 function navFit(){const n=document.querySelector('.nav'),w=n&&n.querySelector('.wrap'),m=document.getElementById('menu'),r=n&&n.querySelector('.navr');if(!w||!m||!r)return;n.classList.remove('tight');if(getComputedStyle(m).display==='none')return;
   if(w.scrollWidth>w.clientWidth+1||m.getBoundingClientRect().right>r.getBoundingClientRect().left-8)n.classList.add('tight');}
 let navFitT=0;window.addEventListener('resize',()=>{clearTimeout(navFitT);navFitT=setTimeout(navFit,120);});try{document.fonts&&document.fonts.ready.then(navFit);}catch(e){}
-function locApply(){document.documentElement.lang=LOC.lang==='no'?'nb':LOC.lang;try{document.title=T('j.title');}catch(e){}i18nStatic();i18nPrices();curNotes();lswSync();navFit();if(!locReady)return;
+/* Hero-Video je Seitensprache: media/hero-<lang>.webm|.mp4|-poster.jpg (de = hero.*; deploy-manifest) */
+const HERO_LANGS=['de','fr','tr','az','es','it','en','ru','nl','sv','no','fi','ja'];
+function heroMedia(){const v=document.querySelector('#heroVid video');if(!v)return;const l=HERO_LANGS.includes(LOC.lang)?LOC.lang:'de';if(v.dataset.heroLang===l)return;v.dataset.heroLang=l;
+  const b='/media/hero'+(l==='de'?'':'-'+l);v.setAttribute('poster',b+'-poster.jpg');let ch=false;
+  v.querySelectorAll('source').forEach(s=>{const u=b+(s.type==='video/webm'?'.webm':'.mp4');if(s.getAttribute('src')!==u){s.setAttribute('src',u);ch=true;}});
+  if(ch){v.load();v.play().catch(()=>{});}}
+function locApply(){document.documentElement.lang=LOC.lang==='no'?'nb':LOC.lang;try{document.title=T('j.title');}catch(e){}i18nStatic();i18nPrices();curNotes();lswSync();navFit();heroMedia();if(!locReady)return;
   try{l10nData();focusApply();document.querySelectorAll('.ptab').forEach(b=>b.textContent=T('j.pt.'+b.dataset.k));finderChips();finderRender();privatRender();showRender();dtabsRender();const pt=$('.ptab.on');if(pt)renderPrice(pt.dataset.k);
     if(lastPro&&$('#modal').classList.contains('open'))openPro(lastPro);demoRelabel();}catch(e){console.warn('locale',e);}}
 async function locFetch(q){try{const ac=window.AbortController?new AbortController():null,to=setTimeout(()=>ac&&ac.abort(),4000);
