@@ -1809,22 +1809,35 @@ function vPlayUrl(url,turn){return new Promise(res=>{if(turn!==V.turn)return res
   try{a.src=url;const p=a.play();if(p&&p.catch)p.catch(()=>done('err'));}catch(e){done('err');}});}
 function vVoicesReady(){const ss=window.speechSynthesis;let vs=[];try{vs=ss.getVoices()||[];}catch(e){}if(vs.length){V.voices=vs;return Promise.resolve();}
   return new Promise(r=>{let t=0;const fin=()=>{clearTimeout(t);try{ss.removeEventListener('voiceschanged',fin);}catch(e){}try{V.voices=ss.getVoices()||[];}catch(e){}r();};t=setTimeout(fin,900);try{ss.addEventListener('voiceschanged',fin);}catch(e){}});}
-/* Natürlichste deutsche Browser-Stimme für das Geschlecht der Persona: Edge „Online (Natural)“, Chrome „Google Deutsch“, Safari „Premium/Enhanced“; de-DE vor de-AT/CH; Spaßstimmen nie */
+/* Natürlichste Browser-Stimme in der Sprache der Antwort für das Geschlecht der Persona: Edge „Online (Natural)“, Chrome „Google …“, Safari „Premium/Enhanced“;
+   bester Akzent der Sprache zuerst (de-DE, tr-TR, en-GB, es-ES, fr-FR, nl-NL, nb-NO …); Aserbaidschanisch ohne eigene Gerätestimme → türkische Stimme; Spaßstimmen nie */
 const VQ=/natural|online|neural|premium|enhanced|google|wavenet|network/i,
-  VFEM=/katja|seraphina|amala|\banna\b|petra|helena|vicki|marlene|hedda|elke|louisa|ingrid|leni|klara|gisela|tanja|sabine|google deutsch|\bfemale|\bfrau\b|weiblich/i,
-  VMAL=/conrad|florian|killian|markus|yannick|stefan|\bhans\b|ralf|bernd|christoph|kasper|klaus|jonas|viktor|martin|\bmale\b|\bmann\b|männlich/i,
-  VNOV=/\b(eddy|flo|reed|rocko|sandy|shelley|grandma|grandpa|oma|opa|großmutter|großvater)\b/i;
-/* Browser-Fallback (keine Server-Stimme): deutsche Stimmen je Geschlecht deterministisch ranken (Qualität, de-DE, online – dann Name; Spaßstimmen nie);
+  VFEM=/katja|seraphina|amala|\banna\b|petra|helena|vicki|marlene|hedda|elke|louisa|ingrid|leni|klara|gisela|tanja|sabine|emel|seda|yelda|filiz|banu|denise|vivienne|eloise|brigitte|celeste|coralie|jacqueline|josephine|yvette|am[eé]lie|audrey|aur[eé]lie|\bmarie\b|elvira|ximena|abril|esperanza|irene|laura|luc[ií]a|m[oó]nica|paulina|marisol|\belsa\b|isabella|fiamma|palmira|pierina|\balice\b|federica|paola|sonia|libby|maisie|abbi|bella|hollie|olivia|\baria\b|jenny|\bava\b|\bemma\b|michelle|samantha|karen|\bkate\b|serena|moira|tessa|fiona|susan|victoria|allison|zira|hazel|catherine|natasha|svetlana|dariya|milena|irina|ekaterina|fenna|colette|claire|ellen|sofie|hillevi|\balva\b|astrid|pernille|iselin|\bnora\b|noora|selma|\bsatu\b|heidi|nanami|\baoi\b|mayu|shiori|kyoko|haruka|ayumi|sayaka|\bfemale|\bfrau\b|weiblich|kadın|женск/i,
+  VMAL=/conrad|florian|killian|markus|yannick|stefan|\bhans\b|ralf|bernd|christoph|kasper|klaus|jonas|viktor|martin|ahmet|\bcem\b|tolga|babek|henri|r[eé]my|alain|claude|j[eé]r[oô]me|maurice|\byves\b|thomas|nicolas|daniel|[aá]lvaro|arnau|dario|elias|jorge|\bjuan\b|pablo|diego|giuseppe|benigno|cataldo|gianni|\bluca\b|\bryan\b|\bguy\b|davis|andrew|brian|christopher|\beric\b|roger|steffan|\btony\b|\balex\b|\bfred\b|oliver|arthur|aaron|george|\bmark\b|david|james|dmitry|\byuri\b|maxim|pavel|maarten|xander|\bfrank\b|mattias|oskar|\bfinn\b|henrik|harri|\bonni\b|keita|daichi|naoki|otoya|ichiro|\bmale\b|\bmann\b|männlich|erkek|мужск/i,
+  VNOV=/\b(eddy|flo|reed|rocko|sandy|shelley|grandma|grandpa|oma|opa|großmutter|großvater|albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|junior|ralph)\b/i,
+  VLOC={de:['de-DE','de-AT','de-CH'],en:['en-GB','en-US','en-IE','en-AU','en-CA'],fr:['fr-FR','fr-BE','fr-CH','fr-CA'],es:['es-ES','es-US','es-MX'],tr:['tr-TR'],az:['az-AZ'],ru:['ru-RU'],it:['it-IT','it-CH'],
+    nl:['nl-NL','nl-BE'],sv:['sv-SE','sv-FI'],no:['nb-NO','no-NO','nn-NO'],fi:['fi-FI'],ja:['ja-JP']},
+  VFALL={az:'tr'};
+/* Sprache, in der gerade gesprochen wird: Sprache der Antwort, sonst Sprache der Seite */
+function vLangNow(){const l=V.rlang||(typeof LOC!=='undefined'&&LOC.lang)||'de';return VLOC[l]?l:'de';}
+/* Passt die Gerätestimme zur Sprache? exakte Wunsch-Locale 20…, gleiche Sprache andere Region 12, sonst null */
+function vLoc(v,l){const t=String(v&&v.lang||'').replace(/_/g,'-').toLowerCase(),L=(VLOC[l]||VLOC.de).map(x=>x.toLowerCase()),i=L.indexOf(t);if(i>=0)return 20-i;const p=t.split('-')[0];return L.some(x=>x.split('-')[0]===p)?12:null;}
+/* Browser-Fallback (keine Server-Stimme): Stimmen der Sprache je Geschlecht deterministisch ranken (Akzent, Qualität, online – dann Name; Spaßstimmen nie);
    eigenes Geschlecht zuerst, dann neutrale Namen, nie das andere Geschlecht (außer es gibt nur solche). Voreinstellung i des Geschlechts → i-te verschiedene Stimme. */
-function vRank(g){let vs=[];try{vs=(window.speechSynthesis&&speechSynthesis.getVoices())||[];}catch(e){}if(!vs.length)vs=V.voices||[];
-  const seen=new Set(),de=vs.filter(v=>{if(!v||!/^de([-_]|$)/i.test(v.lang||'')||VNOV.test(v.name||''))return false;const k=(v.name||'')+'|'+v.lang;if(seen.has(k))return false;seen.add(k);return true;});if(!de.length)return [];
-  const want=g==='m'?VMAL:VFEM,other=g==='m'?VFEM:VMAL,sc=v=>{const n=v.name||'';let s=0;if(VQ.test(n))s+=6;s+=/^de[-_]de/i.test(v.lang)?3:1;if(v.localService===false)s+=1;return s;};
+function vRank(g,l){l=VLOC[l]?l:vLangNow();let vs=[];try{vs=(window.speechSynthesis&&speechSynthesis.getVoices())||[];}catch(e){}if(!vs.length)vs=V.voices||[];
+  const pool=lx=>{const seen=new Set();return vs.filter(v=>{if(!v||vLoc(v,lx)===null||VNOV.test(v.name||''))return false;const k=(v.name||'')+'|'+v.lang;if(seen.has(k))return false;seen.add(k);return true;});};
+  let lx=l,de=pool(l);if(!de.length&&VFALL[l]){lx=VFALL[l];de=pool(lx);}if(!de.length)return [];
+  const want=g==='m'?VMAL:VFEM,other=g==='m'?VFEM:VMAL,sc=v=>{const n=v.name||'';let s=vLoc(v,lx);if(VQ.test(n))s+=6;if(v.localService===false)s+=1;return s;};
   const cmp=(a,b)=>sc(b)-sc(a)||String(a.name).localeCompare(String(b.name)),mine=de.filter(v=>want.test(v.name||'')&&!other.test(v.name||'')).sort(cmp),neutral=de.filter(v=>!want.test(v.name||'')&&!other.test(v.name||'')).sort(cmp);
   const r=mine.concat(neutral);return r.length?r:de.slice().sort(cmp);}
 function vSlot(g,p){const i=p?voices.filter(v=>v.gender===g).findIndex(v=>v.id===p.id):0;return i<0?0:i;}
-function pickVoice(g,p){const r=vRank(g);return r.length?r[vSlot(g,p)%r.length]:null;}
+function pickVoice(g,p,l){const r=vRank(g,l);return r.length?r[vSlot(g,p)%r.length]:null;}
+/* Hochwertige Gerätestimme in der Sprache der Antwort (Edge Natural, Apple Premium/Enhanced, Google)? Dann klingt sie besser als die kleinen Piper-Modelle → zuerst nutzen */
+function vGood(){const l=vLangNow(),v=pickVoice(vGender(),vPreset(),l);return !!(v&&vLoc(v,l)!==null&&VQ.test(v.name||''));}
+/* Aserbaidschanisch mit türkischer Stimme: ə→e, x→h, q→g (nächstliegende türkische Laute) */
+function vAzTr(t){return String(t).replace(/ə/g,'e').replace(/Ə/g,'E').replace(/x/g,'h').replace(/X/g,'H').replace(/q/g,'g').replace(/Q/g,'G');}
 /* Tempo/Tonhöhe der Browser-Stimme: Abweichung der Voreinstellung ×2,5 verstärkt; teilen sich Voreinstellungen eine Stimme (weniger Stimmen als Voreinstellungen), je Runde zusätzlich −0,08 / +0,08 / −0,16 … Tonhöhe */
-function vProso(g,p){const n=vRank(g).length,i=vSlot(g,p),lap=n?Math.floor(i/n):0,b=p&&p.browser?p.browser:{rate:1,pitch:1},off=lap?(lap%2?-1:1)*.08*Math.ceil(lap/2):0;
+function vProso(g,p,l){const n=vRank(g,l).length,i=vSlot(g,p),lap=n?Math.floor(i/n):0,b=p&&p.browser?p.browser:{rate:1,pitch:1},off=lap?(lap%2?-1:1)*.08*Math.ceil(lap/2):0;
   return {rate:vClamp(1+(b.rate-1)*2.5,.8,1.25,1),pitch:vClamp(1+(b.pitch-1)*2.5+off,.75,1.3,1)};}
 /* Spricht gerade (bzw. sicher demnächst) die Browser-Stimme? Dann zeigt die Auswahl ihren Namen neben der Voreinstellung. */
 function vBrowserUsed(){return !!(V.ttsKnown&&(!V.tts||V.ttsDead||V.brw));}
@@ -1833,9 +1846,10 @@ try{if(window.speechSynthesis){const f=()=>{try{V.voices=speechSynthesis.getVoic
 /* Browser-Stimme, Satz für Satz (kurze Äußerungen umgehen Chromes 15-Sekunden-Abbruch) */
 async function vBrowser(text,turn){const ss=window.speechSynthesis;if(!ss||!window.SpeechSynthesisUtterance||!text)return 'none';
   if(!V.vTried){V.vTried=true;await vVoicesReady();}if(turn!==V.turn)return false;
-  return new Promise(res=>{let u;try{u=new SpeechSynthesisUtterance(text);}catch(e){return res('none');}
-    u.lang='de-DE';const p=vPreset(),v=pickVoice(vGender(),p);if(v){try{u.voice=v;u.lang=v.lang||'de-DE';}catch(e){}}
-    const own=!p||!V.preset||p.id===V.preset,pr=vProso(vGender(),p);u.rate=vClamp(pr.rate*(own?V.rate:1),.7,1.3,1);u.pitch=vClamp(pr.pitch*(own?V.pitch:1),.7,1.3,1);   /* Voreinstellung (verstärkt) × Tempo/Tonhöhe der Persona, wenn es ihre eigene Stimme ist */
+  return new Promise(res=>{const l=vLangNow(),p=vPreset(),v=pickVoice(vGender(),p,l);let u;
+    try{u=new SpeechSynthesisUtterance(v&&vLoc(v,l)===null&&l==='az'?vAzTr(text):text);}catch(e){return res('none');}
+    u.lang=(VLOC[l]||VLOC.de)[0];if(v){try{u.voice=v;u.lang=v.lang||u.lang;}catch(e){}}
+    const own=!p||!V.preset||p.id===V.preset,pr=vProso(vGender(),p,l);u.rate=vClamp(pr.rate*(own?V.rate:1),.7,1.3,1);u.pitch=vClamp(pr.pitch*(own?V.pitch:1),.7,1.3,1);   /* Voreinstellung (verstärkt) × Tempo/Tonhöhe der Persona, wenn es ihre eigene Stimme ist */
     let fin=false,to=0;const done=r=>{if(fin)return;fin=true;clearTimeout(to);if(V.end===stop)V.end=null;if(V.utter===u)V.utter=null;vTalk(false);res(r);};
     const stop=()=>done(false);V.end=stop;V.utter=u;
     u.onstart=()=>{if(!fin)vTalk(true);};u.onend=()=>done(true);u.onerror=e=>done(e&&/interrupted|canceled/.test(e.error||'')?false:'err');
@@ -1863,8 +1877,9 @@ async function vSay(items,turn,st){items=(items||[]).filter(x=>x&&x.text);if(!it
       if(srv&&items[i].t){const url=await get(i);if(turn!==V.turn){ok=false;break;}
         if(url){if(i+1<items.length&&items[i+1].t)get(i+1);r=await vPlayUrl(url,turn);try{URL.revokeObjectURL(url);}catch(e){}if(r===false){ok=false;break;}}
         if(r!==true){srv=false;if(st){st.srv=false;if(!V.brw){V.brw=true;ttsHintUI();}}}}
+      let tb=false;if(r!==true&&vGood()){tb=true;r=await vBrowser(items[i].text,turn);if(r===false){ok=false;break;}}   // hochwertige Gerätestimme der Sprache vor Piper
       if(r!==true){const pp=pget(i);if(pp){if(i+1<items.length)pget(i+1);r=await vPiper(pp,turn);if(r===false){ok=false;break;}}else if(window.CHVoice)pvLoad(pvVoice());}
-      if(r!==true){r=await vBrowser(items[i].text,turn);if(r===false){ok=false;break;}}
+      if(r!==true&&!tb){r=await vBrowser(items[i].text,turn);if(r===false){ok=false;break;}}
       if(i<items.length-1){await sleep(120+Math.random()*80);}}}
   finally{pre.forEach(p=>p&&p.then(u=>{if(u)try{URL.revokeObjectURL(u);}catch(e){}}));if(turn===V.turn){V.busy=false;liveState();}}
   return ok&&turn===V.turn;}
