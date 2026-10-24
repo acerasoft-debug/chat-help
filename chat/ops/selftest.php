@@ -383,7 +383,7 @@ try {
     foreach(['it_IT-serena-medium','en_GB-vctk-medium','nl_NL-pim-medium','ru_RU-dmitri-medium'] as $k){ $h=http('HEAD',"$BASE/chat/vendor/voice/models/$k.bin",null,[],'raw',true); ok($h['code']===200,"Stimme $k auf dem Server","HTTP {$h['code']}"); }
     $r=$api('GET','sites'); ok($r['code']===200 && isset($r['json']['templates']) && count($r['json']['templates'])>=8,'Website-Baukasten: Liste + 8 Vorlagen (API)',"HTTP {$r['code']} · ".count($r['json']['templates'] ?? []).' Vorlagen');
     foreach(['gastro'=>'Speisekarte','beauty'=>'','praxis'=>'','hotel'=>'','taxi'=>'','shop'=>'','handwerk'=>'','personal'=>''] as $d=>$needle){
-        $r=http('GET',"$BASE/chat/site.php?demo=$d&lang=de&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'<h1') && ($needle==='' || str_contains($r['body'],$needle)),"Baukasten-Beispiel „$d“ (öffentliche Darstellung)","HTTP {$r['code']}");
+        $r=http('GET',"$BASE/chat/site.php?demo=$d&lang=de&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'<h1') && ($needle==='' || str_contains($r['body'],$needle)),"Baukasten-Beispiel „{$d}“ (öffentliche Darstellung)","HTTP {$r['code']}");
     }
     $r=http('GET',"$BASE/chat/site.php?demo=gastro&lang=tr&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && preg_match('/lang="tr/',$r['body']),'Baukasten-Beispiel auf Türkisch',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'id="website"') && str_contains($r['body'],'heroMedia'),'Startseite: Abschnitt „Website erstellen“ + Video je Sprache',"HTTP {$r['code']}");
