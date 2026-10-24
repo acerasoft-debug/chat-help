@@ -168,3 +168,22 @@ chat/studio-i18n/sv.json         chat/studio-i18n/sv.json
 chat/studio-i18n/no.json         chat/studio-i18n/no.json
 chat/studio-i18n/fi.json         chat/studio-i18n/fi.json
 chat/studio-i18n/ja.json         chat/studio-i18n/ja.json
+# Premium-Stimmen: Katalog, API, Studio-Panel „Stimmen“, Übersetzungen
+chat/voice-catalog.php        chat/voice-catalog.php
+chat/voice-api.php            chat/voice-api.php
+chat/voice/catalog.json       chat/voice/catalog.json
+chat/studio-panels/voices.html chat/studio-panels/voices.html
+chat/studio-panels/voices.js   chat/studio-panels/voices.js
+chat/studio-i18n-voice/de.json chat/studio-i18n-voice/de.json
+chat/studio-i18n-voice/fr.json chat/studio-i18n-voice/fr.json
+chat/studio-i18n-voice/tr.json chat/studio-i18n-voice/tr.json
+chat/studio-i18n-voice/az.json chat/studio-i18n-voice/az.json
+chat/studio-i18n-voice/es.json chat/studio-i18n-voice/es.json
+chat/studio-i18n-voice/it.json chat/studio-i18n-voice/it.json
+chat/studio-i18n-voice/en.json chat/studio-i18n-voice/en.json
+chat/studio-i18n-voice/ru.json chat/studio-i18n-voice/ru.json
+chat/studio-i18n-voice/nl.json chat/studio-i18n-voice/nl.json
+chat/studio-i18n-voice/sv.json chat/studio-i18n-voice/sv.json
+chat/studio-i18n-voice/no.json chat/studio-i18n-voice/no.json
+chat/studio-i18n-voice/fi.json chat/studio-i18n-voice/fi.json
+chat/studio-i18n-voice/ja.json chat/studio-i18n-voice/ja.json
