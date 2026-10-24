@@ -12,7 +12,7 @@
 <meta property="og:image" content="https://chat-help.com/media/hero-poster.jpg">
 <meta name="theme-color" content="#ffffff">
 <script>/* Sprachdateien (Version = Inhalts-Hash, gesetzt von tools/site-i18n.mjs) – die gemerkte Sprache wird schon hier geladen */
-window.I18N_V={"en":"6ca8f7274a","fr":"a108d82bf7","es":"5349bec540","tr":"342013c3fc","ru":"9759c0306c","it":"21d297a088","nl":"a74a4ab930","sv":"d660770175","no":"28580709d7","fi":"b3dcf9d386","ja":"77d377f9af","az":"c85d30f1b9"};
+window.I18N_V={"en":"6ca8f7274a","fr":"a108d82bf7","es":"5349bec540","tr":"342013c3fc","ru":"9759c0306c","it":"21d297a088","nl":"a74a4ab930","sv":"d660770175","no":"28580709d7","fi":"b3dcf9d386","ja":"46b6d12406","az":"c85d30f1b9"};
 (function(){try{var V=window.I18N_V,l=(document.cookie.match(/(?:^|; )ch_lang=([a-z]{2})/)||[])[1];if(!l){var o=JSON.parse(sessionStorage.getItem('chLoc2')||'null');l=o&&o.j&&o.j.lang;}
   if(l&&l!=='de'&&V[l]){var P=window.__chI18nPre={},f=function(x){P[x]=fetch('/i18n/'+x+'.json?v='+V[x],{credentials:'same-origin'}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});};f(l);if(l!=='en'&&V.en)f('en');}}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -431,6 +431,10 @@ footer .fbot{flex:1 0 100%;display:flex;justify-content:space-between;gap:8px 24
 /* floating assistant */
 .fab{position:fixed;right:22px;bottom:22px;z-index:80;display:inline-flex;align-items:center;gap:10px;padding:12px 18px 12px 14px;border-radius:999px;background:var(--ink);color:#fff;border:1px solid rgba(255,255,255,.08);box-shadow:0 1px 2px rgba(15,18,34,.2),0 18px 40px -12px rgba(15,18,34,.45);font:600 14.5px var(--sans);transition:transform .18s ease-out,box-shadow .18s ease-out}.fab:hover{transform:translateY(-2px);box-shadow:0 1px 2px rgba(15,18,34,.2),0 24px 48px -12px rgba(15,18,34,.5)}
 .fab .av{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#f3dfa6,#c9972f)}
+/* Mobil: kompakter Assistent-Knopf (nur Avatar mit „?“), damit er die Hero-Buttons nicht verdeckt; der Text bleibt für Screenreader erhalten */
+@media(max-width:640px){.fab{right:14px;bottom:14px;width:54px;height:54px;padding:0;gap:0;justify-content:center;font-size:0}.fab .av{width:32px;height:32px;border-radius:10px;display:grid;place-items:center}.fab .av::after{content:"?";font:800 17px/1 var(--sans);color:#2a1f06}}
+/* Japanisch: Überschrift nicht mitten im Wort umbrechen (Umbruch nur an <wbr>/Satzzeichen), etwas kleiner und luftiger */
+html[lang="ja"] .hero h1{font-size:clamp(32px,3vw + 8px,52px);line-height:1.14;letter-spacing:0;word-break:keep-all;overflow-wrap:anywhere}
 .ai{position:fixed;right:22px;bottom:84px;z-index:81;width:min(400px,calc(100vw - 32px));height:min(600px,calc(100vh - 110px));background:#fff;border:1px solid var(--line2);border-radius:24px;box-shadow:var(--sh3);display:none;flex-direction:column;overflow:hidden}
 .ai.open{display:flex}
 .ai .hd{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fff,var(--bg2))}

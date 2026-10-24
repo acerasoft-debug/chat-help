@@ -3,9 +3,10 @@
  * ChatHelp — Live-Demos der Startseite je Sprache mit einem passenden örtlichen Betrieb
  * ======================================================================================
  * Deutsch (Standard) bleibt unverändert: Köln/Hamburg, €, deutsche Nummern (CH_DEMO in plans.php, Selbsttests prüfen diese Namen).
- * Für fr/tr/az/es/it/en ersetzt ch_demo_l10n() Firma, Adresse, Wissensbasis, Begrüßung, Schnellwahl, Überbrückungssätze und
+ * Für alle zwölf weiteren Sitesprachen ersetzt ch_demo_l10n() Firma, Adresse, Wissensbasis, Begrüßung, Schnellwahl, Überbrückungssätze und
  * Beispielgespräch durch eine lokale Fassung (Stadt, Telefonformat, Währung/Preise, Öffnungszeiten, Gepflogenheiten):
- *   fr Paris/Lyon €  ·  tr İstanbul ₺ (WhatsApp)  ·  az Bakı ₼  ·  es Madrid €  ·  it Milano €  ·  en London £
+ *   fr Paris/Lyon €  ·  tr İstanbul ₺ (WhatsApp)  ·  az Bakı ₼  ·  es Madrid €  ·  it Milano €  ·  en London £   (Teil 1 + demo-l10n-2.php)
+ *   ru Москва ₽  ·  nl Amsterdam €  ·  sv Stockholm kr  ·  no Oslo kr  ·  fi Helsinki €  ·  ja 東京 ¥                (demo-l10n-3/-4/-5.php)
  * Persona-Namen bleiben (Stimmen hängen daran); du/Sie folgt der Landessitte. Rechtlich deutsche Demos (Kanzlei, Steuer, Inkasso,
  * Versicherung, Behörde, Bank, Hausverwaltung) und die Türkiye-Kliniken (hair-tr/dental-tr) werden nicht ersetzt – dort greift
  * weiterhin concierge_localize() (allgemeine Begrüßung in der Sprache, deutsche Wissensbasis).
@@ -13,10 +14,12 @@
  * ein optionaler Schlüssel 'phone_script' liefert das gesprochene Beispielgespräch.
  * Aufruf: ch_demo_l10n(array $cfg, string $demo, string $sector, string $lang) → $cfg (unverändert, wenn keine Fassung vorliegt).
  */
-const CH_DEMO_L10N_LANGS = ['fr','tr','az','es','it','en'];
+const CH_DEMO_L10N_LANGS = ['fr','tr','az','es','it','en','ru','nl','sv','no','fi','ja'];
 /** Währung/Land je Sprache (für Tests und spätere Erweiterungen, z. B. en-US). */
 const CH_DEMO_L10N_META = ['fr'=>['cc'=>'FR','cur'=>'EUR','city'=>'Paris'],'tr'=>['cc'=>'TR','cur'=>'TRY','city'=>'İstanbul'],'az'=>['cc'=>'AZ','cur'=>'AZN','city'=>'Bakı'],
-  'es'=>['cc'=>'ES','cur'=>'EUR','city'=>'Madrid'],'it'=>['cc'=>'IT','cur'=>'EUR','city'=>'Milano'],'en'=>['cc'=>'GB','cur'=>'GBP','city'=>'London']];
+  'es'=>['cc'=>'ES','cur'=>'EUR','city'=>'Madrid'],'it'=>['cc'=>'IT','cur'=>'EUR','city'=>'Milano'],'en'=>['cc'=>'GB','cur'=>'GBP','city'=>'London'],
+  'ru'=>['cc'=>'RU','cur'=>'RUB','city'=>'Москва'],'nl'=>['cc'=>'NL','cur'=>'EUR','city'=>'Amsterdam'],'sv'=>['cc'=>'SE','cur'=>'SEK','city'=>'Stockholm'],
+  'no'=>['cc'=>'NO','cur'=>'NOK','city'=>'Oslo'],'fi'=>['cc'=>'FI','cur'=>'EUR','city'=>'Helsinki'],'ja'=>['cc'=>'JP','cur'=>'JPY','city'=>'東京']];
 const CH_DEMO_L10N_SECTOR = ['restaurant'=>'agent-bestellung','taxi'=>'agent-taxi','hotel'=>'agent-hotel','friseur'=>'agent-termine','zahnarzt'=>'agent-phone'];
 
 const CH_DEMO_L10N = [
@@ -156,12 +159,17 @@ const CH_DEMO_L10N = [
    'kb'=>"Klinika: Dr. Əliyev Stomatologiya, Nizami küç. 20, Bakı (Nəsimi, 28 May metrosuna yaxın). Parkinq: 28 May parkinqi, piyada 3 dəqiqə. Nəqliyyat: 28 May metrosu.\nİş saatları: bazar ertəsi–cümə 09:00–19:00, şənbə 09:00–14:00. Çərşənbə günortadan sonra qəbul yoxdur.\nXidmətlər: profilaktika və peşəkar diş təmizliyi (80 ₼, təxminən 60 dəqiqə), plomb, kök kanalı müalicəsi, implantlar (konsultasiya pulsuz), protezləşdirmə, uşaq stomatologiyası, ağartma (350 ₼-dan).\nQəbul: telefon, WhatsApp və ya saytdan. İlk ziyarət təxminən 30 dəqiqə çəkir, şəxsiyyət vəsiqəsi və varsa sığorta kartını gətirin. Görüşün ləğvi 24 saat əvvəl.\nAğrılı xəstələr: hər gün 08:00–09:00 növbəsiz təcili qəbul. İş saatlarından kənar: klinikanın 012 000 00 00 nömrəsindəki səsli mesaj növbətçi klinikanı bildirir; güclü qanaxma, qızdırma ilə şişkinlik və ya nəfəs darlığında dərhal 103 və ya 112.\nResept və göndərişlər: bir iş günü sonra resepşndan.\nÖdəniş: özəl klinika, tibbi sığorta (icbari və könüllü) ilə işləyir. Protez üçün qiymət təklifi 5 iş günü ərzində.\nKomanda: Dr. Aysel Əliyeva (stomatoloq), Dr. Jonas Klein (implantologiya), 4 gigiyenist."],
 ],
 ];
-/* Zweiter Teil (es, it, en) in demo-l10n-2.php, damit die Dateien lesbar bleiben. */
-require_once __DIR__.'/demo-l10n-2.php';
+/* Weitere Teile in eigenen Dateien, damit die Dateien lesbar bleiben: 2 = es/it/en · 3 = ru/nl · 4 = sv/no · 5 = fi/ja (fehlt eine Datei, bleibt die Sprache einfach ohne lokale Fassung). */
+foreach ([2,3,4,5] as $ch_l10n_part) if (is_file(__DIR__."/demo-l10n-$ch_l10n_part.php")) require_once __DIR__."/demo-l10n-$ch_l10n_part.php";
+unset($ch_l10n_part);
 
+/** Alle lokalen Fassungen (Teil 1 fr/tr/az + Teile 2–5) je Sprache. */
+function ch_demo_l10n_all(): array {
+    static $a=null;
+    if($a===null){ $a=CH_DEMO_L10N; foreach([2,3,4,5] as $p){ $c='CH_DEMO_L10N_'.$p; if(defined($c)) $a+=constant($c); } }
+    return $a;
+}
 /** Lokale Fassung anwenden (nach ch_demo_cfg / ch_phone_sector_cfg). $lang = gewünschte Sprache (2 Buchstaben). */
-/** Alle lokalen Fassungen (Teil 1 fr/tr/az + Teil 2 es/it/en) je Sprache. */
-function ch_demo_l10n_all(): array { static $a=null; if($a===null) $a=CH_DEMO_L10N+(defined('CH_DEMO_L10N_2') ? CH_DEMO_L10N_2 : []); return $a; }
 function ch_demo_l10n(array $d, string $demo, string $sector, string $lang): array {
     $lang=strtolower(substr(trim($lang),0,2)); if($lang==='nb' || $lang==='nn') $lang='no';
     $all=ch_demo_l10n_all();

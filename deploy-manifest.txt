@@ -197,6 +197,9 @@ chat/app-i18n/ja.json        chat/app-i18n/ja.json
 # Live-Demos der Startseite: lokaler Betrieb je Besuchersprache (fr/tr/az + es/it/en), concierge.php
 chat/demo-l10n.php           chat/demo-l10n.php
 chat/demo-l10n-2.php         chat/demo-l10n-2.php
+chat/demo-l10n-3.php         chat/demo-l10n-3.php
+chat/demo-l10n-4.php         chat/demo-l10n-4.php
+chat/demo-l10n-5.php         chat/demo-l10n-5.php
 chat/icons/screen-heute.png  chat/icons/screen-heute.png
 chat/icons/screen-auftraege.png chat/icons/screen-auftraege.png
 chat/icons/screen-meldungen.png chat/icons/screen-meldungen.png

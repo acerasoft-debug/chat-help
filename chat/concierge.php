@@ -21,7 +21,7 @@
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 require_once __DIR__.'/speech-lib.php';
-require_once __DIR__.'/demo-l10n.php';   // lokale Demo-Betriebe je Besuchersprache (fr/tr/az/es/it/en); Deutsch bleibt CH_DEMO
+require_once __DIR__.'/demo-l10n.php';   // lokale Demo-Betriebe je Besuchersprache (alle zwölf weiteren Sitesprachen); Deutsch bleibt CH_DEMO
 
 /** Persona + Sprechstil des Demo-Betriebs + allgemeine Realismus-Regeln (nach ch_agent_system, vor dem Werkzeug-Hinweis). */
 function concierge_persona_prompt(array $d, bool $phone): string {
