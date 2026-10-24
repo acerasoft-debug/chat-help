@@ -173,8 +173,15 @@ ok(trim($r['body'])==='CH'.$ch,'WhatsApp (Meta): Webhook-Verifizierung mit Verif
 $r=http('GET',"$BASE/chat/whatsapp-webhook.php?key=$cfgKey&hub.mode=subscribe&hub.verify_token=falsch&hub.challenge=".rnd(3)); ok($r['code']===403,'Meta: falscher Verify-Token → 403');
 
 if($AI){
-    $r=$api('POST','agent',['plan'=>'agent-bestellung','messages'=>[['role'=>'user','content'=>'Eine große Margherita zum Abholen bitte. Name Studio-Test, Telefon 0170 3333333, bar. Ich bestätige hiermit – bitte direkt aufgeben.']],'lang'=>'de']);
+    $m=[['role'=>'user','content'=>'Eine große Margherita zum Abholen bitte. Name Studio-Test, Telefon 0170 3333333, bar. Ich bestätige hiermit – bitte direkt aufgeben.']];
+    $r=$api('POST','agent',['plan'=>'agent-bestellung','messages'=>$m,'lang'=>'de']);
     $tools=array_map(fn($t)=>$t['name'].($t['ok']?'✓':'✗'),$r['json']['tools'] ?? []);
+    /* create_order verlangt Zusammenfassung + Bestätigung: fasst der Agent erst zusammen und fragt nach, bestätigt der Kunde wie im echten Gespräch */
+    if($r['code']===200 && !in_array('create_order✓',$tools,true) && is_string($r['json']['result'] ?? null)){
+        $m[]=['role'=>'assistant','content'=>$r['json']['result']]; $m[]=['role'=>'user','content'=>'Ja, genau so – bitte aufgeben.'];
+        $r=$api('POST','agent',['plan'=>'agent-bestellung','messages'=>$m,'lang'=>'de']);
+        $tools=array_merge($tools,array_map(fn($t)=>$t['name'].($t['ok']?'✓':'✗'),$r['json']['tools'] ?? []));
+    }
     ok($r['code']===200 && in_array('create_order✓',$tools,true),'Studio-Chat: Agent bestellt über Werkzeuge',implode(', ',$tools).' · '.($r['json']['tokens_used'] ?? '?').' Tokens');
     echo "    „".short($r['json']['result'] ?? $r['body'],320)."“\n";
 
