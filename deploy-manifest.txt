@@ -79,6 +79,46 @@ chat/skin.js                 chat/skin.js
 site/media/hero.webm         media/hero.webm
 site/media/hero.mp4          media/hero.mp4
 site/media/hero-poster.jpg   media/hero-poster.jpg
+# Hero je Sprache (site/media-src/render.js <lang>|all): index.html wählt hero-<lang>.* nach Seitensprache, de = hero.* (oben)
+site/media/hero-de.webm      media/hero-de.webm
+site/media/hero-de.mp4       media/hero-de.mp4
+site/media/hero-de-poster.jpg media/hero-de-poster.jpg
+site/media/hero-fr.webm      media/hero-fr.webm
+site/media/hero-fr.mp4       media/hero-fr.mp4
+site/media/hero-fr-poster.jpg media/hero-fr-poster.jpg
+site/media/hero-tr.webm      media/hero-tr.webm
+site/media/hero-tr.mp4       media/hero-tr.mp4
+site/media/hero-tr-poster.jpg media/hero-tr-poster.jpg
+site/media/hero-az.webm      media/hero-az.webm
+site/media/hero-az.mp4       media/hero-az.mp4
+site/media/hero-az-poster.jpg media/hero-az-poster.jpg
+site/media/hero-es.webm      media/hero-es.webm
+site/media/hero-es.mp4       media/hero-es.mp4
+site/media/hero-es-poster.jpg media/hero-es-poster.jpg
+site/media/hero-it.webm      media/hero-it.webm
+site/media/hero-it.mp4       media/hero-it.mp4
+site/media/hero-it-poster.jpg media/hero-it-poster.jpg
+site/media/hero-en.webm      media/hero-en.webm
+site/media/hero-en.mp4       media/hero-en.mp4
+site/media/hero-en-poster.jpg media/hero-en-poster.jpg
+site/media/hero-ru.webm      media/hero-ru.webm
+site/media/hero-ru.mp4       media/hero-ru.mp4
+site/media/hero-ru-poster.jpg media/hero-ru-poster.jpg
+site/media/hero-nl.webm      media/hero-nl.webm
+site/media/hero-nl.mp4       media/hero-nl.mp4
+site/media/hero-nl-poster.jpg media/hero-nl-poster.jpg
+site/media/hero-sv.webm      media/hero-sv.webm
+site/media/hero-sv.mp4       media/hero-sv.mp4
+site/media/hero-sv-poster.jpg media/hero-sv-poster.jpg
+site/media/hero-no.webm      media/hero-no.webm
+site/media/hero-no.mp4       media/hero-no.mp4
+site/media/hero-no-poster.jpg media/hero-no-poster.jpg
+site/media/hero-fi.webm      media/hero-fi.webm
+site/media/hero-fi.mp4       media/hero-fi.mp4
+site/media/hero-fi-poster.jpg media/hero-fi-poster.jpg
+site/media/hero-ja.webm      media/hero-ja.webm
+site/media/hero-ja.mp4       media/hero-ja.mp4
+site/media/hero-ja-poster.jpg media/hero-ja-poster.jpg
 # Assistenz-Porträts (synthetisch, keine realen Personen)
 site/media/avatars/avatars.json media/avatars/avatars.json
 site/media/avatars/f1.webp media/avatars/f1.webp
@@ -129,6 +169,24 @@ chat/profile-lib.php         chat/profile-lib.php
 # Business-App (PWA) + Download-Seite
 chat/app.php                 chat/app.php
 chat/app-download.php        chat/app-download.php
+# Business-App: Oberflächensprache (13 Sprachen, Deutsch = Quelle; Laufzeit studio-i18n.js, Wörterbuch inline)
+chat/app-i18n.php            chat/app-i18n.php
+chat/app-i18n/de.json        chat/app-i18n/de.json
+chat/app-i18n/en.json        chat/app-i18n/en.json
+chat/app-i18n/fr.json        chat/app-i18n/fr.json
+chat/app-i18n/tr.json        chat/app-i18n/tr.json
+chat/app-i18n/az.json        chat/app-i18n/az.json
+chat/app-i18n/es.json        chat/app-i18n/es.json
+chat/app-i18n/it.json        chat/app-i18n/it.json
+chat/app-i18n/ru.json        chat/app-i18n/ru.json
+chat/app-i18n/nl.json        chat/app-i18n/nl.json
+chat/app-i18n/sv.json        chat/app-i18n/sv.json
+chat/app-i18n/no.json        chat/app-i18n/no.json
+chat/app-i18n/fi.json        chat/app-i18n/fi.json
+chat/app-i18n/ja.json        chat/app-i18n/ja.json
+# Live-Demos der Startseite: lokaler Betrieb je Besuchersprache (fr/tr/az + es/it/en), concierge.php
+chat/demo-l10n.php           chat/demo-l10n.php
+chat/demo-l10n-2.php         chat/demo-l10n-2.php
 chat/icons/screen-heute.png  chat/icons/screen-heute.png
 chat/icons/screen-auftraege.png chat/icons/screen-auftraege.png
 chat/icons/screen-meldungen.png chat/icons/screen-meldungen.png

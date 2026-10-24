@@ -160,12 +160,15 @@ const CH_DEMO_L10N = [
 require_once __DIR__.'/demo-l10n-2.php';
 
 /** Lokale Fassung anwenden (nach ch_demo_cfg / ch_phone_sector_cfg). $lang = gewünschte Sprache (2 Buchstaben). */
+/** Alle lokalen Fassungen (Teil 1 fr/tr/az + Teil 2 es/it/en) je Sprache. */
+function ch_demo_l10n_all(): array { static $a=null; if($a===null) $a=CH_DEMO_L10N+(defined('CH_DEMO_L10N_2') ? CH_DEMO_L10N_2 : []); return $a; }
 function ch_demo_l10n(array $d, string $demo, string $sector, string $lang): array {
-    $lang=strtolower(substr(trim($lang),0,2));
-    if($lang==='' || $lang==='de' || !isset(CH_DEMO_L10N[$lang])) return $d;
+    $lang=strtolower(substr(trim($lang),0,2)); if($lang==='nb' || $lang==='nn') $lang='no';
+    $all=ch_demo_l10n_all();
+    if($lang==='' || $lang==='de' || !isset($all[$lang])) return $d;
     $key=$demo;
-    if($sector!==''){ $key=isset(CH_DEMO_L10N[$lang][$sector]) ? $sector : (CH_DEMO_L10N_SECTOR[$sector] ?? (defined('CH_PHONE_SECTORS') ? (string)(CH_PHONE_SECTORS[$sector]['from_demo'] ?? '') : '')); }
-    $o=CH_DEMO_L10N[$lang][$key] ?? null;
+    if($sector!==''){ $key=isset($all[$lang][$sector]) ? $sector : (CH_DEMO_L10N_SECTOR[$sector] ?? ''); }   // nur Branchen mit eigener bzw. zugeordneter Fassung – andere Branchen (Café, Bank, …) bleiben unverändert
+    $o=$all[$lang][$key] ?? null;
     if(!is_array($o)) return $d;
     foreach(['company','address','kb','greeting','chips','fillers','du','tone','style'] as $k) if(array_key_exists($k,$o)) $d[$k]=$o[$k];
     if(isset($o['voice']) && is_array($o['voice'])) $d['voice']=array_merge(is_array($d['voice'] ?? null) ? $d['voice'] : [],$o['voice']);

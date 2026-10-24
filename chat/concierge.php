@@ -21,6 +21,7 @@
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 require_once __DIR__.'/speech-lib.php';
+require_once __DIR__.'/demo-l10n.php';   // lokale Demo-Betriebe je Besuchersprache (fr/tr/az/es/it/en); Deutsch bleibt CH_DEMO
 
 /** Persona + Sprechstil des Demo-Betriebs + allgemeine Realismus-Regeln (nach ch_agent_system, vor dem Werkzeug-Hinweis). */
 function concierge_persona_prompt(array $d, bool $phone): string {
@@ -54,6 +55,12 @@ function concierge_localize(array $d, string $lang): array {
     $d['greeting']=$p!=='' ? t('demo.greet',$lang,['persona'=>$p,'company'=>$co]) : t('demo.greet0',$lang,['company'=>$co]);
     $d['chips']=(array)t('demo.chips',$lang); $d['fillers']=(array)t('demo.fill',$lang); $d['script']=[['a',$d['greeting']]]; $d['lang']=$lang;
     return $d;
+}
+/** Demo-Konfiguration in der Besuchersprache: zuerst eine lokale Fassung (demo-l10n.php: eigener Betrieb mit Stadt, Währung, Wissensbasis – setzt lang),
+ *  sonst concierge_localize() (allgemeine Begrüßung in der Sprache, deutsche Wissensbasis). Deutsch (Standard) bleibt unverändert. */
+function concierge_demo(string $demo, string $sector, string $lang): array {
+    $req=ch_demo_req_lang(); if($req==='nb' || $req==='nn') $req='no';
+    return concierge_localize(ch_demo_l10n(ch_demo_conf($demo,$sector),$demo,$sector,$req!=='' ? $req : $lang),$lang);
 }
 /** Demo-Werkzeuge (Konto 0): Taxi → ride, Hotel → hotel, … ; beim Telefon-Agenten je Branche (CH_PHONE_SECTORS tools). */
 const CONCIERGE_DEMO_MODS=['agent-termine'=>['appt'],'agent-bestellung'=>['order'],'agent-taxi'=>['ride'],'agent-hotel'=>['hotel','callback'],'immo-agent'=>['callback'],'agent-phone'=>['callback'],'agent-beauty'=>['callback'],'agent-aesthetic'=>['callback'],'agent-hair-tr'=>['callback'],'agent-dental-tr'=>['callback'],'agent-bank'=>['callback'],'agent-behoerde'=>['callback'],'agent-hausverwaltung'=>['callback'],'agent-versicherung'=>['callback'],'agent-autohaus'=>['callback'],'praxis-agent'=>['callback']];
@@ -170,7 +177,7 @@ if($_SERVER['REQUEST_METHOD']==='GET'){
         th_json(200,['sectors'=>$o,'langs'=>array_map(fn($l)=>['code'=>$l,'name'=>CH_LANGS[$l]['native'],'tag'=>CH_LANGS[$l]['tag']],CH_LANG_CODES)]);
     }
     if($demo!==''){
-        $d=concierge_localize(ch_demo_conf($demo,$sector),$lang); $pl=ch_plan($demo); $du=!empty($d['du']); $dl=(string)($d['lang'] ?? 'de');
+        $d=concierge_demo($demo,$sector,$lang); $pl=ch_plan($demo); $du=!empty($d['du']); $dl=(string)($d['lang'] ?? 'de');
         $fill=[]; foreach($d['fillers'] as $f){ $x=implode(' ',ch_speech_sentences($f,$dl,$du)); if($x!=='') $fill[]=['text'=>$x,'t'=>ch_tts_sign($demo,$x,$sector)]; }
         $out=['demo'=>$demo,'sector'=>$sector!=='' ? $sector : null,'agent'=>$pl['name'],'company'=>$d['company'],'persona'=>$d['persona'],'greeting'=>$d['greeting'],'chips'=>$d['chips'],
             'voice'=>['gender'=>$d['voice']['gender'],'rate'=>$d['voice']['rate'],'pitch'=>$d['voice']['pitch'],'preset'=>$d['voice']['preset']],'voices'=>ch_tts_voices_public(),
@@ -201,7 +208,7 @@ if(!$msgs || end($msgs)['role']!=='user') th_json(400,['error'=>'messages_requir
 
 /* ---- Agent-Live-Demo: echter Agent mit Beispiel-Wissensbasis (Plattform-Schlüssel, kein Token-Verbrauch des Besuchers) ---- */
 if($demo!==''){
-    $pl=ch_plan($demo); $d=concierge_localize(ch_demo_conf($demo,$sector),$lang); $phone=(($in['channel']??'')==='phone') || $demo==='agent-phone'; $du=!empty($d['du']);
+    $pl=ch_plan($demo); $d=concierge_demo($demo,$sector,$lang); $phone=(($in['channel']??'')==='phone') || $demo==='agent-phone'; $du=!empty($d['du']);
     if($sector!==''){   // Telefon-Agent einer Branche: Grundrolle + Fachablauf der Branche zusätzlich zu den Telefon-Regeln
         if(!empty($d['sector_sys']) && isset(CH_SECTORS[$d['sector_sys']])) $pl['sector']=$d['sector_sys'];
         $rf=array_values(array_filter((array)($d['rules_from'] ?? []),fn($k)=>is_string($k) && isset(CH_AGENT_RULES[$k])));   // ein Schlüssel oder mehrere (z. B. Werkstatt: agent-autohaus + agent-termine)
