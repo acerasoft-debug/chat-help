@@ -11,12 +11,12 @@ $ok=0;$fail=0; $t=function($n,$c)use(&$ok,&$fail){ if($c){$ok++;echo "  ok   $n\
 echo "== plan / lizenz ==\n";
 $p=ch_plan('buy-amazon-fba');
 $t('plan var, buy, 500k token, 860 € (1 yil)',$p && $p['kind']==='buy' && $p['tokens']===500000 && $p['cents']===86000);
-$t('base agent-amazon-fba, tier L, 365 gun',$p['base']==='agent-amazon-fba' && $p['tier']==='L' && $p['included_days']===365);
+$t('base agent-amazon, tier L, 365 gun',$p['base']==='agent-amazon' && $p['tier']==='L' && $p['included_days']===365);
 $t('terms 1/2: 365/730 gun, 860/1550 €',$p['terms'][1]['days']===365 && $p['terms'][2]['days']===730 && $p['terms'][2]['cents']===155000);
 $t('ch_buy_included_days diger lisans 90',ch_buy_included_days('buy-support')===90 && ch_buy_included_days('buy-amazon-fba',2)===730);
 $t('ch_buy_term bilinmeyen term null',ch_buy_term('buy-amazon-fba',3)===null && ch_buy_term('buy-support',1)===null);
-$t('lisans esleme agent-amazon-fba -> buy-amazon-fba',ch_plan_license('agent-amazon-fba')==='buy-amazon-fba');
-$v=ch_plan_variants('agent-amazon-fba');
+$t('lisans esleme agent-amazon -> buy-amazon-fba',ch_plan_license('agent-amazon')==='buy-amazon-fba');
+$v=ch_plan_variants('agent-amazon');
 $t('varyantlar: buy/betrieb/byok',in_array('buy-amazon-fba',$v,true) && in_array('betrieb-amazon-fba',$v,true) && in_array('byok-amazon-fba',$v,true));
 $fu=ch_followups('buy-amazon-fba');
 $t('sonrasi: betrieb 39 €/8000 token, byok 19 €',$fu['betrieb']['cents']===3900 && $fu['betrieb']['tokens']===8000 && $fu['byok']['cents']===1900);

@@ -195,6 +195,8 @@ const ASSISTANT_SECTOR_MAP = [
     ['/immobil|makler|wohnung|vermiet/iu',['immo-agent']],
     ['/versicher/iu',['agent-versicherung']],
     ['/autohaus|werkstatt|kfz|reifen|\bauto(s|händler|service|vermietung)?\b/iu',['agent-autohaus']],
+    ['/amazon|fba|seller central|marktplatz|marketplace/iu',['agent-amazon']],
+    ['/marketing|werbung|kampagne|anzeigen|\bads\b|newsletter|social media|instagram|kundengewinnung/iu',['agent-marketing']],
     ['/shop|onlineshop|e-commerce|ecommerce|handel|versand|boutique/iu',['agent-support']],
     ['/website|homepage|webseite/iu',['agent-website']],
     ['/handwerk|elektr|sanitär|maler|dachdeck|tischler|schreiner|installat/iu',['agent-phone','agent-backoffice']],

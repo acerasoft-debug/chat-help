@@ -159,14 +159,15 @@ const CH_DEMO_L10N = [
    'kb'=>"Klinika: Dr. Əliyev Stomatologiya, Nizami küç. 20, Bakı (Nəsimi, 28 May metrosuna yaxın). Parkinq: 28 May parkinqi, piyada 3 dəqiqə. Nəqliyyat: 28 May metrosu.\nİş saatları: bazar ertəsi–cümə 09:00–19:00, şənbə 09:00–14:00. Çərşənbə günortadan sonra qəbul yoxdur.\nXidmətlər: profilaktika və peşəkar diş təmizliyi (80 ₼, təxminən 60 dəqiqə), plomb, kök kanalı müalicəsi, implantlar (konsultasiya pulsuz), protezləşdirmə, uşaq stomatologiyası, ağartma (350 ₼-dan).\nQəbul: telefon, WhatsApp və ya saytdan. İlk ziyarət təxminən 30 dəqiqə çəkir, şəxsiyyət vəsiqəsi və varsa sığorta kartını gətirin. Görüşün ləğvi 24 saat əvvəl.\nAğrılı xəstələr: hər gün 08:00–09:00 növbəsiz təcili qəbul. İş saatlarından kənar: klinikanın 012 000 00 00 nömrəsindəki səsli mesaj növbətçi klinikanı bildirir; güclü qanaxma, qızdırma ilə şişkinlik və ya nəfəs darlığında dərhal 103 və ya 112.\nResept və göndərişlər: bir iş günü sonra resepşndan.\nÖdəniş: özəl klinika, tibbi sığorta (icbari və könüllü) ilə işləyir. Protez üçün qiymət təklifi 5 iş günü ərzində.\nKomanda: Dr. Aysel Əliyeva (stomatoloq), Dr. Jonas Klein (implantologiya), 4 gigiyenist."],
 ],
 ];
-/* Weitere Teile in eigenen Dateien, damit die Dateien lesbar bleiben: 2 = es/it/en · 3 = ru/nl · 4 = sv/no · 5 = fi/ja (fehlt eine Datei, bleibt die Sprache einfach ohne lokale Fassung). */
-foreach ([2,3,4,5] as $ch_l10n_part) if (is_file(__DIR__."/demo-l10n-$ch_l10n_part.php")) require_once __DIR__."/demo-l10n-$ch_l10n_part.php";
+/* Weitere Teile in eigenen Dateien, damit die Dateien lesbar bleiben: 2 = es/it/en · 3 = ru/nl · 4 = sv/no · 5 = fi/ja · 6 = Marketing- und Amazon-Agent in allen Sprachen
+   (fehlt eine Datei, bleibt die Sprache einfach ohne lokale Fassung). */
+foreach ([2,3,4,5,6] as $ch_l10n_part) if (is_file(__DIR__."/demo-l10n-$ch_l10n_part.php")) require_once __DIR__."/demo-l10n-$ch_l10n_part.php";
 unset($ch_l10n_part);
 
-/** Alle lokalen Fassungen (Teil 1 fr/tr/az + Teile 2–5) je Sprache. */
+/** Alle lokalen Fassungen (Teil 1 fr/tr/az + Teile 2–6) je Sprache – je Sprache zusammengeführt (Teil 6 ergänzt Sprachen, die es schon gibt). */
 function ch_demo_l10n_all(): array {
     static $a=null;
-    if($a===null){ $a=CH_DEMO_L10N; foreach([2,3,4,5] as $p){ $c='CH_DEMO_L10N_'.$p; if(defined($c)) $a+=constant($c); } }
+    if($a===null){ $a=CH_DEMO_L10N; foreach([2,3,4,5,6] as $p){ $c='CH_DEMO_L10N_'.$p; if(defined($c)) foreach(constant($c) as $l=>$demos) $a[$l]=($a[$l] ?? [])+$demos; } }
     return $a;
 }
 /** Lokale Fassung anwenden (nach ch_demo_cfg / ch_phone_sector_cfg). $lang = gewünschte Sprache (2 Buchstaben). */

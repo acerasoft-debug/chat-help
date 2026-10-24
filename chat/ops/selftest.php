@@ -397,6 +397,26 @@ try {
     }
 } catch(Throwable $e){ ok(false,'Neue Bausteine: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
 
+/* ---------- Phase 5: Marketing-Agent + Amazon-FBA-Agent (Rechen-Werkzeuge growth-lib) ---------- */
+try {
+    sec('Phase 5: Marketing-Agent und Amazon-FBA-Agent');
+    foreach(['agent-marketing'=>'marketing','agent-amazon'=>'handel','buy-marketing'=>'marketing','buy-amazon-fba'=>'handel'] as $pid=>$cat){ $p=ch_plan($pid); ok($p && $p['category']===$cat && $p['channels']===['web'],"Plan $pid in Kategorie $cat",$p ? $p['name'].' · '.($p['cents']/100).' €' : 'fehlt'); }
+    $r=http('GET',"$BASE/chat/tokens-api.php/v1/categories?_=".rnd(4)); $ids=[]; foreach((array)($r['json']['categories'] ?? $r['json'] ?? []) as $c) foreach((array)($c['plans'] ?? []) as $pp) $ids[]=$pp['id'] ?? '';
+    ok($r['code']===200 && in_array('agent-marketing',$ids,true) && in_array('agent-amazon',$ids,true),'Öffentliche Kategorien enthalten beide Agenten',"HTTP {$r['code']} · ".count($ids).' Pläne');
+    foreach(['agent-marketing'=>'Bohnenwerk','agent-amazon'=>'Bergwerk'] as $d=>$needle){ $r=http('GET',"$BASE/chat/concierge.php?agent=$d&lang=de&_=".rnd(4)); ok($r['code']===200 && str_contains((string)($r['json']['company'] ?? ''),$needle) && count((array)($r['json']['chips'] ?? []))===4,"Live-Demo $d",short($r['json']['company'] ?? '',60)); }
+    foreach(['tr','az','fr','es','en','ja'] as $l){ $r=http('GET',"$BASE/chat/concierge.php?agent=agent-amazon&lang=$l&_=".rnd(4)); ok($r['code']===200 && ($r['json']['lang'] ?? '')===$l && !str_contains((string)($r['json']['greeting'] ?? ''),'Preis, Werbung, Listing'),"Live-Demo Amazon übersetzt ($l)",short($r['json']['greeting'] ?? '',70)); }
+    if(function_exists('growth_fba_profit')){
+        $f=growth_fba_profit(['price'=>22.99,'cogs'=>4.80,'fba_fee'=>3.59,'inbound_per_unit'=>0.45,'storage_per_unit_month'=>0.08,'storage_months'=>2,'returns_pct'=>3,'other_per_unit'=>0.25,'ad_per_unit'=>1.50]);
+        ok(abs(($f['per_unit']['profit'] ?? 0)-4.87)<0.006 && abs(($f['margin_pct'] ?? 0)-25.2)<0.06 && abs(($f['break_even_acos_pct'] ?? 0)-27.7)<0.06,'FBA-Rechnung (22,99 € → 4,87 €/Stück, 25,2 %, Break-even-ACoS 27,7 %)',json_encode([$f['per_unit']['profit'] ?? null,$f['margin_pct'] ?? null,$f['break_even_acos_pct'] ?? null]));
+        $m=growth_ppc_metrics(['spend'=>640,'sales'=>2130,'clicks'=>1180,'orders'=>89,'target_acos_pct'=>25,'current_bid'=>0.62]); ok(($m['acos_pct'] ?? 0)==30.0 && ($m['bid_suggestion']['to'] ?? 0)==0.52,'PPC-Kennzahlen (ACoS 30 %, Gebot 0,62 → 0,52 €)',json_encode([$m['acos_pct'] ?? null,$m['bid_suggestion']['to'] ?? null]));
+        $s=growth_restock_plan(['units_30d'=>420,'stock_available'=>610,'lead_time_days'=>45,'moq'=>500,'units_per_carton'=>40,'today'=>'2026-10-24']); ok(($s['order_qty'] ?? 0)===1200 && ($s['stockout_date'] ?? '')==='2026-12-06','Nachschub (1.200 Stück, ausverkauft am 06.12.)',json_encode([$s['order_qty'] ?? null,$s['stockout_date'] ?? null]));
+        $c=growth_campaign_calc(['budget'=>3000,'cpc'=>0.85,'cvr_pct'=>2.4,'aov'=>38,'margin_pct'=>55,'purchases_per_year'=>4,'years'=>2]); ok(abs(($c['ltv']['ltv_cac'] ?? 0)-4.72)<0.01 && ($c['break_even_roas'] ?? 0)==1.82,'Kampagnenrechnung (LTV:CAC 4,72, Break-even-ROAS 1,82)',json_encode([$c['ltv']['ltv_cac'] ?? null,$c['break_even_roas'] ?? null]));
+        $a=growth_ab_test(['visitors_a'=>4200,'conversions_a'=>1512,'visitors_b'=>4200,'conversions_b'=>1638]); ok(($a['winner'] ?? '')==='B' && ($a['p_value'] ?? 1)<0.01,'A/B-Test (B signifikant)',json_encode([$a['winner'] ?? null,$a['p_value'] ?? null]));
+        $GLOBALS['ch_current_plan']='agent-steuer'; $tk=ch_toolkit(0,'studio'); ok(!array_intersect(array_column($tk['tools'],'name'),['fba_profit','campaign_calc']),'Rechen-Werkzeuge nur beim Marketing-/Amazon-Agenten');
+        $GLOBALS['ch_current_plan']='agent-amazon'; $tk=ch_toolkit(0,'demo','',['growth']); ok(in_array('fba_profit',array_column($tk['tools'],'name'),true),'Amazon-Agent bekommt fba_profit'); unset($GLOBALS['ch_current_plan']);
+    } else ok(false,'growth-lib.php nicht geladen');
+} catch(Throwable $e){ ok(false,'Marketing/Amazon: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
+
 /* ---------- Twilio-Doku (vom Server geladen) ---------- */
 if($DOCS){
     sec('Twilio: gültige Stimmen laut offizieller Doku');

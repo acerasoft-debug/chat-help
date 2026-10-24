@@ -1,6 +1,6 @@
 <?php
 /**
- * ChatHelp — Amazon-FBA-Produktfinder (Lizenz buy-amazon-fba, Agent agent-amazon-fba, Modul „fba“, Präfix fba_)
+ * ChatHelp — Amazon-FBA-Produktfinder (Lizenz buy-amazon-fba, Agent agent-amazon, Modul „fba“, Präfix fba_)
  * ==========================================================================================================
  * Datenquelle: Keepa API (api.keepa.com). Marktplätze: DE, FR, IT, ES, UK, US.
  * Werkzeuge (nur Studio-Chat des Kontoinhabers und Demo – CH_MODULE_CHANNELS in agent-tools.php):
@@ -18,7 +18,7 @@
 require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 
-const FBA_AGENT = 'agent-amazon-fba';
+const FBA_AGENT = 'agent-amazon';   // gemeinsamer Amazon-FBA-Agent (Monatsplan agent-amazon oder Lizenz buy-amazon-fba): Keepa-Produktfinder + Rechen-Werkzeuge (growth-lib)
 /** Keepa-Domain, Währung, USt.-Satz (im Endpreis enthalten; US: Sales Tax nicht im Preis) */
 const FBA_MARKETS = [
     'de'=>['domain'=>3,'cur'=>'EUR','vat'=>0.19,'host'=>'amazon.de',    'name'=>'Amazon.de'],

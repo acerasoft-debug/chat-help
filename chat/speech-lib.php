@@ -788,7 +788,9 @@ function ch_tts_resolve(string $provider, array $voice): array {
             if(!preg_match('/^[A-Za-z0-9]{10,40}$/',$id)) $id=$pre['elevenlabs'];
             $st=is_array($voice['eleven'] ?? null) ? $voice['eleven'] : $pre['eleven'];
             $num=fn($k,$d)=>round(max(0.0,min(1.0,(float)($st[$k] ?? $d))),2);
-            return ['model'=>ch_tts_const('TTS_ELEVENLABS_MODEL') ?: 'eleven_multilingual_v2','voice'=>$id,
+            /* Multilingual v2 kann kein Aserbaidschanisch und kein Norwegisch → dafür Eleven v3 (74 Sprachen); eigenes Modell je Sprache: TTS_ELEVENLABS_MODEL_AZ usw. */
+            $elModel=ch_tts_const('TTS_ELEVENLABS_MODEL_'.strtoupper($lc)) ?: (in_array($lc,['az','no'],true) ? 'eleven_v3' : (ch_tts_const('TTS_ELEVENLABS_MODEL') ?: 'eleven_multilingual_v2'));
+            return ['model'=>$elModel,'voice'=>$id,
                 'settings'=>['stability'=>$num('stability',0.5),'similarity_boost'=>$num('similarity_boost',0.8),'style'=>$num('style',0.25),'use_speaker_boost'=>true,'speed'=>round(max(0.7,min(1.2,$rate)),2)]];
         case 'google':
             /* Chirp3-HD-Stimmen tragen in jeder Sprache denselben Namen: de-DE-Chirp3-HD-Aoede → ja-JP-Chirp3-HD-Aoede. az: keine Google-Stimme → tr-TR. */

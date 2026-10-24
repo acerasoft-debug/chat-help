@@ -63,12 +63,13 @@ function concierge_demo(string $demo, string $sector, string $lang): array {
     return concierge_localize(ch_demo_l10n(ch_demo_conf($demo,$sector),$demo,$sector,$req!=='' ? $req : $lang),$lang);
 }
 /** Demo-Werkzeuge (Konto 0): Taxi → ride, Hotel → hotel, … ; beim Telefon-Agenten je Branche (CH_PHONE_SECTORS tools). */
-const CONCIERGE_DEMO_MODS=['agent-termine'=>['appt'],'agent-bestellung'=>['order'],'agent-taxi'=>['ride'],'agent-hotel'=>['hotel','callback'],'immo-agent'=>['callback'],'agent-phone'=>['callback'],'agent-beauty'=>['callback'],'agent-aesthetic'=>['callback'],'agent-hair-tr'=>['callback'],'agent-dental-tr'=>['callback'],'agent-bank'=>['callback'],'agent-behoerde'=>['callback'],'agent-hausverwaltung'=>['callback'],'agent-versicherung'=>['callback'],'agent-autohaus'=>['callback'],'praxis-agent'=>['callback']];
+const CONCIERGE_DEMO_MODS=['agent-termine'=>['appt'],'agent-bestellung'=>['order'],'agent-taxi'=>['ride'],'agent-hotel'=>['hotel','callback'],'immo-agent'=>['callback'],'agent-phone'=>['callback'],'agent-beauty'=>['callback'],'agent-aesthetic'=>['callback'],'agent-hair-tr'=>['callback'],'agent-dental-tr'=>['callback'],'agent-bank'=>['callback'],'agent-behoerde'=>['callback'],'agent-hausverwaltung'=>['callback'],'agent-versicherung'=>['callback'],'agent-autohaus'=>['callback'],'praxis-agent'=>['callback'],'agent-marketing'=>['growth'],'agent-amazon'=>['growth','fba']];   // Amazon-Demo: Rechen-Werkzeuge + Keepa-Produktfinder (Konto 0, Tageslimit FBA_PLATFORM_DAILY_PRODUCTS)
 /** Werkzeug-Register laden – in einer Funktion, damit die Schleifenvariablen von agent-tools.php ($f, $p) keine Variablen dieses Skripts (PDO $p) überschreiben. */
 function concierge_load_tools(): void { require_once __DIR__.'/agent-tools.php'; }
 function concierge_toolkit(string $demo, array $d): ?array {
     concierge_load_tools();
     $want=$demo==='agent-phone' ? (array)($d['tools'] ?? ['callback']) : (CONCIERGE_DEMO_MODS[$demo] ?? []);
+    $GLOBALS['ch_current_plan']=$demo;   // growth-lib: Werkzeug-Satz des Demo-Agenten
     $have=ch_modules(); $only=array_values(array_filter($want,fn($k)=>is_string($k) && isset($have[$k])));
     if(!$only) return null;
     $tk=ch_toolkit(0,'demo','',$only);

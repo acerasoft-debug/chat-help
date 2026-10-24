@@ -284,6 +284,7 @@ switch(true){
     $sys=ch_agent_system($pl,$cfg,$lang).($phone?CH_PHONE_RULES:'');
     th_ai_context($aid,$phone?'phone-test':'studio');
     /* Anruf-Assistent (privat-lib): place_call prüft serverseitig, dass die letzte Nachricht der Person eine ausdrückliche Zustimmung ist */
+    $GLOBALS['ch_current_plan']=$planId;   // Rechen-Werkzeuge (growth-lib) nur für den Agenten dieses Chats
     $lastU=null; foreach(array_reverse($msgs) as $mm){ if(($mm['role'] ?? '')==='user'){ $lastU=trim((string)($mm['content'] ?? '')); break; } } $GLOBALS['ch_last_user_message']=$lastU;
     /* Terminbuchung (appt_on) und/oder Bestellannahme (order_on) aktiv → Agent bekommt echte Werkzeuge; je Werkzeugaufruf +2 Tokens */
     $tk = ch_toolkit($aid,$phone?'phone-test':'studio','',null,$lang);

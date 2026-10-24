@@ -419,8 +419,10 @@ async function api(path,opts={}){const u=API+path+(path.includes('?')?'&':'?')+'
 /* Katalog: Agenten-Namen/-Beschreibungen nach Plan-ID übersetzen (pl.<id>.n/.d) */
 function locPl(j){if(I18N.lang==='de'||!j||typeof j!=='object')return j;const fix=a=>{if(Array.isArray(a))a.forEach(p=>{if(!p||typeof p!=='object'||typeof p.id!=='string')return;const k='pl.'+p.id;if(p.name&&I18N.has(k+'.n'))p.name=_t(k+'.n');if(I18N.has(k+'.d'))['desc','description'].forEach(f=>{if(p[f])p[f]=_t(k+'.d');});});};fix(j.plans);if(j.rec)fix(j.rec.plans);if(j.recommend)fix(j.recommend.plans);return j;}
 function msg(el,text,kind){el.innerHTML=text?`<div class="msg ${kind||'info'}">${text}</div>`:'';}
-const ICON={inkasso:'€',kanzlei:'§',steuer:'%',versicherung:'☂',hausverwaltung:'⌂',automotive:'⚙',praxis:'+',service:'☎',ecommerce:'◎',marketing:'✎',finanzen:'Σ',immobilien:'⌂',gastro:'✦',hr:'☺',logistik:'⇄',bildung:'✎',creator:'▶',medien:'▶',recht:'§'};
+const ICON={inkasso:'€',kanzlei:'§',steuer:'%',versicherung:'☂',hausverwaltung:'⌂',automotive:'⚙',praxis:'+',service:'☎',ecommerce:'◎',marketing:'✎',finanzen:'Σ',immobilien:'⌂',gastro:'✦',hr:'☺',logistik:'⇄',bildung:'✎',creator:'▶',medien:'▶',recht:'§',amazon:'▣'};
 const SAMPLE={default:_t('sj.sample.default'),
+ 'agent-marketing':_t('sj.sample.marketing'),
+ 'agent-amazon':_t('sj.sample.amazon'),
  'agent-kanzlei':"Kanzlei: Muster & Partner Rechtsanwälte, Musterstraße 1, 10115 Berlin, Tel. 030 123456, kanzlei@muster.de. Mo–Do 8:30–18, Fr 8:30–15.\nRechtsgebiete: Arbeitsrecht (RA Muster), Mietrecht (RAin Beispiel), Verkehrsrecht. Nicht: Steuerrecht, Patentrecht.\nErstberatung: 30 Min 150 € netto / 60 Min 190 € netto (§ 34 RVG), online oder vor Ort. Stundensatz 250 € netto oder RVG. Rechtsschutz: Deckungsanfrage kostenlos.\nTermine: Erstberatung binnen 3 Werktagen; Fristsachen am selben/nächsten Werktag. Unterlagen: Ausweis, Vertrag/Bescheid/Urteil, Korrespondenz, RS-Police.\nFristen (Vorprüfung, Anwalt bestätigt): Kündigungsschutzklage 3 Wochen (§ 4 KSchG); Berufung 1 Monat (§ 517 ZPO); Widerspruch 1 Monat (§ 70 VwGO); Bußgeld-Einspruch 2 Wochen (§ 67 OWiG).\nKonfliktcheck: Gegenseite immer erfragen.",
  'agent-inkasso':"Unternehmen: Muster Inkasso GmbH, registrierter Inkassodienstleister (§ 10 RDG), Reg.-Nr. …, Registrierungsbehörde ….\nBank: IBAN …, Verwendungszweck: Aktenzeichen.\nSachbearbeitung: Mo–Fr 8–17 Uhr, Tel. …, service@….\nRatenzahlung: ab 50 €/Monat, max. 24 Raten, Verfallklausel bei 2 Raten Rückstand. Vergleich: Erlass bis 30 % der Kosten bei Einmalzahlung binnen 14 Tagen (Sachbearbeiter entscheidet).\nKosten B2B: Verzugszinsen 9 Pp. über Basiszins (aktuell …%), Pauschale 40 € (§ 288 Abs. 5 BGB). Verbraucher: 5 Pp. über Basiszins.\nInkassokosten: 0,9 Gebühr Nr. 2300 VV RVG nach Streitwert: bis 500 € = 49 €, bis 1.000 € = 88 €, bis 2.000 € = 166 €, bis 3.000 € = 222 €, bis 5.000 € = 334 €; Auslagenpauschale 20 €.",
  'agent-steuer':"Kanzlei: Steuerkanzlei Muster, Musterstraße 1, 80335 München, Tel. 089 123456, mandanten@muster.de, Mo–Fr 8–17 Uhr.\nUpload: DATEV Unternehmen online oder Upload-Link per E-Mail. Keine Belege per WhatsApp.\nFristen: USt-VA monatlich bis 10. (mit Dauerfristverlängerung bis 10. des übernächsten Monats); Lohnsteuer bis 10.; ESt-Vorauszahlungen 10.03./10.06./10.09./10.12.; GewSt-Vorauszahlungen 15.02./15.05./15.08./15.11.; Jahresabschluss/Offenlegung ….\nHonorar: nach StBVV; Buchhaltung monatlich pauschal lt. Vertrag.\nAnsprechpartner: ….",
@@ -441,7 +443,9 @@ const CHIPS={default:[_t('sj.chip.def1'),_t('sj.chip.def2'),_t('sj.chip.def3')],
  'agent-website':[_t('sj.chip.ws1'),_t('sj.chip.ws2'),_t('sj.chip.ws3')],
  'agent-termine':[_t('sj.chip.tm1'),_t('sj.chip.tm2'),_t('sj.chip.tm3')],
  'agent-bestellung':[_t('sj.chip.be1'),_t('sj.chip.be2'),_t('sj.chip.be3')],
- 'agent-content':[_t('sj.chip.ct1'),_t('sj.chip.ct2'),_t('sj.chip.ct3')]};
+ 'agent-content':[_t('sj.chip.ct1'),_t('sj.chip.ct2'),_t('sj.chip.ct3')],
+ 'agent-marketing':[_t('sj.chip.mk1'),_t('sj.chip.mk2'),_t('sj.chip.mk3')],
+ 'agent-amazon':[_t('sj.chip.az1'),_t('sj.chip.az2'),_t('sj.chip.az3')]};
 
 /* ===== Login ===== */
 (function(){const q=new URLSearchParams(location.search);if(q.get('welcome')){$('#welcome').classList.remove('hidden');}})();

@@ -38,7 +38,8 @@ const PROFILE_NEEDS = [
   'hotel'     =>['Hotel & Zimmer','🛎','hotel',['agent-hotel']],
   'rueckruf'  =>['Rückrufe','📞','rueckruf',[]],
   'kunden'    =>['Kundenverlauf','👥','kunden',[]],
-  'marketing' =>['Marketing & Content','✍️','',['agent-content','creator-social']],
+  'marketing' =>['Marketing & Content','✍️','',['agent-marketing','agent-content','creator-social']],
+  'amazon'    =>['Amazon & Marktplätze','📦','',['agent-amazon']],
   'team'      =>['Personal & Schulung','🎓','training',['hr-onboarding']],
 ];
 /** Privat: Was möchtest du erledigen? label, icon, Plan. */
@@ -58,8 +59,9 @@ const PROFILE_MOD_FOR = [
 /** Branchen ohne Telefon-Demo (CH_PHONE_SECTORS) – ergänzen die Auswahl: label, icon, Kategorie, Pläne, Suchwörter. */
 const PROFILE_SECTOR_EXTRA = [
   'inkasso'  =>['Inkasso & Forderungen','💶','recht',['agent-inkasso'],'mahnung forderung'],
-  'shop'     =>['Onlineshop & Handel','🛍','handel',['agent-support','ec-texte'],'ecommerce shopify woocommerce einzelhandel laden'],
-  'agentur'  =>['Agentur, Marketing & Creator','✍️','marketing',['agent-content','creator-social','agent-website'],'social media youtube seo werbung'],
+  'shop'     =>['Onlineshop & Handel','🛍','handel',['agent-support','ec-texte','agent-marketing'],'ecommerce shopify woocommerce einzelhandel laden'],
+  'amazon'   =>['Amazon-Händler & Marke (FBA)','📦','handel',['agent-amazon','ec-texte'],'amazon fba seller central marktplatz marketplace private label marke ppc listing'],
+  'agentur'  =>['Agentur, Marketing & Creator','✍️','marketing',['agent-marketing','agent-content','creator-social','agent-website'],'social media youtube seo werbung kampagne ads newsletter'],
   'behoerde' =>['Behörde & Verwaltung','🏛','oeffentlich',['agent-behoerde'],'rathaus bürgeramt gemeinde stadt'],
   'logistik' =>['Logistik & Spedition','📦','bestellung',['log-support','log-liefer'],'transport kurier lager'],
   'bildung'  =>['Personal, Bildung & Coaching','🎓','team',['hr-screening','edu-kurs'],'hr recruiting schule kurs training'],

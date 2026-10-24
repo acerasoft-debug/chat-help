@@ -14,9 +14,9 @@ require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 require_once __DIR__.'/appt-lib.php';
 require_once __DIR__.'/order-lib.php';
-const CH_MODULE_LIBS = ['ride'=>['ride-lib.php','ride'],'hotel'=>['hotel-lib.php','hotel'],'callback'=>['callback-lib.php','cb'],'train'=>['train-lib.php','train'],'assistant'=>['assistant-lib.php','assistant'],'push'=>['push-lib.php','push'],'privat'=>['privat-lib.php','pv'],'contacts'=>['contacts-lib.php','contacts'],'onboarding'=>['onboarding-lib.php','onb'],'fba'=>['fba-lib.php','fba']];   // contacts: Kundenverlauf + Benachrichtigungen; onboarding: Einrichtung nach dem Kauf (beide nur Studio-REST, keine Werkzeuge)
+const CH_MODULE_LIBS = ['ride'=>['ride-lib.php','ride'],'hotel'=>['hotel-lib.php','hotel'],'callback'=>['callback-lib.php','cb'],'train'=>['train-lib.php','train'],'assistant'=>['assistant-lib.php','assistant'],'push'=>['push-lib.php','push'],'privat'=>['privat-lib.php','pv'],'contacts'=>['contacts-lib.php','contacts'],'onboarding'=>['onboarding-lib.php','onb'],'fba'=>['fba-lib.php','fba'],'growth'=>['growth-lib.php','growth']];   // contacts: Kundenverlauf + Benachrichtigungen; onboarding: Einrichtung nach dem Kauf (beide nur Studio-REST, keine Werkzeuge)
 /** Module, die nur in bestimmten Kanälen Werkzeuge bekommen (Anruf-Assistent: Aufträge nur im Studio bzw. in der Demo, nie während eines Telefonats). */
-const CH_MODULE_CHANNELS = ['privat'=>['studio','demo'],'fba'=>['studio','demo']];   // fba: Keepa-Kontingent, Einstellungen und Schlüssel nur für den Kontoinhaber
+const CH_MODULE_CHANNELS = ['privat'=>['studio','demo'],'fba'=>['studio','demo'],'growth'=>['studio','demo']];   // fba: Keepa-Kontingent, Einstellungen und Schlüssel nur für den Kontoinhaber · growth: Rechen-Werkzeuge nur für Marketing-/Amazon-Agent
 foreach(CH_MODULE_LIBS as [$f,$p]) if(is_file(__DIR__.'/'.$f)) require_once __DIR__.'/'.$f;
 if(is_file(__DIR__.'/push-lib.php')) require_once __DIR__.'/push-lib.php';   // Benachrichtigungen (ch_push) für alle Module
 
@@ -27,7 +27,7 @@ function ch_modules(): array {
         'exec'=>fn(int $a,string $n,array $i,string $c,string $f)=>appt_exec($a,$n,$i,$c,$f),'hint'=>fn(int $a,string $c,string $l)=>appt_system_hint($a,$l)];
     $m['order']=['enabled'=>fn(int $a)=>ord_settings($a)['order_on']===1,'tools'=>fn()=>ord_tools(),
         'exec'=>fn(int $a,string $n,array $i,string $c,string $f)=>ord_exec($a,$n,$i,$c,$f),'hint'=>fn(int $a,string $c,string $l)=>ord_system_hint($a)];
-    foreach(['ride','hotel','callback','train','privat','fba'] as $key){ $p=CH_MODULE_LIBS[$key][1]; if(!function_exists($p.'_tools') || !function_exists($p.'_exec')) continue;
+    foreach(['ride','hotel','callback','train','privat','fba','growth'] as $key){ $p=CH_MODULE_LIBS[$key][1]; if(!function_exists($p.'_tools') || !function_exists($p.'_exec')) continue;
         $m[$key]=['enabled'=>fn(int $a)=>function_exists($p.'_enabled') ? (bool)($p.'_enabled')($a) : true,'tools'=>fn()=>($p.'_tools')(),
             'exec'=>fn(int $a,string $n,array $i,string $c,string $f)=>($p.'_exec')($a,$n,$i,$c,$f),
             'hint'=>fn(int $a,string $c,string $l)=>function_exists($p.'_system_hint') ? (string)($p.'_system_hint')($a,$c) : ''];

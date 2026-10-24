@@ -1,4 +1,5 @@
-{"ag.f.abo":"Content-Pakete",
+{
+"ag.f.abo":"Content-Pakete",
 "ag.f.agent":"Agenten",
 "ag.f.all":"Alle",
 "ag.f.beruf":"Berufsgruppen",
@@ -3091,4 +3092,23 @@
 "wbj.wg.ok":"Widget aktiv",
 "wbj.wg.plan_inactive":"Widget-Plan nicht aktiv",
 "wbj.widgetHint":"Der Website-Chat (Widget) auf deiner Seite braucht einen aktiven Agenten.",
-"wbj.widgetLink":"Zum Bereich Website"}
+"wbj.widgetLink":"Zum Bereich Website",
+"sj.sample.marketing":"Firma: Muster GmbH, Musterstraße 1, 50667 Köln, marketing@muster.de.\nAngebot & Preise: … (Produkte/Leistungen mit Bruttopreis)\nKennzahlen: Rohertragsmarge … %, durchschnittlicher Warenkorb … €, Conversion-Rate Website … %, Bestandskunden …, Käufe je Kunde pro Jahr …\nKanäle & Ist-Zahlen: Newsletter … Abonnenten (Double-Opt-in), Öffnungsrate … %; Instagram … Follower; Google Ads … €/Monat (ROAS …); Meta Ads … €/Monat (ROAS …)\nZiele: … (z. B. 200 Neukunden bis 31.12.), Budget … €/Monat\nZielgruppe: …\nMarke & Ton: … – belegte Aussagen: … – keine Aussagen wie „Nr. 1“ oder „klimaneutral“ ohne Nachweis\nRegeln: Rabatte höchstens … %, Streichpreise nur mit dem niedrigsten Preis der letzten 30 Tage, Influencer-Inhalte als Werbung kennzeichnen.",
+"sj.sample.amazon":"Marke/Firma: Muster GmbH (Brand Registry aktiv), EU-verantwortliche Person nach GPSR: …, Marktplätze: Amazon.de (FBA) …\nProdukt 1: … (ASIN …), Preis … € brutto, Einkauf inkl. Fracht/Zoll … €/Stück, Versand zum Amazon-Lager … €/Stück, FBA-Versandgebühr laut Seller Central … €, Verkaufsgebühr … %, Verpackung/Etikett … €/Stück, Retourenquote … %\nAbsatz & Bestand: Verkäufe letzte 30 Tage … Stück, FBA-Bestand … Stück, unterwegs … Stück, Lieferzeit bis Amazon-Lager … Tage, Mindestbestellmenge …, Stück je Karton …\nWerbung (letzte 30 Tage): Spend … €, Werbeumsatz … €, Klicks …, Bestellungen …, Gesamtumsatz … €, Ziel-ACoS … %, aktuelles Gebot … €\nListing: Titel …, Bullet Points …, Suchbegriffe …\nNachweise: CE/LFGB/… Prüfbericht …, LUCID-Registrierung …, Sicherheitshinweise …\nZiele: Nettomarge nach Werbung mindestens … %, TACoS unter … %.",
+"sj.chip.mk1":"Plane eine Kampagne: 2.000 € Budget, Ziel 100 Neukunden – lohnt sich das?",
+"sj.chip.mk2":"Schreib 3 Meta-Anzeigen und 15 Google-Anzeigentitel für unser Hauptprodukt",
+"sj.chip.mk3":"Erstelle eine Newsletter-Strecke mit 3 E-Mails für Bestandskunden",
+"sj.chip.az1":"Rechne mein Produkt durch: Preis 24,99 €, Einkauf 4,80 €, FBA-Gebühr 3,59 €",
+"sj.chip.az2":"Werte meine PPC-Kampagne aus: Spend, Umsatz, Klicks, Bestellungen",
+"sj.chip.az3":"Optimiere mein Listing: Titel, 5 Bullet Points und Suchbegriffe",
+"pl.agent-marketing.n":"Marketing-Agent",
+"pl.agent-marketing.d":"Kampagnen mit exakter Rechnung (ROAS, Kundenkosten, Break-even), Anzeigen, Newsletter, Social Media und SEO",
+"pl.agent-amazon.n":"Amazon-FBA-Agent",
+"pl.agent-amazon.d":"FBA-Kalkulation, Listings mit Regel-Check, PPC-Auswertung, Nachschub und EU-Pflichten – ohne Bewertungs-Tricks",
+"pl.buy-marketing.n":"Marketing-Agent (Einmalkauf)",
+"opt.need.amazon":"Amazon & Marktplätze",
+"opt.sec.amazon":"Amazon-Händler & Marke (FBA)",
+"pl.buy-marketing.d":"Marketing-Agent: Einrichtung per Video-Call (Marke, Zielgruppen, Kanäle, Kennzahlen, Tonalität) + Lizenz + 160.000 Tokens Startguthaben + 3 Monate Betrieb inklusive – danach Betrieb 29 €/Monat oder eigener KI-Schlüssel 14 €/Monat",
+"pl.buy-amazon-fba.n":"Amazon-FBA-Agent (Lizenz)",
+"pl.buy-amazon-fba.d":"Keepa-Produktfinder, exakte Kalkulation, Listing-Check, PPC-Auswertung und Nachschubplanung + Lizenz + 500.000 Tokens + 1 Jahr Betrieb inklusive (2 Jahre wählbar) – danach Betrieb 39 €/Monat oder eigener KI-Schlüssel 19 €/Monat"
+}

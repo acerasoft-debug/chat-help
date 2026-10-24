@@ -131,7 +131,7 @@ const CH_COUNTRY_PROFILES = [
     'es'=>'Restauración, hoteles, moda y comercio: reservas, pedidos y preguntas de clientes llegan a cualquier hora.',
     'it'=>'Ristorazione, hotel, moda e commercio: prenotazioni, ordini e domande dei clienti arrivano a ogni ora.']],
   'GB' => [['handel','immobilien','gesundheit','dienstleistung','finanzen','bestellung'],
-           ['ec-support','agent-support','immo-agent','praxis-agent','agent-termine','agent-phone'],['fh.ecom','fh.estate','fh.health'],[
+           ['ec-support','agent-amazon','immo-agent','praxis-agent','agent-termine','agent-phone'],['fh.ecom','fh.estate','fh.health'],[
     'de'=>'Online-Handel, Immobilien und private Gesundheitsversorgung: Kunden erwarten Antworten in Minuten, nicht am nächsten Werktag.',
     'en'=>'E-commerce, property and private healthcare: customers expect answers in minutes, not the next working day.',
     'fr'=>'E-commerce, immobilier et santé privée : les clients attendent une réponse en quelques minutes, pas le lendemain.',
@@ -140,7 +140,7 @@ const CH_COUNTRY_PROFILES = [
     'es'=>'Comercio electrónico, inmobiliaria y sanidad privada: los clientes esperan respuesta en minutos, no al día siguiente.',
     'it'=>'E-commerce, immobiliare e sanità privata: i clienti si aspettano risposte in pochi minuti, non il giorno lavorativo dopo.']],
   'US' => [['handel','immobilien','gesundheit','dienstleistung','finanzen','marketing'],
-           ['ec-support','immo-agent','praxis-agent','agent-phone','agent-sales','agent-versicherung'],['fh.ecom','fh.estate','fh.office'],[
+           ['ec-support','agent-amazon','immo-agent','praxis-agent','agent-phone','agent-marketing'],['fh.ecom','fh.estate','fh.office'],[
     'de'=>'Online-Handel, Immobilien, Praxen und Versicherungen: Wer zuerst antwortet, gewinnt den Kunden – auch am Wochenende.',
     'en'=>'E-commerce, real estate, clinics and insurance: whoever answers first wins the customer – weekends included.',
     'fr'=>'E-commerce, immobilier, cliniques et assurances : celui qui répond en premier gagne le client, même le week-end.',
@@ -199,7 +199,7 @@ const CH_COUNTRY_PROFILES = [
     'es'=>'Comercio electrónico, reparto, salones de belleza y taxis: los clientes escriben por mensajería y esperan respuesta inmediata.',
     'it'=>'E-commerce, consegne, saloni di bellezza e taxi: i clienti scrivono in chat e si aspettano una risposta immediata.']],
   'JP' => [['gastro','gesundheit','dienstleistung','immobilien','handel'],
-           ['agent-hotel','gastro-agent','praxis-agent','agent-termine','agent-phone'],['fh.tourism','fh.office','fh.multi'],[
+           ['agent-hotel','gastro-agent','praxis-agent','agent-termine','agent-phone','agent-amazon'],['fh.tourism','fh.office','fh.multi'],[
     'de'=>'Arbeitskräftemangel und Rekord-Tourismus: Hotels, Restaurants und Kliniken brauchen Gastfreundschaft in vielen Sprachen – rund um die Uhr.',
     'en'=>'Labour shortages and record tourism: hotels, restaurants and clinics need hospitality in many languages – around the clock.',
     'ja'=>'人手不足と過去最高の訪日客：ホテル・飲食店・クリニックには、多言語で24時間のおもてなしが必要です。',
