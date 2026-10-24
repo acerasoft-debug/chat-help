@@ -373,6 +373,25 @@ try {
     }
     $r=http('GET',"$BASE/chat/studio.php?lang=tr&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'studio-i18n'),'Studio lädt die Übersetzung (lang=tr)',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/chat/widget.js?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'ChatHelpWidget'),'Website-Widget (neue Fassung)',"HTTP {$r['code']} · ".strlen($r['body']).' Bytes');
+    sec('Phase 4: Stimmen-Katalog, Website-Baukasten, App-Übersetzung, lokale Demos, Videos je Sprache');
+    foreach(['de','fr','tr','az','es','it','en'] as $l){
+        $r=http('GET',"$BASE/chat/voice-api.php/v1/voices?lang=$l&_=".rnd(4),null,['Authorization: Bearer '.$key]); $vs=$r['json']['voices'] ?? [];
+        $f=count((array)($vs['f'] ?? [])); $m=count((array)($vs['m'] ?? []));
+        ok($r['code']===200 && $f>=6 && $m>=6,"Stimmen-Katalog $l: ≥ 6 Frauen- und 6 Männerstimmen","HTTP {$r['code']} · f=$f m=$m");
+    }
+    $r=http('GET',"$BASE/chat/voice/catalog.json?_=".rnd(4)); ok($r['code']===200 && is_array($r['json']),'Stimmen-Katalog für den Browser (catalog.json)',"HTTP {$r['code']}");
+    foreach(['it_IT-serena-medium','en_GB-vctk-medium','nl_NL-pim-medium','ru_RU-dmitri-medium'] as $k){ $h=http('HEAD',"$BASE/chat/vendor/voice/models/$k.bin",null,[],'raw',true); ok($h['code']===200,"Stimme $k auf dem Server","HTTP {$h['code']}"); }
+    $r=$api('GET','sites'); ok($r['code']===200 && isset($r['json']['templates']) && count($r['json']['templates'])>=8,'Website-Baukasten: Liste + 8 Vorlagen (API)',"HTTP {$r['code']} · ".count($r['json']['templates'] ?? []).' Vorlagen');
+    foreach(['gastro'=>'Speisekarte','beauty'=>'','praxis'=>'','hotel'=>'','taxi'=>'','shop'=>'','handwerk'=>'','personal'=>''] as $d=>$needle){
+        $r=http('GET',"$BASE/chat/site.php?demo=$d&lang=de&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'<h1') && ($needle==='' || str_contains($r['body'],$needle)),"Baukasten-Beispiel „$d“ (öffentliche Darstellung)","HTTP {$r['code']}");
+    }
+    $r=http('GET',"$BASE/chat/site.php?demo=gastro&lang=tr&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && preg_match('/lang="tr/',$r['body']),'Baukasten-Beispiel auf Türkisch',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'id="website"') && str_contains($r['body'],'heroMedia'),'Startseite: Abschnitt „Website erstellen“ + Video je Sprache',"HTTP {$r['code']}");
+    foreach(['tr','fr','az','es','it','en'] as $l){ $h=http('HEAD',"$BASE/media/hero-$l.mp4",null,[],'raw',true); $p=http('HEAD',"$BASE/media/hero-$l-poster.jpg",null,[],'raw',true); ok($h['code']===200 && $p['code']===200,"Hero-Video $l + Poster","mp4 {$h['code']} · poster {$p['code']}"); }
+    foreach(['tr','fr','az','es'] as $l){ $r=http('GET',"$BASE/chat/app-i18n/$l.json?_=".rnd(4)); $n=is_array($r['json']) ? count($r['json']) : 0; ok($r['code']===200 && $n>500,"App-Übersetzung $l","$n Schlüssel"); }
+    $r=http('GET',"$BASE/chat/app.php?lang=tr&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && preg_match('/<html[^>]*lang="tr/',$r['body']),'Business-App auf Türkisch',"HTTP {$r['code']}");
+    foreach(['tr'=>'₺','fr'=>'Lyon|Paris','en'=>'London|£','az'=>'Bakı|₼'] as $l=>$re){ $r=http('GET',"$BASE/chat/concierge.php?agent=agent-bestellung&lang=$l&_=".rnd(4)); $b=(string)json_encode($r['json'],JSON_UNESCAPED_UNICODE); ok($r['code']===200 && preg_match('/'.$re.'/u',$b),"Live-Demo Bestellung lokal ($l)",short($r['json']['company'] ?? $b,80)); }
+    $r=http('GET',"$BASE/chat/concierge.php?agent=agent-hausverwaltung&lang=de&_=".rnd(4)); ok($r['code']===200 && str_contains((string)json_encode($r['json'],JSON_UNESCAPED_UNICODE),'Rheinland Hausverwaltung'),'Live-Demo auf Deutsch unverändert',"HTTP {$r['code']}");
     foreach(['chat/app.php'=>'ChatHelp','chat/app-download.php'=>'ChatHelp','datenschutz.html'=>'Stimmen im Browser','agb.html'=>'AGB','impressum.html'=>'Acerasoft'] as $f=>$needle){
         $r=http('GET',"$BASE/$f?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],$needle),"Seite /$f","HTTP {$r['code']}");
     }
