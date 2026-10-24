@@ -7,3 +7,7 @@ chat/cache/
 
 # Hochgeladene Website-Bilder (Testdaten lokal, auf dem Server echte Daten)
 chat/uploads/sites/*/
+
+# Nur auf dem Server: Sprachdienst-Schlüssel (ops/keybox.php) – nie ins Repo
+chat/tts-keys.php
+chat/.keybox.php

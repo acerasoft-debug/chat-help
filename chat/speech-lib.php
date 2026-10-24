@@ -585,6 +585,11 @@ function ch_rate_ip(): string {
     return $ip;
 }
 
+/* Sprachdienst-Schlüssel aus chat/tts-keys.php (nur auf dem Server, geschrieben von ops/keybox.php) – db.php hat Vorrang */
+if(is_file(__DIR__.'/tts-keys.php')){ $__chk=@include __DIR__.'/tts-keys.php';
+    if(is_array($__chk)) foreach($__chk as $__n=>$__v) if(is_string($__n) && preg_match('/^[A-Z][A-Z0-9_]{2,40}$/',$__n) && !defined($__n) && (is_string($__v) || is_int($__v))) define($__n,$__v);
+    unset($__chk,$__n,$__v); }
+
 /* ====================================================================== */
 /* Token */
 function ch_tts_const(string ...$names): string {

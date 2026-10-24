@@ -3,7 +3,7 @@
  * ChatHelp ops — voice-scout: beste muttersprachliche Stimme je Sprache finden und eintragen (Tabelle tts_native), danach Übersicht.
  *   args (JSON → $_GET):  mode   = scout (Standard) | status (nur Übersicht) | dry (suchen und zeigen, nichts übernehmen/speichern)
  *                         langs  = all (Standard) | z. B. "az,tr,de"
- *                         per    = Stimmen je Sprache und Geschlecht bei ElevenLabs (1–3, Standard 1 → 24 Stimmen für 12 Sprachen)
+ *                         per    = Stimmen je Sprache und Geschlecht bei ElevenLabs: auto (Standard, nach freien Stimmenplätzen) | 1–4 (4 = eigene Stimme je Persona)
  *                         providers = elevenlabs,azure,google (Standard: alle mit Schlüssel)
  * Schreibt nur in tts_native und (ElevenLabs) in die eigene Stimmen-Bibliothek des Kontos. Gibt keine Schlüssel und keine Personendaten aus.
  */
@@ -17,15 +17,17 @@ if(is_file(__DIR__.'/voice-catalog.php')) require_once __DIR__.'/voice-catalog.p
 $mode=in_array($_GET['mode'] ?? '',['status','dry'],true) ? $_GET['mode'] : 'scout';
 $langs=strtolower(trim((string)($_GET['langs'] ?? 'all')));
 $langs=$langs==='' || $langs==='all' ? VS_LANGS : array_values(array_intersect(VS_LANGS,array_map('trim',explode(',',$langs))));
-$per=max(1,min(3,(int)($_GET['per'] ?? 1)));
+$perArg=strtolower((string)($_GET['per'] ?? 'auto'));
+$per=$perArg==='auto' ? 0 : max(1,min(4,(int)$perArg));
 $provs=array_values(array_intersect(['elevenlabs','azure','google'],array_map('trim',explode(',',strtolower((string)($_GET['providers'] ?? 'elevenlabs,azure,google'))))));
 
-echo "ChatHelp — voice-scout (".gmdate('c').") · Modus: $mode · Sprachen: ".implode(',',$langs)." · je Geschlecht: $per\n";
+echo "ChatHelp — voice-scout (".gmdate('c').") · Modus: $mode · Sprachen: ".implode(',',$langs)." · je Geschlecht: ".($per ?: 'auto')."\n";
 $av=ch_tts_providers_available(); echo "Schlüssel vorhanden: ".implode(', ',array_map(fn($p)=>$p.'='.($av[$p] ? 'ja' : 'nein'),array_keys($av)))."\n";
 if(defined('TTS_PROVIDER') && !in_array(strtolower(trim((string)TTS_PROVIDER)),['','auto'],true)) echo "Hinweis: TTS_PROVIDER=".TTS_PROVIDER." erzwingt einen Anbieter für alle Sprachen (für die beste Stimme je Sprache: 'auto' oder entfernen).\n";
 echo "\n";
 
 try{ vs_bootstrap(); }catch(Throwable $e){ echo "FEHLER: Tabelle tts_native: ".$e->getMessage()."\n"; exit(1); }
+if($per===0){ $elLangs=count(array_diff($langs,['en'])); $a=vs_el_auto_per($elLangs); $per=$a ?? 1; echo "Stimmen je Sprache und Geschlecht: $per (".($a!==null ? 'aus den freien Stimmenplätzen des ElevenLabs-Tarifs' : 'Standard').")\n\n"; }
 
 if($mode!=='status'){
     $log=[];

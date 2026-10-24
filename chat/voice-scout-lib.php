@@ -88,6 +88,35 @@ function vs_el_score(array $v, string $lc): ?float {
     if(!empty($v['notice_period']) && (int)$v['notice_period']>=30) $s+=0.2;   // bleibt bei Rückzug noch mindestens 30 Tage nutzbar
     return round($s,3);
 }
+/* Klang je Persona (Reihenfolge = Voreinstellungen f_warm, f_klar, f_frisch, f_sanft / m_freundlich, m_ruhig, m_souveraen, m_tief):
+   Zeile i der Auswahl gehört zu Persona i (ch_tts_persona_idx % Anzahl) – so bekommt jede Persona einen passenden, eigenen Sprecher. */
+const VS_PERSONA = [
+  'f'=>['warm|friendly|pleasant|kind|caring|soft-spoken','professional|clear|confident|crisp|articulate|neutral|news','young|energetic|upbeat|cheerful|bright|lively|bubbly','calm|soft|gentle|soothing|relaxed|quiet|mellow'],
+  'm'=>['friendly|casual|warm|cheerful|pleasant|upbeat','calm|reassuring|relaxed|gentle|soothing|mature','professional|confident|authoritative|serious|clear|crisp|news','deep|low|resonant|raspy|gravelly|husky|bass'],
+];
+/** $n Stimmen aus den bewerteten Kandidaten: je Persona der beste passende (Klang-Wörter + Score), ohne Doppel, mit Altersmischung. */
+function vs_pick_personas(array $cand, string $g, int $n): array {
+    $out=[]; $ages=[];
+    for($i=0; $i<$n; $i++){
+        $kw=VS_PERSONA[$g][$i % 4]; $best=null; $bs=-INF;
+        foreach($cand as $sid=>$x){ if(isset($out[$sid])) continue; $v=$x['v'];
+            $txt=strtolower(implode(' ',[(string)($v['descriptive'] ?? ''),(string)($v['description'] ?? ''),(string)($v['name'] ?? '')]));
+            $s=$x['s']+(preg_match('/'.$kw.'/',$txt) ? 1.5 : 0)-(in_array((string)($v['age'] ?? ''),$ages,true) ? 0.3 : 0);
+            if($s>$bs){ $bs=$s; $best=$sid; } }
+        if($best===null) break;
+        $out[$best]=$cand[$best]; $ages[]=(string)($cand[$best]['v']['age'] ?? '');
+    }
+    return $out;
+}
+/** Freie Stimmenplätze im ElevenLabs-Konto → Stimmen je Sprache und Geschlecht (1–4) für $langs Sprachen. null = unbekannt. */
+function vs_el_auto_per(int $langs): ?int {
+    $c=ch_tts_creds('elevenlabs'); if(!$c || $langs<1) return null; $base=ch_tts_base('https://api.elevenlabs.io'); $H=['xi-api-key: '.$c['key'],'Accept: application/json'];
+    $s=vs_http('GET',$base.'/v1/user/subscription',$H,null,[$c['key']]); $lim=(int)($s['json']['voice_limit'] ?? 0); if($s['code']!==200 || $lim<=0) return null;
+    $v=vs_http('GET',$base.'/v1/voices',$H,null,[$c['key']]); $own=0; $ours=0;
+    foreach((array)($v['json']['voices'] ?? []) as $x){ if(($x['category'] ?? '')==='premade') continue; $own++; if(str_starts_with((string)($x['name'] ?? ''),'ChatHelp ')) $ours++; }
+    $free=$lim-$own+$ours;   // eigene ChatHelp-Stimmen werden wiederverwendet
+    return max(1,min(4,intdiv(max(0,$free),2*$langs)));
+}
 /** Muttersprachliche Profi-Stimmen je Sprache/Geschlecht suchen und (wenn $add) in die eigene Bibliothek übernehmen. */
 function vs_scout_elevenlabs(array $langs, int $per, bool $add, array &$log): void {
     $c=ch_tts_creds('elevenlabs'); if(!$c){ $log[]='elevenlabs: kein Schlüssel (ELEVENLABS_KEY) – übersprungen'; return; }
@@ -108,7 +137,7 @@ function vs_scout_elevenlabs(array $langs, int $per, bool $add, array &$log): vo
             uasort($cand,fn($a,$b)=>$b['s']<=>$a['s']);
             $old=[]; foreach(vs_rows('elevenlabs',$lc,$g) as $o) if(!empty($o['meta']['src'])) $old[(string)$o['meta']['src']]=$o['voice'];
             $rows=[];
-            foreach(array_slice($cand,0,$per,true) as $sid=>$x){ $v=$x['v']; $sid=(string)$sid; $vid=$old[$sid] ?? null;
+            foreach(vs_pick_personas($cand,$g,$per) as $sid=>$x){ $v=$x['v']; $sid=(string)$sid; $vid=$old[$sid] ?? null;
                 if($vid===null && $add && !$full){
                     $name=mb_substr('ChatHelp '.$lc.' '.strtoupper($g).(count($rows)+1).' · '.(string)($v['name'] ?? ''),0,90);
                     $a=vs_http('POST',$base.'/v1/voices/add/'.rawurlencode((string)$v['public_owner_id']).'/'.rawurlencode($sid),array_merge($H,['Content-Type: application/json']),json_encode(['new_name'=>$name],JSON_UNESCAPED_UNICODE),[$k]);
