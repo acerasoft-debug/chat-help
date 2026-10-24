@@ -199,6 +199,22 @@ function vestra_deals_pick(int $n = 6, ?array $all = null, ?int $now = null): ar
   return $out;
 }
 
+/* LACOSTE DALGASI (24 Eki 2026, operatör: "bugün kalan gönderimi kullan 435 email gönder lacoste indirimi"): indirim
+   mektubunu ALMIŞ ve 5+ gün dinlenmiş dükkânlara yalnız Lacoste indirimleri (aynı tasarım, tek marka). Takip sırasında
+   'deals'tan sonra gelir (VESTRA_MAILBOX_FOLLOWUP_ORDER) ve yalnız VESTRA_DEALS_LACOSTE_UNTIL gününe kadar kampanya
+   listesinde durur -- sonra kendiliğinden düşer, ertesi günlerin otomatik indirim partisi eskisi gibi yalnız 'deals'. */
+const VESTRA_DEALS_LACOSTE_UNTIL = '2026-10-24';
+function vestra_deals_lacoste_on(?int $now = null): bool { return !defined('VESTRA_DEALS_LACOSTE_OFF') && date('Y-m-d', $now ?? time()) <= VESTRA_DEALS_LACOSTE_UNTIL; }   // VESTRA_DEALS_LACOSTE_OFF: eski testler (yalnız 'deals')
+
+/** Tek markanın indirimli ürünleri (vestra_deals_pick biçiminde; yalnız gerçekten indirimdekiler, en çok $n). */
+function vestra_deals_pick_brand(string $brand, int $n = 6, ?array $all = null, ?int $now = null): array {
+  $p = vestra_deals_pick(200, $all, $now); $is = static fn(string $x) => strcasecmp(trim($x), $brand) === 0;
+  $items = array_values(array_filter($p['items'], static fn($r) => ((int)$r['pct'] > 0) && ($is($r['brand']) || $is($r['label']))));
+  usort($items, static fn($a, $b) => [empty($b['featured']), $b['pct']] <=> [empty($a['featured']), $a['pct']]);
+  $brands = array_filter($p['brands'], static fn($k) => $is((string)$k), ARRAY_FILTER_USE_KEY);
+  return ['items' => array_slice($items, 0, $n), 'brands' => $brands, 'raw' => array_intersect_key($p['raw'], $brands), 'max' => $brands ? (int)max($brands) : 0, 'count' => count($items)];
+}
+
 /** [konu, düz gövde, opts] — vestra_html_email ile çizilir. İndirimli ürün yoksa konu boş döner (çağıran göndermez). */
 /* $member = true (22 Eki 2026, operatör: "kayıtlı müşteri + yeni müşterilere"): KAYITLI alıcı hesabına giden sürüm --
    "size daha önce yazmıştık" yerine müşteri girişi, ikinci düğme kayıt değil hesaba giriş, künye "hesabınız var"

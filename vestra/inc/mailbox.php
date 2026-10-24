@@ -448,7 +448,9 @@ const VESTRA_MAILBOX_FOLLOWUP_MIN_DAYS = 5;
    yalnız İNDİRİM mektubu (inc/campaign_deals.php). Eski sıra (polos → edit → lesgarage → standard) kalktı: polo
    promosyonu sabit eski fiyat yazıyordu, edit / lesgarage ilk mektubun kendisi. İndirimli ürün yoksa 'deals' kampanya
    listesinde olmaz ve takip alıcısı çıkmaz (boş mektup gitmez). */
-const VESTRA_MAILBOX_FOLLOWUP_ORDER = ['deals'];
+/* 24 Eki 2026: 'lacoste' (yalnız Lacoste indirimleri) 'deals'tan sonra -- kampanya listesinde yalnız VESTRA_DEALS_LACOSTE_UNTIL'e
+   kadar durur (vestra_finder_campaigns); listede yoksa vestra_mailbox_followup_next atlar. */
+const VESTRA_MAILBOX_FOLLOWUP_ORDER = ['deals', 'lacoste'];
 /* 17 Eki 2026 (operatör: "noreply@g-star.com buna neden e-mail gönderiyorsun? distribütör ve büyük zincir butiklere ya da
    marketlere göndermemen gerektiğini söylemiştim"): takip havuzunun %95'i Tem/Ağu OSM listesindendi — bugünkü bulucu
    süzgecinden (sitede birden çok tanınan marka) hiç geçmemiş kayıtlar; ilk 93 alıcının ~20'si marka mağazası / zincir /
@@ -612,7 +614,10 @@ function vestra_mailbox_deals_daily(?int $now = null): string {
 
 /** Dükkânın henüz almadığı ilk takip kampanyası; hepsini almışsa ''. */
 function vestra_mailbox_followup_next(array $had, ?array $camps = null): string {
-  foreach (VESTRA_MAILBOX_FOLLOWUP_ORDER as $k) if (!in_array($k, $had, true) && ($camps === null || isset($camps[$k]))) return $k;
+  foreach (VESTRA_MAILBOX_FOLLOWUP_ORDER as $k) {
+    if ($k === 'lacoste' && !(function_exists('vestra_deals_lacoste_on') && vestra_deals_lacoste_on())) continue;   // yalnız 24 Eki dalgası
+    if (!in_array($k, $had, true) && ($camps === null || isset($camps[$k]))) return $k;
+  }
   return '';
 }
 
