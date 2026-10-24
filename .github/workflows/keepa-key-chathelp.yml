@@ -1,0 +1,50 @@
+name: chat-help.com — Keepa-Schlüssel auf den Server (Amazon-FBA-Produktfinder)
+
+# Schreibt das GitHub-Secret CHATHELP_KEEPA_KEY nach <docroot>/chat/cache/.keepa-key.php (chmod 600, liefert im Web nichts aus).
+# Der Schlüssel erscheint NIE im Log, in Eingaben oder im Repo. Leeres Secret → Abbruch. remove=true → Datei löschen.
+
+on:
+  workflow_dispatch:
+    inputs:
+      remove:
+        description: "Schlüsseldatei löschen statt schreiben"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  key:
+    runs-on: ubuntu-latest
+    env:
+      CH_HOST: ${{ secrets.CHATHELP_HOST }}
+      CH_USER: ${{ secrets.CHATHELP_USER }}
+      CH_PASS: ${{ secrets.CHATHELP_PASSWORD }}
+      CH_PORT: ${{ secrets.CHATHELP_PORT }}
+      KEEPA: ${{ secrets.CHATHELP_KEEPA_KEY }}
+      REMOVE: ${{ github.event.inputs.remove }}
+    steps:
+      - name: Schlüssel schreiben / löschen
+        run: |
+          set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq sshpass > /dev/null
+          trim(){ local v="$1"; v="${v//$'\r'/}"; v="${v#"${v%%[![:space:]]*}"}"; v="${v%"${v##*[![:space:]]}"}"; printf '%s' "$v"; }
+          K=$(trim "$KEEPA"); [ -n "$K" ] && echo "::add-mask::$K"
+          CH_USER=$(trim "$CH_USER"); CH_PASS=$(trim "$CH_PASS"); CH_HOST=$(trim "${CH_HOST:-145450.eu11.ssh.myftpupload.com}"); P=$(trim "${CH_PORT:-22}")
+          [ -n "$CH_USER" ] && [ -n "$CH_PASS" ] || { echo "::error::CHATHELP_USER / CHATHELP_PASSWORD yok"; exit 1; }
+          export SSHPASS="$CH_PASS"
+          O="-o StrictHostKeyChecking=no -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -o ConnectTimeout=25"
+          DEST=$(sshpass -e ssh $O -p "$P" "$CH_USER@$CH_HOST" 'for d in ~/html ~/public_html ~/www; do [ -f "$d/chat/auth.php" ] && { echo "$d"; break; }; done')
+          [ -n "$DEST" ] || { echo "::error::docroot bulunamadı"; exit 1; }
+          if [ "$REMOVE" = "true" ]; then
+            sshpass -e ssh $O -p "$P" -n "$CH_USER@$CH_HOST" "rm -f $DEST/chat/cache/.keepa-key.php && echo 'Schlüsseldatei gelöscht'"; exit 0
+          fi
+          [ -n "$K" ] || { echo "::error::Secret CHATHELP_KEEPA_KEY fehlt (Repo → Settings → Secrets and variables → Actions)"; exit 1; }
+          printf '%s' "$K" | grep -Eq '^[A-Za-z0-9]{40,80}$' || { echo "::error::CHATHELP_KEEPA_KEY sieht nicht wie ein Keepa-Schlüssel aus (40–80 Zeichen a-z, 0-9)"; exit 1; }
+          umask 077; F=$(mktemp); printf "<?php return '%s';\n" "$K" > "$F"
+          sshpass -e ssh $O -p "$P" -n "$CH_USER@$CH_HOST" "mkdir -p $DEST/chat/cache && chmod 750 $DEST/chat/cache"
+          sshpass -e scp $O -P "$P" -q "$F" "$CH_USER@$CH_HOST:$DEST/chat/cache/.keepa-key.php" </dev/null
+          rm -f "$F"
+          sshpass -e ssh $O -p "$P" -n "$CH_USER@$CH_HOST" "chmod 600 $DEST/chat/cache/.keepa-key.php && cd $DEST/chat && php -r 'echo strlen((string)(include \"cache/.keepa-key.php\"))>=40 ? \"Keepa-Schlüssel gespeichert (Länge ok)\n\" : \"FEHLER: Datei unlesbar\n\";'"
+          curl -sS -m 15 -o /tmp/k.out -w "web: %{http_code}, Bytes: %{size_download} (0 Bytes erwartet)\n" "https://chat-help.com/chat/cache/.keepa-key.php" || true
