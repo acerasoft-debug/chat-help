@@ -27,7 +27,7 @@ if (vestra_data_dir() !== $sand.'/data') { fwrite(STDERR, "kum havuzu kurulamadi
 $rc = ['file' => 'receipt_abcd1234.jpeg', 'uploaded_at' => '2026-10-20T13:26:21+00:00', 'uploaded_by' => 'buyer'];
 vestra_write_json('order_statuses.json', [
     'VES-V1' => ['status' => 'pending', 'payment_receipt' => $rc],
-    'VES-V2' => ['status' => 'paid',    'payment_receipt' => $rc],
+    'VES-V2' => ['status' => 'paid',    'payment_receipt' => $rc, 'paid_at' => '2026-10-23T13:30:36+00:00'],
     'VES-V3' => ['status' => 'pending'],
 ]);
 $ph = fn(string $r) => vestra_order_payment_grace((array)(vestra_read_json('order_statuses.json')[$r] ?? []), time(), $r);
@@ -51,9 +51,18 @@ $t('grace son tarihi = hesaplanan son tarih', (int)$g['deadline'] === (int)$a['d
 $t('son tarihten sonra faz overdue (otomatik iptal yolu)', vestra_order_payment_grace($e, $a['deadline'] + 60, 'VES-V1')['phase'] === 'overdue');
 $t('ikinci kez: dekont yok -> DURUR', !vestra_receipt_void('VES-V1', 'x', 'test', null, true)['ok']);
 $t('odenmis sipariste DURUR', str_contains(vestra_receipt_void('VES-V2', 'x', 'test', null, true)['error'], 'paid'));
+$t("...kayit 'paid' kaldi", (vestra_read_json('order_statuses.json')['VES-V2']['status'] ?? '') === 'paid');
+$u = vestra_receipt_void('VES-V2', 'transfer returned', 'test', null, false, true);
+$t('unpay kuru kosu: ok ama yazmaz', $u['ok'] && $u['unpaid'] && (vestra_read_json('order_statuses.json')['VES-V2']['status'] ?? '') === 'paid');
+$u = vestra_receipt_void('VES-V2', 'transfer returned', 'test', null, true, true);
+$e2 = (array)vestra_read_json('order_statuses.json')['VES-V2'];
+$t('unpay: paid -> pending, dekont void, tarihce', $u['ok'] && ($e2['status'] ?? '') === 'pending' && empty($e2['payment_receipt']) && str_contains(json_encode($e2['history'] ?? []), 'Paid mark withdrawn'));
+$t('unpay hazirlanan sipariste DURUR', (function () use ($rc) {
+    $a = vestra_read_json('order_statuses.json'); $a['VES-V5'] = ['status' => 'preparing', 'payment_receipt' => $rc]; vestra_write_json('order_statuses.json', $a);
+    return !vestra_receipt_void('VES-V5', 'x', 'test', null, true, true)['ok']; })());
 $t('dekontsuz sipariste DURUR', !vestra_receipt_void('VES-V3', 'x', 'test', null, true)['ok']);
 /* son tarih verilmezse saat kurulmaz */
-vestra_write_json('order_statuses.json', ['VES-V4' => ['status' => 'pending', 'payment_receipt' => $rc]]);
+$a = vestra_read_json('order_statuses.json'); $a['VES-V4'] = ['status' => 'pending', 'payment_receipt' => $rc]; vestra_write_json('order_statuses.json', $a);
 $n = vestra_receipt_void('VES-V4', 'x', 'test', null, true);
 $e4 = (array)vestra_read_json('order_statuses.json')['VES-V4'];
 $t('son tarihsiz: saat alanlari yazilmaz', $n['ok'] && $n['deadline'] === null && empty($e4['payment_grace_start']) && empty($e4['payment_reminder_sent_at']));
@@ -62,7 +71,7 @@ echo "\n== alici sayfasi ==\n";
 $src = (string)file_get_contents($root.'/inc/orders.php');
 $t('alici sayfasi: void varken "havale geri dondu" notu + yukleme kutusu', preg_match("/payment_receipts_void.*?earlier transfer was returned by the bank.*?vestra_receipt_upload_form/s", $src) === 1);
 $sp = (string)file_get_contents(dirname(__DIR__).'/.github/workflows/seller-products.yml');
-$t('is akisi: admin_mode=receipt_void, kuru kosu + apply', str_contains($sp, "admin_mode == 'receipt_void'") && str_contains($sp, 'vestra_receipt_void($ref, $reason, \'operator\', $dl, $apply)'));
+$t('is akisi: admin_mode=receipt_void, kuru kosu + apply', str_contains($sp, "admin_mode == 'receipt_void'") && str_contains($sp, 'vestra_receipt_void($ref, $reason, \'operator\', $dl, $apply, $unpay)'));
 
 echo "\n{$ok} ok, {$fail} hata\n";
 exit($fail ? 1 : 0);

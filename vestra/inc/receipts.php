@@ -93,16 +93,26 @@ function vestra_order_receipt(string $ref): ?array {
  * "5 is gunu" mektubu YOLLAMAZ, ama son tarih gecerse otomatik iptal eder.
  * Odenmis / iptal / gonderilmis sipariste DURUR. Yazma geri okunur.
  */
-function vestra_receipt_void(string $ref, string $reason, string $by = 'operator', ?int $deadlineTs = null, bool $apply = true): array {
+function vestra_receipt_void(string $ref, string $reason, string $by = 'operator', ?int $deadlineTs = null, bool $apply = true, bool $unpay = false): array {
     $ref = trim($ref);
-    $out = ['ok' => false, 'error' => '', 'file' => '', 'deadline' => null];
+    $out = ['ok' => false, 'error' => '', 'file' => '', 'deadline' => null, 'unpaid' => false];
     if ($ref === '') { $out['error'] = 'ref bos'; return $out; }
     $all = vestra_read_json('order_statuses.json');
     $e = (array)($all[$ref] ?? []);
     $r = $e['payment_receipt'] ?? null;
     if (!is_array($r) || empty($r['file'])) { $out['error'] = 'bu sipariste kayitli dekont yok'; return $out; }
     $status = (string)($e['status'] ?? 'pending');
-    if ($status !== 'pending') { $out['error'] = "siparis durumu '{$status}' -- yalniz 'pending' sipariste dekont gecersiz sayilir"; return $out; }
+    /* $unpay (24 Eki 2026, VES-B7DDA4D4): siparis panelden 'paid' isaretlenmis ama
+       para GELMEMIS (havale kapali hesaptan geri donuyor). Yalniz 'paid' -> 'pending';
+       hazirlanmis/gonderilmis siparis bu yoldan geri alinmaz -- mal yola cikmis olabilir. */
+    if ($unpay && $status === 'paid') {
+        $out['unpaid'] = true;
+        $e['history'][] = vestra_order_history_entry('pending', $by, 'Paid mark withdrawn: payment did not arrive ('.mb_substr(trim($reason), 0, 200).')');
+        $e['status'] = 'pending';
+        unset($e['paid_at']);
+        $status = 'pending';
+    }
+    if ($status !== 'pending') { $out['error'] = "siparis durumu '{$status}' -- yalniz 'pending' sipariste dekont gecersiz sayilir".($status === 'paid' ? " (para gelmediyse unpay=1)" : ''); return $out; }
     if (function_exists('vestra_order_payment_settled') && !empty(vestra_order_payment_settled($ref, $e)['settled'])) {
         $out['error'] = 'siparisin parasi GELMIS gorunuyor -- dekont gecersiz sayilmaz'; return $out;
     }
