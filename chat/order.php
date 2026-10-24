@@ -77,5 +77,8 @@ $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
   </div>
 <?php endif; ?>
 </div><div class="foot"><?= $t('o.foot',['link'=>'<a href="https://chat-help.com/#bestellen">ChatHelp</a>','time'=>$e($clock((new DateTimeImmutable('now',$s ? ord_tz($s) : new DateTimeZone('Europe/Berlin')))->format('H:i')))]) ?></div></div>
-<?php if($live): ?><script>setTimeout(function(){location.replace('?c=<?= $e($p['code']) ?>&lang=<?= $e($L) ?>&_='+Date.now().toString(36));},30000);</script><?php endif; ?>
+<?php if($p): ?><script>/* Edge-Cache-Schutz: Kopie älter als 20 s (z. B. Neuladen einer alten Adresse) → einmal frisch laden; danach alle 30 s, solange die Bestellung läuft */
+(function(){var G=<?= time() ?>,u='?c=<?= $e($p['code']) ?>&lang=<?= $e($L) ?>&_=',n=Date.now(),f=function(){location.replace(u+Date.now().toString(36));};
+try{var l=+sessionStorage.getItem('chordR')||0;if(n/1000-G>20&&n-l>60000){sessionStorage.setItem('chordR',String(n));f();return;}}catch(x){}   /* höchstens 1× pro Minute – schützt vor Endlosschleifen bei falsch gehender Geräteuhr */
+<?php if($live): ?>setTimeout(f,30000);<?php endif; ?>})();</script><?php endif; ?>
 </body></html>
