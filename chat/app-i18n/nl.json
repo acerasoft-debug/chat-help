@@ -890,5 +890,7 @@
 "srx.today": "vandaag {t}",
 "srx.todayum": "vandaag om {t}",
 "srx.tomorrow": "morgen {t}",
-"srx.yday": "gisteren {t}"
+"srx.yday": "gisteren {t}",
+"pl.agent-marketing.n": "Marketingagent",
+"pl.agent-amazon.n": "Amazon-FBA-agent"
 }

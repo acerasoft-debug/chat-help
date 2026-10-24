@@ -890,5 +890,7 @@
 "srx.today": "tänään {t}",
 "srx.todayum": "tänään klo {t}",
 "srx.tomorrow": "huomenna {t}",
-"srx.yday": "eilen {t}"
+"srx.yday": "eilen {t}",
+"pl.agent-marketing.n": "Markkinointiagentti",
+"pl.agent-amazon.n": "Amazon FBA -agentti"
 }

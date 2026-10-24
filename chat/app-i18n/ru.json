@@ -890,5 +890,7 @@
 "srx.today": "сегодня {t}",
 "srx.todayum": "сегодня в {t}",
 "srx.tomorrow": "завтра {t}",
-"srx.yday": "вчера {t}"
+"srx.yday": "вчера {t}",
+"pl.agent-marketing.n": "Маркетинговый агент",
+"pl.agent-amazon.n": "Агент Amazon FBA"
 }

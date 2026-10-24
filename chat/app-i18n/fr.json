@@ -890,5 +890,7 @@
 "srx.today": "aujourd'hui {t}",
 "srx.todayum": "aujourd’hui à {t}",
 "srx.tomorrow": "demain {t}",
-"srx.yday": "hier {t}"
+"srx.yday": "hier {t}",
+"pl.agent-marketing.n": "Agent marketing",
+"pl.agent-amazon.n": "Agent Amazon FBA"
 }

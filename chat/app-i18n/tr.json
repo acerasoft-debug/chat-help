@@ -890,5 +890,7 @@
 "srx.today": "bugün {t}",
 "srx.todayum": "bugün saat {t}",
 "srx.tomorrow": "yarın {t}",
-"srx.yday": "dün {t}"
+"srx.yday": "dün {t}",
+"pl.agent-marketing.n": "Pazarlama ajanı",
+"pl.agent-amazon.n": "Amazon FBA ajanı"
 }
