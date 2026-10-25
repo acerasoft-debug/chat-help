@@ -21,7 +21,7 @@
   function plans() { var P = []; try { (PLANS || []).forEach(function (p) { if (p.kind === 'agent') P.push(p); }); } catch (e) { /* kein PLANS */ } return P; }
   function isActive(id) { try { return (ME.plans || []).some(function (p) { return p.id === id && p.active; }) || (ME.configs || []).some(function (c) { return c.plan === id; }); } catch (e) { return false; } }
   /* ---------- Piper im Browser ---------- */
-  function pipLib() { if (window.CHVoice || S.js) return; S.js = document.createElement('script'); S.js.src = '/chat/voice/voice.js?v=4'; S.js.async = true; S.js.onload = function () { regAll(); pipCheck(); render(); }; document.head.appendChild(S.js); }
+  function pipLib() { if (window.CHVoice || S.js) return; S.js = document.createElement('script'); S.js.src = '/chat/voice/voice.js?v=5'; S.js.async = true; S.js.onload = function () { regAll(); pipCheck(); render(); }; document.head.appendChild(S.js); }
   function regAll() { if (window.CHVoice && CHVoice.register) CHVoice.register(S.list.f.concat(S.list.m)); }
   function pipOf(id) { var e = entry(id); if (!e || !window.CHVoice || !CHVoice.ok() || !e.source || e.source.type !== 'piper') return null; return CHVoice.pickId(e.id); }
   function pipCheck() { var v = pipOf(S.pick || S.cur); if (!v || S.pip[v.key]) return; CHVoice.stored(v).then(function (ok) { if (ok && !S.pip[v.key]) { S.pip[v.key] = 'ready'; render(); } }); }
@@ -116,7 +116,6 @@
   }
   function bind() {
     if (S.bound) return; S.bound = true;
-    pipLib();
     g('vcPlan').addEventListener('change', function () { stop(); S.plan = this.value; load(); });
     g('vcTabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-g]'); if (b) { S.g = b.dataset.g; render(); } });
     g('vcGrid').addEventListener('click', function (e) {

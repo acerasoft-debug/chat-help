@@ -95,9 +95,9 @@
   /* Sprachen ohne eigenes Modell: Stimme einer verwandten Sprache mit eigener Aussprache (espeak) und Lautangleichung */
   var VIA = { az: { lang: 'tr', espeak: 'az', map: { 'æ': 'ɛ', 'x': 'h', 'ɣ': 'ɡ' } } };
   var W = null, seq = 0, wait = {};
-  function ok() {
-    try { return !!(window.Worker && window.WebAssembly && window.caches && window.isSecureContext && typeof BigInt64Array !== 'undefined'); } catch (e) { return false; }
-  }
+  /* Browser-Stimmen (Piper) sind abgeschaltet: ChatHelp spricht nur noch mit Premium-Stimmen vom Server. Fällt der Server aus,
+     nutzen die Seiten die Gerätestimme – ok() bleibt deshalb immer false (keine Modell-Downloads, keine Piper-Wiedergabe). */
+  function ok() { return false; }
   function auto() {
     try { var c = navigator.connection; if (c && (c.saveData || c.type === 'cellular' || /(^|-)2g|3g/.test(c.effectiveType || ''))) return false; } catch (e) { /* egal */ }
     return true;

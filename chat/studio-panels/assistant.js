@@ -438,7 +438,7 @@
   function catSync(lng, after) { if (catLoaded(lng)) return; catLoad(lng).then(function () { if (window.CHVoice) pipCheck(); if (after) after(); voiceInfo(); }).catch(function () { /* Karten aus den Voreinstellungen */ }); }
   function pipLib() {
     if (window.CHVoice || PIP.js) return;
-    PIP.js = document.createElement('script'); PIP.js.src = '/chat/voice/voice.js?v=4'; PIP.js.async = true;
+    PIP.js = document.createElement('script'); PIP.js.src = '/chat/voice/voice.js?v=5'; PIP.js.async = true;
     PIP.js.onload = function () { if (CHVoice.register) { var all = []; Object.keys(CAT.by).forEach(function (k) { all.push(CAT.by[k]); }); CHVoice.register(all); } pipCheck(); voiceInfo(); };
     document.head.appendChild(PIP.js);
   }

@@ -1868,7 +1868,7 @@ async function vBrowser(text,turn){const ss=window.speechSynthesis;if(!ss||!wind
 /* Echte Stimme im Browser (Piper, /chat/voice/voice.js – ohne Cloud): jede Persona-Voreinstellung hat ein eigenes Stimmmodell.
    Lädt einmalig (21–77 MB) beim ersten Vorlesen, sofern kein Datensparmodus/Mobilfunk; bis dahin spricht die Browserstimme. */
 const PV={st:{},pct:{},js:null};
-function pvLib(){if(window.CHVoice||PV.js)return;PV.js=document.createElement('script');PV.js.src='/chat/voice/voice.js?v=3';PV.js.async=true;PV.js.onload=()=>pvCheck();document.head.appendChild(PV.js);}
+function pvLib(){if(window.CHVoice||PV.js)return;PV.js=document.createElement('script');PV.js.src='/chat/voice/voice.js?v=5';PV.js.async=true;PV.js.onload=()=>pvCheck();document.head.appendChild(PV.js);}
 /* Jede Persona (Demo + Branche) hat ihre eigene Stimme – solange niemand im Stimmen-Menü eine andere wählt; Sprache = Sprache der Antwort */
 function pvWho(){return !VP.g&&!VP[vGender()]?String(V.demo||'')+'|'+String(V.sector||''):'';}
 function pvVoice(){try{return window.CHVoice&&CHVoice.ok()?CHVoice.pick(V.rlang||'de',vGender(),vPresetId(),pvWho()):null;}catch(e){return null;}}

@@ -356,14 +356,8 @@ try {
     $r=http('GET',"$BASE/chat/concierge.php?agent=agent-hair-tr&lang=en&_=".rnd(4)); ok($r['code']===200,'Türkiye-Demo auf Englisch',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/chat/studio.php?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'data-v="whatsapp"') && str_contains($r['body'],'id="cLangs"') && str_contains($r['body'],'data-v="kunden"'),'Studio: WhatsApp-Tab, Kunden-Tab, 13-Sprachen-Auswahl',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/?_=".rnd(4)); ok($r['code']===200 && str_contains($r['body'],'id="beauty"') && str_contains($r['body'],'id="tuerkei"') && !preg_match('/id="recht"/',$r['body']),'Startseite: Beauty, Türkiye, ohne Recht-Abschnitt',"HTTP {$r['code']}");
-    sec('Phase 3: echte Browser-Stimmen, App, Länder/Währung, Rechtstexte');
-    foreach(['chat/voice/voice.js'=>'CHVoice','chat/voice/piper-worker.js'=>'createPiperPhonemize','chat/vendor/voice/lib/ort.wasm.min.js'=>'ONNX Runtime','chat/vendor/voice/lib/piper_phonemize.js'=>'createPiperPhonemize'] as $f=>$needle){
-        $r=http('GET',"$BASE/$f?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],$needle),"Stimmen: $f",'HTTP '.$r['code'].' · '.strlen($r['body']).' Bytes');
-    }
-    foreach(['de_DE-kerstin-low','de_DE-mls-medium','fr_FR-upmc-medium','es_ES-sharvard-medium','tr_TR-fettah-medium','tr_TR-fahrettin-medium'] as $k){
-        $r=http('GET',"$BASE/chat/vendor/voice/models/$k.json?_=".rnd(4)); $h=http('HEAD',"$BASE/chat/vendor/voice/models/$k.bin",null,[],'raw',true);
-        ok($r['code']===200 && isset($r['json']['phoneme_id_map']) && $h['code']===200,"Stimme $k (Modell + Konfiguration)",'json '.$r['code'].' · bin '.$h['code']);
-    }
+    sec('Phase 3: Premium-Stimmen, App, Länder/Währung, Rechtstexte');
+    $r=http('GET',"$BASE/chat/voice/voice.js?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'function ok() { return false; }'),'Stimmen: nur Premium – Browser-Stimmen abgeschaltet (voice.js)','HTTP '.$r['code']);
     $r=http('GET',"$BASE/chat/vendor/voice/LICENSES.txt?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'espeak-ng') && str_contains($r['body'],'== Stimmen =='),'Stimmen-Lizenzen veröffentlicht',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'/chat/voice/voice.js') && str_contains($r['body'],'href="/datenschutz.html"'),'Startseite: echte Stimmen eingebunden + Datenschutz-Link',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/chat/locale-api.php?cc=TR&_=".rnd(4),null,['CF-IPCountry: TR']); ok($r['code']===200 && ($r['json']['currency'] ?? '')==='TRY' && ($r['json']['lang'] ?? '')==='tr','Länder-Erkennung: Türkei → Türkisch + TRY',short($r['json'] ?? $r['body'],120));
@@ -384,10 +378,10 @@ try {
     foreach(['de','fr','tr','az','es','it','en'] as $l){
         $r=http('GET',"$BASE/chat/voice-api.php/v1/voices?lang=$l&_=".rnd(4),null,['Authorization: Bearer '.$key]); $vs=$r['json']['voices'] ?? [];
         $f=count((array)($vs['f'] ?? [])); $m=count((array)($vs['m'] ?? []));
-        ok($r['code']===200 && $f>=6 && $m>=6,"Stimmen-Katalog $l: ≥ 6 Frauen- und 6 Männerstimmen","HTTP {$r['code']} · f=$f m=$m");
+        $np=count(array_filter(array_merge((array)($vs['f'] ?? []),(array)($vs['m'] ?? [])),fn($v)=>($v['tier'] ?? '')!=='premium'));
+        ok($r['code']===200 && $f>=6 && $m>=6 && $np===0,"Stimmen-Katalog $l: nur Premium, ≥ 6 Frauen- und 6 Männerstimmen","HTTP {$r['code']} · f=$f m=$m · andere=$np");
     }
-    $r=http('GET',"$BASE/chat/voice/catalog.json?_=".rnd(4)); ok($r['code']===200 && is_array($r['json']),'Stimmen-Katalog für den Browser (catalog.json)',"HTTP {$r['code']}");
-    foreach(['it_IT-serena-medium','en_GB-vctk-medium','nl_NL-pim-medium','ru_RU-dmitri-medium'] as $k){ $h=http('HEAD',"$BASE/chat/vendor/voice/models/$k.bin",null,[],'raw',true); ok($h['code']===200,"Stimme $k auf dem Server","HTTP {$h['code']}"); }
+    $r=http('GET',"$BASE/chat/voice/catalog.json?_=".rnd(4)); ok($r['code']===200 && is_array($r['json']) && empty($r['json']['langs']),'Browser-Stimmenkatalog leer (nur Premium)',"HTTP {$r['code']}");
     $r=$api('GET','sites'); ok($r['code']===200 && isset($r['json']['templates']) && count($r['json']['templates'])>=8,'Website-Baukasten: Liste + 8 Vorlagen (API)',"HTTP {$r['code']} · ".count($r['json']['templates'] ?? []).' Vorlagen');
     foreach(['gastro'=>'Speisekarte','beauty'=>'','praxis'=>'','hotel'=>'','taxi'=>'','shop'=>'','handwerk'=>'','personal'=>''] as $d=>$needle){
         $r=http('GET',"$BASE/chat/site.php?demo=$d&lang=de&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'<h1') && ($needle==='' || str_contains($r['body'],$needle)),"Baukasten-Beispiel „{$d}“ (öffentliche Darstellung)","HTTP {$r['code']}");
