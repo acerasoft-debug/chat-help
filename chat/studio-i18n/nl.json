@@ -3109,4 +3109,14 @@
 "opt.sec.amazon":"Amazon-verkoper & merk (FBA)",
 "pl.buy-marketing.d":"Marketingagent: inrichting via videogesprek (merk, doelgroepen, kanalen, kengetallen, tone of voice) + licentie + 160.000 starttokens + 3 maanden gebruik inbegrepen – daarna gebruik € 29/maand of eigen AI-sleutel € 14/maand",
 "pl.buy-amazon-fba.n":"Amazon FBA-agent (licentie)",
-"pl.buy-amazon-fba.d":"Keepa-productfinder, exacte calculatie, listingcheck, PPC-analyse en voorraadplanning + licentie + 500.000 tokens + 1 jaar gebruik inbegrepen (2 jaar mogelijk) – daarna gebruik € 39/maand of eigen AI-sleutel € 19/maand"}
+"pl.buy-amazon-fba.d":"Keepa-productfinder, exacte calculatie, listingcheck, PPC-analyse en voorraadplanning + licentie + 500.000 tokens + 1 jaar gebruik inbegrepen (2 jaar mogelijk) – daarna gebruik € 39/maand of eigen AI-sleutel € 19/maand",
+"as.cast_t":"Kies je assistent",
+"as.cast_all":"Alle",
+"as.cast_f":"Vrouwen",
+"as.cast_m":"Mannen",
+"asj.castSub":"{n} kant-en-klare assistenten in jouw taal – tik er een aan en die is er meteen. Altijd te wisselen.",
+"asj.castSub.f":"{n} kant-en-klare assistenten in uw taal – tik er een aan en die is er meteen. Altijd te wisselen.",
+"asj.castOn":"Actief",
+"asj.castPick":"{n} kiezen",
+"asj.castNow":"{n} staat nu voor je klaar.",
+"asj.castNow.f":"{n} staat nu voor u klaar."}

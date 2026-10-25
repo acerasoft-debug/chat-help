@@ -3109,4 +3109,14 @@
 "opt.sec.amazon":"Vendeur & marque Amazon (FBA)",
 "pl.buy-marketing.d":"Agent marketing : mise en place par visioconférence (marque, cibles, canaux, indicateurs, ton) + licence + 160 000 tokens de départ + 3 mois d’exploitation inclus – ensuite exploitation 29 €/mois ou clé IA personnelle 14 €/mois",
 "pl.buy-amazon-fba.n":"Agent Amazon FBA (licence)",
-"pl.buy-amazon-fba.d":"Recherche de produits Keepa, calcul exact, contrôle des fiches, analyse PPC et planification du réassort + licence + 500 000 jetons + 1 an d’exploitation inclus (2 ans au choix) – ensuite exploitation 39 €/mois ou votre propre clé IA 19 €/mois"}
+"pl.buy-amazon-fba.d":"Recherche de produits Keepa, calcul exact, contrôle des fiches, analyse PPC et planification du réassort + licence + 500 000 jetons + 1 an d’exploitation inclus (2 ans au choix) – ensuite exploitation 39 €/mois ou votre propre clé IA 19 €/mois",
+"as.cast_t":"Choisir votre assistant",
+"as.cast_all":"Tous",
+"as.cast_f":"Femmes",
+"as.cast_m":"Hommes",
+"asj.castSub":"{n} assistants prêts dans votre langue – touchez-en un, il est là tout de suite. Modifiable à tout moment.",
+"asj.castSub.f":"{n} assistants prêts dans votre langue – touchez-en un, il est là tout de suite. Modifiable à tout moment.",
+"asj.castOn":"Actif",
+"asj.castPick":"Choisir {n}",
+"asj.castNow":"{n} est maintenant là pour vous.",
+"asj.castNow.f":"{n} est maintenant là pour vous."}

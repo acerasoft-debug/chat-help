@@ -3109,4 +3109,14 @@
 "opt.sec.amazon":"Amazon seller & brand (FBA)",
 "pl.buy-marketing.d":"Marketing agent: setup via video call (brand, target audiences, channels, KPIs, tone of voice) + licence + 160,000 starter tokens + 3 months of operation included – then operation €29/month or own AI key €14/month",
 "pl.buy-amazon-fba.n":"Amazon FBA agent (licence)",
-"pl.buy-amazon-fba.d":"Keepa product finder, exact costing, listing check, PPC analysis and restock planning + licence + 500,000 tokens + 1 year of operation included (2 years available) – then operation €39/month or your own AI key €19/month"}
+"pl.buy-amazon-fba.d":"Keepa product finder, exact costing, listing check, PPC analysis and restock planning + licence + 500,000 tokens + 1 year of operation included (2 years available) – then operation €39/month or your own AI key €19/month",
+"as.cast_t":"Choose your assistant",
+"as.cast_all":"All",
+"as.cast_f":"Women",
+"as.cast_m":"Men",
+"asj.castSub":"{n} ready-made assistants in your language – tap one and they're here right away. Switch any time.",
+"asj.castSub.f":"{n} ready-made assistants in your language – tap one and they're here right away. Switch any time.",
+"asj.castOn":"Active",
+"asj.castPick":"Choose {n}",
+"asj.castNow":"{n} is now here for you.",
+"asj.castNow.f":"{n} is now here for you."}

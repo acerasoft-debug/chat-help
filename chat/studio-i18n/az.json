@@ -3109,4 +3109,14 @@
 "opt.sec.amazon":"Amazon satıcısı & brend (FBA)",
 "pl.buy-marketing.d":"Marketinq agenti: video zəng ilə quraşdırma (brend, hədəf auditoriyalar, kanallar, göstəricilər, ton) + lisenziya + 160 000 başlanğıc tokeni + 3 ay istismar daxil – sonra istismar ayda 29 € və ya öz süni intellekt açarı ayda 14 €",
 "pl.buy-amazon-fba.n":"Amazon FBA agenti (lisenziya)",
-"pl.buy-amazon-fba.d":"Keepa məhsul axtarışı, dəqiq hesablama, listinq yoxlaması, PPC təhlili və ehtiyatın planlaşdırılması + lisenziya + 500.000 token + 1 il istismar daxildir (2 il seçmək olar) – sonra istismar ayda 39 € və ya öz süni intellekt açarınızla ayda 19 €"}
+"pl.buy-amazon-fba.d":"Keepa məhsul axtarışı, dəqiq hesablama, listinq yoxlaması, PPC təhlili və ehtiyatın planlaşdırılması + lisenziya + 500.000 token + 1 il istismar daxildir (2 il seçmək olar) – sonra istismar ayda 39 € və ya öz süni intellekt açarınızla ayda 19 €",
+"as.cast_t":"Assistentini seç",
+"as.cast_all":"Hamısı",
+"as.cast_f":"Qadınlar",
+"as.cast_m":"Kişilər",
+"asj.castSub":"Dilində {n} hazır assistent – birinə toxun, dərhal yanındadır. İstədiyin vaxt dəyişə bilərsən.",
+"asj.castSub.f":"Dilinizdə {n} hazır assistent – birinə toxunun, dərhal yanınızdadır. İstədiyiniz vaxt dəyişə bilərsiniz.",
+"asj.castOn":"Aktiv",
+"asj.castPick":"{n} seç",
+"asj.castNow":"{n} artıq sənin üçün buradadır.",
+"asj.castNow.f":"{n} artıq sizin üçün buradadır."}

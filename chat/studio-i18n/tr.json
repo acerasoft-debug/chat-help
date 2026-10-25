@@ -3109,4 +3109,14 @@
 "opt.sec.amazon":"Amazon satıcısı & marka (FBA)",
 "pl.buy-marketing.d":"Pazarlama ajanı: görüntülü görüşmeyle kurulum (marka, hedef kitleler, kanallar, metrikler, üslup) + lisans + 160.000 başlangıç token’ı + 3 ay işletim dahil – sonra işletim aylık 29 € veya kendi yapay zekâ anahtarı aylık 14 €",
 "pl.buy-amazon-fba.n":"Amazon FBA ajanı (lisans)",
-"pl.buy-amazon-fba.d":"Keepa ürün bulucu, kesin hesaplama, liste kontrolü, PPC analizi ve stok planlaması + lisans + 500.000 token + 1 yıl işletim dahil (2 yıl seçilebilir) – sonrasında işletim aylık 39 € veya kendi yapay zekâ anahtarınızla aylık 19 €"}
+"pl.buy-amazon-fba.d":"Keepa ürün bulucu, kesin hesaplama, liste kontrolü, PPC analizi ve stok planlaması + lisans + 500.000 token + 1 yıl işletim dahil (2 yıl seçilebilir) – sonrasında işletim aylık 39 € veya kendi yapay zekâ anahtarınızla aylık 19 €",
+"as.cast_t":"Asistanını seç",
+"as.cast_all":"Tümü",
+"as.cast_f":"Kadın",
+"as.cast_m":"Erkek",
+"asj.castSub":"Dilinde {n} hazır asistan – birine dokun, hemen yanında. İstediğin zaman değiştirebilirsin.",
+"asj.castSub.f":"Dilinizde {n} hazır asistan – birine dokunun, hemen yanınızda. İstediğiniz zaman değiştirebilirsiniz.",
+"asj.castOn":"Aktif",
+"asj.castPick":"{n} seç",
+"asj.castNow":"{n} artık senin için burada.",
+"asj.castNow.f":"{n} artık sizin için burada."}

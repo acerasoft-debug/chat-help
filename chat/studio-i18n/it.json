@@ -3109,4 +3109,14 @@
 "opt.sec.amazon":"Venditore Amazon & brand (FBA)",
 "pl.buy-marketing.d":"Agente marketing: configurazione in videochiamata (brand, target, canali, KPI, tono) + licenza + 160.000 token iniziali + 3 mesi di operatività inclusi – poi operatività 29 €/mese o chiave IA propria 14 €/mese",
 "pl.buy-amazon-fba.n":"Agente Amazon FBA (licenza)",
-"pl.buy-amazon-fba.d":"Ricerca prodotti Keepa, calcolo esatto, controllo del listing, analisi PPC e pianificazione del riassortimento + licenza + 500.000 token + 1 anno di servizio incluso (2 anni a scelta) – poi servizio 39 €/mese o la tua chiave IA 19 €/mese"}
+"pl.buy-amazon-fba.d":"Ricerca prodotti Keepa, calcolo esatto, controllo del listing, analisi PPC e pianificazione del riassortimento + licenza + 500.000 token + 1 anno di servizio incluso (2 anni a scelta) – poi servizio 39 €/mese o la tua chiave IA 19 €/mese",
+"as.cast_t":"Scegli il tuo assistente",
+"as.cast_all":"Tutti",
+"as.cast_f":"Donne",
+"as.cast_m":"Uomini",
+"asj.castSub":"{n} assistenti pronti nella tua lingua: toccane uno ed è subito qui. Puoi cambiarlo quando vuoi.",
+"asj.castSub.f":"{n} assistenti pronti nella Sua lingua: ne tocchi uno ed è subito qui. Può cambiarlo quando vuole.",
+"asj.castOn":"Attivo",
+"asj.castPick":"Scegli {n}",
+"asj.castNow":"{n} ora è qui per te.",
+"asj.castNow.f":"{n} ora è qui per Lei."}

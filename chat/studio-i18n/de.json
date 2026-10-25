@@ -3110,5 +3110,15 @@
 "opt.sec.amazon":"Amazon-Händler & Marke (FBA)",
 "pl.buy-marketing.d":"Marketing-Agent: Einrichtung per Video-Call (Marke, Zielgruppen, Kanäle, Kennzahlen, Tonalität) + Lizenz + 160.000 Tokens Startguthaben + 3 Monate Betrieb inklusive – danach Betrieb 29 €/Monat oder eigener KI-Schlüssel 14 €/Monat",
 "pl.buy-amazon-fba.n":"Amazon-FBA-Agent (Lizenz)",
-"pl.buy-amazon-fba.d":"Keepa-Produktfinder, exakte Kalkulation, Listing-Check, PPC-Auswertung und Nachschubplanung + Lizenz + 500.000 Tokens + 1 Jahr Betrieb inklusive (2 Jahre wählbar) – danach Betrieb 39 €/Monat oder eigener KI-Schlüssel 19 €/Monat"
+"pl.buy-amazon-fba.d":"Keepa-Produktfinder, exakte Kalkulation, Listing-Check, PPC-Auswertung und Nachschubplanung + Lizenz + 500.000 Tokens + 1 Jahr Betrieb inklusive (2 Jahre wählbar) – danach Betrieb 39 €/Monat oder eigener KI-Schlüssel 19 €/Monat",
+"as.cast_t":"Assistent wählen",
+"as.cast_all":"Alle",
+"as.cast_f":"Frauen",
+"as.cast_m":"Männer",
+"asj.castSub":"{n} fertige Assistenten in deiner Sprache – antippen, und sie sind sofort da. Jederzeit wechselbar.",
+"asj.castSub.f":"{n} fertige Assistenten in Ihrer Sprache – antippen, und sie sind sofort da. Jederzeit wechselbar.",
+"asj.castOn":"Aktiv",
+"asj.castPick":"{n} wählen",
+"asj.castNow":"{n} ist jetzt für dich da.",
+"asj.castNow.f":"{n} ist jetzt für Sie da."
 }

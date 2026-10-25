@@ -7,7 +7,8 @@
  * Kundenfragen, Ton, Kanäle), merkt sich die Antworten und richtet die Agenten mit echten Werkzeugen ein – immer erst nach Rückfrage.
  *
  * Tabellen:  assistant_profiles (Persona je Konto) · assistant_messages (Verlauf) · assistant_memory (gemerkte Fakten)
- * REST (Studio, Bearer-Key):  GET|POST /v1/assistant/profile · GET /v1/assistant/state · POST /v1/assistant/chat
+ * REST (Studio, Bearer-Key):  GET|POST /v1/assistant/profile ({cast:id} = fertigen Assistenten übernehmen) · GET /v1/assistant/cast?lang=xx
+ *                             GET /v1/assistant/state · POST /v1/assistant/chat
  *                             POST /v1/assistant/speak {mid,i} | {preview:{name,lang,gender,address,tone,rate,pitch,preset}} (audio/mpeg)
  *                             POST /v1/assistant/reset · POST /v1/assistant/forget
  * Sprachen: 13 (ASSISTANT_LANG_TABLE) – Profilsprache, automatische Antwortsprache, Begrüßung, Hörprobe, Stimme und Spracheingabe je Sprache.
@@ -164,6 +165,29 @@ const ASSISTANT_FALLBACK_PORTRAITS = [
     ['id'=>'m1','gender'=>'m','label'=>'Jonas','age'=>34,'c'=>['#e4ecef','#88a6b3','#2f4f5c']],
     ['id'=>'m2','gender'=>'m','label'=>'David','age'=>45,'c'=>['#ece6dc','#b39a78','#5b4428']],
     ['id'=>'m3','gender'=>'m','label'=>'Emre','age'=>29,'c'=>['#e6e7f4','#9a9fd1','#3c3f7a']],
+];
+/**
+ * Fertige Assistenten je Sprache (Auswahl im Studio, jederzeit wechselbar): je Geschlecht ASSISTANT_CAST_N Personen mit Vornamen der Sprache
+ * (VC_NAMES im Stimmenkatalog), Porträt in eigener Reihenfolge je Sprache, eigener Stimme (gleichnamige Katalogstimme, sonst die nächste freie
+ * verfügbare) und eigener Art (Sprechweise der Stimme + wechselnde Persönlichkeit). id = <sprache>-<f|m>-<name>.
+ */
+const ASSISTANT_CAST_N = 8;
+const ASSISTANT_CAST_MOODS = ['herzlich','professionell','locker'];
+const ASSISTANT_CAST_TONES = ['warm','sachlich','energisch','ruhig'];
+const ASSISTANT_CAST_PORTRAITS = [
+    'de'=>['f'=>['f1','f2','f9','f6','f8','f3','f7','f4'],'m'=>['m6','m1','m2','m5','m9','m7','m4','m8']],
+    'en'=>['f'=>['f6','f8','f1','f9','f2','f3','f7','f5'],'m'=>['m4','m9','m5','m2','m6','m7','m1','m8']],
+    'fr'=>['f'=>['f2','f1','f6','f4','f9','f8','f3','f7'],'m'=>['m5','m7','m6','m9','m2','m3','m4','m1']],
+    'es'=>['f'=>['f4','f2','f1','f9','f6','f5','f8','f7'],'m'=>['m8','m3','m7','m5','m6','m2','m9','m4']],
+    'it'=>['f'=>['f2','f4','f1','f9','f6','f8','f5','f7'],'m'=>['m7','m3','m8','m5','m6','m9','m2','m1']],
+    'tr'=>['f'=>['f4','f2','f9','f1','f6','f5','f8','f7'],'m'=>['m3','m8','m7','m5','m6','m9','m2','m1']],
+    'az'=>['f'=>['f4','f2','f5','f9','f1','f7','f6','f8'],'m'=>['m8','m3','m7','m5','m6','m2','m9','m1']],
+    'ru'=>['f'=>['f6','f1','f9','f8','f2','f7','f4','f5'],'m'=>['m5','m2','m6','m9','m1','m7','m3','m8']],
+    'nl'=>['f'=>['f6','f8','f1','f9','f2','f7','f4','f3'],'m'=>['m5','m6','m9','m2','m1','m7','m4','m8']],
+    'sv'=>['f'=>['f6','f8','f1','f7','f9','f2','f3','f4'],'m'=>['m5','m6','m2','m9','m1','m7','m4','m8']],
+    'no'=>['f'=>['f8','f6','f1','f7','f9','f2','f4','f3'],'m'=>['m6','m5','m9','m2','m1','m7','m3','m4']],
+    'fi'=>['f'=>['f6','f7','f8','f1','f9','f2','f3','f4'],'m'=>['m2','m5','m6','m9','m1','m7','m4','m8']],
+    'ja'=>['f'=>['f3','f5','f2','f4','f1','f6','f9','f8'],'m'=>['m1','m7','m9','m5','m6','m3','m2','m8']],
 ];
 /**
  * Stimm-Voreinstellungen (gleiche IDs wie ch_tts_voices() in speech-lib). Die speech-lib-Liste hat Vorrang, diese Tabelle ist der Ersatz,
@@ -370,9 +394,19 @@ function assistant_photo_check($raw): array {
 }
 
 /* ======================================================================= Profil (Persona) */
+/** Oberflächensprache ohne Nebenwirkung (kein ?lang=, das würde das Sprach-Cookie setzen): Cookie ch_lang → Accept-Language/Land → Deutsch. */
+function assistant_ui_lang(): string {
+    $c=function_exists('ch_lang_norm') ? ch_lang_norm(is_string($_COOKIE['ch_lang'] ?? null) ? $_COOKIE['ch_lang'] : '') : '';
+    if(in_array($c,ASSISTANT_LANGS,true)) return $c;
+    if(!isset($_GET['lang']) && PHP_SAPI!=='cli' && function_exists('ch_page_lang')) return assistant_lang(ch_page_lang(ASSISTANT_LANGS,'de'));
+    return 'de';
+}
+/** Noch nicht gewählt: erste Assistentin der Oberflächensprache (de Lea, tr Elif, fr Camille …) mit ihrem Gesicht, ihrer Stimme und Art. */
 function assistant_profile_defaults(int $acc): array {
-    return ['account_id'=>$acc,'name'=>'Lea','gender'=>'f','portrait'=>assistant_default_portrait('f'),'portrait_data'=>null,
-        'voice'=>['tone'=>'warm','rate'=>1.0,'pitch'=>1.0,'preset'=>assistant_preset_for('f','warm')],'personality'=>['address'=>'du','mood'=>'herzlich','humor'=>1,'detail'=>'kurz'],'lang'=>'de','saved'=>false];
+    $l=assistant_ui_lang(); $c=assistant_cast($l)[0] ?? null; $tone=$c['tone'] ?? 'warm';
+    return ['account_id'=>$acc,'name'=>$c['name'] ?? 'Lea','gender'=>'f','portrait'=>$c['portrait'] ?? assistant_default_portrait('f'),'portrait_data'=>null,
+        'voice'=>['tone'=>$tone,'rate'=>1.0,'pitch'=>1.0,'preset'=>assistant_preset_for('f',$tone)],'personality'=>['address'=>'du','mood'=>$c['mood'] ?? 'herzlich','humor'=>1,'detail'=>'kurz'],'lang'=>$l,'saved'=>false,
+        'cast'=>$c];
 }
 /**
  * Stimm-Voreinstellungen: id → {gender,label,title,desc,rate,pitch,brate,bpitch,openai,google,azure,instructions,elevenlabs,eleven,browser[]}.
@@ -423,11 +457,45 @@ function assistant_voice_presets_public(): array {
     $o=[]; foreach(assistant_voice_presets() as $id=>$v) $o[]=['id'=>$id,'gender'=>$v['gender'],'label'=>$v['title'],'desc'=>$v['desc'],'rate'=>$v['rate'],'pitch'=>$v['pitch'],'browser'=>$v['browser'],'brate'=>$v['brate'],'bpitch'=>$v['bpitch'],'persona'=>$v['persona'],'tone'=>assistant_preset_tone($id)];
     return $o;
 }
+/** Fertige Assistenten einer Sprache: [{id,name,gender,lang,portrait,url,age,voice,voice_label,voice_tier,tone,mood}] – Frauen zuerst, dann Männer. */
+function assistant_cast(string $lang): array {
+    static $memo=[]; $l=assistant_lang($lang); if(isset($memo[$l])) return $memo[$l];
+    $byId=[]; foreach(assistant_portraits() as $p) $byId[$p['id']]=$p;
+    $o=[];
+    foreach(['f','m'] as $g){
+        $mine=array_values(array_filter(assistant_portraits(),fn($p)=>$p['gender']===$g)); if(!$mine) continue;
+        $order=array_values(array_filter(ASSISTANT_CAST_PORTRAITS[$l][$g] ?? [],fn($id)=>isset($byId[$id]) && $byId[$id]['gender']===$g));
+        foreach($mine as $p) if(!in_array($p['id'],$order,true)) $order[]=$p['id'];   // eigene avatars.json mit anderen IDs: alle Porträts dieses Geschlechts
+        $names=defined('VC_NAMES') ? (VC_NAMES[$l][$g] ?? []) : [];
+        if(count($names)<ASSISTANT_CAST_N) foreach($mine as $p) if($p['label']!=='' && !in_array($p['label'],$names,true)) $names[]=$p['label'];
+        $voices=function_exists('vc_list') ? array_values(array_filter(vc_list($l,$g)[$g] ?? [],fn($v)=>$v['available'])) : [];
+        $used=[];
+        for($i=0; $i<ASSISTANT_CAST_N && $i<count($names); $i++){
+            $name=$names[$i]; $v=null;
+            foreach($voices as $c) if($c['label']===$name && !isset($used[$c['id']])){ $v=$c; break; }   // gleichnamige Stimme (Persona des Katalogs)
+            if(!$v) foreach($voices as $c) if(!isset($used[$c['id']])){ $v=$c; break; }                 // sonst die nächste freie
+            if(!$v && $voices) $v=$voices[$i % count($voices)];
+            if($v) $used[$v['id']]=true;
+            $pr=$byId[$order[$i % count($order)]];
+            $tone=($v ? assistant_preset_tone((string)$v['preset']) : null) ?? ASSISTANT_CAST_TONES[$i % 4];
+            $o[]=['id'=>$l.'-'.$g.'-'.(function_exists('vc_slug') ? vc_slug($name) : strtolower((string)preg_replace('/[^a-z0-9]/i','',$name))),'name'=>$name,'gender'=>$g,'lang'=>$l,
+                'portrait'=>$pr['id'],'url'=>$pr['stock'] ? $pr['url'] : assistant_portrait_url(['portrait'=>$pr['id'],'gender'=>$g,'name'=>$name,'portrait_data'=>null]),'age'=>(int)$pr['age'],
+                'voice'=>$v['id'] ?? '','voice_label'=>$v['label'] ?? '','voice_tier'=>$v['tier'] ?? null,'tone'=>$tone,'mood'=>ASSISTANT_CAST_MOODS[$i % 3]];
+        }
+    }
+    return $memo[$l]=$o;
+}
+function assistant_cast_entry(string $id): ?array {
+    if(!preg_match('/^([a-z]{2})-[fm]-[a-z0-9]{1,30}$/',$id,$m) || !in_array($m[1],ASSISTANT_LANGS,true)) return null;
+    foreach(assistant_cast($m[1]) as $c) if($c['id']===$id) return $c;
+    return null;
+}
 function assistant_profile(int $acc): array {
     assistant_bootstrap(); $d=assistant_profile_defaults($acc);
-    if($acc<=0) return $d;
+    if($acc<=0){ unset($d['cast']); return $d; }
     $s=th_db()->prepare("SELECT * FROM assistant_profiles WHERE account_id=?"); $s->execute([$acc]); $r=$s->fetch(PDO::FETCH_ASSOC);
-    if(!$r){ $d['voice']['id']=assistant_voice_id($d); return $d; }
+    if(!$r){ if(!empty($d['cast'])){ if($d['cast']['voice']!=='') $d['voice']['id']=$d['cast']['voice']; $d['personality']['cast']=$d['cast']['id']; } unset($d['cast']); $d['voice']['id']=assistant_voice_id($d); return $d; }
+    unset($d['cast']);
     $v=json_decode((string)($r['voice'] ?? ''),true); $p=json_decode((string)($r['personality'] ?? ''),true);
     $o=['account_id'=>$acc,'name'=>(string)$r['name'] ?: 'Lea','gender'=>$r['gender']==='m' ? 'm' : 'f','portrait'=>(string)$r['portrait'],'portrait_data'=>$r['portrait_data'] ?: null,
         'voice'=>array_merge($d['voice'],is_array($v) ? $v : []),'personality'=>array_merge($d['personality'],is_array($p) ? $p : []),'lang'=>in_array($r['lang'],ASSISTANT_LANGS,true) ? $r['lang'] : 'de','saved'=>true];
@@ -437,6 +505,7 @@ function assistant_profile(int $acc): array {
     if(!in_array($o['personality']['mood'],ASSISTANT_MOODS,true)) $o['personality']['mood']='herzlich';
     $o['personality']['humor']=max(0,min(2,(int)$o['personality']['humor']));
     if(!in_array($o['personality']['detail'],['kurz','ausführlich'],true)) $o['personality']['detail']='kurz';
+    if(isset($o['personality']['cast']) && !(is_string($o['personality']['cast']) && preg_match('/^[a-z]{2}-[fm]-[a-z0-9]{1,30}$/',$o['personality']['cast']))) unset($o['personality']['cast']);
     $pre=assistant_voice_presets(); $pid=(string)($o['voice']['preset'] ?? '');
     if(!isset($pre[$pid]) || $pre[$pid]['gender']!==$o['gender']) $o['voice']['preset']=assistant_preset_for($o['gender'],$o['voice']['tone']);
     $o['voice']['id']=assistant_voice_id($o);
@@ -473,6 +542,15 @@ function assistant_profile_save(int $acc, array $d, ?array &$err=null): array {
     assistant_bootstrap(); $err=null; $c=assistant_profile($acc);
     if($acc<=0){ $err=['error'=>'demo_readonly','message'=>'In der Demo kann nichts gespeichert werden.']; return $c; }
     $bad=function(string $f,string $m) use(&$err,$c){ $err=['error'=>'invalid','field'=>$f,'message'=>$m]; return $c; };
+    /* Fertiger Assistent (assistant_cast): übernimmt Name, Gesicht, Stimme, Sprechweise, Art und Sprache; Anrede, Humor und Antwortlänge bleiben */
+    $cast=null;
+    if(array_key_exists('cast',$d) && is_string($d['cast']) && $d['cast']!==''){
+        $cast=assistant_cast_entry(assistant_str($d['cast'],40)); if(!$cast) return $bad('cast','Diesen Assistenten gibt es nicht.');
+        $d=array_merge($d,['name'=>$cast['name'],'gender'=>$cast['gender'],'portrait'=>$cast['portrait'],'lang'=>$cast['lang'],
+            'voice'=>array_merge(is_array($d['voice'] ?? null) ? $d['voice'] : [],['tone'=>$cast['tone'],'preset'=>''],$cast['voice']!=='' ? ['id'=>$cast['voice']] : []),
+            'personality'=>array_merge(is_array($d['personality'] ?? null) ? $d['personality'] : [],['mood'=>$cast['mood']])]);
+        unset($d['photo']);
+    }
     $v=$c;
     if(array_key_exists('name',$d)){
         $n=trim(preg_replace('/\s+/u',' ',assistant_str($d['name'])) ?? '');
@@ -523,6 +601,9 @@ function assistant_profile_save(int $acc, array $d, ?array &$err=null): array {
         if(isset($pe['humor'])){ if(!is_numeric($pe['humor']) || (int)$pe['humor']<0 || (int)$pe['humor']>2) return $bad('personality.humor','Humor: 0, 1 oder 2.'); $v['personality']['humor']=(int)$pe['humor']; }
         if(isset($pe['detail'])){ if(!in_array($pe['detail'],['kurz','ausführlich'],true)) return $bad('personality.detail','Antwortlänge: kurz oder ausführlich.'); $v['personality']['detail']=$pe['detail']; }
     }
+    /* Markierung des fertigen Assistenten (Auswahl im Panel) – fällt weg, sobald Name, Gesicht, Stimme oder Sprache selbst geändert werden */
+    if($cast) $v['personality']['cast']=$cast['id'];
+    elseif($v['name']!==$c['name'] || $v['gender']!==$c['gender'] || $v['portrait']!==$c['portrait'] || ($v['voice']['id'] ?? '')!==($c['voice']['id'] ?? '') || $v['lang']!==$c['lang']) unset($v['personality']['cast']);
     th_db()->prepare("INSERT INTO assistant_profiles(account_id,name,gender,portrait,portrait_data,voice,personality,lang) VALUES(?,?,?,?,?,?,?,?)
         ON DUPLICATE KEY UPDATE name=VALUES(name),gender=VALUES(gender),portrait=VALUES(portrait),portrait_data=VALUES(portrait_data),voice=VALUES(voice),personality=VALUES(personality),lang=VALUES(lang),updated_at=NOW()")
       ->execute([$acc,$v['name'],$v['gender'],$v['portrait'],$v['portrait_data'],json_encode($v['voice']),json_encode($v['personality'],JSON_UNESCAPED_UNICODE),$v['lang']]);
@@ -1304,13 +1385,15 @@ function assistant_api(string $route, string $method, int $aid, array $body, arr
     /* tts_active: Server-Stimme eingerichtet UND nutzbar (Guthaben oder aktiver Agent, wie bei /speak) – für die ehrliche Statuszeile im Panel */
     $pub=fn()=>['profile'=>assistant_profile_public(assistant_profile($aid)),'tts_active'=>assistant_tts_ready() && (th_balance($aid)>0 || (bool)assistant_active_plans($aid)),'portraits'=>array_map(fn($p)=>['id'=>$p['id'],'url'=>$p['url'],'gender'=>$p['gender'],'label'=>$p['label']],assistant_portraits()),
         'voices'=>assistant_voice_presets_public(),'langs'=>assistant_langs_public(),'tts'=>assistant_tts_ready(),'tts_langs'=>assistant_tts_langs(),'tools_ready'=>assistant_tools_ready(),'photo_max'=>ASSISTANT_PHOTO_MAX,
-        'voice_providers'=>function_exists('vc_providers') ? vc_providers() : [],'voice_api'=>'/chat/voice-api.php/v1/voices'];   // Stimmenkatalog je Sprache: GET voice_api?lang=xx
+        'voice_providers'=>function_exists('vc_providers') ? vc_providers() : [],'voice_api'=>'/chat/voice-api.php/v1/voices',   // Stimmenkatalog je Sprache: GET voice_api?lang=xx
+        'cast'=>assistant_cast(assistant_profile($aid)['lang'])];   // fertige Assistenten der Profilsprache (andere Sprache: GET /v1/assistant/cast?lang=xx)
     switch(true){
         case $route==='assistant/profile' && $method==='GET': return [200,$pub()];
         case $route==='assistant/profile' && $method==='POST':
             $err=null; assistant_profile_save($aid,$body,$err); if($err) return [422,$err];
             return [200,['ok'=>true]+$pub()];
         case $route==='assistant/state' && $method==='GET': return [200,assistant_state($aid)];
+        case $route==='assistant/cast' && $method==='GET': $l=assistant_lang((string)($_GET['lang'] ?? assistant_profile($aid)['lang'])); return [200,['lang'=>$l,'cast'=>assistant_cast($l)]];
         case $route==='assistant/chat' && $method==='POST':
             return assistant_chat($aid,assistant_str($body['message'] ?? ''),assistant_truthy($body['voice'] ?? null)===true);
         case $route==='assistant/speak' && $method==='POST':
@@ -1335,5 +1418,5 @@ function assistant_api(string $route, string $method, int $aid, array $body, arr
             $ov=assistant_overview($aid); $mem=assistant_memory($aid,100); [$items,$pg]=assistant_checklist($aid,$ov,$mem);
             return [200,['ok'=>true,'memory'=>array_map(fn($m)=>['id'=>$m['id'],'topic'=>$m['topic'],'fact'=>$m['fact']],$mem),'checklist'=>$items,'progress'=>$pg,'suggestions'=>assistant_suggestions($items,$mem)]];
     }
-    return [404,['error'=>'not_found','routes'=>['GET|POST /v1/assistant/profile','GET /v1/assistant/state','POST /v1/assistant/chat','POST /v1/assistant/speak','POST /v1/assistant/reset','POST /v1/assistant/forget']]];
+    return [404,['error'=>'not_found','routes'=>['GET|POST /v1/assistant/profile','GET /v1/assistant/cast?lang=xx','GET /v1/assistant/state','POST /v1/assistant/chat','POST /v1/assistant/speak','POST /v1/assistant/reset','POST /v1/assistant/forget']]];
 }

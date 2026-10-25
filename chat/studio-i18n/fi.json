@@ -3109,4 +3109,14 @@
 "opt.sec.amazon":"Amazon-myyjä ja brändi (FBA)",
 "pl.buy-marketing.d":"Markkinointiagentti: käyttöönotto videopuhelussa (brändi, kohderyhmät, kanavat, tunnusluvut, sävy) + lisenssi + 160 000 aloitustokenia + 3 kk käyttö sisältyy – sen jälkeen käyttö 29 €/kk tai oma tekoälyavain 14 €/kk",
 "pl.buy-amazon-fba.n":"Amazon FBA -agentti (lisenssi)",
-"pl.buy-amazon-fba.d":"Keepa-tuotehaku, tarkka laskelma, listauksen tarkistus, PPC-analyysi ja täydennyssuunnittelu + lisenssi + 500 000 tokenia + 1 vuoden käyttö sisältyy (2 vuotta valittavissa) – sen jälkeen käyttö 39 €/kk tai oma tekoälyavain 19 €/kk"}
+"pl.buy-amazon-fba.d":"Keepa-tuotehaku, tarkka laskelma, listauksen tarkistus, PPC-analyysi ja täydennyssuunnittelu + lisenssi + 500 000 tokenia + 1 vuoden käyttö sisältyy (2 vuotta valittavissa) – sen jälkeen käyttö 39 €/kk tai oma tekoälyavain 19 €/kk",
+"as.cast_t":"Valitse avustaja",
+"as.cast_all":"Kaikki",
+"as.cast_f":"Naiset",
+"as.cast_m":"Miehet",
+"asj.castSub":"{n} valmista avustajaa omalla kielelläsi – napauta, niin avustaja on heti paikalla. Vaihda milloin vain.",
+"asj.castSub.f":"{n} valmista avustajaa omalla kielelläsi – napauta, niin avustaja on heti paikalla. Vaihda milloin vain.",
+"asj.castOn":"Aktiivinen",
+"asj.castPick":"Valitse {n}",
+"asj.castNow":"{n} on nyt käytettävissäsi.",
+"asj.castNow.f":"{n} on nyt käytettävissänne."}

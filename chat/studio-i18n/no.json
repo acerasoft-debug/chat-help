@@ -3109,4 +3109,14 @@
 "opt.sec.amazon":"Amazon-selger og merkevare (FBA)",
 "pl.buy-marketing.d":"Markedsføringsagent: oppsett via videosamtale (merkevare, målgrupper, kanaler, nøkkeltall, tone) + lisens + 160 000 starttokens + 3 måneders drift inkludert – deretter drift 29 €/måned eller egen AI-nøkkel 14 €/måned",
 "pl.buy-amazon-fba.n":"Amazon FBA-agent (lisens)",
-"pl.buy-amazon-fba.d":"Keepa-produktsøk, nøyaktig kalkyle, oppføringssjekk, PPC-analyse og påfyllingsplanlegging + lisens + 500 000 tokens + 1 års drift inkludert (2 år valgfritt) – deretter drift 39 €/måned eller egen KI-nøkkel 19 €/måned"}
+"pl.buy-amazon-fba.d":"Keepa-produktsøk, nøyaktig kalkyle, oppføringssjekk, PPC-analyse og påfyllingsplanlegging + lisens + 500 000 tokens + 1 års drift inkludert (2 år valgfritt) – deretter drift 39 €/måned eller egen KI-nøkkel 19 €/måned",
+"as.cast_t":"Velg assistent",
+"as.cast_all":"Alle",
+"as.cast_f":"Kvinner",
+"as.cast_m":"Menn",
+"asj.castSub":"{n} ferdige assistenter på ditt språk – trykk på én, så er den her med en gang. Bytt når du vil.",
+"asj.castSub.f":"{n} ferdige assistenter på ditt språk – trykk på én, så er den her med en gang. Bytt når du vil.",
+"asj.castOn":"Aktiv",
+"asj.castPick":"Velg {n}",
+"asj.castNow":"{n} er nå her for deg.",
+"asj.castNow.f":"{n} er nå her for deg."}

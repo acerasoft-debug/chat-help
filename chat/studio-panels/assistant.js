@@ -667,7 +667,7 @@
     g('asTip').classList.toggle('hidden', !!PROF.saved);
     var sec = document.querySelector('#' + PANEL + ' .as-chat'); if (sec) sec.setAttribute('aria-label', _t('asj.convWith',{n:PROF.name,r:f ? _t('asj.asstF') : _t('asj.asstM')}));
     document.querySelectorAll('#' + PANEL + ' .as-av').forEach(function (a) { a.src = url; });
-    voiceBtn(); if (window.CHVoice) pipCheck(); voiceInfo();
+    voiceBtn(); if (window.CHVoice) pipCheck(); voiceInfo(); if (!isCho()) renderCast();
   }
   /** Stimmkarten (Katalog) oder Voreinstellungen (Ersatz) für Sprache + Geschlecht: [{id, name, desc, tier, preset, e}], die aktive zuerst markiert vom Aufrufer. */
   function voiceCards(lng, gender) {
@@ -870,6 +870,7 @@
   }
   function takeProfile(j) {
     PROF = j.profile; PORTRAITS = j.portraits || []; VOICES = j.voices || []; TTS = !!j.tts; if (j.photo_max) PHOTO_MAX = j.photo_max;
+    if (j.cast) CAST = j.cast;
     if (TTS && j.tts_active === false && SPK.serverOk) { SPK.serverOk = false; SPK.why = 'balance'; }   // eingerichtet, aber ohne Guthaben/Agent nicht nutzbar
     else if (TTS && j.tts_active === true && SPK.why === 'balance') { SPK.serverOk = true; SPK.why = ''; }
     if (j.tts_langs) TTS_LANGS = j.tts_langs.map(normLang);
@@ -879,13 +880,62 @@
     if (PROF) catSync(PROF.lang, function () { if (PROF) renderToneChips(); if (D) redraw(); });   // Stimmenkatalog der Profilsprache → Karten
   }
 
+  /* ======================================================================= Fertige Assistenten (immer wählbar, je Sprache eigene Namen, Gesichter und Stimmen) */
+  var CAST = [], castF = '', castBusy = 0;
+  /** Nur die Begrüßung im Gespräch (Hinweise des Systems zählen nicht)? Dann darf sie nach einem Wechsel neu begrüßen. */
+  function onlyGreet() { var m = HIST.filter(function (x) { return x.role !== 'sys'; }); return m.length === 1 && !!m[0].greeting; }
+  function castById(id) { var x = null; CAST.forEach(function (c) { if (c.id === id) x = c; }); return x; }
+  function castTrait(c) { var m = _t('as.' + c.mood); return _t('as.' + c.tone) + ' · ' + (I18N.lang === 'ja' ? m : String(m).toLocaleLowerCase(I18N.tag)); }
+  function castVoice(c) { var e = catEntry(c.voice); return { name: c.name, gender: c.gender, address: D ? D.personality.address : (PROF ? PROF.personality.address : 'du'), lang: c.lang, tone: c.tone, rate: 1, pitch: 1, preset: e ? e.preset : toneToPreset(c.gender, c.tone), id: e ? e.id : null }; }
+  /** Entwurf entspricht noch dem gewählten fertigen Assistenten (Name, Geschlecht, Gesicht unverändert)? */
+  function castMatch(d) { var c = d && d.cast ? castById(d.cast) : null; return c && c.name === (d.name || '').replace(/\s+/g, ' ').trim() && c.gender === d.gender && c.portrait === d.portrait ? c : null; }
+  function castCur() { if (isCho()) { var c = castMatch(D); return c ? c.id : ''; } return (PROF && PROF.personality && PROF.personality.cast) || ''; }
+  function renderCast() {
+    var box = g('asCastRow'); if (!box) return;
+    g('asCast').classList.toggle('hidden', !CAST.length);
+    var cur = castCur(), list = CAST.filter(function (c) { return !castF || c.gender === castF; });
+    box.innerHTML = list.map(function (c) {
+      var on = c.id === cur, tr = castTrait(c);
+      return '<div class="as-cc" role="listitem">' + (on ? '<span class="on-b">' + h(_t('asj.castOn')) + '</span>' : '') +
+        '<button type="button" class="sel" data-cast="' + h(c.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '" aria-label="' + h(_t('asj.castPick', { n: c.name }) + ' – ' + tr) + '"><img src="' + h(imgUrl(c.url)) + '" alt="" loading="lazy" decoding="async"><span class="nm">' + h(c.name) + '</span><span class="tr">' + h(tr) + '</span></button>' +
+        '<button type="button" class="cpl" data-play="cast:' + h(c.id) + '" data-label="' + h(_t('asj.sampleOf', { n: c.name })) + '" aria-label="' + h(_t('asj.sampleOf', { n: c.name })) + '"></button></div>';
+    }).join('');
+    var sie = D ? D.personality.address === 'sie' : isSie();
+    g('asCastSub').textContent = _t(sie ? 'asj.castSub.f' : 'asj.castSub', { n: CAST.length });
+    seg('asCastF', castF);
+    markPlaying();
+  }
+  /** Fertigen Assistenten übernehmen: beim ersten Besuch in die Auswahl (gespeichert mit „Mit … starten“), sonst sofort speichern + Hörprobe. */
+  function pickCast(id) {
+    var c = castById(id); if (!c || !PROF) return;
+    unlockAudio(); stopSpeaking();
+    if (isCho()) {
+      var e = catEntry(c.voice);
+      D.name = c.name; D.gender = c.gender; D.portrait = c.portrait; D.lang = c.lang; D.cast = c.id; D.autoName = true;
+      D.voice.tone = c.tone; D.voice.preset = e ? e.preset : toneToPreset(c.gender, c.tone); D.voice.id = e ? e.id : (catFit(null, D.lang, c.gender, D.voice.preset) || null);
+      D.personality.mood = c.mood; nameEl().value = c.name;
+      drawChooser(); playPreview(castVoice(c), 'cast:' + c.id); return;
+    }
+    if (castCur() === id) { playPreview(castVoice(c), 'cast:' + c.id); return; }   // schon aktiv: nur anhören
+    var my = ++castBusy, onlyGreeting = onlyGreet();
+    note(h(_t('asj.saving')), 'info');
+    api('/assistant/profile', { method: 'POST', body: JSON.stringify({ cast: id }) }).then(function (j) {
+      if (my !== castBusy) return;
+      takeProfile(j); applyProfile();
+      note(h(TS('asj.castNow', { n: PROF.name })), 'ok');
+      playPreview(profVoice(PROF, PROF.voice.id || PROF.voice.preset), 'cast:' + id);
+      if (onlyGreeting) return api('/assistant/reset', { method: 'POST', body: '{}' }).then(function (st) { HIST = histFrom(st); renderHistory(); applyState(st); });   // Begrüßung mit neuem Namen (ohne KI)
+    }).catch(function (e) { if (my === castBusy) note(h((e && e.message) || _t('c.saveFail')), 'err'); });
+  }
+
   /* ======================================================================= Entwurf (Auswahl beim ersten Besuch + „Person & Stimme ändern“) */
   /* D = ungespeicherter Entwurf; D.mode = 'cho' (Auswahl im Panel) oder 'drawer' (Seitenleiste). Beide nutzen dieselben Funktionen. */
   var D = null, lastFocus = null;
   function draftFrom(p) {
     return { name: p.name, gender: p.gender, portrait: p.portrait, photo: null, remove_photo: false, photoUrl: p.portrait === 'custom' ? p.portrait_url : (p.photo_url || null),
       voice: { tone: p.voice.tone, rate: Number(p.voice.rate) || 1, pitch: Number(p.voice.pitch) || 1, preset: p.voice.preset, id: p.voice.id || null },
-      personality: { address: p.personality.address, mood: p.personality.mood, humor: Number(p.personality.humor), detail: p.personality.detail }, lang: p.lang || 'de', autoName: true, mode: 'drawer' };
+      personality: { address: p.personality.address, mood: p.personality.mood, humor: Number(p.personality.humor), detail: p.personality.detail }, lang: p.lang || 'de', autoName: true, mode: 'drawer',
+      cast: p.personality.cast || null };
   }
   /** Entwurfsstimme an Sprache/Geschlecht anpassen (Katalog nachladen, dann id + Voreinstellung nachziehen). */
   function draftFit() {
@@ -955,7 +1005,7 @@
     g('asCTones').innerHTML = toneCards();
     g('asCStartName').textContent = nm;
     g('asCStart').setAttribute('aria-label', _t('asj.startL',{n:nm}));
-    voiceInfo(); markPlaying();
+    voiceInfo(); renderCast();
   }
   function showChooser() {
     if (!PROF) return;
@@ -969,6 +1019,7 @@
     stopSpeaking();
     g('asCho').classList.add('hidden'); if (isCho()) D = null;
     document.querySelectorAll('#' + PANEL + ' .as-grid, #' + PANEL + ' .as-titlerow').forEach(function (el) { el.classList.remove('hidden'); });
+    renderCast();
   }
   function openDrawer() {
     if (!PROF) return;
@@ -1084,9 +1135,10 @@
     if (D.voice.id && catEntry(D.voice.id)) body.voice.id = D.voice.id;   // Katalogstimme (Server prüft Sprache + Geschlecht)
     if (D.photo) body.photo = D.photo; else body.portrait = D.portrait;
     if (D.remove_photo && !D.photo) body.remove_photo = 1;
+    var cm = castMatch(D); if (cm && !D.photo && (!cm.voice || cm.voice === D.voice.id)) body.cast = cm.id;   // unveränderter fertiger Assistent (Markierung „Aktiv“)
     var btn = g(cho ? 'asCStart' : 'asFSave'); btn.disabled = true; msg(box, _t('asj.saving'), 'info');
     unlockAudio();
-    var onlyGreeting = HIST.length === 1 && HIST[0].greeting;
+    var onlyGreeting = onlyGreet();
     var changedIntro = PROF.name !== name || PROF.gender !== D.gender || PROF.personality.address !== D.personality.address || PROF.personality.mood !== D.personality.mood || PROF.lang !== D.lang;
     api('/assistant/profile', { method: 'POST', body: JSON.stringify(body) }).then(function (j) {
       takeProfile(j);
@@ -1135,6 +1187,12 @@
       voiceBtn(); voiceInfo();
     });
     g('asCustomize').addEventListener('click', openDrawer);
+    g('asCastRow').addEventListener('click', function (e) {
+      var pl = e.target.closest('button[data-play]');
+      if (pl) { var c = castById(pl.dataset.play.slice(5)); if (c) playPreview(castVoice(c), pl.dataset.play); return; }
+      var b = e.target.closest('button[data-cast]'); if (b) pickCast(b.dataset.cast);
+    });
+    g('asCastF').addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b) { castF = b.dataset.v; renderCast(); } });
     g('asTones').addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b) quickTone(b.dataset.v); });
     /* Auswahl beim ersten Besuch */
     g('asCGender').addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b && isCho()) setGender(b.dataset.v); });
