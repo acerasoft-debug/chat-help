@@ -152,6 +152,10 @@ function onb_catalog(array $P): array {
                 ['v'=>'f','l'=>'Weiblich · warm','d'=>'Unsere natürlichste Stimme – Standard'],['v'=>'m','l'=>'Männlich · ruhig','d'=>'Sachlich und vertrauenswürdig'],
                 ['v'=>'g','l'=>'Weiblich · HD','d'=>'HD-Stimme, besonders klar'],['v'=>'gm','l'=>'Männlich · HD','d'=>'HD-Stimme, besonders klar']]]);
             $S[]=onb_step('phone_greeting','textarea','Telefon','Wie soll dein Agent Anrufer begrüßen?',['when'=>['channels'=>['phone']],'sub'=>'Leer lassen für die Standardbegrüßung. Der Agent sagt immer dazu, dass er ein digitaler Assistent ist.','ph'=>'Guten Tag, hier ist der digitale Assistent von Salon Luna – wie kann ich helfen?','max'=>400]);
+            $std=function_exists('ch_phone_limits') ? (int)(ch_phone_limits((string)($P['base'] ?? 'agent-phone'))['max_call_sec']/60) : 10;
+            $S[]=onb_step('call_max','choice','Telefon','Wie lange darf ein Anruf höchstens dauern?',['when'=>['channels'=>['phone']],'auto'=>true,'sub'=>'Kurz vor Ende verabschiedet sich der Agent höflich. Kürzere Gespräche sparen Guthaben.','options'=>array_values(array_filter([
+                ['v'=>'3','l'=>'3 Minuten','d'=>'Kurze Auskünfte und Terminbuchung'],['v'=>'5','l'=>'5 Minuten','d'=>'Für die meisten Anliegen'],$std>8 ? ['v'=>'8','l'=>'8 Minuten','d'=>'Mit Rückfragen'] : null,
+                ['v'=>'0','l'=>'Standard','d'=>'Höchstens '.$std.' Minuten']]))]);
         }
         if(in_array('whatsapp',$ch,true)){
             $S[]=onb_step('wa_provider','choice','WhatsApp','Wie verbindest du WhatsApp?',['when'=>['channels'=>['whatsapp']],'auto'=>true,'options'=>[
@@ -212,6 +216,7 @@ function onb_catalog(array $P): array {
     $S[]=onb_step('tone','choice','Agent','Welcher Ton passt zu dir?',['auto'=>true,'options'=>array_map(fn($k,$l)=>['v'=>$k,'l'=>$l],array_keys(ONB_TONES),ONB_TONES)]);
     $S[]=$never;
     if($P['agent']) $S[]=onb_step('faq','rows','Agent','Welche Fragen hörst du am häufigsten?',['sub'=>'Frage und Antwort – genau so antwortet dein Agent. Optional, du kannst später im Training ergänzen.','cols'=>ONB_COLS_FAQ,'max'=>30,'add'=>'Frage hinzufügen']);
+    $S[]=onb_step('owner_note','textarea','Agent','Möchtest du deinem '.($P['private'] ? 'Assistenten' : 'Agenten').' noch etwas sagen?',['sub'=>'Alles, was er zusätzlich wissen oder beachten soll – Sonderwünsche, Ausnahmen, wichtige Hinweise. Danach kannst du direkt mit ihm sprechen und ihn jederzeit weiter trainieren.','ph'=>$P['private'] ? 'z. B. Termine bitte nie vor 10 Uhr. Meine Steuerberaterin heißt Frau Weber.' : 'z. B. Stammkunden bekommen 10 % Rabatt. Bei Allergiefragen immer an uns verweisen. Im August Betriebsferien.','max'=>4000]);
     return array_merge($S,$PAY);
 }
 
@@ -222,6 +227,7 @@ function onb_row(string $table, int $aid): ?array {
 function onb_cfg_row(int $aid, string $plan): ?array { $s=th_db()->prepare("SELECT * FROM agent_configs WHERE account_id=? AND plan=?"); $s->execute([$aid,$plan]); $r=$s->fetch(PDO::FETCH_ASSOC); return $r ?: null; }
 const ONB_SEC_START = '— Aus der Einrichtung —'; const ONB_SEC_END = '— Ende Einrichtung —';
 const ONB_KB_START = '=== Stammdaten (aus der Einrichtung) ==='; const ONB_KB_END = '=== Ende Stammdaten ===';
+const ONB_NOTE_START = '=== Hinweise des Inhabers (bitte beachten) ==='; const ONB_NOTE_END = '=== Ende Hinweise des Inhabers ===';
 function onb_section_get(string $text, string $a, string $z): ?string { $i=mb_strpos($text,$a); if($i===false) return null; $j=mb_strpos($text,$z,$i); $s=mb_substr($text,$i+mb_strlen($a),$j===false ? null : $j-$i-mb_strlen($a)); return trim($s); }
 function onb_section_put(string $text, string $a, string $z, string $body, bool $top=false): string {
     $block=$body==='' ? '' : $a."\n".trim($body)."\n".$z;
@@ -260,6 +266,8 @@ function onb_prefill(int $aid, array $P): array {
     $put('channels',$chan ?: $P['channels'],(bool)$chan);
     $pv=(string)($cfg['phone_voice'] ?? 'de-DE'); $put('phone_persona',preg_match('/-(m|g|gm)$/',$pv,$mm) ? $mm[1] : 'f',trim((string)($cfg['phone_greeting'] ?? ''))!=='');
     $put('phone_greeting',(string)($cfg['phone_greeting'] ?? ''),trim((string)($cfg['phone_greeting'] ?? ''))!=='');
+    $pm=(int)($cfg['phone_max_min'] ?? 0); $put('call_max',in_array($pm,[3,5,8],true) ? (string)$pm : '0',$pm>0);
+    $note=onb_section_get((string)($cfg['kb'] ?? ''),ONB_NOTE_START,ONB_NOTE_END); $put('owner_note',$note!==null ? trim($note) : '',$note!==null && trim($note)!=='');
     $osx=$os ? ord_settings($aid) : null;
     $put('wa_provider',$wa ? $osx['wa_provider'] : '',$wa);
     $put('wa_meta',['wa_phone_id'=>(string)($osx['wa_phone_id'] ?? ''),'wa_token'=>!empty($osx['wa_token']) ? '••••'.substr((string)$osx['wa_token'],-4) : '','wa_verify'=>(string)($osx['wa_verify'] ?? '')],$wa && ($osx['wa_provider'] ?? '')==='meta');
@@ -544,6 +552,8 @@ function onb_apply(int $aid, array $onb): array {
             if($hours && ($hoursAns || !empty($cur['kb']))) $L[]='Öffnungszeiten: '.onb_hours_text($hours);
             if($use('focus')) $L[]='Angebot: '.preg_replace('/\s*\n\s*/u',' ',(string)$v('focus')); }
         if($L) $d['kb']=mb_substr(onb_section_put((string)$cur['kb'],ONB_KB_START,ONB_KB_END,implode("\n",$L),true),0,60000);
+        if($use('owner_note')) $d['kb']=mb_substr(onb_section_put((string)($d['kb'] ?? $cur['kb']),ONB_NOTE_START,ONB_NOTE_END,trim((string)$v('owner_note'))),0,60000);   // persönliche Hinweise des Inhabers
+        if($use('call_max')) $d['phone_max_min']=(int)$v('call_max');
         th_agent_cfg_save($aid,$b,$d,$active);
         $parts=[]; if($company!=='') $parts[]=$company; if(isset($d['widget_on'])) $parts[]=$d['widget_on'] ? 'Website-Chat an' : 'Website-Chat aus'; if(!empty($d['phone_on'])) $parts[]='Telefon an';
         return implode(' · ',$parts);

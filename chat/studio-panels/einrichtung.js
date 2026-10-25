@@ -316,8 +316,8 @@
     if (hasPhone) acts.push('<button type="button" class="act" data-a="phone">' + SV(IC.phone) + '<span>' + _t('onbj.a.phone') + '</span></button>');
     if (hasWa) acts.push('<button type="button" class="act" data-a="whatsapp">' + SV(IC.wa) + '<span>' + _t('onbj.a.wa') + '</span></button>');
     acts.push('<a class="act" href="/chat/app.php" data-a="app">' + SV(IC.app) + '<span>' + _t('onbj.a.app') + '</span></a>');
-    acts.push('<button type="button" class="act" data-a="test">' + SV(IC.chat) + '<span>' + _t('onbj.a.test') + '</span></button>');
-    if (o.trial && o.checkout) acts.unshift('<a class="act p" href="' + h(o.checkout) + '" target="_blank" rel="noopener" data-a="live">' + SV(IC.spark) + '<span>' + _t('onbj.a.live') + '</span></a>');   // Testphase: eingerichtet – live mit dem Paket
+    acts.unshift('<button type="button" class="act' + (o.trial ? ' p' : '') + '" data-a="test">' + SV(IC.chat) + '<span>' + _t('onbj.a.test') + '</span></button>', '<button type="button" class="act" data-a="train">' + SV(IC.edit) + '<span>' + _t('onbj.a.train') + '</span></button>');   // zuerst mit dem Agenten sprechen und ihn trainieren
+    if (o.trial && o.checkout) acts.push('<a class="act p" href="' + h(o.checkout) + '" target="_blank" rel="noopener" data-a="live">' + SV(IC.spark) + '<span>' + _t('onbj.a.live') + '</span></a>');   // Testphase: Live schalten (Zahlung) ganz am Ende
     g('onbCard').innerHTML = '<div class="onb-head">' + ring(nt ? Math.round(100 * nd / nt) : 100) + '<div class="onb-meta"><div class="k">' + _t('onbj.doneK') + '</div><div class="n">' + h(_t('onbj.stepsDone',{d:nd,n:nt})) + ' · ' + h(o.base_name) + '</div></div></div>'
       + '<div class="hero ' + DIR + '" style="padding-top:18px"><h2>' + _t('onbj.ready') + '</h2><p>' + h(ok.length ? (priv ? _t('onbj.knowsPx',{x:ok.map(function (a) { return _tx(a.label); }).join(', ')}) : _t('onbj.knowsAx',{x:ok.map(function (a) { return _tx(a.label); }).join(', ')})) : (priv ? _t('onbj.knowsP') : _t('onbj.knowsA'))) + '</p>'
       + (bad.length ? '<div class="msg err">' + h(bad.map(function (a) { return _tx(a.label) + ': ' + _tx(a.detail); }).join(' · ')) + '</div>' : '') + '</div>'
@@ -332,6 +332,7 @@
       if (a === 'phone') { e.preventDefault(); go('phone'); }
       if (a === 'whatsapp') { e.preventDefault(); go('whatsapp'); }
       if (a === 'test') { e.preventDefault(); if (typeof openAgent === 'function') openAgent(L.test_plan || o.base); else location.href = L.studio_test; }
+      if (a === 'train') { e.preventDefault(); if (document.querySelector('#tabs .tab[data-v="training"]') || document.getElementById('panel-training')) go('training'); else if (typeof openAgent === 'function') openAgent(L.test_plan || o.base); }
     }); });
     g('onbEdit').onclick = function () { SHOWALL = true; MODE = 'step'; CUR = (queue()[0] || {}).id; DIR = 'anim'; render(); };
     g('onbMail').onclick = function () { var b = g('onbMail'); b.disabled = true; api('/onboarding/resend-guide', { method: 'POST', body: JSON.stringify({ id: o.id }) }).then(function (j) { g('onbMsg').innerHTML = '<div class="msg ok">' + h((j.message && _tx(j.message)) || _t('onbj.sent')) + '</div>'; }).catch(function (e) { g('onbMsg').innerHTML = '<div class="msg err">' + h(e.message) + '</div>'; }).then(function () { b.disabled = false; }); };

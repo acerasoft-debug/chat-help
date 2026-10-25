@@ -224,11 +224,13 @@ function ch_plan_has_channel(string $id, string $channel): bool {
 
 /* ---- Telefon-Grenzen je Paket (Studio → Einstellungen des Betreibers: ch_settings 'phone_limits') ---- */
 const CH_PHONE_LIMITS_DEFAULT = ['max_call_min'=>10,'concurrent'=>2];
-/** ['max_call_sec','concurrent'] für einen Plan: Standard 10 Minuten und 2 gleichzeitige Gespräche, je Plan überschreibbar (concurrent_by_plan). */
-function ch_phone_limits(string $plan): array {
+/** ['max_call_sec','concurrent'] für einen Plan: Standard 10 Minuten und 2 gleichzeitige Gespräche, je Plan überschreibbar (concurrent_by_plan).
+ *  $ownerMin: Höchstdauer, die der Inhaber selbst eingestellt hat (nur kürzer als der Paket-Standard, 0 = Standard). */
+function ch_phone_limits(string $plan, int $ownerMin=0): array {
   $s=function_exists('ch_setting') ? (array)ch_setting('phone_limits',[]) : []; $p=function_exists('ch_plan') ? ch_plan($plan) : null; $base=(string)($p['base'] ?? $plan);
   $min=(int)($s['max_call_min'] ?? CH_PHONE_LIMITS_DEFAULT['max_call_min']); $c=$s['concurrent_by_plan'][$plan] ?? ($s['concurrent_by_plan'][$base] ?? ($s['concurrent'] ?? CH_PHONE_LIMITS_DEFAULT['concurrent']));
-  return ['max_call_sec'=>max(2,min(60,$min))*60,'concurrent'=>max(1,min(30,(int)$c))];
+  $min=max(2,min(60,$min)); if($ownerMin>0) $min=max(2,min($min,$ownerMin));
+  return ['max_call_sec'=>$min*60,'concurrent'=>max(1,min(30,(int)$c))];
 }
 /**
  * Tokens je Telefon-Antwort (im Studio änderbar: ch_settings 'phone_rates'): ChatHelp-Nummer 12 (Twilio zahlt ChatHelp), eigenes Twilio-Konto 9.

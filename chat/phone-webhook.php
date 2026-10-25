@@ -276,7 +276,7 @@ $call=th_call($sid) ?: th_call_start($aid,$pl['id'],$sid,$from,$to);
 $tr=json_decode((string)($call['transcript'] ?? '[]'),true) ?: [];
 $turns=(int)($call['turns'] ?? 0); $silent=(int)($call['silent'] ?? 0);
 /* Grenzen je Paket (Studio → Einstellungen): Höchstdauer je Gespräch, gleichzeitige Gespräche */
-$lim=ch_phone_limits($pl['id']); $elapsed=th_call_elapsed($sid);
+$lim=ch_phone_limits($pl['id'],(int)($cfg['phone_max_min'] ?? 0)); $elapsed=th_call_elapsed($sid);
 
 /* Antwort der KI abholen (Warteschleife): Die KI rechnet nach dem Abschicken der Antwort an Twilio im Hintergrund weiter.
    Ist sie nach ~2,5 s fertig, antwortet der Agent sofort; sonst sagt er kurz „Einen Moment …“ und holt die Antwort danach ab. Kein 15-s-Timeout von Twilio.

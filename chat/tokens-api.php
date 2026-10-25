@@ -350,7 +350,7 @@ switch(true){
     $active=th_plan_active($aid,$planId);
     $c=th_agent_cfg($aid,$planId); unset($c['id'],$c['account_id']);
     require_once __DIR__.'/speech-lib.php';
-    th_json(200,['config'=>$c,'plan_active'=>$active,'channels'=>ch_plan_channels($planId),'eco_available'=>ch_ai_eco_plan($planId) && th_ai_eu_cfg()!==null,
+    th_json(200,['config'=>$c,'plan_active'=>$active,'channels'=>ch_plan_channels($planId),'max_call_min'=>(int)(ch_phone_limits($planId)['max_call_sec']/60),'eco_available'=>ch_ai_eco_plan($planId) && th_ai_eu_cfg()!==null,
       'premium_voice'=>ch_plan_has_channel($planId,'phone') && ch_tts_creds('elevenlabs')!==null ? ['extra'=>ch_phone_rates()['premium']] : null,
       'widget_snippet'=>$c['widget_key']?'<script src="https://chat-help.com/chat/widget.js" data-key="'.$c['widget_key'].'" async></script>':null,
       'phone_webhook'=>$c['widget_key']?'https://chat-help.com/chat/phone-webhook.php?key='.$c['widget_key']:null]);
