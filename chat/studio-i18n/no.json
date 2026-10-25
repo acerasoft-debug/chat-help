@@ -3125,4 +3125,14 @@
 "onbj.pickBest":"Anbefalt",
 "onbj.pickGo":"Sett opp nå",
 "onbj.a.live":"Gå live",
-"pw.setupNow":"Sett opp {n} nå →"}
+"pw.setupNow":"Sett opp {n} nå →",
+"num.mine":"ChatHelp-nummer – går via vår konto, ingen teknikk nødvendig. Har du et nummer? Bare viderekoble det hit.",
+"num.release":"Frigi nummer",
+"num.relQ":"Vil du virkelig frigi {n}? Anrop dit kommer ikke lenger frem.",
+"num.getT":"ChatHelp-nummer – med en gang",
+"num.getS":"Skriv inn retningsnummer, velg nummer – agenten svarer med en gang. Ingen avtale, ingen teknikk.",
+"num.getTrial":"Nummeret følger med den bestilte pakken – klart rett etter bestilling.",
+"num.areaPh":"Retningsnummer, f.eks. 22",
+"num.find":"Finn numre",
+"num.none":"Ingen ledige numre med dette retningsnummeret – prøv et annet eller la stå tomt.",
+"num.ok":"Nummeret ditt {n} er aktivt – agenten svarer fra nå av."}

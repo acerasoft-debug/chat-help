@@ -114,6 +114,10 @@ if($type==='customer.subscription.deleted' || $type==='customer.subscription.upd
     $subId=$o['id']??''; $status=$o['status']??''; // active, past_due, canceled, unpaid, trialing
     if($type==='customer.subscription.deleted') $status='canceled';
     if($subId) th_plan_status($subId,$status, !empty($o['current_period_end'])?date('Y-m-d H:i:s',(int)$o['current_period_end']):null);
+    /* Gekündigt/unbezahlt: ChatHelp-Nummern dieses Kontos ohne aktives Paket freigeben (sonst zahlen wir sie weiter) */
+    if($subId && in_array($status,['canceled','unpaid','incomplete_expired'],true) && is_file(__DIR__.'/number-lib.php')){
+        try{ require_once __DIR__.'/number-lib.php'; $q=th_db()->prepare("SELECT DISTINCT account_id FROM token_plans WHERE stripe_sub=?"); $q->execute([$subId]);
+            foreach($q->fetchAll(PDO::FETCH_COLUMN) as $na) num_release_inactive((int)$na); }catch(Throwable $e){ error_log('CH tokens-webhook numbers: '.$e->getMessage()); } }
     done(['ok'=>true,'sub'=>$subId,'status'=>$status]);
 }
 done(['ok'=>true,'ignored'=>$type]);

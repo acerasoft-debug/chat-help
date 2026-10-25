@@ -3125,4 +3125,14 @@
 "onbj.pickBest":"Recomendado",
 "onbj.pickGo":"Configurar ahora",
 "onbj.a.live":"Activar",
-"pw.setupNow":"Configurar {n} ahora →"}
+"pw.setupNow":"Configurar {n} ahora →",
+"num.mine":"Número ChatHelp: funciona con nuestra cuenta, sin tecnología. ¿Tienes un número? Desvíalo a este.",
+"num.release":"Liberar número",
+"num.relQ":"¿Seguro que quieres liberar {n}? Las llamadas ya no llegarán.",
+"num.getT":"Número ChatHelp: al instante",
+"num.getS":"Introduce un prefijo y elige un número: tu agente atiende llamadas al momento. Sin contrato, sin tecnología.",
+"num.getTrial":"El número viene con el plan contratado: listo justo después de contratarlo.",
+"num.areaPh":"Prefijo, p. ej. 91",
+"num.find":"Buscar números",
+"num.none":"No hay números libres con este prefijo: prueba otro o déjalo vacío.",
+"num.ok":"Tu número {n} está activo: tu agente ya atiende llamadas."}

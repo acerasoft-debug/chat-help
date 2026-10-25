@@ -3125,4 +3125,14 @@
 "onbj.pickBest":"Consigliato",
 "onbj.pickGo":"Configura ora",
 "onbj.a.live":"Vai online",
-"pw.setupNow":"Configura {n} ora →"}
+"pw.setupNow":"Configura {n} ora →",
+"num.mine":"Numero ChatHelp: funziona sul nostro account, nessuna tecnica. Hai già un numero? Basta deviarlo su questo.",
+"num.release":"Rilascia numero",
+"num.relQ":"Rilasciare davvero {n}? Le chiamate non arriveranno più.",
+"num.getT":"Numero ChatHelp: subito",
+"num.getS":"Inserisci un prefisso, scegli un numero: il tuo agente risponde subito. Niente contratto, niente tecnica.",
+"num.getTrial":"Il numero è incluso nel piano acquistato: pronto subito dopo l'acquisto.",
+"num.areaPh":"Prefisso, es. 02",
+"num.find":"Cerca numeri",
+"num.none":"Nessun numero libero con questo prefisso: prova un altro o lascia vuoto.",
+"num.ok":"Il tuo numero {n} è attivo: il tuo agente risponde da ora."}

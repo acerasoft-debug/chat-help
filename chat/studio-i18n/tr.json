@@ -3125,4 +3125,14 @@
 "onbj.pickBest":"Önerilen",
 "onbj.pickGo":"Şimdi kur",
 "onbj.a.live":"Canlıya al",
-"pw.setupNow":"{n} şimdi kur →"}
+"pw.setupNow":"{n} şimdi kur →",
+"num.mine":"ChatHelp numarası – bizim hesabımız üzerinden çalışır, teknik bilgi gerekmez. Mevcut numaran mı var? Bu numaraya yönlendirmen yeterli.",
+"num.release":"Numarayı bırak",
+"num.relQ":"{n} numarasını gerçekten bırakmak istiyor musun? Bu numaraya gelen aramalar artık ulaşmaz.",
+"num.getT":"ChatHelp numarası – hemen",
+"num.getS":"Alan kodunu gir, numara seç – agentin aramaları hemen karşılar. Sözleşme yok, teknik yok.",
+"num.getTrial":"Numara, alınan paketle birlikte gelir – satın aldıktan hemen sonra hazır.",
+"num.areaPh":"Alan kodu, ör. 0212",
+"num.find":"Numara ara",
+"num.none":"Bu alan koduyla boş numara yok – başka bir kod dene ya da boş bırak.",
+"num.ok":"{n} numaran aktif – agentin artık aramaları karşılıyor."}

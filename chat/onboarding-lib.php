@@ -147,13 +147,15 @@ function onb_catalog(array $P): array {
         $opts=[]; foreach($ch as $c) $opts[]=['v'=>$c,'l'=>['web'=>'Website-Chat','phone'=>'Telefon','whatsapp'=>'WhatsApp'][$c],'d'=>['web'=>'Widget mit einer Zeile Code auf deiner Seite','phone'=>'Agent nimmt Anrufe an – rund um die Uhr','whatsapp'=>'Kunden schreiben deinem Agenten per WhatsApp'][$c]];
         $S[]=onb_step('channels','multi','Kanäle','Wo soll dein Agent für Kunden da sein?',['sub'=>'Du kannst alles später im Studio ein- und ausschalten.','options'=>$opts,'min'=>1]);
         if(in_array('phone',$ch,true)){
+            $numNow=is_file(__DIR__.'/number-lib.php') && (require_once __DIR__.'/number-lib.php') && num_ready();   // zentrales Twilio-Konto: Nummer sofort
             $S[]=onb_step('phone_mode','choice','Telefon','Welche Telefonnummer soll dein Agent nutzen?',['when'=>['channels'=>['phone']],'auto'=>true,'options'=>[
-                ['v'=>'managed','l'=>'ChatHelp-Nummer anfragen','d'=>'Wir richten dir eine Nummer mit deiner Vorwahl ein – meist innerhalb von 24 Stunden.'],
+                $numNow ? ['v'=>'managed','l'=>'ChatHelp-Nummer – sofort','d'=>'Du bekommst sofort eine Ortsnummer mit deiner Vorwahl – ohne Vertrag, ohne Technik. Bestehende Nummer einfach darauf weiterleiten.']
+                        : ['v'=>'managed','l'=>'ChatHelp-Nummer anfragen','d'=>'Wir richten dir eine Nummer mit deiner Vorwahl ein – meist innerhalb von 24 Stunden.'],
                 ['v'=>'own','l'=>'Eigene Twilio-Nummer','d'=>'Du hast schon ein Twilio-Konto mit Nummer – Zugangsdaten eingeben, fertig.'],
                 ['v'=>'later','l'=>'Später entscheiden','d'=>'Den Telefon-Agenten kannst du bis dahin im Browser testen.']]]);
             $S[]=onb_step('twilio','fields','Telefon','Deine Twilio-Zugangsdaten',['when'=>['channels'=>['phone'],'phone_mode'=>['own']],'sub'=>'Zu finden in der Twilio-Console unter „Account Info“. Wir speichern sie verschlüsselt und prüfen sie sofort.','fields'=>[
                 ['k'=>'twilio_sid','l'=>'Account SID','t'=>'text','ph'=>'AC…','req'=>true],['k'=>'twilio_token','l'=>'Auth Token','t'=>'password','ph'=>'32 Zeichen','req'=>true],['k'=>'twilio_from','l'=>'Deine Twilio-Nummer','t'=>'tel','ph'=>'+49 221 …','req'=>true]]]);
-            $S[]=onb_step('managed_phone','fields','Telefon','Welche Nummer wünschst du dir?',['when'=>['channels'=>['phone'],'phone_mode'=>['managed']],'sub'=>'Wir melden uns innerhalb von 24 Stunden mit deiner Nummer. Bestehende Nummern kannst du einfach auf sie weiterleiten.','fields'=>[
+            $S[]=onb_step('managed_phone','fields','Telefon','Welche Nummer wünschst du dir?',['when'=>['channels'=>['phone'],'phone_mode'=>['managed']],'sub'=>$numNow ? 'Beim Fertigstellen bekommst du sofort eine Nummer mit dieser Vorwahl (in der Testphase direkt nach der Buchung). Bestehende Nummern kannst du einfach darauf weiterleiten.' : 'Wir melden uns innerhalb von 24 Stunden mit deiner Nummer. Bestehende Nummern kannst du einfach auf sie weiterleiten.','fields'=>[
                 ['k'=>'area','l'=>'Ortsnetz / Vorwahl','t'=>'text','ph'=>'z. B. Köln (0221)','req'=>true,'max'=>60],['k'=>'forward','l'=>'An Menschen weiterleiten an (optional)','t'=>'tel','ph'=>'0170 1234567'],['k'=>'note','l'=>'Hinweis für uns (optional)','t'=>'text','max'=>300,'ph'=>'z. B. bestehende Nummer soll umgeleitet werden']]]);
             $S[]=onb_step('phone_persona','choice','Telefon','Welche Stimme passt zu deinem Betrieb?',['when'=>['channels'=>['phone']],'sub'=>'Die Stimme spricht jede Sprache deines Agenten. Probehören: Studio → Telefon.','auto'=>true,'options'=>[
                 ['v'=>'f','l'=>'Weiblich · warm','d'=>'Unsere natürlichste Stimme – Standard'],['v'=>'m','l'=>'Männlich · ruhig','d'=>'Sachlich und vertrauenswürdig'],
@@ -437,6 +439,11 @@ function onb_resolve(int $aid, int $id, string $plan): array {
         $o=onb_create($aid,$pl['id'],'studio:'.$aid.':'.$pl['base']); if($o) return [200,$o]; }
     return [404,['error'=>'no_plan','message'=>'Welchen Agenten richten wir ein? Wähle einen – die Einrichtung startet sofort.','choices'=>onb_choices($aid)]];
 }
+/** Land für Ortsnummern: Profil (country), sonst Deutschland. */
+function onb_country(int $aid): string {
+    if(is_file(__DIR__.'/profile-lib.php')) require_once __DIR__.'/profile-lib.php';
+    $c=function_exists('profile_get') ? strtoupper((string)((profile_get($aid) ?? [])['country'] ?? '')) : ''; return preg_match('/^[A-Z]{2}$/',$c) ? $c : 'DE';
+}
 /** Einrichtung ohne gebuchtes Paket erlaubt? Agenten und Privat-Assistenten (keine Token-/Content-Pakete). */
 function onb_trial_ok(array $pl): bool { $b=(string)$pl['base']; return (CH_PLANS[$b][4] ?? '')==='agent' || str_starts_with($b,'privat-'); }
 function onb_is_trial(array $onb): bool { return str_starts_with((string)$onb['checkout_id'],'trial:') && !th_plan_active((int)$onb['account_id'],(string)$onb['base']); }
@@ -560,7 +567,14 @@ function onb_apply(int $aid, array $onb): array {
         $x=train_faq_save($aid,$b,$items,[]); if(isset($x['error'])) throw new RuntimeException((string)$x['message']); return $n===1 ? '1 Frage' : $n.' Fragen';
     });
     /* 2) Telefon */
-    if($use('managed_phone') && in_array('phone',$chan,true)) $run('phone_request','Telefonnummer angefragt',function() use($aid,$onb,$v,$P,$company){
+    $numNow=is_file(__DIR__.'/number-lib.php') && (require_once __DIR__.'/number-lib.php') && num_ready();
+    if($use('managed_phone') && in_array('phone',$chan,true) && $numNow) $run('phone_number','Telefonnummer',function() use($aid,&$onb,$v,$b,$phone,$active){
+        $m=(array)($v('managed_phone') ?? []); $area=trim((string)($m['area'] ?? '')) ?: $phone; $cc=onb_country($aid);
+        if(!$active){ $onb['meta']['num_pending']=['area'=>$area,'cc'=>$cc]; onb_save($onb,['meta']); return 'kommt sofort nach der Buchung'; }   // Testphase: Kauf löst die Zahlung aus
+        $r=num_buy($aid,$b,'',$area,$cc); if(isset($r['error'])) throw new RuntimeException((string)$r['message']);
+        unset($onb['meta']['num_pending']); onb_save($onb,['meta']); return 'Nummer '.$r['display'];
+    });
+    if($use('managed_phone') && in_array('phone',$chan,true) && !$numNow) $run('phone_request','Telefonnummer angefragt',function() use($aid,$onb,$v,$P,$company){
         $meta=$onb['meta']; if(!empty($meta['phone_req_at'])) return 'bereits angefragt'; $m=$v('managed_phone');
         $to=defined('SMTP_FROM') ? SMTP_FROM : 'support@chat-help.com'; $h=fn($x)=>htmlspecialchars((string)$x,ENT_QUOTES,'UTF-8');
         th_mail($to,'[ChatHelp] Telefonnummer gewünscht: '.$P['name'],'<p>Konto: '.$h(onb_email($aid)).' (#'.$aid.')<br>Betrieb: '.$h($company).'<br>Agent: '.$h($P['base']).'<br>Ortsnetz: '.$h($m['area'] ?? '').'<br>Weiterleitung: '.$h($m['forward'] ?? '').'<br>Hinweis: '.$h($m['note'] ?? '').'</p>');
@@ -737,6 +751,11 @@ function onb_on_payment(int $aid, string $email, array $pl, string $checkoutId):
     if(in_array($pl['kind'],['betrieb','byok'],true) && ($ex=onb_find($aid,$base)) && $ex['checkout_id']!==$checkoutId) return ['ok'=>true,'id'=>$ex['id'],'created'=>false,'mailed'=>false,'reused'=>true];
     $before=onb_by_checkout($checkoutId); $onb=$before ?? onb_create($aid,$pl['id'],$checkoutId);
     if(!$onb || $onb['account_id']!==$aid) return ['ok'=>false,'skip'=>'checkout_mismatch'];
+    /* In der Testphase gewünschte ChatHelp-Nummer: jetzt kaufen – der Agent nimmt sofort Anrufe an */
+    if(!empty($onb['meta']['num_pending']) && is_file(__DIR__.'/number-lib.php')){ require_once __DIR__.'/number-lib.php';
+        try{ $np=$onb['meta']['num_pending']; $nr=num_buy($aid,$base,'',(string)($np['area'] ?? ''),(string)($np['cc'] ?? 'DE'));
+            if(!isset($nr['error'])){ unset($onb['meta']['num_pending']); $onb['meta']['number']=$nr['number']; onb_save($onb,['meta']); } else error_log('CH onb number: '.$nr['message']); }
+        catch(Throwable $e){ error_log('CH onb number: '.$e->getMessage()); } }
     try{ if(!onb_cfg_row($aid,$base)) th_agent_cfg_save($aid,$base,[],th_plan_active($aid,$base)); }catch(Throwable $e){ error_log('CH onb cfg: '.$e->getMessage()); }
     $mailed=false; $pushed=false;
     $cl=th_db()->prepare("UPDATE onboardings SET guide_sent_at=NOW(), guide_count=guide_count+1 WHERE id=? AND guide_sent_at IS NULL"); $cl->execute([$onb['id']]);

@@ -7,6 +7,10 @@
  * Gerekli: db.php (db() PDO). İsteğe bağlı: BREVO_KEY (mail), STRIPE_SK.
  */
 require_once __DIR__ . '/db.php';
+/* Zusätzliche Schlüssel aus chat/tts-keys.php (nur auf dem Server, ops/keybox.php: Sprachdienste, zentrales Twilio-Konto) – db.php hat Vorrang */
+if(is_file(__DIR__.'/tts-keys.php')){ $__chk=@include __DIR__.'/tts-keys.php';
+    if(is_array($__chk)) foreach($__chk as $__n=>$__v) if(is_string($__n) && preg_match('/^[A-Z][A-Z0-9_]{2,40}$/',$__n) && !defined($__n) && (is_string($__v) || is_int($__v))) define($__n,$__v);
+    unset($__chk,$__n,$__v); }
 if(is_file(__DIR__.'/billing-lib.php')) require_once __DIR__.'/billing-lib.php';   // Lizenz/Betrieb, eigener KI-Schlüssel, KI-Verbrauch (bl_…)
 
 function th_db(): PDO { static $p=null; if(!$p){ $p = function_exists('db') ? db() : $GLOBALS['pdo']; $p->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION); } return $p; }

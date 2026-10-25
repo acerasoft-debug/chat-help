@@ -3125,4 +3125,14 @@
 "onbj.pickBest":"Suositus",
 "onbj.pickGo":"Ota käyttöön nyt",
 "onbj.a.live":"Julkaise",
-"pw.setupNow":"Ota {n} käyttöön nyt →"}
+"pw.setupNow":"Ota {n} käyttöön nyt →",
+"num.mine":"ChatHelp-numero – toimii tilillämme, ei tekniikkaa. Oma numero? Ohjaa se vain tähän.",
+"num.release":"Vapauta numero",
+"num.relQ":"Vapautetaanko {n} varmasti? Puhelut siihen eivät enää tule perille.",
+"num.getT":"ChatHelp-numero – heti",
+"num.getS":"Syötä suuntanumero, valitse numero – agenttisi vastaa heti. Ei sopimusta, ei tekniikkaa.",
+"num.getTrial":"Numero kuuluu tilattuun pakettiin – valmis heti tilauksen jälkeen.",
+"num.areaPh":"Suuntanumero, esim. 09",
+"num.find":"Hae numeroita",
+"num.none":"Tällä suuntanumerolla ei ole vapaita numeroita – kokeile toista tai jätä tyhjäksi.",
+"num.ok":"Numerosi {n} on käytössä – agenttisi vastaa nyt puheluihin."}

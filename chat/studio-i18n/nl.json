@@ -3125,4 +3125,14 @@
 "onbj.pickBest":"Aanbevolen",
 "onbj.pickGo":"Nu instellen",
 "onbj.a.live":"Live zetten",
-"pw.setupNow":"{n} nu instellen →"}
+"pw.setupNow":"{n} nu instellen →",
+"num.mine":"ChatHelp-nummer – via ons account, geen techniek nodig. Bestaand nummer? Stuur het gewoon door naar dit nummer.",
+"num.release":"Nummer vrijgeven",
+"num.relQ":"{n} echt vrijgeven? Oproepen naar dit nummer komen dan niet meer aan.",
+"num.getT":"ChatHelp-nummer – direct",
+"num.getS":"Netnummer invoeren, nummer kiezen – je agent neemt meteen op. Zonder contract, zonder techniek.",
+"num.getTrial":"Het nummer hoort bij het geboekte pakket – direct na het boeken klaar.",
+"num.areaPh":"Netnummer, bijv. 020",
+"num.find":"Nummers zoeken",
+"num.none":"Geen vrij nummer met dit netnummer – probeer een ander of laat leeg.",
+"num.ok":"Je nummer {n} is actief – je agent neemt vanaf nu op."}

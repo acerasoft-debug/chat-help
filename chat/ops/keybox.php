@@ -12,7 +12,7 @@ header('Content-Type: text/plain; charset=UTF-8');
 @set_time_limit(60);
 const KB_FILE = __DIR__.'/.keybox.php';
 const KB_KEYS = __DIR__.'/tts-keys.php';
-const KB_NAMES = '/^(ELEVENLABS_KEY|AZURE_SPEECH_KEY|AZURE_SPEECH_REGION|GOOGLE_TTS_KEY|TTS_(DEMO_)?BUDGET_(ELEVENLABS|AZURE|GOOGLE|OPENAI)|TWILIO_PLAY_LANGS|TTS_ELEVENLABS_MODEL(_[A-Z]{2})?|TTS_PROVIDER(_[A-Z]{2})?)$/';
+const KB_NAMES = '/^(TWILIO_ACCOUNT_SID|TWILIO_AUTH_TOKEN|TWILIO_(BUNDLE|ADDRESS)_[A-Z]{2}|ELEVENLABS_KEY|AZURE_SPEECH_KEY|AZURE_SPEECH_REGION|GOOGLE_TTS_KEY|TTS_(DEMO_)?BUDGET_(ELEVENLABS|AZURE|GOOGLE|OPENAI)|TWILIO_PLAY_LANGS|TTS_ELEVENLABS_MODEL(_[A-Z]{2})?|TTS_PROVIDER(_[A-Z]{2})?)$/';
 const KB_VALUE = '/^[A-Za-z0-9_\-.:,]{1,200}$/';
 
 function kb_mode(): int { $m=@fileperms(__DIR__.'/db.php'); return $m ? ($m & 0777) : 0600; }
@@ -89,6 +89,13 @@ if($mode==='check'){
         echo "ElevenLabs Sprachausgabe (text_to_speech): ".($tc===200 && is_string($a) && strlen($a)>500 ? 'OK ('.strlen($a).' Bytes Audio)' : 'FEHLER HTTP '.$tc.(is_string($a) ? ' '.mb_substr(preg_replace('/\s+/',' ',$a),0,160) : ''))."\n";
         [$vc,$vj]=$get('/v1/shared-voices?page_size=1&language=tr');
         echo "ElevenLabs Stimmen lesen (voices_read): ".($vc===200 ? 'OK' : 'FEHLT (HTTP '.$vc.') – im ElevenLabs-Konto beim Schlüssel „Voices“ auf Lesen + Schreiben stellen')."\n";
+    }
+    /* Zentrales Twilio-Konto (ChatHelp-Nummern): Konto erreichbar? Bundle/Adresse je Land vorhanden? – nur Status, nie Werte */
+    if(is_file(__DIR__.'/number-lib.php')){ require_once __DIR__.'/number-lib.php';
+        if($m=num_master()){ $r=num_http('GET','.json');
+            echo "Twilio (ChatHelp-Nummern): ".($r['code']===200 ? 'Konto OK · Status '.preg_replace('/[^a-z_]/','',(string)($r['json']['status'] ?? '?')).' · Typ '.preg_replace('/[^A-Za-z_]/','',(string)($r['json']['type'] ?? '?')) : 'abgelehnt (HTTP '.$r['code'].')')."\n";
+            foreach(['DE','AT','CH'] as $cc) echo "Twilio $cc: Bundle ".(defined('TWILIO_BUNDLE_'.$cc) ? 'ja' : 'nein').", Adresse ".(defined('TWILIO_ADDRESS_'.$cc) ? 'ja' : 'nein')."\n";
+        } else echo "Twilio (ChatHelp-Nummern): nicht eingerichtet (TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN)\n";
     }
 }
 echo "FERTIG\n";

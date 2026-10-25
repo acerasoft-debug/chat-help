@@ -3125,4 +3125,14 @@
 "onbj.pickBest":"Tövsiyə olunur",
 "onbj.pickGo":"İndi qur",
 "onbj.a.live":"Canlıya keç",
-"pw.setupNow":"{n} indi qur →"}
+"pw.setupNow":"{n} indi qur →",
+"num.mine":"ChatHelp nömrəsi – bizim hesabımız üzərindən işləyir, texniki bilik lazım deyil. Mövcud nömrən var? Sadəcə bu nömrəyə yönləndir.",
+"num.release":"Nömrəni burax",
+"num.relQ":"{n} nömrəsini həqiqətən buraxmaq istəyirsən? Bu nömrəyə zənglər artıq çatmayacaq.",
+"num.getT":"ChatHelp nömrəsi – dərhal",
+"num.getS":"Kodu daxil et, nömrə seç – agentin zəngləri dərhal qəbul edir. Müqavilə yox, texnika yox.",
+"num.getTrial":"Nömrə alınmış paketlə birlikdə gəlir – alışdan dərhal sonra hazırdır.",
+"num.areaPh":"Şəhər kodu, məs. 12",
+"num.find":"Nömrə axtar",
+"num.none":"Bu kodla boş nömrə yoxdur – başqa kod yoxla və ya boş burax.",
+"num.ok":"{n} nömrən aktivdir – agentin artıq zəngləri qəbul edir."}

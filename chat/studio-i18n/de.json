@@ -3126,5 +3126,15 @@
 "onbj.pickBest":"Empfohlen",
 "onbj.pickGo":"Jetzt einrichten",
 "onbj.a.live":"Live schalten",
-"pw.setupNow":"{n} jetzt einrichten →"
+"pw.setupNow":"{n} jetzt einrichten →",
+"num.mine":"ChatHelp-Nummer – läuft über unser Konto, keine Technik nötig. Bestehende Nummer? Einfach auf diese weiterleiten.",
+"num.release":"Nummer freigeben",
+"num.relQ":"Nummer {n} wirklich freigeben? Anrufe darauf kommen danach nicht mehr an.",
+"num.getT":"ChatHelp-Nummer – sofort",
+"num.getS":"Vorwahl eingeben, Nummer aussuchen – dein Agent nimmt sofort Anrufe an. Ohne Vertrag, ohne Technik.",
+"num.getTrial":"Die Nummer gibt es mit dem gebuchten Paket – direkt nach der Buchung ist sie da.",
+"num.areaPh":"Vorwahl, z. B. 0221",
+"num.find":"Nummern suchen",
+"num.none":"Keine freie Nummer mit dieser Vorwahl – andere Vorwahl versuchen oder leer lassen.",
+"num.ok":"Deine Nummer {n} ist aktiv – dein Agent nimmt ab sofort Anrufe an."
 }

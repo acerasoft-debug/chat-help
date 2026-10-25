@@ -3125,4 +3125,14 @@
 "onbj.pickBest":"Rekommenderas",
 "onbj.pickGo":"Sätt upp nu",
 "onbj.a.live":"Gå live",
-"pw.setupNow":"Sätt upp {n} nu →"}
+"pw.setupNow":"Sätt upp {n} nu →",
+"num.mine":"ChatHelp-nummer – går via vårt konto, ingen teknik behövs. Har du ett nummer? Vidarekoppla det bara hit.",
+"num.release":"Släpp nummer",
+"num.relQ":"Vill du verkligen släppa {n}? Samtal dit kommer inte längre fram.",
+"num.getT":"ChatHelp-nummer – direkt",
+"num.getS":"Ange riktnummer, välj nummer – din agent svarar direkt. Inget avtal, ingen teknik.",
+"num.getTrial":"Numret ingår i det bokade paketet – klart direkt efter bokningen.",
+"num.areaPh":"Riktnummer, t.ex. 08",
+"num.find":"Sök nummer",
+"num.none":"Inget ledigt nummer med detta riktnummer – prova ett annat eller lämna tomt.",
+"num.ok":"Ditt nummer {n} är aktivt – din agent svarar från och med nu."}

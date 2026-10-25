@@ -3125,4 +3125,14 @@
 "onbj.pickBest":"Recommandé",
 "onbj.pickGo":"Configurer maintenant",
 "onbj.a.live":"Mettre en ligne",
-"pw.setupNow":"Configurer {n} maintenant →"}
+"pw.setupNow":"Configurer {n} maintenant →",
+"num.mine":"Numéro ChatHelp – sur notre compte, aucune technique requise. Un numéro existant ? Il suffit de le renvoyer vers celui-ci.",
+"num.release":"Libérer le numéro",
+"num.relQ":"Vraiment libérer {n} ? Les appels vers ce numéro n'arriveront plus.",
+"num.getT":"Numéro ChatHelp – immédiat",
+"num.getS":"Saisissez un indicatif, choisissez un numéro – votre agent répond aussitôt. Sans contrat, sans technique.",
+"num.getTrial":"Le numéro est fourni avec la formule réservée – prêt juste après la réservation.",
+"num.areaPh":"Indicatif, p. ex. 01",
+"num.find":"Chercher des numéros",
+"num.none":"Aucun numéro libre avec cet indicatif – essayez-en un autre ou laissez vide.",
+"num.ok":"Votre numéro {n} est actif – votre agent prend les appels dès maintenant."}

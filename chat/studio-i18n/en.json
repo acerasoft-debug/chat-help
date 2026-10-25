@@ -3125,4 +3125,14 @@
 "onbj.pickBest":"Recommended",
 "onbj.pickGo":"Set up now",
 "onbj.a.live":"Go live",
-"pw.setupNow":"Set up {n} now →"}
+"pw.setupNow":"Set up {n} now →",
+"num.mine":"ChatHelp number – runs on our account, no tech needed. Existing number? Simply forward it to this one.",
+"num.release":"Release number",
+"num.relQ":"Really release {n}? Calls to it will no longer arrive.",
+"num.getT":"ChatHelp number – instantly",
+"num.getS":"Enter an area code, pick a number – your agent takes calls right away. No contract, no tech.",
+"num.getTrial":"The number comes with the booked plan – it's ready right after booking.",
+"num.areaPh":"Area code, e.g. 0221",
+"num.find":"Find numbers",
+"num.none":"No free number with this area code – try another one or leave it empty.",
+"num.ok":"Your number {n} is live – your agent takes calls from now on."}
