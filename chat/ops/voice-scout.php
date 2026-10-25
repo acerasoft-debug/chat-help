@@ -50,7 +50,9 @@ foreach(vs_status() as $r){
     printf("%-3s %-11s %s\n     F: %s\n     M: %s%s\n",$r['lang'],$r['provider'] ?? 'Browser',$r['native'] ? '✓ muttersprachlich' : '· '.$r['note'],$r['f'],$r['m'],"");
 }
 echo "\nMuttersprachlich: $nat von ".count(VS_LANGS)." Sprachen.\n";
-echo "\n— Kostenbremse ".ch_tts_ym()." (Zeichen: verbraucht / Monatsgrenze · Demo / Demo-Grenze; 0 = ohne Grenze) —\n";
+echo "\n— Kostenbremse ".ch_tts_ym()." (ElevenLabs in Credits, sonst Zeichen: verbraucht / Monatsgrenze · Demo / Demo-Grenze; 0 = ohne Grenze) —\n";
 $br=ch_tts_budget_report(); if(!$br) echo "kein Anbieter eingerichtet\n";
 foreach($br as $p=>$b) printf("%-11s %s / %s · Demo %s / %s%s\n",$p,number_format($b['used'],0,',','.'),number_format($b['limit'],0,',','.'),number_format($b['demo'],0,',','.'),number_format($b['demo_limit'],0,',','.'),$b['blocked_until'] ? ' · Kontingent leer, pausiert bis '.gmdate('d.m. H:i',$b['blocked_until']).' UTC' : '');
+$cd=ch_tts_cache_dir(); $cf=$cd ? glob($cd.'/*.mp3') ?: [] : []; printf("Stimmen-Speicher: %s Sätze, %s MB (%s) – jeder Satz wird je Stimme nur einmal bezahlt\n",number_format(count($cf),0,',','.'),number_format(array_sum(array_map('filesize',$cf))/1048576,1,',','.'),$cd && str_contains($cd,'/ch_tts_cache') ? 'dauerhaft neben dem Web-Ordner' : 'Temp-Ordner');
+if(function_exists('th_db')) try{ $rp=th_db()->query("SELECT COUNT(*) n, COALESCE(SUM(hits),0) h FROM concierge_replay")->fetch(PDO::FETCH_ASSOC); printf("Demo-Schnellwahl: %d gespeicherte Antworten, %d-mal wiederverwendet (ohne neue KI- und Stimmkosten)\n",$rp['n'],$rp['h']); }catch(Throwable $e){}
 echo "FERTIG\n";

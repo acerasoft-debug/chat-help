@@ -168,7 +168,7 @@ const VS_PREMADE = [
   ['Daniel','onwK4e9ZLuTAKqWW03F9','m',['souveraen','britisch']], ['Bill','pqHfZKP75CvOlQylNhV4','m',['reif','warm']], ['Adam','pNInz6obpgDQGcFmaJgB','m',['tief','gelassen']],
   ['Josh','TxGEqnHWrfWFTfGW9XjX','m',['jung','freundlich']],
 ];
-const VS_EL_MODELS = ['eleven_v4','eleven_v3','eleven_flash_v2_5','eleven_turbo_v2_5','eleven_multilingual_v2'];
+const VS_EL_MODELS = ['eleven_v4','eleven_v4_turbo','eleven_v3','eleven_flash_v2_5','eleven_turbo_v2_5','eleven_multilingual_v2'];   // eleven_v4_turbo/flash/turbo: halber Preis (Demo)
 function vs_el_tts(string $voice, string $model, string $text, ?string $lc): array {
     $c=ch_tts_creds('elevenlabs'); if(!$c) return ['code'=>0,'bytes'=>0,'msg'=>'kein Schlüssel'];
     $body=['text'=>$text,'model_id'=>$model]; if($lc!==null) $body['language_code']=$lc;
@@ -182,13 +182,15 @@ function vs_el_probe_models(array &$log): array {
     foreach(VS_EL_MODELS as $m){
         $a=vs_el_tts('EXAVITQu4vr4xnSDxMaL',$m,'Zwei Pizzen kosten 19 Euro.','de');
         $b=$a['bytes'] ? $a : vs_el_tts('EXAVITQu4vr4xnSDxMaL',$m,'Hallo.',null);
-        $o[$m]=['ok'=>$b['bytes']>0,'lc'=>$a['bytes']>0];
-        $log[]=sprintf('Modell %-24s %s%s',$m,$a['bytes'] ? 'OK · hält die Sprache fest (language_code)' : ($b['bytes'] ? 'OK · ohne language_code' : 'nicht verfügbar'),$a['bytes'] ? '' : ' – '.mb_substr($a['msg'],0,110));
+        $z=$a['bytes'] ? vs_el_tts('EXAVITQu4vr4xnSDxMaL',$m,'Salam, sifarişiniz hazırdır.','az') : ['bytes'=>0];   // Aserbaidschanisch: können nicht alle Modelle
+        $o[$m]=['ok'=>$b['bytes']>0,'lc'=>$a['bytes']>0,'az'=>$z['bytes']>0];
+        $log[]=sprintf('Modell %-24s %s%s',$m,$a['bytes'] ? 'OK · hält die Sprache fest (language_code)'.($z['bytes'] ? ' · auch Aserbaidschanisch' : '') : ($b['bytes'] ? 'OK · ohne language_code' : 'nicht verfügbar'),$a['bytes'] ? '' : ' – '.mb_substr($a['msg'],0,110));
     }
     /* Ergebnis merken: Modelle mit Sprach-Festlegung (speech-lib wählt daraus, Reihenfolge = VS_EL_MODELS) */
     $lcm=array_keys(array_filter($o,fn($x)=>$x['lc']));
     $p=th_db(); $p->prepare("DELETE FROM tts_native WHERE provider='elmodel'")->execute();
-    $q=$p->prepare("INSERT INTO tts_native(provider,lang,gender,pos,voice,label,meta) VALUES('elmodel','--','l',?,?,'',NULL)"); foreach($lcm as $i=>$m) $q->execute([$i,$m]);
+    $q=$p->prepare("INSERT INTO tts_native(provider,lang,gender,pos,voice,label,meta) VALUES('elmodel',?,'l',?,?,'',NULL)"); foreach($lcm as $i=>$m) $q->execute(['--',$i,$m]);
+    foreach(array_values(array_keys(array_filter($o,fn($x)=>$x['az']))) as $i=>$m) $q->execute(['az',$i,$m]);
     $log[]='Sprach-Festlegung möglich mit: '.($lcm ? implode(', ',$lcm) : 'keinem Modell – es bleibt bei eleven_multilingual_v2 / eleven_v3');
     return $o;
 }

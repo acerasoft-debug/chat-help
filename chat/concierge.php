@@ -23,6 +23,45 @@ require_once __DIR__.'/plans.php';
 require_once __DIR__.'/speech-lib.php';
 require_once __DIR__.'/demo-l10n.php';   // lokale Demo-Betriebe je Besuchersprache (alle zwölf weiteren Sitesprachen); Deutsch bleibt CH_DEMO
 
+/* ---------- Gespeicherte Antworten auf Schnellwahl-Fragen ----------
+   Ist die erste Nachricht genau eine der angebotenen Schnellwahl-Fragen, bekommt der nächste Besucher dieselbe Antwort aus concierge_replay:
+   keine neuen KI-Kosten und – weil der Text gleich bleibt – keine neuen Stimmkosten (tts.php findet die Sätze im Cache). Nur Schnellwahl-Texte,
+   nie freie Eingaben (keine Personendaten). Gültig 30 Tage bzw. nur heute, wenn die Antwort vom Tag abhängt (Frage mit „heute/morgen/jetzt …“
+   oder Werkzeuge für freie Zeiten/Status); nach buchenden Werkzeugen (create_/book_/cancel_ …) wird nichts gespeichert.
+   Ändert sich der Demo-Betrieb oder der Prompt (Version im Schlüssel), entsteht automatisch eine neue Antwort. */
+const CONCIERGE_REPLAY_DAYS = 30;
+const CONCIERGE_TOOLS_STATIC = ['get_menu','check_delivery_address','list_services','get_taxi_info','get_hotel_info'];
+const CONCIERGE_TOOLS_TODAY = ['get_available_slots','check_room_availability','estimate_ride','get_order_status','get_ride_status','find_appointments','get_booking'];
+const CONCIERGE_TIME_RE = '/(*UCP)\b(heute|morgen|gerade|jetzt|today|tomorrow|tonight|now|bugün|yarın|şimdi|aujourd\'hui|demain|maintenant|ce soir|hoy|mañana|ahora|oggi|domani|adesso|stasera|vandaag|nu|idag|imorgon|i dag|i morgen|nå|tänään|huomenna|nyt|bu gün|sabah|indi|сегодня|завтра|сейчас)\b|今日|明日|今/iu';
+function concierge_replay_table(): void { static $t=false; if($t) return; th_db()->exec("CREATE TABLE IF NOT EXISTS concierge_replay (k CHAR(64) NOT NULL PRIMARY KEY, body MEDIUMTEXT NOT NULL, hits INT NOT NULL DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, INDEX(created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"); $t=true; }
+/** Schlüssel für eine Schnellwahl-Frage ($today: Antwort hängt vom Tag ab → Datum im Schlüssel); null = keine Schnellwahl-Frage als erste Nachricht. */
+function concierge_replay_key(array $msgs, array $chips, string $scope, bool $today): ?string {
+    if(count($msgs)!==1) return null; $q=trim((string)$msgs[0]['content']);
+    $norm=fn(string $s)=>mb_strtolower(trim((string)preg_replace('/\s+/u',' ',$s)));
+    if(!in_array($norm($q),array_map(fn($c)=>is_string($c) ? $norm($c) : '',$chips),true)) return null;
+    return hash('sha256','r1|'.$scope.'|'.$norm($q).'|'.($today ? (new DateTimeImmutable('now',new DateTimeZone('Europe/Berlin')))->format('Y-m-d') : ''));
+}
+function concierge_replay_get(array $msgs, array $chips, string $scope): ?array {
+    try{ concierge_replay_table();
+        foreach([false,true] as $today){ $k=concierge_replay_key($msgs,$chips,$scope,$today); if($k===null) return null;
+            $s=th_db()->prepare("SELECT body FROM concierge_replay WHERE k=? AND created_at > (NOW() - INTERVAL ".CONCIERGE_REPLAY_DAYS." DAY)"); $s->execute([$k]);
+            $b=json_decode((string)$s->fetchColumn(),true);
+            if(is_array($b) && is_string($b['reply'] ?? null) && $b['reply']!==''){ th_db()->prepare("UPDATE concierge_replay SET hits=hits+1 WHERE k=?")->execute([$k]); return $b; } }
+    }catch(Throwable $e){ error_log('CH concierge replay: '.$e->getMessage()); }
+    return null;
+}
+/** Antwort merken (nur Schnellwahl-Frage als erste Nachricht; nicht nach buchenden Werkzeugen). */
+function concierge_replay_put(array $msgs, array $chips, string $scope, array $body, array $tools): void {
+    $names=array_map(fn($t)=>(string)($t['name'] ?? ''),$tools);
+    if(array_diff($names,CONCIERGE_TOOLS_STATIC,CONCIERGE_TOOLS_TODAY)) return;
+    $today=(bool)array_intersect($names,CONCIERGE_TOOLS_TODAY) || ($msgs && preg_match(CONCIERGE_TIME_RE,(string)$msgs[0]['content'])===1);
+    $k=concierge_replay_key($msgs,$chips,$scope,$today); if($k===null) return;
+    try{ concierge_replay_table();
+        th_db()->prepare("REPLACE INTO concierge_replay(k,body) VALUES(?,?)")->execute([$k,json_encode($body,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
+        if(random_int(1,40)===1) th_db()->exec("DELETE FROM concierge_replay WHERE created_at < (NOW() - INTERVAL ".CONCIERGE_REPLAY_DAYS." DAY)");
+    }catch(Throwable $e){ error_log('CH concierge replay: '.$e->getMessage()); }
+}
+
 /** Persona + Sprechstil des Demo-Betriebs + allgemeine Realismus-Regeln (nach ch_agent_system, vor dem Werkzeug-Hinweis). */
 function concierge_persona_prompt(array $d, bool $phone): string {
     $name=trim((string)($d['persona'] ?? '')); $fem=(($d['voice']['gender'] ?? 'f')!=='m'); $co=(string)($d['company'] ?? '');
@@ -220,6 +259,11 @@ if($demo!==''){
     $replyLang=ch_reply_lang(['lang'=>'de','langs'=>''],end($msgs)['content'],$prevL,(string)($d['lang'] ?? $lang));
     $sys=ch_agent_system($pl,array_merge($d,['lang'=>'de','langs'=>'']),$replyLang,true).concierge_persona_prompt($d,$phone).($phone?CH_PHONE_RULES:'')
         ."\n\nDEMO-HINWEIS (nur intern): Dies ist eine öffentliche Live-Demo auf chat-help.com mit der Beispiel-Firma „".$d['company']."“".($sector!=='' ? ' (Branche: '.$d['label'].')' : '').". Bleibe vollständig in der Rolle. Wenn jemand fragt, wie er so einen Agenten bekommt oder etwas über ChatHelp wissen will: Ein Satz – Studio auf chat-help.com, eigene Wissensbasis einfügen, in 10 Minuten startklar – dann zurück in die Rolle.";
+    /* Schnellwahl-Frage schon einmal beantwortet → dieselbe Antwort (keine KI-, keine neuen Stimmkosten). Version = Prompt ohne Werkzeug-Hinweis (enthält kein Datum). */
+    $rpScope='demo|'.$demo.'|'.$sector.'|'.($phone ? 'p' : 'c').'|'.$replyLang.'|'.md5($sys); $rpChips=(array)($d['chips'] ?? []);
+    if($rp=concierge_replay_get($msgs,$rpChips,$rpScope))
+        th_json(200,['reply'=>$rp['reply'],'source'=>'replay','demo'=>$demo,'sector'=>$sector!=='' ? $sector : null,'forward'=>!empty($rp['forward']),'end'=>!empty($rp['end']),'tools'=>is_array($rp['tools'] ?? null) ? $rp['tools'] : [],
+            'speech'=>ch_speech_payload($demo,$rp['reply'],$sector,$du),'tts'=>$ttsOn,'lang'=>$replyLang]);
     /* Demos arbeiten mit ECHTEN Werkzeugen auf Konto 0 (Termine, Bestellungen, Taxi, Hotel, Rückruf): echte Slot- und Adressprüfung, echte Buchung – keine Benachrichtigungen */
     concierge_load_tools(); ch_heartbeat();
     $tk=concierge_toolkit($demo,$d);
@@ -230,7 +274,9 @@ if($demo!==''){
     $forward=str_contains($answer,'[WEITERLEITEN]'); $end=str_contains($answer,'[ENDE]');
     $answer=trim(str_replace(['[WEITERLEITEN]','[ENDE]'],'',$answer));
     $p->prepare("INSERT INTO concierge_log(ip_hash) VALUES(?)")->execute([$h]);
-    th_json(200,['reply'=>$answer,'source'=>th_ai_info()['provider'] ?? 'ai','demo'=>$demo,'sector'=>$sector!=='' ? $sector : null,'forward'=>$forward,'end'=>$end,'tools'=>array_map(fn($c)=>['name'=>$c['name'],'ok'=>$c['ok'] ?? true],th_ai_info()['tool_calls'] ?? []),
+    $tools=array_map(fn($c)=>['name'=>$c['name'],'ok'=>$c['ok'] ?? true],th_ai_info()['tool_calls'] ?? []);
+    concierge_replay_put($msgs,$rpChips,$rpScope,['reply'=>$answer,'forward'=>$forward,'end'=>$end,'tools'=>$tools],$tools);
+    th_json(200,['reply'=>$answer,'source'=>th_ai_info()['provider'] ?? 'ai','demo'=>$demo,'sector'=>$sector!=='' ? $sector : null,'forward'=>$forward,'end'=>$end,'tools'=>$tools,
         'speech'=>ch_speech_payload($demo,$answer,$sector,$du),'tts'=>$ttsOn,'lang'=>$replyLang]);
 }
 
@@ -253,8 +299,11 @@ $cat
 REGELN: Bleibe bei ChatHelp-Themen; bei fremden Themen freundlich zurücklenken. Erfinde keine Preise oder Funktionen, die oben nicht stehen. Wenn jemand ein Rechtsproblem schildert: kurz einordnen (welches Schreiben passt) und zu ChatHelp Recht führen. Wenn jemand ein Unternehmen hat: den passenden Agenten vorschlagen (Name, Preis, was er tut) und Mieten vs. Kaufen erklären. Kontakt: support@chat-help.com.
 SYS;
 
+$rpScope='hp|'.$lang.'|'.md5($system);   // Schnellwahl der Startseite: gleiche Antwort ohne neuen KI-Aufruf
+if($rp=concierge_replay_get($msgs,(array)$g['chips'],$rpScope)) th_json(200,['reply'=>$rp['reply'],'source'=>'replay']);
 $answer = th_ai($system, $msgs, 550, 45);   // Claude model zinciri → DeepSeek (tokens-lib)
 $source = th_ai_info()['provider'] ?? 'rules';
+if($answer!==null) concierge_replay_put($msgs,(array)$g['chips'],$rpScope,['reply'=>$answer],[]);
 if($answer===null){
     // KI anahtarı yoksa yine de yardımcı ol: kural tabanlı kısa yönlendirme
     $q=mb_strtolower(end($msgs)['content']);

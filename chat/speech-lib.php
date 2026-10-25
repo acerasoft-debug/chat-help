@@ -17,7 +17,9 @@
  *   azure       AZURE_SPEECH_KEY + AZURE_SPEECH_REGION  Neural (<locale>-<Name>Neural, native Stimme je Sprache, xml:lang = Sprache der Stimme)
  * Sprache: voice['lang'] (BCP-47, z. B. ja-JP, nb-NO) – fehlt sie oder ist voice['lang_auto'] gesetzt, wird sie aus dem Text erkannt (i18n.php).
  *   OpenAI: Sprechanweisung „native <Sprache> speaker“ statt „native German“; ElevenLabs: Mehrsprachenmodell (erkennt die Sprache selbst).
- * Datei-Cache: sys_get_temp_dir()/ch_tts/<sha256>.mp3 (Ordner 0700); Dateien älter als 14 Tage werden gelegentlich gelöscht.
+ * Datei-Cache: /home/<konto>/ch_tts_cache/<sha256>.mp3 neben dem Web-Ordner (Ordner 0700; sonst Temp-Ordner) – jeder Satz wird je Stimme nur einmal
+ *   bezahlt; Dateien, die 180 Tage nicht abgespielt wurden, und über 800 MB (TTS_CACHE_MAX_MB) die ältesten werden gelegentlich gelöscht.
+ * Demo-Kanal (voice['channel']='demo'): ElevenLabs mit dem Halbpreis-Modell (eleven_v4_turbo, sonst Turbo/Flash v2.5; TTS_ELEVENLABS_MODEL_DEMO).
  * Tests: TTS_TEST_BASE lenkt alle Anbieter-Aufrufe auf einen lokalen Mock – wird NUR beachtet, wenn es auf 127.0.0.1/localhost zeigt.
  */
 
@@ -798,9 +800,15 @@ function ch_tts_provider_for(string $lang, array $voice=[]): ?string {
    Nur echte Vertonungen zählen (Cache-Treffer kosten beim Anbieter nichts). db.php (Zeichen pro Monat, 0 = ohne Grenze):
      TTS_BUDGET_<ANBIETER>       gesamt   – Standard: azure 450000 (bleibt im kostenlosen Kontingent), elevenlabs 90000, google 500000, openai 300000
      TTS_DEMO_BUDGET_<ANBIETER>  Demo     – Standard: elevenlabs 15000 (Credits bleiben für zahlende Kunden), sonst 60 % des Gesamtbudgets
-   Meldet ein Anbieter „Kontingent/Guthaben aufgebraucht“, wird er 6 Stunden übersprungen. */
+   Meldet ein Anbieter „Kontingent/Guthaben aufgebraucht“, wird er 6 Stunden übersprungen.
+   ElevenLabs zählt in Credits wie die eigene Abrechnung: Turbo-/Flash-Modelle (CH_TTS_EL_HALF) 0,5 je Zeichen, alle anderen 1. */
 const CH_TTS_BUDGET_DEFAULT = ['azure'=>450000,'elevenlabs'=>90000,'google'=>500000,'openai'=>300000];
 const CH_TTS_DEMO_DEFAULT = ['elevenlabs'=>15000];
+const CH_TTS_EL_HALF = ['eleven_v4_turbo','eleven_turbo_v2_5','eleven_flash_v2_5'];   // halber Preis je Zeichen, Reihenfolge = Wahl für die Demo
+/** Abrechnungseinheiten einer Vertonung (ElevenLabs: Credits, sonst Zeichen). */
+function ch_tts_units(string $provider, array $resolved, int $chars): int {
+    return $provider==='elevenlabs' && in_array($resolved['model'] ?? '',CH_TTS_EL_HALF,true) ? (int)ceil($chars/2) : $chars;
+}
 function ch_tts_ym(): string { return gmdate('Y-m'); }
 /** Verbrauch dieses Monats: provider → channel → Zeichen (channel 'blocked' = gesperrt bis Unix-Zeit). */
 function ch_tts_usage_all(bool $reload=false): array {
@@ -913,8 +921,15 @@ function ch_tts_resolve(string $provider, array $voice): array {
             /* Modell: db.php TTS_ELEVENLABS_MODEL_<LC> / TTS_ELEVENLABS_MODEL, sonst das beste Modell, das die Sprache festhält (language_code; ops/voice-scout mode=models
                prüft das im Konto) – sonst liest ElevenLabs z. B. „Perfetto! … 19 Euro“ italienisch. Ohne Prüfergebnis wie bisher: Multilingual v2, für az/no Eleven v3. */
             $lcm=array_column(ch_tts_native_all()['elmodel']['--']['l'] ?? [],'voice');
-            $elModel=ch_tts_const('TTS_ELEVENLABS_MODEL_'.strtoupper($lc)) ?: ch_tts_const('TTS_ELEVENLABS_MODEL');
-            if($elModel===''){ foreach($lc==='az' ? ['eleven_v4','eleven_v3'] : ['eleven_v4','eleven_v3','eleven_turbo_v2_5','eleven_flash_v2_5'] as $cand) if(in_array($cand,$lcm,true)){ $elModel=$cand; break; }
+            /* Demo (Startseite): Sparmodell – halber Preis je Zeichen (eleven_v4_turbo, sonst Turbo/Flash v2.5; die v2.5-Modelle können kein Aserbaidschanisch) */
+            $eco=($voice['channel'] ?? '')==='demo';
+            $elModel=($eco ? ch_tts_const('TTS_ELEVENLABS_MODEL_DEMO') : '') ?: ch_tts_const('TTS_ELEVENLABS_MODEL_'.strtoupper($lc)) ?: ch_tts_const('TTS_ELEVENLABS_MODEL');
+            if($elModel===''){
+                $cands=$lc==='az' ? ['eleven_v4','eleven_v3'] : ['eleven_v4','eleven_v3','eleven_turbo_v2_5','eleven_flash_v2_5'];
+                if($eco) $cands=array_merge($lc==='az' ? ['eleven_v4_turbo'] : CH_TTS_EL_HALF,$cands);
+                $azm=array_column(ch_tts_native_all()['elmodel']['az']['l'] ?? [],'voice');   // Prüfung mit aserbaidschanischem Satz (ops/voice-scout mode=models)
+                if($lc==='az' && $azm) $cands=array_values(array_intersect($cands,$azm));
+                foreach($cands as $cand) if(in_array($cand,$lcm,true)){ $elModel=$cand; break; }
                 if($elModel==='') $elModel=in_array($lc,['az','no'],true) ? 'eleven_v3' : 'eleven_multilingual_v2'; }
             return ['model'=>$elModel,'voice'=>$id,'language_code'=>in_array($elModel,$lcm,true) ? $lc : null,
                 'settings'=>['stability'=>$num('stability',0.5),'similarity_boost'=>$num('similarity_boost',0.8),'style'=>$num('style',0.25),'use_speaker_boost'=>true,'speed'=>round(max(0.7,min(1.2,$rate)),2)]];
@@ -966,11 +981,15 @@ function ch_tts_request(string $provider, string $text, array $voice, array $cre
     }
     return null;
 }
+/** Cache-Ordner: TTS_CACHE_DIR (db.php/Tests), sonst neben dem Web-Ordner (/home/<konto>/ch_tts_cache – bleibt bei Deploys und Server-Neustarts,
+ *  von außen nicht abrufbar), zuletzt der Temp-Ordner. Einmal bezahlte Sätze (Begrüßungen, Überbrückungen, Beispielgespräche) bleiben so dauerhaft gratis. */
 function ch_tts_cache_dir(): ?string {
-    $d=rtrim(sys_get_temp_dir(),'/\\').'/ch_tts';
-    if(!is_dir($d)) @mkdir($d,0700,true);
-    return (is_dir($d) && is_writable($d)) ? $d : null;
+    static $d=null; if($d!==null) return $d!=='' ? $d : null;
+    $c=defined('TTS_CACHE_DIR') ? [rtrim((string)TTS_CACHE_DIR,'/\\')] : [dirname(__DIR__,2).'/ch_tts_cache',ch_tts_legacy_dir()];
+    foreach($c as $x){ if($x==='') continue; if(!@is_dir($x)) @mkdir($x,0700,true); if(@is_dir($x) && @is_writable($x)) return $d=$x; }
+    $d=''; return null;
 }
+function ch_tts_legacy_dir(): string { return rtrim(sys_get_temp_dir(),'/\\').'/ch_tts'; }
 /** Cache-Datei für Text + aufgelöste Stimme beim aktuellen Anbieter (null = kein Anbieter / kein Cache-Ordner). */
 function ch_tts_cache_path(string $text, array $voice, ?string $provider=null): ?string {
     $voice=ch_tts_lang_fix($text,$voice);
@@ -996,10 +1015,15 @@ function ch_tts_is_mp3(string $b): bool {
     if(substr($b,0,3)==='ID3') return true;
     return ord($b[0])===0xFF && (ord($b[1]) & 0xE0)===0xE0;
 }
-function ch_tts_prune(?string $dir=null, int $days=14): int {
+/** Aufräumen: Dateien, die $days Tage nicht mehr abgespielt wurden (Treffer frischen das Datum täglich auf), und – über TTS_CACHE_MAX_MB
+ *  (Standard 800 MB) – die am längsten ungenutzten zuerst. */
+const CH_TTS_CACHE_DAYS = 180;
+function ch_tts_prune(?string $dir=null, int $days=CH_TTS_CACHE_DAYS): int {
     $dir=$dir ?? ch_tts_cache_dir(); if(!$dir) return 0;
-    $n=0; $lim=time()-$days*86400;
-    foreach(glob($dir.'/*.mp3') ?: [] as $f) if(@filemtime($f)<$lim && @unlink($f)) $n++;
+    $n=0; $lim=time()-$days*86400; $keep=[]; $size=0;
+    foreach(glob($dir.'/*.mp3') ?: [] as $f){ $t=(int)@filemtime($f); if($t<$lim){ if(@unlink($f)) $n++; continue; } $s=(int)@filesize($f); $keep[]=[$t,$s,$f]; $size+=$s; }
+    $max=(defined('TTS_CACHE_MAX_MB') && (int)TTS_CACHE_MAX_MB>0 ? (int)TTS_CACHE_MAX_MB : 800)*1048576;
+    if($size>$max){ usort($keep,fn($a,$b)=>$a[0]<=>$b[0]); foreach($keep as [$t,$s,$f]){ if($size<=$max*0.9) break; if(@unlink($f)){ $n++; $size-=$s; } } }
     foreach(glob($dir.'/*.tmp*') ?: [] as $f) if(@filemtime($f)<time()-3600) @unlink($f);
     return $n;
 }
@@ -1022,6 +1046,8 @@ function ch_tts_synth_one(string $text, array $voice, ?array &$info, ?bool &$quo
     $cred=ch_tts_creds($prov); if(!$cred) return null;
     $info['provider']=$prov;
     $file=ch_tts_cache_path($text,$voice,$prov);
+    if($file && !is_file($file) && !defined('TTS_CACHE_DIR')){   // früher im Temp-Ordner gespeichert → übernehmen statt neu bezahlen
+        $old=ch_tts_legacy_dir().'/'.basename($file); if($old!==$file && @is_file($old)) @copy($old,$file); }
     if($file && is_file($file) && filesize($file)>0){
         $b=@file_get_contents($file);
         if(is_string($b) && ch_tts_is_mp3($b)){ if(@filemtime($file)<time()-86400) @touch($file); $info['cache']='hit'; return $b; }
@@ -1042,7 +1068,7 @@ function ch_tts_synth_one(string $text, array $voice, ?array &$info, ?bool &$quo
     }
     $audio=$req['mode']==='google_b64' ? base64_decode((string)(json_decode($raw,true)['audioContent'] ?? ''),true) : $raw;
     if(!is_string($audio) || !ch_tts_is_mp3($audio)){ error_log('CH tts '.$prov.' keine MP3-Antwort ('.strlen($raw).' Bytes)'); return null; }
-    ch_tts_usage_add($prov,(string)($voice['channel'] ?? 'app'),mb_strlen($text));   // nur echte Vertonungen zählen
+    ch_tts_usage_add($prov,(string)($voice['channel'] ?? 'app'),ch_tts_units($prov,ch_tts_resolve($prov,$voice),mb_strlen($text)));   // nur echte Vertonungen zählen (ElevenLabs in Credits)
     if($file){
         $tmp=$file.'.tmp'.bin2hex(random_bytes(4));
         if(@file_put_contents($tmp,$audio)!==false){ @chmod($tmp,0600); if(!@rename($tmp,$file)) @unlink($tmp); }
