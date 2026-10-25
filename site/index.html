@@ -12,7 +12,7 @@
 <meta property="og:image" content="https://chat-help.com/media/hero-poster.jpg">
 <meta name="theme-color" content="#ffffff">
 <script>/* Sprachdateien (Version = Inhalts-Hash, gesetzt von tools/site-i18n.mjs) – die gemerkte Sprache wird schon hier geladen */
-window.I18N_V={"en":"54b483ca93","fr":"8c5e544229","es":"bfd4fa0716","tr":"2966c3a4d5","ru":"1ae9ec1bc2","it":"ffd4360a62","nl":"2985c3b93c","sv":"3a6232c61a","no":"81bd0320bf","fi":"27869ff424","ja":"2ae57e1d78","az":"d5dacbec94"};
+window.I18N_V={"en":"a115cf2e53","fr":"ff3be16bf4","es":"e491acbd96","tr":"2966c3a4d5","ru":"4526ae3484","it":"8fe867523a","nl":"d1411b14e6","sv":"3a6919f2b8","no":"00d8cbb2e9","fi":"8ce9edb47f","ja":"f77ca31588","az":"8003c2fa42"};
 (function(){try{var V=window.I18N_V,l=(document.cookie.match(/(?:^|; )ch_lang=([a-z]{2})/)||[])[1];if(!l){var o=JSON.parse(sessionStorage.getItem('chLoc2')||'null');l=o&&o.j&&o.j.lang;}
   if(l&&l!=='de'&&V[l]){var P=window.__chI18nPre={},f=function(x){P[x]=fetch('/i18n/'+x+'.json?v='+V[x],{credentials:'same-origin'}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});};f(l);if(l!=='en'&&V.en)f('en');}}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -480,6 +480,7 @@ html[lang="ja"] .hero h1{font-size:clamp(32px,3vw + 8px,52px);line-height:1.14;l
 .pro .pop{display:inline-flex;align-self:flex-start;align-items:center;gap:6px;margin-top:12px;padding:6px 10px;border-radius:999px;background:linear-gradient(135deg,#f3dfa6,#e2bd62);color:#1a1407;font:700 11.5px/1.15 var(--sans);letter-spacing:.02em;max-width:100%}
 .card.popc{border-color:rgba(184,134,43,.4)}
 .trpop{display:inline-flex;margin:0 10px 10px 0;padding:6px 10px;border-radius:999px;background:linear-gradient(135deg,#f3dfa6,#e2bd62);color:#1a1407;font:700 11.5px/1.15 var(--sans);vertical-align:middle}
+#tuerkei[hidden]{display:none!important}
 #tuerkei.focus{background:linear-gradient(180deg,var(--goldl),rgba(246,236,211,0) 460px);border-top:1px solid rgba(184,134,43,.28)}
 .ptiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:24px}
 .ptier{position:relative;display:flex;flex-direction:column;gap:4px;padding:16px 14px 14px;border:1px solid var(--line);border-radius:18px;background:var(--card,#fff);color:var(--ink);text-decoration:none;transition:border-color .2s,transform .2s,box-shadow .2s}
@@ -494,7 +495,7 @@ html[lang="ja"] .hero h1{font-size:clamp(32px,3vw + 8px,52px);line-height:1.14;l
 
 <nav class="nav"><div class="wrap">
   <a class="logo" href="/"><span class="em"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp</a>
-  <div class="menu" id="menu"><a href="#demo" data-i18n="n.demo">Demo</a><a href="#agenten" data-i18n="n.agenten">Agenten</a><a href="#privat" data-i18n="n.privat">Privat</a><a href="#telefon" data-i18n="n.telefon">Telefon</a><a href="#termine" data-i18n="n.termine">Termine</a><a href="#beauty" data-i18n="n.beauty">Beauty</a><a href="#bestellen" data-i18n="n.bestellen">Bestellen</a><a href="#taxi" data-i18n="n.taxi">Taxi</a><a href="#hotel" data-i18n="n.hotel">Hotel</a><a href="#tuerkei" data-i18n="n.tuerkei">Türkiye</a><a href="#rueckruf" data-i18n="n.rueckruf">Rückruf</a><a href="#how" data-i18n="n.how">Ablauf</a><a href="#preise" data-i18n="n.preise">Preise</a><a class="mstudio" href="/chat/studio.php" data-i18n="b.studio">Studio starten</a></div>
+  <div class="menu" id="menu"><a href="#demo" data-i18n="n.demo">Demo</a><a href="#agenten" data-i18n="n.agenten">Agenten</a><a href="#privat" data-i18n="n.privat">Privat</a><a href="#telefon" data-i18n="n.telefon">Telefon</a><a href="#termine" data-i18n="n.termine">Termine</a><a href="#beauty" data-i18n="n.beauty">Beauty</a><a href="#bestellen" data-i18n="n.bestellen">Bestellen</a><a href="#taxi" data-i18n="n.taxi">Taxi</a><a href="#hotel" data-i18n="n.hotel">Hotel</a><a href="#rueckruf" data-i18n="n.rueckruf">Rückruf</a><a href="#how" data-i18n="n.how">Ablauf</a><a href="#preise" data-i18n="n.preise">Preise</a><a class="mstudio" href="/chat/studio.php" data-i18n="b.studio">Studio starten</a></div>
   <div class="navr"><div class="lsw" id="lsw" role="group" aria-label="Sprache und Währung" data-i18n-attr="aria-label:ls.grp"><label class="lsx l" title="Sprache" data-i18n-attr="title:ls.lang"><b id="lsLangV">DE</b><i aria-hidden="true">▾</i><select id="lsLang" aria-label="Sprache" data-i18n-attr="aria-label:ls.lang"><option value="de" selected>DE · Deutsch</option></select></label><label class="lsx c" title="Währung" data-i18n-attr="title:ls.cur"><b id="lsCurV">EUR</b><i aria-hidden="true">▾</i><select id="lsCur" aria-label="Währung" data-i18n-attr="aria-label:ls.cur"><option value="EUR" selected>EUR · €</option></select></label></div><a class="btn s hide-m hide-l" href="#agenten" data-i18n="b.find">Agent finden</a><a class="btn s p nstudio" href="/chat/studio.php" data-i18n="b.studio">Studio starten</a>
     <button class="burger" id="burger" aria-label="Menü" data-i18n-attr="aria-label:a.nav.1"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button></div>
 </div></nav>
@@ -728,7 +729,7 @@ html[lang="ja"] .hero h1{font-size:clamp(32px,3vw + 8px,52px);line-height:1.14;l
   </div>
 </div></section>
 
-<section id="tuerkei"><div class="wrap">
+<section id="tuerkei" hidden><div class="wrap">
   <div class="bty">
     <div>
       <span class="eyebrow" data-i18n="e.tr">Türkiye · Saç &amp; Diş – Gesundheitstourismus</span>
@@ -918,7 +919,7 @@ if('MutationObserver' in window){new MutationObserver(function(){frames.forEach(
 
 <footer><div class="wrap">
   <div><a class="logo" href="/" style="font-size:18px"><span class="em" style="width:30px;height:30px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18.5 7.5A8 8 0 1 0 19 15" stroke="#1a1407" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="#1a1407"/></svg></span>ChatHelp</a><div style="margin-top:10px;max-width:40ch" data-i18n="s.footer.1">KI-Agenten für Telefon, WhatsApp, Website und Backoffice – für Unternehmen und für dich privat. Made in Europe.</div></div>
-  <div class="cols"><div data-i18n-html="s.footer.2"><a href="#agenten">Agenten finden</a><br><a href="#privat">Für dich privat</a><br><a href="#telefon">Telefon-Agent</a><br><a href="#termine">Termin-Agent</a><br><a href="#bestellen">Bestell-Agent</a><br><a href="#taxi">Taxi-Agent</a><br><a href="#hotel">Hotel-Agent</a><br><a href="#beauty">Beauty &amp; Ästhetik</a><br><a href="#tuerkei">Türkiye · Saç &amp; Diş</a><br><a href="#rueckruf">Rückruf &amp; Training</a><br><a href="/chat/studio.php">Studio</a></div><div data-i18n-html="s.footer.3"><a href="/impressum.html">Impressum</a><br><a href="/datenschutz.html">Datenschutz</a><br><a href="/agb.html">AGB</a><br><a href="/chat/vendor/voice/LICENSES.txt" rel="noopener" target="_blank">Stimmen-Lizenzen</a><br><a href="/chat/tokens-api.php/v1/sectors">API</a></div><div data-i18n-html="s.footer.4"><a href="https://instagram.com/chathelpp" rel="noopener" target="_blank">Instagram</a><br><a href="mailto:support@chat-help.com">support@chat-help.com</a></div></div>
+  <div class="cols"><div data-i18n-html="s.footer.2"><a href="#agenten">Agenten finden</a><br><a href="#privat">Für dich privat</a><br><a href="#telefon">Telefon-Agent</a><br><a href="#termine">Termin-Agent</a><br><a href="#bestellen">Bestell-Agent</a><br><a href="#taxi">Taxi-Agent</a><br><a href="#hotel">Hotel-Agent</a><br><a href="#beauty">Beauty &amp; Ästhetik</a><br><a href="#rueckruf">Rückruf &amp; Training</a><br><a href="/chat/studio.php">Studio</a></div><div data-i18n-html="s.footer.3"><a href="/impressum.html">Impressum</a><br><a href="/datenschutz.html">Datenschutz</a><br><a href="/agb.html">AGB</a><br><a href="/chat/vendor/voice/LICENSES.txt" rel="noopener" target="_blank">Stimmen-Lizenzen</a><br><a href="/chat/tokens-api.php/v1/sectors">API</a></div><div data-i18n-html="s.footer.4"><a href="https://instagram.com/chathelpp" rel="noopener" target="_blank">Instagram</a><br><a href="mailto:support@chat-help.com">support@chat-help.com</a></div></div>
   <div class="fbot"><span>© 2026 ChatHelp · chat-help.com</span><span>Acerasoft LLC · Dover, Delaware</span></div>
 </div></footer>
 
@@ -2192,11 +2193,11 @@ const TR_HOME={sec:null,next:null};
 function focusApply(){const f=LOC.focus;CATS=focusOrder(CATS_BASE);
   const h=$('#fHero');if(h){const items=f?f.hero.map(k=>T(k)).filter(t=>t&&!/^fh\./.test(t)):[];h.innerHTML=items.map(t=>`<span><i>✦</i>${esc(t)}</span>`).join('');h.hidden=!items.length;}
   const w=$('#fWhy');if(w){const t=f?(f.why[LOC.lang]||f.why.en||f.why.de||''):'';w.textContent=t?T('j.focusFor',{c:ccName()})+' '+t:'';w.hidden=!t;}
-  /* Türkiye-Abschnitt: für TR/AZ direkt nach dem Agenten-Finder und hervorgehoben – die Agenten bleiben nur in diesem Abschnitt */
+  /* Türkiye-Abschnitt (Saç & Diş): nur für Besucher aus der Türkei bzw. mit türkischer Oberfläche – dann direkt nach dem Agenten-Finder und hervorgehoben; sonst ganz verborgen (kein Menüpunkt) */
   const tr=$('#tuerkei'),ag=$('#agenten');if(tr&&ag){if(!TR_HOME.sec){TR_HOME.sec=tr.parentNode;TR_HOME.next=tr.nextElementSibling;}
-    let bd=tr.querySelector('.trpop');
-    if(f&&f.tr){if(ag.nextElementSibling!==tr)ag.parentNode.insertBefore(tr,ag.nextElementSibling);tr.classList.add('focus');
-      if(!bd){bd=document.createElement('span');bd.className='pop trpop';const e=tr.querySelector('.eyebrow');if(e)e.parentNode.insertBefore(bd,e);}bd.textContent='★ '+T('j.pop',{c:ccName()});}
+    let bd=tr.querySelector('.trpop');const trv=LOC.lang==='tr'||!!(f&&f.cc==='TR');tr.hidden=!trv;
+    if(trv){if(ag.nextElementSibling!==tr)ag.parentNode.insertBefore(tr,ag.nextElementSibling);tr.classList.add('focus');
+      if(f&&f.cc==='TR'){if(!bd){bd=document.createElement('span');bd.className='pop trpop';const e=tr.querySelector('.eyebrow');if(e)e.parentNode.insertBefore(bd,e);}bd.textContent='★ '+T('j.pop',{c:ccName()});}else if(bd)bd.remove();}
     else{if(bd)bd.remove();if(tr.classList.contains('focus')){tr.classList.remove('focus');if(TR_HOME.next)TR_HOME.sec.insertBefore(tr,TR_HOME.next);}}}}
 l10nData();
 const PT=[['agents','Agenten mieten'],['privat','Für dich privat'],['buy','Einmal kaufen'],['tokens','Tokens'],['abo','Content-Pakete']];
