@@ -3175,4 +3175,11 @@
 "tier.s":"スモール",
 "tier.m":"スタンダード",
 "tier.l":"インテンシブ",
-"tier.time":"~{h}時間・~{c}件の通話"}
+"tier.time":"~{h}時間・~{c}件の通話",
+"ag.eco":"簡単なサイト質問向けの節約モード",
+"ag.ecoH":"EU内で処理するプロバイダー経由のDeepSeek。個人データを含まない一般的な質問に限り、サイトのチャットでのみ使用します。予約・注文・電話・WhatsAppは常にClaudeを使用します。",
+"adm.stt":"電話の音声認識（ChatHelp番号）",
+"adm.sttG":"Twilio Gather（標準・1発話約2セント・高速）",
+"adm.sttD":"録音＋Deepgram EU（約0.1セント・+1〜3秒）",
+"adm.sttA":"録音＋Azure Speech EU（約0.2セント・+1〜3秒・アゼルバイジャン語対応）",
+"adm.noKey":"キー未設定"}

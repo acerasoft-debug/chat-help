@@ -3175,4 +3175,11 @@
 "tier.s":"Küçük",
 "tier.m":"Standart",
 "tier.l":"Yoğun",
-"tier.time":"~{h} saat · ~{c} görüşme"}
+"tier.time":"~{h} saat · ~{c} görüşme",
+"ag.eco":"Basit web sitesi soruları için ekonomik mod",
+"ag.ecoH":"AB’de veri işleyen bir sağlayıcı üzerinden DeepSeek – yalnızca kişisel veri içermeyen genel sorular için web sitesi sohbetinde. Randevu, sipariş, telefon ve WhatsApp her zaman Claude ile çalışır.",
+"adm.stt":"Telefonda konuşma tanıma (ChatHelp numaraları)",
+"adm.sttG":"Twilio Gather (varsayılan, ifade başına ~2 sent, hızlı)",
+"adm.sttD":"Kayıt + Deepgram AB (~0,1 sent, +1–3 sn)",
+"adm.sttA":"Kayıt + Azure Speech AB (~0,2 sent, +1–3 sn, Azerbaycanca dahil)",
+"adm.noKey":"anahtar eksik"}

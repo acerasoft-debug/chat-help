@@ -3175,4 +3175,11 @@
 "tier.s":"Pieni",
 "tier.m":"Vakio",
 "tier.l":"Intensiivi",
-"tier.time":"~{h} h · ~{c} puhelua"}
+"tier.time":"~{h} h · ~{c} puhelua",
+"ag.eco":"Säästötila yksinkertaisiin verkkosivukysymyksiin",
+"ag.ecoH":"DeepSeek EU:ssa käsittelevän palveluntarjoajan kautta – vain verkkosivun chatissa yleisiin kysymyksiin ilman henkilötietoja. Varaukset, tilaukset, puhelin ja WhatsApp käyttävät aina Claudea.",
+"adm.stt":"Puheentunnistus puhelimessa (ChatHelp-numerot)",
+"adm.sttG":"Twilio Gather (oletus, ~2 senttiä/lausuma, nopea)",
+"adm.sttD":"Tallenne + Deepgram EU (~0,1 senttiä, +1–3 s)",
+"adm.sttA":"Tallenne + Azure Speech EU (~0,2 senttiä, +1–3 s, myös azeri)",
+"adm.noKey":"avain puuttuu"}

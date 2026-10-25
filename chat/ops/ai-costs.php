@@ -53,4 +53,17 @@ $s=th_db()->prepare("SELECT channel,model,peak,byok,SUM(calls) n,SUM(in_tok) i,S
 $m=[]; foreach($s->fetchAll(PDO::FETCH_ASSOC) as $r){ if((int)$r['byok']) continue; $k=(string)$r['channel']; $m[$k]??=['n'=>0,'eur'=>0.0,'i'=>0,'cr'=>0,'cw'=>0];
     $m[$k]['n']+=(int)$r['n']; $m[$k]['eur']+=bl_cost_usd((string)$r['model'],(bool)(int)$r['peak'],(int)$r['i'],(int)$r['o'],(int)$r['cr'],(int)$r['cw'])*bl_usd_eur(); $m[$k]['i']+=(int)$r['i']; $m[$k]['cr']+=(int)$r['cr']; $m[$k]['cw']+=(int)$r['cw']; }
 foreach($m as $k=>$r) printf("%-22s %6d Antworten · Ø %s Cent · Cache %s\n",BL_CHANNEL_LABELS[$k] ?? $k,$r['n'],$c($r['n'] ? 100*$r['eur']/$r['n'] : null),$pct(bl_cache_share($r['i'],$r['cr'],$r['cw'])));
+echo "\n== Telefon-Gespräche, letzte 30 Tage (nur Summen/Mittelwerte – für die Annahmen im Studio) ==\n";
+$g=th_db()->query("SELECT COUNT(*) n, AVG(TIMESTAMPDIFF(SECOND,started_at,ended_at)) dur, AVG(turns) turns, AVG(tokens) tok, SUM(turns) ans, SUM(TIMESTAMPDIFF(SECOND,started_at,ended_at)) secs,
+    SUM(outcome='maxtime') maxed, SUM(outcome='lines_busy') busy FROM phone_calls WHERE started_at>=NOW()-INTERVAL 30 DAY AND ended_at IS NOT NULL AND turns>0")->fetch(PDO::FETCH_ASSOC);
+if((int)$g['n']>0) printf("%d Gespräche · Ø %s Min. · Ø %s Antworten · Ø %s Tokens · %s Antworten je Gesprächsstunde · Höchstdauer erreicht: %d · Leitungen belegt: %d\n",
+    $g['n'],number_format($g['dur']/60,1,',','.'),number_format($g['turns'],1,',','.'),number_format($g['tok'],0,',','.'),(float)$g['secs']>0 ? number_format(3600*$g['ans']/$g['secs'],0,',','.') : '–',(int)$g['maxed'],(int)$g['busy']);
+else echo "noch keine abgeschlossenen Gespräche mit Antworten\n";
+$A=bl_assumptions(); echo "Annahmen im Studio: {$A['answers_per_hour']} Antworten/Std., {$A['minutes_per_call']} Min./Gespräch\n";
+echo "\n== Spracherkennung (Aufnahme-Modus, stt_usage_day) ==\n";
+try{ $r=th_db()->query("SELECT provider, SUM(calls) n, SUM(seconds) s, SUM(ms_total) ms, SUM(errors) e FROM stt_usage_day WHERE d>=CURDATE()-INTERVAL 30 DAY GROUP BY provider")->fetchAll(PDO::FETCH_ASSOC);
+    foreach($r as $x){ require_once __DIR__.'/stt-lib.php'; printf("%-9s %d Äußerungen · Ø %s s Audio · Ø %d ms Erkennung · Fehler %d · ≈ %s Cent je Äußerung (Gather: 1,72)\n",$x['provider'],$x['n'],number_format($x['s']/max(1,$x['n']),1,',','.'),(int)($x['ms']/max(1,$x['n'])),(int)$x['e'],number_format(100*stt_cost_usd($x['provider'],$x['s']/max(1,$x['n']))*bl_usd_eur(),3,',','.')); }
+    if(!$r) echo "Aufnahme-Modus noch nicht genutzt (Standard: Twilio Gather)\n"; }catch(Throwable $e){ echo "Aufnahme-Modus noch nicht genutzt\n"; }
+$bd=(int)th_db()->query("SELECT COUNT(DISTINCT account_id) FROM acct_secrets WHERE k='deepseek_key'")->fetchColumn();
+echo "\nKonten mit eigenem DeepSeek-Schlüssel: $bd\n";
 echo "\nfertig\n";

@@ -3175,4 +3175,11 @@
 "tier.s":"Pequeño",
 "tier.m":"Estándar",
 "tier.l":"Intensivo",
-"tier.time":"~{h} h · ~{c} llamadas"}
+"tier.time":"~{h} h · ~{c} llamadas",
+"ag.eco":"Modo ahorro para preguntas sencillas de la web",
+"ag.ecoH":"DeepSeek a través de un proveedor que procesa en la UE: solo en el chat de la web para preguntas generales sin datos personales. Citas, pedidos, teléfono y WhatsApp siempre usan Claude.",
+"adm.stt":"Reconocimiento de voz en el teléfono (números ChatHelp)",
+"adm.sttG":"Twilio Gather (predeterminado, ~2 céntimos por frase, rápido)",
+"adm.sttD":"Grabación + Deepgram UE (~0,1 céntimos, +1–3 s)",
+"adm.sttA":"Grabación + Azure Speech UE (~0,2 céntimos, +1–3 s, incl. azerí)",
+"adm.noKey":"falta la clave"}

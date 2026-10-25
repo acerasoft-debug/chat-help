@@ -3176,5 +3176,12 @@
 "tier.s":"Klein",
 "tier.m":"Standard",
 "tier.l":"Intensiv",
-"tier.time":"~{h} Std. · ~{c} Gespräche"
+"tier.time":"~{h} Std. · ~{c} Gespräche",
+"ag.eco":"Sparsamer Modus für einfache Website-Fragen",
+"ag.ecoH":"DeepSeek über einen Anbieter mit Verarbeitung in der EU – nur im Website-Chat für allgemeine Fragen ohne Personendaten. Buchungen, Bestellungen, Telefon und WhatsApp laufen immer über Claude.",
+"adm.stt":"Spracherkennung am Telefon (ChatHelp-Nummern)",
+"adm.sttG":"Twilio Gather (Standard, ~2 Cent je Äußerung, schnell)",
+"adm.sttD":"Aufnahme + Deepgram EU (~0,1 Cent, +1–3 s)",
+"adm.sttA":"Aufnahme + Azure Speech EU (~0,2 Cent, +1–3 s, auch Aserbaidschanisch)",
+"adm.noKey":"Schlüssel fehlt"
 }

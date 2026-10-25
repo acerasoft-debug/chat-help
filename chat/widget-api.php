@@ -118,7 +118,8 @@ $t0=microtime(true);
 ch_heartbeat();
 $tk=ch_toolkit($aid,'widget');
 if($tk['tools']){ $system.=$tk['hint']; $answer=th_ai_tools($system,$clean,$tk['tools'],$tk['exec'],900,75); $cost+=2*count(th_ai_info()['tool_calls'] ?? []); }
-else $answer = th_ai($system, $clean, 700, 60);   // Claude model zinciri → DeepSeek (tokens-lib)
+else { th_ai_eco(!empty($w['ai_eco']) && ch_ai_eco_plan((string)$pl['id']) && th_ai_eu_cfg()!==null);   // einfacher Info-Chat ohne Werkzeuge: auf Wunsch DeepSeek (EU)
+    $answer = th_ai($system, $clean, 700, 60); th_ai_eco(false); }
 if($answer===null) th_json(503,['error'=>'ai_unavailable']);
 $cost=th_charge($aid,$cost,'widget:'.$pl['id']);
 th_log_usage($aid,'widget',$pl['sector'],$cost,(int)((microtime(true)-$t0)*1000));

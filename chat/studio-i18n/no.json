@@ -3175,4 +3175,11 @@
 "tier.s":"Liten",
 "tier.m":"Standard",
 "tier.l":"Intensiv",
-"tier.time":"~{h} t · ~{c} samtaler"}
+"tier.time":"~{h} t · ~{c} samtaler",
+"ag.eco":"Sparemodus for enkle spørsmål på nettsiden",
+"ag.ecoH":"DeepSeek via en leverandør som behandler i EU – kun i nettchatten for generelle spørsmål uten personopplysninger. Bestillinger, ordre, telefon og WhatsApp bruker alltid Claude.",
+"adm.stt":"Talegjenkjenning på telefon (ChatHelp-numre)",
+"adm.sttG":"Twilio Gather (standard, ~2 cent per ytring, rask)",
+"adm.sttD":"Opptak + Deepgram EU (~0,1 cent, +1–3 s)",
+"adm.sttA":"Opptak + Azure Speech EU (~0,2 cent, +1–3 s, inkl. aserbajdsjansk)",
+"adm.noKey":"nøkkel mangler"}

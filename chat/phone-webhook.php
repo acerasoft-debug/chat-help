@@ -16,6 +16,7 @@ require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 require_once __DIR__.'/agent-tools.php';   // Fachmodule (Termine, Bestellungen, Taxi, Hotel, Rückruf) + Werkzeug-Register
 if(is_file(__DIR__.'/voice-catalog.php')) require_once __DIR__.'/voice-catalog.php';   // Stimmenkatalog: agent_configs.voice_id → Twilio-Stimme (vc_twilio)
+require_once __DIR__.'/stt-lib.php';   // günstigere Spracherkennung (Aufnahme + Deepgram/Azure) statt Gather, wenn eingeschaltet
 th_nocache();
 header('Content-Type: text/xml; charset=UTF-8');
 
@@ -106,6 +107,7 @@ function ph_gather_locale(string $loc): string { return $loc==='az-AZ' && define
  *  db.php: TWILIO_SPEECH_MODEL (z. B. 'phone_call') nur setzen, wenn das Modell für die Sprache freigegeben ist.
  *  $multi=true (erste Frage, nur mit db.php TWILIO_SPEECH_MULTI=true): mehrsprachige Erkennung (Deepgram nova-3, language="multi") statt einer festen Sprache. */
 function gather(string $inner, string $lang, string $action, string $hints='', bool $multi=false): string {
+    if(($GLOBALS['ph_stt'] ?? '')!=='') return stt_record_twiml($inner,$action);   // Aufnahme-Modus (stt-lib): Twilio nimmt auf, Deepgram/Azure schreibt ab
     if($multi && defined('TWILIO_SPEECH_MULTI') && TWILIO_SPEECH_MULTI){ $model=' speechModel="deepgram_nova-3"'; $gl='multi'; }
     else { $model=(defined('TWILIO_SPEECH_MODEL') && TWILIO_SPEECH_MODEL) ? ' speechModel="'.x(TWILIO_SPEECH_MODEL).'"' : ''; $gl=ph_gather_locale($lang); }
     return '<Gather input="speech" language="'.x($gl).'"'.$model.' speechTimeout="auto" actionOnEmptyResult="true" profanityFilter="false"'.($hints!==''?' hints="'.x(mb_substr($hints,0,480)).'"':'').' action="'.x($action).'" method="POST">'.$inner.'</Gather>';
@@ -227,6 +229,18 @@ $peer=preg_replace('/\D/','',(string)$customer);
 $cst=ch_conv_lang_get($aid,'call',$sid); $L=$defL; $probes=0;
 if($cst && in_array($cst['lang'],$allowed,true)){ $L=$cst['lang']; $probes=$cst['probes']; }
 $lang=ph_locale($L);
+/* Spracherkennung: Twilio Gather (Standard) oder Aufnahme + Deepgram/Azure (ChatHelp-Nummern, wenn im Studio eingeschaltet und Schlüssel vorhanden) */
+$ownTw=th_secret($aid,'twilio_token')!=='';
+$GLOBALS['ph_stt']=stt_mode_for(!$ownTw,$L);
+if(isset($_GET['rec'])){
+    $ru=(string)($_POST['RecordingUrl'] ?? ''); $speech='';
+    if($ru!=='' && !isset($_GET['empty']) && $GLOBALS['ph_stt']!=='' && (int)($_POST['RecordingDuration'] ?? 1)>0){
+        $tsid=$ownTw ? th_secret($aid,'twilio_sid') : (defined('TWILIO_ACCOUNT_SID') ? (string)TWILIO_ACCOUNT_SID : ''); $ttok=$ownTw ? th_secret($aid,'twilio_token') : (defined('TWILIO_AUTH_TOKEN') ? (string)TWILIO_AUTH_TOKEN : '');
+        $tx=stt_from_twilio($ru,$tsid,$ttok,$GLOBALS['ph_stt'],$L,(int)(th_call($sid)['turns'] ?? 0)===0);
+        $speech=trim((string)$tx['text']); $_POST['Confidence']=$tx['text']!=='' ? max(0.4,(float)$tx['conf']) : 0;
+        if($tx['error']!=='') error_log('CH phone stt: '.$tx['error']);
+    }
+}
 $hintsFor=fn(string $l): string => implode(', ',array_filter(array_merge([(string)$cfg['company']],explode(', ',(string)ph_t('hints',$l)),array_map(fn($x)=>CH_LANGS[$x]['native'] ?? '',$allowed),['English'])));   // Erkennungshilfe für Twilio
 $hints=$hintsFor($L);
 $offers0=ph_offers($cfg,$allowed,$defL);

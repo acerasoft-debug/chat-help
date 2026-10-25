@@ -169,6 +169,7 @@ chat/i18n.php                chat/i18n.php
 # Einrichtung nach dem Kauf (Frage-Antwort, Einrichtungsanleitung per E-Mail)
 chat/onboarding-lib.php      chat/onboarding-lib.php
 chat/number-lib.php          chat/number-lib.php
+chat/stt-lib.php             chat/stt-lib.php
 chat/studio-panels/einrichtung.html chat/studio-panels/einrichtung.html
 chat/studio-panels/einrichtung.js chat/studio-panels/einrichtung.js
 # Website-Baukasten „Website erstellen“: Bibliothek (Datenmodell, KI, Bilder, Anfragen, ZIP), Rendering, öffentliche Seite, Studio-Panel; Upload-Ordner nur mit Schutzdateien (Bilder liegen auf dem Server)

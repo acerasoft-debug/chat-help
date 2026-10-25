@@ -58,7 +58,7 @@ function th_bootstrap(): void {
     /* agent_configs: Telefon-Spalten nachrüsten (einmalig) */
     $cols = $p->query("SHOW COLUMNS FROM agent_configs")->fetchAll(PDO::FETCH_COLUMN);
     foreach(['phone_on'=>"TINYINT(1) DEFAULT 0",'phone_number'=>"VARCHAR(32) DEFAULT ''",'phone_greeting'=>"VARCHAR(400) DEFAULT ''",
-             'phone_voice'=>"VARCHAR(40) DEFAULT 'de-DE'",'phone_forward'=>"VARCHAR(40) DEFAULT ''",'phone_hours'=>"VARCHAR(160) DEFAULT ''"] as $c=>$def){
+             'phone_voice'=>"VARCHAR(40) DEFAULT 'de-DE'",'phone_forward'=>"VARCHAR(40) DEFAULT ''",'phone_hours'=>"VARCHAR(160) DEFAULT ''",'ai_eco'=>"TINYINT(1) DEFAULT 0"] as $c=>$def){
         if(!in_array($c,$cols,true)) $p->exec("ALTER TABLE agent_configs ADD COLUMN $c $def");
     }
     /* phone_calls: Hintergrund-Antwort (KI rechnet weiter, Twilio holt per Redirect ab) */
@@ -213,10 +213,12 @@ function th_agent_cfg_save(int $acc, string $plan, array $d, bool $canActivate=t
     $pf=preg_replace('/[^0-9+ ]/','',(string)($d['phone_forward']??$cur['phone_forward'])); $pf=mb_substr(trim($pf),0,40);
     $ph=mb_substr(trim((string)($d['phone_hours']??$cur['phone_hours'])),0,160);
     $wk=$cur['widget_key'] ?: ('wk_'.bin2hex(random_bytes(18)));
+    $eco=array_key_exists('ai_eco',$d) ? (int)(!empty($d['ai_eco']) && ch_ai_eco_plan($plan)) : (int)($cur['ai_eco'] ?? 0);
     $p->prepare("INSERT INTO agent_configs(account_id,plan,company,tone,lang,kb,widget_key,widget_domain,widget_on,phone_on,phone_greeting,phone_voice,phone_forward,phone_hours) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ON DUPLICATE KEY UPDATE company=VALUES(company),tone=VALUES(tone),lang=VALUES(lang),kb=VALUES(kb),widget_domain=VALUES(widget_domain),widget_on=VALUES(widget_on),
         phone_on=VALUES(phone_on),phone_greeting=VALUES(phone_greeting),phone_voice=VALUES(phone_voice),phone_forward=VALUES(phone_forward),phone_hours=VALUES(phone_hours),updated_at=NOW()")
       ->execute([$acc,$plan,$company,$tone,$lang,$kb,$wk,$dom,$on,$pon,$pg,$pv,$pf,$ph]);
+    try{ $p->prepare("UPDATE agent_configs SET ai_eco=? WHERE account_id=? AND plan=?")->execute([$eco,$acc,$plan]); }catch(Throwable $e){}
 }
 function th_widget(string $wk): ?array {
     if(!preg_match('/^wk_[a-f0-9]{36}$/',$wk)) return null;
@@ -425,6 +427,21 @@ function th_ai_sys_blocks(string $s): array {
     if(trim($var)!=='') $o[]=['type'=>'text','text'=>$var];
     return $o ?: [['type'=>'text','text'=>'-']];
 }
+/**
+ * Datenschutz bei der Modellwahl: Claude für alles mit Personendaten (Telefon, WhatsApp, Buchungen, Kanzlei, Hotel …).
+ * DeepSeek nur als Option für einfache Website-Chats ohne Personendaten (nur Info-Agenten, keine Werkzeuge, im Studio eingeschaltet)
+ * und nur über einen Anbieter mit Verarbeitung in der EU (DEEPSEEK_EU_URL/KEY/MODEL, OpenAI-Format). Der frühere Ersatz über
+ * api.deepseek.com (China) ist aus – nur mit CH_DEEPSEEK_CN_FALLBACK=true in db.php wieder an.
+ */
+const CH_AI_ECO_PLANS = ['agent-support','ec-support','log-support','agent-website','agent-content'];
+function ch_ai_eco_plan(string $plan): bool { $b=function_exists('ch_plan') ? (string)((ch_plan($plan) ?? [])['base'] ?? $plan) : $plan; return in_array($b,CH_AI_ECO_PLANS,true); }
+/** Dieser KI-Aufruf darf DeepSeek (EU) nutzen – setzt widget-api für berechtigte Website-Chats; sonst false. */
+function th_ai_eco(?bool $on=null): bool { if($on!==null) $GLOBALS['__th_ai_eco']=$on; return !empty($GLOBALS['__th_ai_eco']); }
+function th_ai_eu_cfg(): ?array {
+    $u=defined('DEEPSEEK_EU_URL') ? trim((string)DEEPSEEK_EU_URL) : ''; $k=defined('DEEPSEEK_EU_KEY') ? trim((string)DEEPSEEK_EU_KEY) : '';
+    if($u==='' || $k==='' || !preg_match('#^https://#',$u)) return null;
+    return ['url'=>$u,'key'=>$k,'model'=>(defined('DEEPSEEK_EU_MODEL') && DEEPSEEK_EU_MODEL) ? (string)DEEPSEEK_EU_MODEL : 'deepseek-ai/DeepSeek-V3'];
+}
 /** Son th_ai() çağrısının bilgisi: provider, model, errors[], tool_calls[], byok (eigener Schlüssel benutzt), account, channel, usage */
 function th_ai_info(): array { return $GLOBALS['__th_ai_info'] ?? []; }
 /**
@@ -534,7 +551,18 @@ function th_ai_run(string $system, array $msgs, ?array $tools, ?callable $exec, 
         if(function_exists('bl_usage_log') && $st['model']) bl_usage_log($acc,$channel,(string)$rt['provider'],(string)$st['model'],!empty($rt['byok']),$st['usage']);
         $GLOBALS['__th_ai_info']=$info; return $txt;
     };
-    /* 1) eigener Schlüssel */
+    /* 0) Einfacher Website-Chat ohne Personendaten, im Studio auf „sparsam“ gestellt: DeepSeek über EU-Anbieter, sonst weiter mit Claude */
+    if(th_ai_eco() && !$tools && ($eu=th_ai_eu_cfg())){
+        $plain=th_ai_msgs(array_values(array_filter($msgs,fn($m)=>is_string($m['content'] ?? null))));
+        if($plain && end($plain)['role']==='user'){
+            [$code,$r,$cerr]=th_ai_http($eu['url'],['Authorization: Bearer '.$eu['key'],'content-type: application/json'],['model'=>$eu['model'],'max_tokens'=>$maxTokens,'messages'=>array_merge([['role'=>'system','content'=>th_ai_sys_plain($system)]],$plain)],$timeout);
+            $txt=(string)($r['choices'][0]['message']['content'] ?? '');
+            if($code===200 && trim($txt)!==''){ $u=(function_exists('bl_usage_norm') && is_array($r['usage'] ?? null)) ? bl_usage_norm($r['usage']) : ['in'=>0,'out'=>0,'cache_read'=>0,'cache_write'=>0];
+                return $done($txt,['model'=>'deepseek-eu','usage'=>$u],['provider'=>'deepseek-eu','byok'=>false]); }
+            $info['errors'][]='deepseek-eu: '.($code ?: 'curl').' '.mb_substr((string)($r['error']['message'] ?? $cerr),0,120);
+        }
+    }
+    /* 1) eigener Schlüssel (Vertrag des Kunden mit seinem Anbieter; ein eigener DeepSeek-Schlüssel bleibt wie gebucht nutzbar – Einschränkung nur nach Rückfrage, Bestandskunden) */
     $routes=($acc>0 && function_exists('bl_byok_routes')) ? bl_byok_routes($acc) : [];
     foreach($routes as $rt){
         $st=[]; $txt=th_ai_route($rt,$system,$msgs,$tools,$exec,$maxTokens,$timeout,$maxRounds,$st);
@@ -561,8 +589,8 @@ function th_ai_run(string $system, array $msgs, ?array $tools, ?callable $exec, 
         $info['errors']=array_merge($info['errors'],$st['errors']);
         if($tools){ $GLOBALS['__th_ai_info']=$info; return null; }   // wie bisher: Werkzeug-Gespräche nicht ohne Werkzeuge fortsetzen
     }
-    /* 3) Plattform-DeepSeek (OpenAI-Format, nur Text) */
-    if(defined('DEEPSEEK_KEY') && DEEPSEEK_KEY){
+    /* 3) Plattform-DeepSeek über api.deepseek.com (China): nur mit ausdrücklicher Freigabe in db.php (CH_DEEPSEEK_CN_FALLBACK) – sonst kein Ersatz außerhalb der EU */
+    if(defined('DEEPSEEK_KEY') && DEEPSEEK_KEY && defined('CH_DEEPSEEK_CN_FALLBACK') && CH_DEEPSEEK_CN_FALLBACK===true){
         $plain=th_ai_msgs(array_values(array_filter($msgs,fn($m)=>is_string($m['content'] ?? null))));
         if($plain && end($plain)['role']==='user'){
             [$code,$r,$cerr]=th_ai_http('https://api.deepseek.com/chat/completions',['Authorization: Bearer '.DEEPSEEK_KEY,'content-type: application/json'],

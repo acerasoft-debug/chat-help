@@ -3175,4 +3175,11 @@
 "tier.s":"Small",
 "tier.m":"Standard",
 "tier.l":"Intensive",
-"tier.time":"~{h} h · ~{c} calls"}
+"tier.time":"~{h} h · ~{c} calls",
+"ag.eco":"Economy mode for simple website questions",
+"ag.ecoH":"DeepSeek via a provider processing in the EU – only in the website chat for general questions without personal data. Bookings, orders, phone and WhatsApp always use Claude.",
+"adm.stt":"Phone speech recognition (ChatHelp numbers)",
+"adm.sttG":"Twilio Gather (default, ~2 cents per utterance, fast)",
+"adm.sttD":"Recording + Deepgram EU (~0.1 cent, +1–3 s)",
+"adm.sttA":"Recording + Azure Speech EU (~0.2 cents, +1–3 s, incl. Azerbaijani)",
+"adm.noKey":"key missing"}

@@ -36,6 +36,7 @@ const BL_AI_PRICES = [
   'claude-sonnet-4-6' => ['label'=>'Claude Sonnet 4.6','in'=>3.00,'out'=>15.00,'cache_read'=>0.30,'cache_write'=>3.75],
   'claude-sonnet-4-5' => ['label'=>'Claude Sonnet 4.5','in'=>3.00,'out'=>15.00,'cache_read'=>0.30,'cache_write'=>3.75],
   'deepseek-flash'    => ['label'=>'DeepSeek Flash','offpeak'=>['in'=>0.15,'out'=>0.60,'cache_read'=>0.003],'peak'=>['in'=>0.30,'out'=>1.20,'cache_read'=>0.006]],
+  'deepseek-eu'       => ['label'=>'DeepSeek (EU-Anbieter)','in'=>0.50,'out'=>1.50,'cache_read'=>0.0,'cache_write'=>0.50],   // Schätzung, Preis des EU-Anbieters in db.php: CH_DEEPSEEK_EU_PRICE
   'deepseek-chat'     => ['label'=>'DeepSeek (Plattform-Ersatz)','offpeak'=>['in'=>0.15,'out'=>0.60,'cache_read'=>0.003],'peak'=>['in'=>0.30,'out'=>1.20,'cache_read'=>0.006]],
 ];
 /** DeepSeek-Rabattfenster (UTC, über Mitternacht). */

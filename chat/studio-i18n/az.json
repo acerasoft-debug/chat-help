@@ -3175,4 +3175,11 @@
 "tier.s":"Kiçik",
 "tier.m":"Standart",
 "tier.l":"İntensiv",
-"tier.time":"~{h} saat · ~{c} danışıq"}
+"tier.time":"~{h} saat · ~{c} danışıq",
+"ag.eco":"Sadə sayt sualları üçün qənaətli rejim",
+"ag.ecoH":"AB-də məlumat emal edən provayder vasitəsilə DeepSeek – yalnız şəxsi məlumat olmayan ümumi suallar üçün sayt çatında. Görüş, sifariş, telefon və WhatsApp həmişə Claude ilə işləyir.",
+"adm.stt":"Telefonda nitq tanıma (ChatHelp nömrələri)",
+"adm.sttG":"Twilio Gather (standart, ifadə başına ~2 sent, sürətli)",
+"adm.sttD":"Qeyd + Deepgram AB (~0,1 sent, +1–3 san)",
+"adm.sttA":"Qeyd + Azure Speech AB (~0,2 sent, +1–3 san, Azərbaycan dili daxil)",
+"adm.noKey":"açar yoxdur"}
