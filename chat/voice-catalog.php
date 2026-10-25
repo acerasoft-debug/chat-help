@@ -72,7 +72,7 @@ const VC_AZURE = [
 ];
 const VC_GOOGLE = ['f'=>[['Aoede',['warm','herzlich']],['Kore',['klar','professionell']],['Leda',['frisch','lebendig']],['Zephyr',['sanft','ruhig']]],
                    'm'=>[['Charon',['ruhig','warm']],['Fenrir',['freundlich','locker']],['Orus',['souveraen','klar']],['Puck',['tief','gelassen']]]];
-const VC_ELEVEN_LANGS = ['de','fr','tr','es','it','en','ru','nl','sv','fi','ja'];   // eleven_multilingual_v2: ohne Norwegisch und Aserbaidschanisch
+const VC_ELEVEN_LANGS = ['de','fr','tr','es','it','en','ru','nl','sv','fi','ja','no','az'];   // Norwegisch/Aserbaidschanisch über Eleven v3/v4 (ch_tts_resolve wählt das Modell)
 /* Vornamen je Sprache: erst die vier Persona-Namen der Voreinstellungen (DE: Lea, Sophie, Mia, Hanna / Max, Jonas, Thomas, Paul), dann weitere natürliche Namen. */
 const VC_NAMES = [
   'de'=>['f'=>['Lea','Sophie','Mia','Hanna','Emma','Clara','Nora','Marie','Lena','Julia'],'m'=>['Max','Jonas','Thomas','Paul','Felix','Leon','David','Julian','Lukas','Tim']],
@@ -246,6 +246,15 @@ function vc_list(string $lang, ?string $gender=null, bool $onlyAvailable=false):
     foreach(['f','m'] as $g){ if($gender!==null && $gender!==$g) continue; $o[$g]=[];
         foreach($C[$g] as $e){ $p=vc_public($e); if($onlyAvailable && !$p['available']) continue; $o[$g][]=$p; } }
     return $o;
+}
+/** Echte Stimme (Cloud, Server-Vertonung) – ElevenLabs zuerst, dann übrige Cloud-Anbieter; Piper/Varianten (im Browser) zuletzt. */
+function vc_real_rank(array $e): int { $s=$e['source'] ?? []; return ($s['type'] ?? '')!=='cloud' ? 2 : (($s['provider'] ?? '')==='elevenlabs' ? 0 : 1); }
+/** Verfügbare Stimmen einer Sprache + eines Geschlechts, echte zuerst; gibt es echte, nur diese (Piper bleibt Ersatz ohne Server-Stimme). */
+function vc_real_list(string $lang, string $g): array {
+    $L=array_values(array_filter(vc_list($lang,$g)[$g] ?? [],fn($v)=>$v['available']));
+    usort($L,fn($a,$b)=>vc_real_rank($a)<=>vc_real_rank($b));
+    $real=array_values(array_filter($L,fn($v)=>vc_real_rank($v)<2));
+    return $real ?: $L;
 }
 function vc_lang(string $l): string { $l=function_exists('ch_lang_norm') ? ch_lang_norm($l) : strtolower(substr($l,0,2)); return in_array($l,VC_LANGS,true) ? $l : 'de'; }
 /** Standardstimme: erste verfügbare Stimme der Voreinstellung (sonst erste verfügbare, sonst erste überhaupt). '' nur, wenn die Sprache leer wäre (nie). */

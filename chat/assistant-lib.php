@@ -468,7 +468,7 @@ function assistant_cast(string $lang): array {
         foreach($mine as $p) if(!in_array($p['id'],$order,true)) $order[]=$p['id'];   // eigene avatars.json mit anderen IDs: alle Porträts dieses Geschlechts
         $names=defined('VC_NAMES') ? (VC_NAMES[$l][$g] ?? []) : [];
         if(count($names)<ASSISTANT_CAST_N) foreach($mine as $p) if($p['label']!=='' && !in_array($p['label'],$names,true)) $names[]=$p['label'];
-        $voices=function_exists('vc_list') ? array_values(array_filter(vc_list($l,$g)[$g] ?? [],fn($v)=>$v['available'])) : [];
+        $voices=function_exists('vc_real_list') ? vc_real_list($l,$g) : [];   // echte Stimmen (ElevenLabs) zuerst – Piper nur ohne Server-Stimme
         $used=[];
         for($i=0; $i<ASSISTANT_CAST_N && $i<count($names); $i++){
             $name=$names[$i]; $v=null;
@@ -519,7 +519,14 @@ function assistant_profile(int $acc): array {
  */
 function assistant_voice_id(array $pr): string {
     if(!function_exists('vc_fit')) return (string)($pr['voice']['id'] ?? '');
-    return vc_fit(is_string($pr['voice']['id'] ?? null) ? $pr['voice']['id'] : null,(string)($pr['lang'] ?? 'de'),(string)$pr['gender'],(string)($pr['voice']['preset'] ?? ''));
+    $id=vc_fit(is_string($pr['voice']['id'] ?? null) ? $pr['voice']['id'] : null,(string)($pr['lang'] ?? 'de'),(string)$pr['gender'],(string)($pr['voice']['preset'] ?? ''));
+    /* Browserstimme (Piper) gespeichert, aber echte Stimmen vorhanden → Stimme der gewählten Assistenz (Besetzung), sonst die erste echte mit gleicher Voreinstellung */
+    $e=vc_entry($id); if(!$e || !function_exists('vc_real_list') || vc_real_rank($e)<2) return $id;
+    $real=array_values(array_filter(vc_real_list((string)($pr['lang'] ?? 'de'),(string)$pr['gender']),fn($v)=>vc_real_rank($v)<2)); if(!$real) return $id;
+    $cid=(string)($pr['personality']['cast'] ?? ''); $ce=$cid!=='' ? assistant_cast_entry($cid) : null;
+    if($ce && $ce['voice']!=='' && ($cv=vc_entry($ce['voice'])) && vc_real_rank($cv)<2 && $cv['gender']===$pr['gender']) return $cv['id'];
+    foreach($real as $v) if($v['preset']===$e['preset']) return $v['id'];
+    return $real[0]['id'];
 }
 /** Rollenbezeichnung für die Oberfläche. */
 function assistant_role_label(array $pr): string {

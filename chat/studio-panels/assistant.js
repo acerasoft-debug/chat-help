@@ -413,7 +413,14 @@
     CAT.loading[lng] = p; return p;
   }
   /** Verfügbare Stimmen (Premium nur mit Schlüssel – der Server blendet sie sonst aus) der Sprache und des Geschlechts. */
-  function catList(lng, gender) { var L = CAT.lang[normLang(lng)]; return L ? (L[gender === 'm' ? 'm' : 'f'] || []).filter(function (e) { return e.available !== false; }) : []; }
+  /** Verfügbare Stimmen; gibt es echte Server-Stimmen (ElevenLabs & Co.) und ist die Server-Stimme nutzbar, nur diese – Piper bleibt Ersatz. */
+  function catList(lng, gender) {
+    var L = CAT.lang[normLang(lng)]; if (!L) return [];
+    var a = (L[gender === 'm' ? 'm' : 'f'] || []).filter(function (e) { return e.available !== false; });
+    var rk = function (e) { return !e.source || e.source.type !== 'cloud' ? 2 : (e.source.provider === 'elevenlabs' ? 0 : 1); };
+    var real = a.filter(function (e) { return rk(e) < 2; }).sort(function (x, y) { return rk(x) - rk(y); });
+    return real.length && SPK.serverOk && serverCan(lng) ? real : a;
+  }
   function catEntry(id) { return (id && CAT.by[String(id)]) || null; }
   function catLoaded(lng) { return !!CAT.lang[normLang(lng)]; }
   /** Passende Katalogstimme: dieselbe id, wenn sie zu Sprache + Geschlecht passt, sonst erste Stimme derselben Voreinstellung, sonst die erste. '' ohne Katalog. */
