@@ -424,6 +424,27 @@ try {
     } else ok(false,'growth-lib.php nicht geladen');
 } catch(Throwable $e){ ok(false,'Marketing/Amazon: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
 
+/* ---------- Phase 7: Übersicht des Betriebs + Betreiber-Bereich ---------- */
+try {
+    sec('Phase 7: Übersicht (Kennzahlen, Vorgänge, Website-Chats) + Betreiber-Bereich');
+    $sid='st'.rnd(8);
+    foreach(['Habt ihr heute geöffnet?','Und liefert ihr auch nach Ehrenfeld?'] as $i=>$q){ $msgs=$i ? [['role'=>'user','content'=>'Habt ihr heute geöffnet?'],['role'=>'assistant','content'=>'Ja.'],['role'=>'user','content'=>$q]] : [['role'=>'user','content'=>$q]];
+        $r=http('POST',"$BASE/chat/widget-api.php",['key'=>$cfgKey ?? '','messages'=>$msgs,'lang'=>'de','sid'=>$sid]); }
+    $wc=th_db()->prepare("SELECT turns FROM widget_chats WHERE account_id=?"); try{ $wc->execute([$aid]); $wt=array_map('intval',$wc->fetchAll(PDO::FETCH_COLUMN)); }catch(Throwable $e){ $wt=[]; }
+    ok(in_array(2,$wt,true),'Website-Chat je Besuch gespeichert (2 Antworten, ein Besuch)',json_encode($wt));
+    $r=$api('GET','dash/summary?days=7'); $k=$r['json']['kpi'] ?? [];
+    ok($r['code']===200 && count($r['json']['series'] ?? [])===7 && ($k['answers']['v'] ?? 0)>=1 && isset($k['revenue_cents'],$k['saved_min'],$r['json']['heat']),'GET /v1/dash/summary: Kennzahlen, 7 Tageswerte, Stoßzeiten','Antworten='.($k['answers']['v'] ?? '?').' Vorgänge='.($k['actions']['v'] ?? '?').' Umsatz='.(($k['revenue_cents']['v'] ?? 0)/100).' €');
+    $r=$api('GET','dash/activity?days=7&limit=50'); $kinds=array_count_values(array_column($r['json']['items'] ?? [],'kind'));
+    ok($r['code']===200 && !empty($kinds['web']) && (!empty($kinds['order']) || !empty($kinds['appt'])) && !str_contains($r['body'],'"hay"'),'GET /v1/dash/activity: alle Vorgänge',json_encode($kinds));
+    $first=($r['json']['items'][0]['id'] ?? ''); $r=$api('GET','dash/item?id='.rawurlencode($first)); ok($r['code']===200 && isset($r['json']['fields']),'GET /v1/dash/item: Einzelheiten',$first);
+    $r=$api('GET','dash/export?days=7'); ok($r['code']===200 && str_contains((string)($r['json']['csv'] ?? ''),'time_utc;kind'),'GET /v1/dash/export: CSV',($r['json']['count'] ?? '?').' Zeilen');
+    $r=$api('GET','admin/overview'); ok($r['code']===403,'Betreiber-Bereich für Kunden gesperrt (403)');
+    $r=$api('GET','admin/settings'); ok($r['code']===403,'Betreiber-Einstellungen für Kunden gesperrt (403)');
+    foreach(['dash.js','dash.html','admin.js','admin.html'] as $f){ $r=http('GET',"$BASE/chat/studio-panels/$f?_=".rnd(3),null,[],'json',true); ok($r['code']===200 && strlen($r['body'])>1000,"Studio-Panel $f ausgeliefert","HTTP {$r['code']}"); }
+    $adm=function_exists('adm_overview') ? adm_overview(7) : null;
+    ok(is_array($adm) && isset($adm['revenue']['mrr_cents'],$adm['accounts']['total'],$adm['keys']['ai']),'Betreiber-Übersicht rechnet (MRR, Konten, Schlüssel)','Konten='.($adm['accounts']['total'] ?? '?').' zahlend='.($adm['accounts']['paying'] ?? '?').' KI-Schlüssel='.(!empty($adm['keys']['ai']) ? 'ja' : 'nein'));
+} catch(Throwable $e){ ok(false,'Übersicht/Betreiber: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
+
 /* ---------- Phase 6: beste Stimme je Sprache (Anbieter-Routing, Stimmen-Scout, Telefon-Audio) ---------- */
 try {
     sec('Phase 6: Stimme je Sprache, Telefon-Audio');
