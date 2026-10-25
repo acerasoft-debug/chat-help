@@ -13,7 +13,7 @@ require_once __DIR__.'/notify.php';
 /* 10 Eki 2026 (operatör: "tavan 50 kişiyi kaldır, tavan 500 kişi kendi sunucum ile"). GoDaddy cPanel barındırma
    aktarıcısının sınırı e-posta hesabı başına günde ~500'dür; tavan tam bu sınıra ayarlı — sipariş/fatura Brevo'dan
    gittiği için o paya dokunmaz, ama support@'tan elle yazılan mektuplar da aynı sınıra sayılır. */
-const VESTRA_MAILBOX_DEFAULT_CAP = 500;
+const VESTRA_MAILBOX_DEFAULT_CAP = 600;   // 25 Eki 2026 (operatör: "her gün 600 email"); önce 500
 
 function vestra_mailbox_file(string $name): string { return vestra_data_dir().'/'.$name; }
 
@@ -31,9 +31,10 @@ function vestra_mailbox_daily_cap(): int {
   return max(1, min(VESTRA_MAILBOX_MAX_CAP, $c ?: VESTRA_MAILBOX_DEFAULT_CAP));
 }
 
-/** GoDaddy cPanel barındırma aktarıcısı: e-posta hesabı başına GÜNDE 500 (ve hesap geneli saatte 500).
- *  Tavan bunun altında tutulur; kalan pay elle yazılan / yanıt mektuplarına kalsın. */
-const VESTRA_MAILBOX_MAX_CAP = 500;
+/** GoDaddy cPanel aktarıcısı: hesap geneli SAATTE 500 (uapi maximum_emails_per_hour, diag-mail-limits ölçümü). Partiler
+ *  mektuplar arası 8–11 sn bekler (saatte ≤ 450) ve aynı anda tek parti açıktır -- saat sınırı aşılmaz.
+ *  25 Eki 2026 (operatör: "her gün 600 email + 150 Brevo"): günlük üst sınır 500 → 600. */
+const VESTRA_MAILBOX_MAX_CAP = 600;
 
 function vestra_mailbox_set_cap(int $cap): int {
   $cap = max(1, min(VESTRA_MAILBOX_MAX_CAP, $cap));
@@ -559,7 +560,7 @@ function vestra_mailbox_deals_quota(?array $leads = null): int {
   $c = vestra_mailbox_cfg();
   if ((string)($c['deals_quota_day'] ?? '') === date('Y-m-d') && (int)($c['deals_quota'] ?? 0) > 0)
     return min((int)$c['deals_quota'], vestra_mailbox_cap_today($leads));
-  return min(VESTRA_MAILBOX_DEALS_DAILY, intdiv(vestra_mailbox_cap_today($leads) * VESTRA_MAILBOX_DEALS_DAILY, VESTRA_MAILBOX_MAX_CAP));
+  return min(VESTRA_MAILBOX_DEALS_DAILY, intdiv(vestra_mailbox_cap_today($leads) * 3, 5));   // tavanın %60'ı, en çok 300 (25 Eki: üst sınır 600 olunca oran sabit kaldı)
 }
 
 /** Saate göre pay: doldurma saatinden sonra günün tavanı (operatörün o güne özel payı daha büyükse o). */
