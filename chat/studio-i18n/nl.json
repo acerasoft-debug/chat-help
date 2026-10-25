@@ -3182,4 +3182,7 @@
 "adm.sttG":"Twilio Gather (standaard, ~2 cent per uiting, snel)",
 "adm.sttD":"Opname + Deepgram EU (~0,1 cent, +1–3 s)",
 "adm.sttA":"Opname + Azure Speech EU (~0,2 cent, +1–3 s, incl. Azerbeidzjaans)",
-"adm.noKey":"sleutel ontbreekt"}
+"adm.noKey":"sleutel ontbreekt",
+"ph.prem":"Premium-stem (ElevenLabs)",
+"ph.premH":"Bijzonder natuurlijke professionele stem aan de telefoon · +{n} tokens per antwoord. Zonder premium spreekt de standaardstem (inbegrepen in het pakket).",
+"adm.premium":"Premium-stem (toeslag)"}

@@ -3183,5 +3183,8 @@
 "adm.sttG":"Twilio Gather (Standard, ~2 Cent je Äußerung, schnell)",
 "adm.sttD":"Aufnahme + Deepgram EU (~0,1 Cent, +1–3 s)",
 "adm.sttA":"Aufnahme + Azure Speech EU (~0,2 Cent, +1–3 s, auch Aserbaidschanisch)",
-"adm.noKey":"Schlüssel fehlt"
+"adm.noKey":"Schlüssel fehlt",
+"ph.prem":"Premium-Stimme (ElevenLabs)",
+"ph.premH":"Besonders natürlicher Profi-Sprecher am Telefon · +{n} Tokens je Antwort. Ohne Premium spricht die Standardstimme (im Paket enthalten).",
+"adm.premium":"Premium-Stimme (Aufpreis)"
 }

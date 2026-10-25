@@ -228,7 +228,7 @@ switch(true){
       if(isset($in['assumptions'])) ch_setting_set('assumptions',array_filter(['answers_per_hour'=>$num($in['assumptions']['answers_per_hour'] ?? null,20,600),'minutes_per_call'=>$num($in['assumptions']['minutes_per_call'] ?? null,0.5,30,true)],fn($x)=>$x!==null));
       if(isset($in['phone_limits'])) ch_setting_set('phone_limits',array_filter(['max_call_min'=>$num($in['phone_limits']['max_call_min'] ?? null,2,60),'concurrent'=>$num($in['phone_limits']['concurrent'] ?? null,1,30),
         'concurrent_by_plan'=>array_filter(array_map(fn($x)=>$num($x,1,30),array_intersect_key((array)($in['phone_limits']['concurrent_by_plan'] ?? []),CH_PLANS)),fn($x)=>$x!==null)],fn($x)=>$x!==null && $x!==[]));
-      if(isset($in['phone_rates'])) ch_setting_set('phone_rates',array_filter(['central'=>$num($in['phone_rates']['central'] ?? null,1,100),'own'=>$num($in['phone_rates']['own'] ?? null,1,100),'legacy'=>$num($in['phone_rates']['legacy'] ?? null,1,100)],fn($x)=>$x!==null));
+      if(isset($in['phone_rates'])) ch_setting_set('phone_rates',array_filter(['central'=>$num($in['phone_rates']['central'] ?? null,1,100),'own'=>$num($in['phone_rates']['own'] ?? null,1,100),'legacy'=>$num($in['phone_rates']['legacy'] ?? null,1,100),'premium'=>$num($in['phone_rates']['premium'] ?? null,0,100)],fn($x)=>$x!==null));
       if(isset($in['phone_stt'])){ $x=(array)$in['phone_stt']; ch_setting_set('phone_stt',['mode'=>($x['mode'] ?? '')==='record' ? 'record' : 'gather','provider'=>in_array($x['provider'] ?? '',['deepgram','azure'],true) ? $x['provider'] : 'deepgram','scope'=>($x['scope'] ?? '')==='all' ? 'all' : 'central']); }
       if(isset($in['plan_overrides'])){ $ov=[]; foreach(array_intersect_key((array)$in['plan_overrides'],CH_PLANS) as $pid=>$o){ $c=$num($o['cents'] ?? null,100,10000000); $t=$num($o['tokens'] ?? null,0,100000000); if($c!==null || $t!==null) $ov[$pid]=array_filter(['cents'=>$c,'tokens'=>$t],fn($x)=>$x!==null); } ch_setting_set('plan_overrides',$ov); }
     }
@@ -348,7 +348,9 @@ switch(true){
     if($planId==='' || !ch_plan($planId)) th_json(400,['error'=>'plan_required']);
     $active=th_plan_active($aid,$planId);
     $c=th_agent_cfg($aid,$planId); unset($c['id'],$c['account_id']);
+    require_once __DIR__.'/speech-lib.php';
     th_json(200,['config'=>$c,'plan_active'=>$active,'channels'=>ch_plan_channels($planId),'eco_available'=>ch_ai_eco_plan($planId) && th_ai_eu_cfg()!==null,
+      'premium_voice'=>ch_plan_has_channel($planId,'phone') && ch_tts_creds('elevenlabs')!==null ? ['extra'=>ch_phone_rates()['premium']] : null,
       'widget_snippet'=>$c['widget_key']?'<script src="https://chat-help.com/chat/widget.js" data-key="'.$c['widget_key'].'" async></script>':null,
       'phone_webhook'=>$c['widget_key']?'https://chat-help.com/chat/phone-webhook.php?key='.$c['widget_key']:null]);
 

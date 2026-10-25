@@ -3182,4 +3182,7 @@
 "adm.sttG":"Twilio Gather（標準・1発話約2セント・高速）",
 "adm.sttD":"録音＋Deepgram EU（約0.1セント・+1〜3秒）",
 "adm.sttA":"録音＋Azure Speech EU（約0.2セント・+1〜3秒・アゼルバイジャン語対応）",
-"adm.noKey":"キー未設定"}
+"adm.noKey":"キー未設定",
+"ph.prem":"プレミアム音声（ElevenLabs）",
+"ph.premH":"電話で特に自然なプロのナレーター · 1回答あたり +{n} トークン。プレミアムなしでは標準音声（パッケージに含まれる）が話します。",
+"adm.premium":"プレミアム音声（追加料金）"}

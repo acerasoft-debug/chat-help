@@ -3182,4 +3182,7 @@
 "adm.sttG":"Twilio Gather (standart, ifadə başına ~2 sent, sürətli)",
 "adm.sttD":"Qeyd + Deepgram AB (~0,1 sent, +1–3 san)",
 "adm.sttA":"Qeyd + Azure Speech AB (~0,2 sent, +1–3 san, Azərbaycan dili daxil)",
-"adm.noKey":"açar yoxdur"}
+"adm.noKey":"açar yoxdur",
+"ph.prem":"Premium səs (ElevenLabs)",
+"ph.premH":"Telefonda xüsusilə təbii peşəkar diktor · cavab başına +{n} token. Premium olmadan standart səs danışır (paketə daxildir).",
+"adm.premium":"Premium səs (əlavə haqq)"}

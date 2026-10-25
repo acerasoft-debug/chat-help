@@ -3182,4 +3182,7 @@
 "adm.sttG":"Twilio Gather (varsayılan, ifade başına ~2 sent, hızlı)",
 "adm.sttD":"Kayıt + Deepgram AB (~0,1 sent, +1–3 sn)",
 "adm.sttA":"Kayıt + Azure Speech AB (~0,2 sent, +1–3 sn, Azerbaycanca dahil)",
-"adm.noKey":"anahtar eksik"}
+"adm.noKey":"anahtar eksik",
+"ph.prem":"Premium ses (ElevenLabs)",
+"ph.premH":"Telefonda özellikle doğal profesyonel seslendirmen · yanıt başına +{n} token. Premium olmadan standart ses konuşur (pakete dahil).",
+"adm.premium":"Premium ses (ek ücret)"}

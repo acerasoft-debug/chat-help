@@ -58,7 +58,7 @@ function th_bootstrap(): void {
     /* agent_configs: Telefon-Spalten nachrüsten (einmalig) */
     $cols = $p->query("SHOW COLUMNS FROM agent_configs")->fetchAll(PDO::FETCH_COLUMN);
     foreach(['phone_on'=>"TINYINT(1) DEFAULT 0",'phone_number'=>"VARCHAR(32) DEFAULT ''",'phone_greeting'=>"VARCHAR(400) DEFAULT ''",
-             'phone_voice'=>"VARCHAR(40) DEFAULT 'de-DE'",'phone_forward'=>"VARCHAR(40) DEFAULT ''",'phone_hours'=>"VARCHAR(160) DEFAULT ''",'ai_eco'=>"TINYINT(1) DEFAULT 0"] as $c=>$def){
+             'phone_voice'=>"VARCHAR(40) DEFAULT 'de-DE'",'phone_forward'=>"VARCHAR(40) DEFAULT ''",'phone_hours'=>"VARCHAR(160) DEFAULT ''",'ai_eco'=>"TINYINT(1) DEFAULT 0",'voice_premium'=>"TINYINT(1) DEFAULT 0"] as $c=>$def){
         if(!in_array($c,$cols,true)) $p->exec("ALTER TABLE agent_configs ADD COLUMN $c $def");
     }
     /* phone_calls: Hintergrund-Antwort (KI rechnet weiter, Twilio holt per Redirect ab) */
@@ -218,7 +218,8 @@ function th_agent_cfg_save(int $acc, string $plan, array $d, bool $canActivate=t
         ON DUPLICATE KEY UPDATE company=VALUES(company),tone=VALUES(tone),lang=VALUES(lang),kb=VALUES(kb),widget_domain=VALUES(widget_domain),widget_on=VALUES(widget_on),
         phone_on=VALUES(phone_on),phone_greeting=VALUES(phone_greeting),phone_voice=VALUES(phone_voice),phone_forward=VALUES(phone_forward),phone_hours=VALUES(phone_hours),updated_at=NOW()")
       ->execute([$acc,$plan,$company,$tone,$lang,$kb,$wk,$dom,$on,$pon,$pg,$pv,$pf,$ph]);
-    try{ $p->prepare("UPDATE agent_configs SET ai_eco=? WHERE account_id=? AND plan=?")->execute([$eco,$acc,$plan]); }catch(Throwable $e){}
+    $prem=array_key_exists('voice_premium',$d) ? (int)!empty($d['voice_premium']) : (int)($cur['voice_premium'] ?? 0);
+    try{ $p->prepare("UPDATE agent_configs SET ai_eco=?, voice_premium=? WHERE account_id=? AND plan=?")->execute([$eco,$prem,$acc,$plan]); }catch(Throwable $e){}
 }
 function th_widget(string $wk): ?array {
     if(!preg_match('/^wk_[a-f0-9]{36}$/',$wk)) return null;

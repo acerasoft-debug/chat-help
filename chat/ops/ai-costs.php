@@ -66,4 +66,6 @@ try{ $r=th_db()->query("SELECT provider, SUM(calls) n, SUM(seconds) s, SUM(ms_to
     if(!$r) echo "Aufnahme-Modus noch nicht genutzt (Standard: Twilio Gather)\n"; }catch(Throwable $e){ echo "Aufnahme-Modus noch nicht genutzt\n"; }
 $bd=(int)th_db()->query("SELECT COUNT(DISTINCT account_id) FROM acct_secrets WHERE k='deepseek_key'")->fetchColumn();
 echo "\nKonten mit eigenem DeepSeek-Schlüssel: $bd\n";
+try{ $pv=(int)th_db()->query("SELECT COUNT(*) FROM agent_configs WHERE voice_premium=1 AND phone_on=1")->fetchColumn(); }catch(Throwable $e){ $pv=0; }
+echo "Telefon-Agenten mit Premium-Stimme (ElevenLabs, +".ch_phone_rates()['premium']." Tokens je Antwort): $pv\n";
 echo "\nfertig\n";

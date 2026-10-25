@@ -782,16 +782,19 @@ function ch_tts_rank(string $lc): array {
  */
 function ch_tts_provider_for(string $lang, array $voice=[]): ?string {
     $ch=(string)($voice['channel'] ?? 'app');
-    if(defined('TTS_PROVIDER') && !in_array(strtolower(trim((string)TTS_PROVIDER)),['','auto'],true)){ $p=ch_tts_provider(); return $p && ch_tts_budget_ok($p,$ch) ? $p : null; }
+    /* Telefon-Agenten neuer Kunden: ElevenLabs nur mit Premium-Stimme (no_premium = ausgeschlossen; premium = bevorzugt, wenn muttersprachlich vorhanden) */
+    $noEl=!empty($voice['no_premium']); $ok=fn(string $p)=>!($noEl && $p==='elevenlabs') && ch_tts_creds($p) && ch_tts_budget_ok($p,$ch);
+    if(defined('TTS_PROVIDER') && !in_array(strtolower(trim((string)TTS_PROVIDER)),['','auto'],true)){ $p=ch_tts_provider(); return $p && ch_tts_budget_ok($p,$ch) && !($noEl && $p==='elevenlabs') ? $p : null; }
     $lc=ch_lang_norm($lang) ?: 'de';
     $per=strtolower(ch_tts_const('TTS_PROVIDER_'.strtoupper($lc)));
     if($per!=='' && $per!=='auto'){
         if(in_array($per,['off','none','browser'],true)) return null;
-        if(in_array($per,CH_TTS_PROVIDERS,true) && ch_tts_creds($per) && ch_tts_budget_ok($per,$ch)) return $per;
+        if(in_array($per,CH_TTS_PROVIDERS,true) && $ok($per)) return $per;
     }
     $cid=(string)($voice['catalog_id'] ?? '');
-    if($cid!=='' && ($e=ch_tts_catalog_entry($cid)) && $e['source']['type']==='cloud' && $e['lang']===$lc && ch_tts_creds($e['source']['provider']) && ch_tts_budget_ok($e['source']['provider'],$ch)) return $e['source']['provider'];
-    foreach(ch_tts_rank($lc) as $p) if(ch_tts_creds($p) && ch_tts_budget_ok($p,$ch)) return $p;
+    if($cid!=='' && ($e=ch_tts_catalog_entry($cid)) && $e['source']['type']==='cloud' && $e['lang']===$lc && $ok($e['source']['provider'])) return $e['source']['provider'];
+    if(!empty($voice['premium']) && $ok('elevenlabs') && ($lc==='en' || ch_tts_native($lc,'elevenlabs')!==[])) return 'elevenlabs';
+    foreach(ch_tts_rank($lc) as $p) if($ok($p)) return $p;
     return null;
 }
 

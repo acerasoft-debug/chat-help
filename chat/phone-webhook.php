@@ -73,12 +73,20 @@ function ph_play_voice(string $lang): ?array {
     if(!function_exists('ch_tts_provider_for')) return $memo[$lang]=null;
     $l2=ph_l2($lang); $set=defined('TWILIO_PLAY_LANGS') ? strtolower(trim((string)TWILIO_PLAY_LANGS)) : 'auto'; $auto=$set==='' || $set==='auto';
     $want=$set==='all' || ($auto && $l2==='az') || (!$auto && in_array($l2,array_map('trim',explode(',',$set)),true));
-    if(!$want || ch_lang_norm($l2)!==$l2) return $memo[$lang]=null;
+    $prem=!empty($GLOBALS['ph_premium']) && ch_tts_creds('elevenlabs')!==null;   // Premium-Stimme: ElevenLabs in jeder Sprache mit muttersprachlichem Sprecher
+    if((!$want && !$prem) || ch_lang_norm($l2)!==$l2) return $memo[$lang]=null;
     $g=(string)($GLOBALS['ph_gender'] ?? 'f'); $vid=(string)($GLOBALS['ph_voice_id'] ?? '');
     $v=ch_tts_voice_for(['gender'=>in_array($g,['m','gm'],true) ? 'm' : 'f'],$vid!=='' && ch_tts_catalog_entry($vid) ? $vid : null,$l2); $v['channel']='phone';
+    if($prem) $v['premium']=true; elseif(empty($GLOBALS['ph_voice_legacy'])) $v['no_premium']=true;   // neue Kunden ohne Premium: Standardstimme (Azure/Twilio), kein ElevenLabs
     $p=ch_tts_provider_for($v['lang'],$v);
+    if($prem && !$want && $p!=='elevenlabs') return $memo[$lang]=null;   // kein Premium-Sprecher für die Sprache → Twilio-Stimme wie ohne Premium
     $native=$p==='azure' || ($p==='google' && $l2!=='az') || ($p==='elevenlabs' && ($l2==='en' || ch_tts_native($l2,'elevenlabs')!==[]));
     return $memo[$lang]=(!$p || ($auto && !$native)) ? null : $v;
+}
+/** Aufpreis (Tokens) je Antwort, wenn die Premium-Stimme (ElevenLabs) diese Antwort spricht – sonst 0. */
+function ph_premium_extra(string $lang): int {
+    if(empty($GLOBALS['ph_premium']) || !($v=ph_play_voice($lang))) return 0;
+    return ch_tts_provider_for($v['lang'],$v)==='elevenlabs' ? ch_phone_rates()['premium'] : 0;
 }
 /** Text → <Play>-Folge (vertont + im Cache, signierte Adressen) oder null, wenn etwas fehlt (dann <Say>). Auch zum Vorwärmen im Hintergrund. */
 function ph_play(string $text, string $lang): ?string {
@@ -210,6 +218,8 @@ if(preg_match('/^([a-z]{2}-[A-Z]{2})(?:-(m|f|g|gm))?$/',(string)$cfg['phone_voic
 $GLOBALS['ph_def_locale']=$lang; ch_i18n_bootstrap(); $defL=ph_l2($lang);
 $GLOBALS['ph_vseed']=$aid.'|'.(string)$cfg['plan'];   // eigene Telefonstimme je Agent (voice_for)
 $GLOBALS['ph_voice_id']=(string)($cfg['voice_id'] ?? '');   // im Studio gewählte Katalogstimme (leer = Vorrat)
+$GLOBALS['ph_premium']=!empty($cfg['voice_premium']);   // Premium-Stimme (ElevenLabs, Aufpreis je Antwort) im Studio eingeschaltet
+$GLOBALS['ph_voice_legacy']=ch_phone_legacy($aid,(string)$cfg['plan']);   // Bestandskunden: Stimmen wie bisher
 $allowed=ch_cfg_langs(['lang'=>ch_lang_norm($defL) ?: ch_cfg_default($cfg),'langs'=>(string)($cfg['langs'] ?? '')]); if(!in_array($defL,$allowed,true)) array_unshift($allowed,$defL);
 $planId=ch_plan_active_any($aid,(string)$cfg['plan']) ? (string)$cfg['plan'] : null;
 $pl=$planId ? ch_plan($planId) : null;
@@ -377,7 +387,7 @@ $work=function() use($sys,$msgs,$tk,$tr,$turns,$cost,$aid,$pl,$sid,$cfg,$lang,$p
     $forward=str_contains($reply,'[WEITERLEITEN]'); $end=str_contains($reply,'[ENDE]');
     $spoken=trim(preg_replace('/\s+/',' ',preg_replace('/\[intern[^\]]*\]/u','',str_replace(['[WEITERLEITEN]','[ENDE]','*','#','`'],'',$reply))));
     if($spoken==='') $spoken=$forward ? ph_t('connect',$lang) : ($done ? ph_t('bye',$lang) : ph_t('glitch',$lang));
-    $cost+=2*count($calls); $turns++;
+    $cost+=2*count($calls)+ph_premium_extra($lang); $turns++;
     $entry=['role'=>'assistant','content'=>$spoken]; if($done) $entry['done']=$done;
     $out=['spoken'=>$spoken,'forward'=>$forward,'end'=>$end,'turns'=>$turns];
     $outcome=$forward ? ($cfg['phone_forward']?'forwarded':'callback') : ($end ? 'done' : ($turns>=25 ? 'maxturns' : null));

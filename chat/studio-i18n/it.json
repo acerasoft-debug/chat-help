@@ -3182,4 +3182,7 @@
 "adm.sttG":"Twilio Gather (predefinito, ~2 centesimi per frase, veloce)",
 "adm.sttD":"Registrazione + Deepgram UE (~0,1 centesimi, +1–3 s)",
 "adm.sttA":"Registrazione + Azure Speech UE (~0,2 centesimi, +1–3 s, incl. azero)",
-"adm.noKey":"chiave mancante"}
+"adm.noKey":"chiave mancante",
+"ph.prem":"Voce premium (ElevenLabs)",
+"ph.premH":"Speaker professionale particolarmente naturale al telefono · +{n} token per risposta. Senza premium parla la voce standard (inclusa nel pacchetto).",
+"adm.premium":"Voce premium (supplemento)"}

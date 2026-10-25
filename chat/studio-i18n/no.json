@@ -3182,4 +3182,7 @@
 "adm.sttG":"Twilio Gather (standard, ~2 cent per ytring, rask)",
 "adm.sttD":"Opptak + Deepgram EU (~0,1 cent, +1–3 s)",
 "adm.sttA":"Opptak + Azure Speech EU (~0,2 cent, +1–3 s, inkl. aserbajdsjansk)",
-"adm.noKey":"nøkkel mangler"}
+"adm.noKey":"nøkkel mangler",
+"ph.prem":"Premiumstemme (ElevenLabs)",
+"ph.premH":"Spesielt naturlig profesjonell stemme på telefonen · +{n} tokens per svar. Uten premium snakker standardstemmen (inkludert i pakken).",
+"adm.premium":"Premiumstemme (tillegg)"}

@@ -233,11 +233,17 @@ function ch_phone_rate_since(): string {
   try{ $s=(string)th_db()->query("SELECT NOW()")->fetchColumn(); ch_setting_set('phone_rate_since',$s); }catch(Throwable $e){ $s=date('Y-m-d H:i:s'); }
   return $s;
 }
-function ch_phone_rates(): array { $r=function_exists('ch_setting') ? (array)ch_setting('phone_rates',[]) : []; return ['central'=>max(1,(int)($r['central'] ?? 12)),'own'=>max(1,(int)($r['own'] ?? 9)),'legacy'=>max(1,(int)($r['legacy'] ?? CH_PRICING['phone_turn']))]; }
+/** premium = Aufpreis je Antwort für die Premium-Stimme (ElevenLabs) am Telefon. */
+function ch_phone_rates(): array { $r=function_exists('ch_setting') ? (array)ch_setting('phone_rates',[]) : []; return ['central'=>max(1,(int)($r['central'] ?? 12)),'own'=>max(1,(int)($r['own'] ?? 9)),'legacy'=>max(1,(int)($r['legacy'] ?? CH_PRICING['phone_turn'])),'premium'=>max(0,(int)($r['premium'] ?? 6))]; }
+/** Bestandskunde für diesen Agenten (Plan vor Einführung der neuen Telefontarife gebucht) → alter Tarif und bisherige Stimmen. */
+function ch_phone_legacy(int $acc, string $plan): bool {
+  if($acc<=0 || !function_exists('th_db')) return false;
+  try{ $ids=ch_plan_variants($plan); $s=th_db()->prepare("SELECT MIN(created_at) FROM token_plans WHERE account_id=? AND plan IN (".implode(',',array_fill(0,count($ids),'?')).") AND status IN ('active','trialing','past_due','license')");
+    $s->execute(array_merge([$acc],$ids)); $first=(string)($s->fetchColumn() ?: ''); return $first!=='' && $first<ch_phone_rate_since(); }catch(Throwable $e){ return false; }
+}
 function ch_phone_turn_tokens(int $acc, string $plan): int {
   $r=ch_phone_rates(); if($acc<=0 || !function_exists('th_secret')) return $r['central'];
-  try{ $ids=ch_plan_variants($plan); $s=th_db()->prepare("SELECT MIN(created_at) FROM token_plans WHERE account_id=? AND plan IN (".implode(',',array_fill(0,count($ids),'?')).") AND status IN ('active','trialing','past_due','license')");
-    $s->execute(array_merge([$acc],$ids)); $first=(string)($s->fetchColumn() ?: ''); if($first!=='' && $first<ch_phone_rate_since()) return $r['legacy']; }catch(Throwable $e){}
+  if(ch_phone_legacy($acc,$plan)) return $r['legacy'];
   return th_secret($acc,'twilio_token')==='' ? $r['central'] : $r['own'];   // ohne eigenes Twilio läuft der Anruf über das Plattform-Konto (ChatHelp-Nummer)
 }
 /* ---- TARİFE (token / işlem) — siteyle aynı Richtwerte ---- */
