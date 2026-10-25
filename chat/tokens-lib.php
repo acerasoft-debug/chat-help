@@ -533,7 +533,9 @@ function th_ai_route(array $route, string $system, array $msgs, ?array $tools, ?
             $st['tool_calls'][]=['name'=>$tu['name'],'input'=>$in,'ok'=>empty($out['error']),'ref'=>is_scalar($ref) ? mb_substr((string)$ref,0,40) : null];
             $results[]=['type'=>'tool_result','tool_use_id'=>$tu['id'],'content'=>json_encode($out,JSON_UNESCAPED_UNICODE)];
         }
-        $msgs[]=['role'=>'assistant','content'=>$resp['content']]; $msgs[]=['role'=>'user','content'=>$results];
+        /* tool_use.input muss ein JSON-Objekt bleiben: {} wird beim Dekodieren zu [] und käme sonst als Liste zurück (API: 400 „Input should be an object“) */
+        $blocks=array_map(fn($b)=>is_array($b) && ($b['type'] ?? '')==='tool_use' ? ['input'=>(object)(is_array($b['input'] ?? null) ? $b['input'] : [])]+$b : $b,(array)$resp['content']);
+        $msgs[]=['role'=>'assistant','content'=>$blocks]; $msgs[]=['role'=>'user','content'=>$results];
     }
     return trim($text)!=='' ? $text : null;
 }
