@@ -1910,15 +1910,14 @@ if ($shoePicks):
 </div>
 
 <footer class="sfoot">
-  <?php /* KURUMSAL ALTBILGI (13 Eki 2026, "ciddi site"): sirket kunyesi imprint
-           sayfasiyla AYNI metin (inc/legal.php $co/$addr) -- iki ayri adres yazimi
-           bir gun ayrisirdi. Yasal belgelerin hepsi /legal?doc=… ile; kategori ve
+  <?php /* KURUMSAL ALTBILGI (13 Eki 2026, "ciddi site"). 25 Eki 2026 (operatör: "adres + EIN
+           impressumda olsun, ana sayfada olmasina gerek yok"): sirket kunyesi yalniz
+           /legal?doc=imprint'te. Yasal belgelerin hepsi /legal?doc=… ile; kategori ve
            marka baglantilari zaten sayfanin govdesinde. */ ?>
   <div class="wrap sfoot-grid">
     <div class="sfoot-brand">
       <div class="sfoot-logo"><?= htmlspecialchars($BRAND) ?></div>
       <p><?= $t['tagline'] ?>.</p>
-      <address>Acerasoft LLC<br>8 The Green, Suite B<br>Dover, Delaware 19901, USA<br>EIN 61-2070643</address>
       <a class="acc" href="mailto:<?= htmlspecialchars($CONTACT) ?>"><?= htmlspecialchars($CONTACT) ?></a>
     </div>
     <div class="sfoot-col" role="navigation" aria-label="<?= htmlspecialchars(t('Marketplace')) ?>">
