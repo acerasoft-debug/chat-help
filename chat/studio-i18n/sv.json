@@ -3186,4 +3186,5 @@
 "ph.prem":"Premiumröst (ElevenLabs)",
 "ph.premH":"Särskilt naturlig professionell röst i telefon · +{n} tokens per svar. Utan premium talar standardrösten (ingår i paketet).",
 "adm.premium":"Premiumröst (tillägg)",
-"ai.deepNote":"Endast för enkla webbchattar utan personuppgifter. Telefon, WhatsApp, bokningar, beställningar, advokatbyrå och hotell körs alltid med Claude."}
+"ai.deepNote":"Endast för enkla webbchattar utan personuppgifter. Telefon, WhatsApp, bokningar, beställningar, advokatbyrå och hotell körs alltid med Claude.",
+"adm.term2":"2 år: {p} € (proportionellt)"}

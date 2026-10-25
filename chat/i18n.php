@@ -461,8 +461,9 @@ function ch_price_nice(float $x): float {
     return ceil($x);
 }
 /** EUR-Cent → Landespreis in kleinster Einheit (Cent/Öre/Kuruş bzw. Yen bei dec 0). EUR und unbekannte Währungen: unverändert. */
-/** Feste Landespreise statt Umrechnung (EUR-Cent => [Währung => kleinste Einheit]): Amazon-FBA-Lizenz 1 Jahr = 1.000 $, 2 Jahre = 1.800 $. */
-const CH_LOCAL_PRICE_FIX = [86000=>['USD'=>100000],155000=>['USD'=>180000]];
+/** Feste Landespreise statt Umrechnung (EUR-Cent => [Währung => kleinste Einheit]). Die alten FBA-Festpreise (860 € = 1.000 $, 1.550 € = 1.800 $)
+ *  entfallen mit dem neuen Lizenzpreis (1.280 € / 2.290 €) – Dollar wird wie bei allen Paketen umgerechnet und gerundet. */
+const CH_LOCAL_PRICE_FIX = [];
 function ch_price_local(int $eurCents, string $cur, ?array $fx=null): int {
     $c=ch_cur_norm($cur); if($c==='' || $c==='EUR' || $eurCents<=0) return $eurCents;
     if(isset(CH_LOCAL_PRICE_FIX[$eurCents][$c])) return (int)CH_LOCAL_PRICE_FIX[$eurCents][$c];

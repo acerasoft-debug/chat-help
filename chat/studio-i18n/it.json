@@ -3186,4 +3186,5 @@
 "ph.prem":"Voce premium (ElevenLabs)",
 "ph.premH":"Speaker professionale particolarmente naturale al telefono · +{n} token per risposta. Senza premium parla la voce standard (inclusa nel pacchetto).",
 "adm.premium":"Voce premium (supplemento)",
-"ai.deepNote":"Solo per chat semplici del sito senza dati personali. Telefono, WhatsApp, appuntamenti, ordini, studio legale e hotel usano sempre Claude."}
+"ai.deepNote":"Solo per chat semplici del sito senza dati personali. Telefono, WhatsApp, appuntamenti, ordini, studio legale e hotel usano sempre Claude.",
+"adm.term2":"2 anni: {p} € (in proporzione)"}

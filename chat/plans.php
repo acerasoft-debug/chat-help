@@ -52,7 +52,7 @@ const CH_PLANS = [
   'buy-bestellung'  => ['Bestell-Agent (Einmalkauf)', 129000, 180000, 'gastro', 'buy', 'Bestell-Agent: Einrichtung von Speisekarte, Liefergebiet, WhatsApp-Anbindung und Fahrer-Links + Lizenz + 180.000 Tokens Startguthaben + 3 Monate Betrieb inklusive – danach Betrieb 29 €/Monat oder eigener KI-Schlüssel 14 €/Monat'],
   'buy-support'     => ['Support-Agent (Einmalkauf)', 99000, 150000, 'ecommerce', 'buy', 'Support-Agent: Widget-Einrichtung auf deiner Website + Lizenz + 150.000 Tokens Startguthaben + 3 Monate Betrieb inklusive – danach Betrieb 19 €/Monat oder eigener KI-Schlüssel 9 €/Monat'],
   'buy-marketing'   => ['Marketing-Agent (Einmalkauf)', 119000, 160000, 'marketing', 'buy', 'Marketing-Agent: Einrichtung per Video-Call (Marke, Zielgruppen, Kanäle, Kennzahlen, Tonalität) + Lizenz + 160.000 Tokens Startguthaben + 3 Monate Betrieb inklusive – danach Betrieb 29 €/Monat oder eigener KI-Schlüssel 14 €/Monat'],
-  'buy-amazon-fba'  => ['Amazon-FBA-Agent (Lizenz)', 86000, 500000, 'amazon', 'buy', 'Amazon-FBA-Agent: Keepa-Produktfinder für Amazon.de, .fr, .it, .es, .co.uk und .com (Preis, Gebühren, Gewinn, ROI, Konkurrenz, Beobachtungsliste, Tagesreport), exakte Kalkulation, Listing-Check, PPC-Auswertung und Nachschubplanung + Lizenz + 500.000 Tokens + 1 Jahr Betrieb inklusive (2 Jahre wählbar) – danach Betrieb 39 €/Monat oder eigener KI-Schlüssel 19 €/Monat'],
+  'buy-amazon-fba'  => ['Amazon-FBA-Agent (Lizenz)', 128000, 500000, 'amazon', 'buy', 'Amazon-FBA-Agent: Keepa-Produktfinder für Amazon.de, .fr, .it, .es, .co.uk und .com (Preis, Gebühren, Gewinn, ROI, Konkurrenz, Beobachtungsliste, Tagesreport), exakte Kalkulation, Listing-Check, PPC-Auswertung und Nachschubplanung + Lizenz + 500.000 Tokens + 1 Jahr Betrieb inklusive (2 Jahre wählbar) – danach Betrieb 39 €/Monat oder eigener KI-Schlüssel 19 €/Monat'],
   'buy-content'     => ['Content-Planer (Einmalkauf)', 69000, 100000, 'marketing', 'buy', 'Content-Planer: Lizenz + 100.000 Tokens Startguthaben + 3 Monate Betrieb inklusive – danach Betrieb 19 €/Monat oder eigener KI-Schlüssel 9 €/Monat'],
   // Bank & Behörden (Kunden-Agenten mit Telefon + WhatsApp + Web-Chat)
   'agent-bank'      => ['Bank- & Sparkassen-Agent', 13900, 35000, 'bank', 'agent', 'Telefon-, WhatsApp- und Chat-Service für Filialen: Karten-Sperre sofort lotsen (116 116), Filial- und Beratungstermine, Öffnungszeiten, Kontofragen allgemein, Phishing-Warnungen – fragt nie nach PIN, TAN oder Kontodaten'],
@@ -137,7 +137,7 @@ function ch_plan(string $id): ?array {
   $o=['id'=>$id,'name'=>$name,'cents'=>$cents,'tokens'=>$tokens,'sector'=>$sector,'kind'=>$kind,'desc'=>$desc,'rules'=>CH_AGENT_RULES[$id] ?? (CH_AGENT_RULES[$base] ?? ''),'base'=>$base,
     'channels'=>ch_plan_channels($id),'category'=>ch_plan_category($id) ?? ($base!==$id ? ch_plan_category($base) : null)];
   if(($t=ch_plan_tier($id))!==null){ $o['tier_key']=$t['key']; $o['tier_of']=$t['base']; }
-  if($kind==='buy'){ $o['tier']=CH_BUY_TIER[$id] ?? null; $o['included_days']=ch_buy_included_days($id); if(isset(CH_BUY_TERMS[$id])) $o['terms']=CH_BUY_TERMS[$id]; }
+  if($kind==='buy'){ $o['tier']=CH_BUY_TIER[$id] ?? null; $o['included_days']=ch_buy_included_days($id); if(isset(CH_BUY_TERMS[$id])) $o['terms']=ch_buy_terms($id); }
   return $o;
 }
 /* Einmalkauf-Pakete → zugrunde liegender Agent (Rolle/Vorlagen) */
@@ -157,7 +157,14 @@ function ch_plan_tier(string $id): ?array {
 /** So viele Tage Betrieb sind im Einmalkauf enthalten (danach Betrieb- oder BYOK-Abo). Bestandskäufe ohne Enddatum bleiben unbefristet. */
 const CH_BUY_INCLUDED_DAYS = 90;
 /** Lizenzen mit Laufzeitwahl: term => Preis (EUR-Cent) und enthaltene Betriebstage. Term 1 = Katalogpreis. USD-Festpreise: CH_LOCAL_PRICE_FIX (i18n.php). */
-const CH_BUY_TERMS = ['buy-amazon-fba'=>[1=>['cents'=>86000,'days'=>365,'label'=>'1 Jahr'],2=>['cents'=>155000,'days'=>730,'label'=>'2 Jahre']]];
+const CH_BUY_TERMS = ['buy-amazon-fba'=>[1=>['cents'=>128000,'days'=>365,'label'=>'1 Jahr'],2=>['cents'=>229000,'days'=>730,'label'=>'2 Jahre']]];   // neu ab 25.10.2026 (vorher 860 / 1.550 €); bestehende Lizenzen unverändert
+/** Laufzeiten mit Betreiber-Preis (Studio → Admin, plan_overrides): Term 1 = aktueller Planpreis, weitere Terme im Verhältnis des Katalogs. */
+function ch_buy_terms(string $id): ?array {
+  $t=CH_BUY_TERMS[$id] ?? null; if(!$t) return null;
+  $c=function_exists('ch_setting') ? (int)((ch_setting('plan_overrides',[])[$id] ?? [])['cents'] ?? 0) : 0;
+  if($c>0 && $c!==(int)$t[1]['cents']){ $f=$c/(int)$t[1]['cents']; foreach($t as $k=>$x) $t[$k]['cents']=$k===1 ? $c : (int)(round($x['cents']*$f/1000)*1000); }
+  return $t;
+}
 /** Enthaltene Betriebstage eines Einmalkaufs (Laufzeitwahl, sonst CH_BUY_INCLUDED_DAYS). */
 function ch_buy_included_days(string $id, int $term=1): int {
   $t=CH_BUY_TERMS[$id] ?? null; if(!$t) return CH_BUY_INCLUDED_DAYS;
@@ -165,7 +172,7 @@ function ch_buy_included_days(string $id, int $term=1): int {
 }
 /** Laufzeit-Angebot: ['term','cents','days','label'] oder null, wenn der Plan keine Laufzeitwahl hat bzw. der Term unbekannt ist. */
 function ch_buy_term(string $id, int $term): ?array {
-  $t=CH_BUY_TERMS[$id][$term] ?? null; return $t ? ['term'=>$term]+$t : null;
+  $t=ch_buy_terms($id)[$term] ?? null; return $t ? ['term'=>$term]+$t : null;
 }
 /** Stufen der Folge-Abos (Cent/Monat netto, Tokens/Monat). S = Website-/Content-Bots, M = Termine/Bestellung/Taxi, L = Telefon/Hotel/Kanzlei/Steuer/Inkasso. */
 const CH_RUN_TIERS = [
