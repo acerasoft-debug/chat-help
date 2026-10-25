@@ -3297,4 +3297,5 @@
 "onbj.a.train":"Träna din agent",
 "st.max_dauer":"Max samtalslängd",
 "st.max_dauer_h":"Strax före slutet tar agenten artigt farväl – samtalen hålls korta och kostnaderna förutsägbara.",
-"ph.maxStd":"Standard ({n} min)"}
+"ph.maxStd":"Standard ({n} min)",
+"asj.noAz":"Röstinmatning finns inte på azerbajdzjanska – skriv i stället."}

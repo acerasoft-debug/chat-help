@@ -3297,4 +3297,5 @@
 "onbj.a.train":"Kouluta agenttiasi",
 "st.max_dauer":"Puhelun enimmäiskesto",
 "st.max_dauer_h":"Juuri ennen loppua agentti hyvästelee kohteliaasti – puhelut pysyvät lyhyinä ja kulut ennakoitavina.",
-"ph.maxStd":"Oletus ({n} min)"}
+"ph.maxStd":"Oletus ({n} min)",
+"asj.noAz":"Puhesyöte ei ole käytettävissä azerin kielellä – kirjoita, kiitos."}

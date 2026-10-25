@@ -3297,4 +3297,5 @@
 "onbj.a.train":"Ajanını eğit",
 "st.max_dauer":"Arama başına azami süre",
 "st.max_dauer_h":"Süre dolmadan kısa süre önce ajan nazikçe vedalaşır – görüşmeler kısa, maliyetler öngörülebilir kalır.",
-"ph.maxStd":"Standart ({n} dk)"}
+"ph.maxStd":"Standart ({n} dk)",
+"asj.noAz":"Azerbaycan dilinde sesli giriş yok – lütfen yazın."}

@@ -3297,4 +3297,5 @@
 "onbj.a.train":"Entraîner ton agent",
 "st.max_dauer":"Durée maximale par appel",
 "st.max_dauer_h":"Peu avant la fin, l'agent prend congé poliment – les appels restent courts et les coûts prévisibles.",
-"ph.maxStd":"Standard ({n} min)"}
+"ph.maxStd":"Standard ({n} min)",
+"asj.noAz":"La saisie vocale n'est pas disponible en azerbaïdjanais – veuillez taper."}

@@ -3298,5 +3298,6 @@
 "onbj.a.train":"Agent trainieren",
 "st.max_dauer":"Höchstdauer je Anruf",
 "st.max_dauer_h":"Kurz vor Ende verabschiedet sich der Agent höflich – so bleiben Gespräche kurz und die Kosten planbar.",
-"ph.maxStd":"Standard ({n} Min)"
+"ph.maxStd":"Standard ({n} Min)",
+"asj.noAz":"Spracheingabe auf Aserbaidschanisch ist nicht verfügbar – bitte tippen."
 }

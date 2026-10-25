@@ -3297,4 +3297,5 @@
 "onbj.a.train":"Train je agent",
 "st.max_dauer":"Maximale gespreksduur",
 "st.max_dauer_h":"Kort voor het einde neemt de agent beleefd afscheid – zo blijven gesprekken kort en kosten voorspelbaar.",
-"ph.maxStd":"Standaard ({n} min)"}
+"ph.maxStd":"Standaard ({n} min)",
+"asj.noAz":"Spraakinvoer is niet beschikbaar in het Azerbeidzjaans – typ alstublieft."}
