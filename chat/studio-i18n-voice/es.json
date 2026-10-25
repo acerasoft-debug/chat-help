@@ -57,7 +57,7 @@
     "vc.p.save": "Guardar voz",
     "vc.p.saved": "Voz guardada: {n}. Por teléfono el agente habla ahora con esta voz.",
     "vc.p.reset": "Volver al fondo",
-    "vc.p.phoneNote": "Teléfono (Twilio): las voces premium y de navegador se sustituyen al teléfono por la voz natural Google HD más cercana del mismo género.",
+    "vc.p.phoneNote": "Al teléfono habla la voz HD más natural del mismo género; con la voz premium (Studio → Teléfono), el locutor profesional elegido.",
     "vc.p.langNote": "El idioma sigue el idioma telefónico del agente (Teléfono → Voz / Idioma).",
     "vc.p.noPlans": "Aún no hay ningún agente configurado – elija primero un agente en «Agentes».",
     "vc.p.sampleFail": "Muestra no disponible ahora mismo.",

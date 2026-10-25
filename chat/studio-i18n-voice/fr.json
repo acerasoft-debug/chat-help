@@ -57,7 +57,7 @@
     "vc.p.save": "Enregistrer la voix",
     "vc.p.saved": "Voix enregistrée : {n}. Au téléphone, l’agent parle désormais avec cette voix.",
     "vc.p.reset": "Revenir au fonds",
-    "vc.p.phoneNote": "Téléphone (Twilio) : les voix premium et navigateur sont remplacées au téléphone par la voix Google HD naturelle la plus proche du même genre.",
+    "vc.p.phoneNote": "Au téléphone, c'est la voix HD la plus naturelle du même genre qui parle – avec la voix premium (Studio → Téléphone), la voix professionnelle choisie.",
     "vc.p.langNote": "La langue suit la langue téléphonique de l’agent (Téléphone → Voix / Langue).",
     "vc.p.noPlans": "Aucun agent configuré – choisissez d’abord un agent sous « Agents ».",
     "vc.p.sampleFail": "Extrait indisponible pour le moment.",

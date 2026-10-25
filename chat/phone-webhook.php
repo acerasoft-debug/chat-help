@@ -212,6 +212,8 @@ $aid=(int)$cfg['account_id'];
 /* Echtheit: X-Twilio-Signature mit dem Auth-Token des eigenen Twilio-Kontos (Studio → Verbindungen) oder dem Plattform-Konto */
 $sigTokens=array_values(array_filter([th_secret($aid,'twilio_token'),(defined('TWILIO_AUTH_TOKEN') ? (string)TWILIO_AUTH_TOKEN : '')]));
 if($sigTokens && !th_twilio_sig_valid('https://chat-help.com'.(string)($_SERVER['REQUEST_URI'] ?? ''),$_POST,$sigTokens)){ error_log('CH phone-webhook: bad signature acc '.$aid); http_response_code(403); twiml('<Hangup/>'); }
+/* Rufumleitung vom eigenen Anschluss des Betriebs: nie auf genau diese Nummer zurückstellen (sonst Schleife) – dann Rückruf-Zusage statt Weiterleitung */
+$fwdFrom=th_e164((string)($_POST['ForwardedFrom'] ?? '')); if($fwdFrom!=='' && trim((string)$cfg['phone_forward'])!=='' && th_same_phone($fwdFrom,(string)$cfg['phone_forward'])) $cfg['phone_forward']='';
 $lang='de-DE'; $GLOBALS['ph_gender']='f';
 if(preg_match('/^([a-z]{2}-[A-Z]{2})(?:-(m|f|g|gm))?$/',(string)$cfg['phone_voice'],$mv)){ $lang=$mv[1]; $GLOBALS['ph_gender']=$mv[2] ?? 'f'; }
 /* Sprachen: Standard = Sprache der eingestellten Stimme (phone_voice), erlaubt = agent_configs.langs (leer = alle 13, i18n.php) */

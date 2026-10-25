@@ -61,6 +61,13 @@ function num_area(string $area, string $cc): string {
     if($p!=='' && str_starts_with($d,'00'.$p)) $d=substr($d,2+strlen($p)); elseif($p!=='' && str_contains($s,'+') && str_starts_with($d,$p)) $d=substr($d,strlen($p));
     return substr(ltrim($d,'0'),0,6);
 }
+/** Suchvorwahlen: eine kurze Vorwahl wie eingegeben; eine ganze Rufnummer (Geschäftsnummer, Ortsnetz unbekannt lang) → 4, 3, dann 2 Stellen. */
+function num_area_list(string $area, string $cc): array {
+    $p=NUM_CC[$cc] ?? ''; $d=(string)preg_replace('/\D/','',$area);
+    if($p!=='' && str_starts_with($d,'00'.$p)) $d=substr($d,2+strlen($p)); elseif($p!=='' && str_contains($area,'+') && str_starts_with($d,$p)) $d=substr($d,strlen($p));
+    $d=ltrim($d,'0'); if(strlen($d)<7) return [num_area($area,$cc)];
+    return array_values(array_unique([substr($d,0,4),substr($d,0,3),substr($d,0,2)]));
+}
 /** Freie Ortsnummern mit Sprachanrufen. $area leer = beliebig im Land. */
 function num_search(string $cc, string $area='', int $n=6): array {
     $cc=strtoupper($cc); if(!isset(NUM_CC[$cc])) return ['error'=>'country','message'=>'Für dieses Land vergeben wir noch keine Nummern.'];
@@ -78,7 +85,13 @@ function num_get(int $aid, string $base): ?array {
 }
 function num_list(int $aid): array {
     num_bootstrap(); $s=th_db()->prepare("SELECT * FROM phone_numbers WHERE account_id=? AND status='active' ORDER BY id"); $s->execute([$aid]);
-    return array_map(fn($r)=>['plan'=>$r['base'],'number'=>$r['e164'],'display'=>num_display($r['e164']),'country'=>$r['country'],'created_at'=>th_dbiso($r['created_at'])],$s->fetchAll(PDO::FETCH_ASSOC));
+    return array_map(fn($r)=>['plan'=>$r['base'],'number'=>$r['e164'],'display'=>num_display($r['e164']),'country'=>$r['country'],'created_at'=>th_dbiso($r['created_at']),'codes'=>num_forward_codes($r['e164'])],$s->fetchAll(PDO::FETCH_ASSOC));
+}
+/** Rufumleitungs-Codes (GSM, Handy) auf die ChatHelp-Nummer – Kunden behalten ihre bekannte Nummer. tel = antippbarer Link (# als %23). */
+function num_forward_codes(string $e164): array {
+    $n=(string)preg_replace('/[^\d+]/','',$e164); if($n==='') return [];
+    $c=[['noanswer','Wenn ich nicht rangehe (nach 20 s)','**61*'.$n.'**20#'],['busy','Wenn besetzt','**67*'.$n.'#'],['unreach','Wenn nicht erreichbar','**62*'.$n.'#'],['always','Immer umleiten','**21*'.$n.'#'],['off','Alle Umleitungen ausschalten','##002#']];
+    return array_map(fn($x)=>['key'=>$x[0],'label'=>$x[1],'code'=>$x[2],'tel'=>'tel:'.str_replace('#','%23',$x[2])],$c);
 }
 /**
  * Nummer kaufen und dem Agenten zuweisen. $number leer → erste freie Nummer mit der Vorwahl $area (sonst beliebig im Land $cc).
@@ -95,10 +108,10 @@ function num_buy(int $aid, string $planId, string $number='', string $area='', s
     $cc=strtoupper($cc); if(!isset(NUM_CC[$cc])) $cc='DE';
     if($number!==''){ $e=th_e164($number,NUM_CC[$cc]); if($e==='' || !preg_match('/^\+\d{8,15}$/',$e)) return ['error'=>'invalid','message'=>'Ungültige Nummer.']; $cc=num_cc($e) ?? $cc; }
     else {
-        $s=num_search($cc,$area,1); if(isset($s['error'])) return $s;
-        if(!$s['numbers'] && $s['area']!==''){ $s=num_search($cc,'',1); if(isset($s['error'])) return $s; }   // Vorwahl ausverkauft → andere Ortsnummer im Land
-        if(!$s['numbers']) return ['error'=>'none','message'=>'Gerade ist keine passende Nummer frei – bitte später erneut oder eine andere Vorwahl.'];
-        $e=$s['numbers'][0]['number'];
+        $e='';
+        foreach(array_merge(array_filter(num_area_list($area,$cc)),['']) as $a){   // gleiche Vorwahl wie das Geschäft, sonst beliebig im Land (Kunden sehen die Nummer nicht)
+            $s=num_search($cc,$a,1); if(isset($s['error'])) return $s; if($s['numbers']){ $e=$s['numbers'][0]['number']; break; } }
+        if($e==='') return ['error'=>'none','message'=>'Gerade ist keine Nummer frei – bitte in ein paar Minuten erneut.'];
     }
     $cfg=th_agent_cfg($aid,$base); if(empty($cfg['widget_key'])){ th_agent_cfg_save($aid,$base,[],true); $cfg=th_agent_cfg($aid,$base); }
     $d=['PhoneNumber'=>$e,'FriendlyName'=>mb_substr('ChatHelp #'.$aid.' '.$base,0,64),'VoiceUrl'=>NUM_SITE.'/chat/phone-webhook.php?key='.rawurlencode((string)$cfg['widget_key']),'VoiceMethod'=>'POST'];
@@ -110,7 +123,7 @@ function num_buy(int $aid, string $planId, string $number='', string $area='', s
     th_db()->prepare("INSERT INTO phone_numbers(account_id,base,e164,country,twilio_sid) VALUES(?,?,?,?,?)
         ON DUPLICATE KEY UPDATE account_id=VALUES(account_id), base=VALUES(base), e164=VALUES(e164), country=VALUES(country), status='active', released_at=NULL, created_at=NOW()")->execute([$aid,$base,$e,$cc,$sid]);
     th_db()->prepare("UPDATE agent_configs SET phone_number=?, phone_on=1, updated_at=NOW() WHERE account_id=? AND plan=?")->execute([$e,$aid,$base]);
-    if(function_exists('ch_push')) try{ ch_push($aid,'system','Deine Nummer ist da: '.num_display($e),'Dein Agent nimmt ab sofort Anrufe an. Bestehende Nummer? Einfach auf diese weiterleiten.','/chat/studio.php#phone',['email'=>false,'tag'=>'num-'.$base]); }catch(Throwable $x){}
+    if(function_exists('ch_push')) try{ ch_push($aid,'system','Deine ChatHelp-Nummer ist da: '.num_display($e),'Jetzt deine bekannte Nummer mit einem Code darauf umleiten – Studio → Telefon zeigt die Codes zum Antippen.','/chat/studio.php#phone',['email'=>false,'tag'=>'num-'.$base]); }catch(Throwable $x){}
     return ['ok'=>true,'number'=>$e,'display'=>num_display($e)];
 }
 /** Nummer freigeben (Kündigung oder Wunsch): bei Twilio löschen, Agent ohne Nummer. */
@@ -142,7 +155,8 @@ function num_api(string $route, string $method, int $aid, array $body, array $ac
         }
         if($route==='numbers/buy' && $method==='POST'){
             if(!th_rate('num:buy:'.$aid,10,3600)) return [429,['error'=>'rate_limited','message'=>'Bitte kurz warten.']];
-            $r=num_buy($aid,(string)($body['plan'] ?? ''),(string)($body['number'] ?? ''),(string)($body['area'] ?? ''),(string)($body['country'] ?? 'DE'));
+            $area=(string)($body['area'] ?? ''); if($area==='' && ($pl=ch_plan((string)($body['plan'] ?? '')))) $area=(string)(th_agent_cfg($aid,(string)$pl['base'])['phone_forward'] ?? '');   // gleiche Vorwahl wie die Geschäftsnummer
+            $r=num_buy($aid,(string)($body['plan'] ?? ''),(string)($body['number'] ?? ''),$area,(string)($body['country'] ?? 'DE'));
             return [isset($r['error']) ? ($r['error']==='plan_inactive' ? 402 : ($r['error']==='not_configured' ? 501 : 422)) : 200,$r];
         }
         if($route==='numbers/release' && $method==='POST'){ $pl=ch_plan((string)($body['plan'] ?? '')); if(!$pl) return [400,['error'=>'plan']]; $r=num_release($aid,(string)$pl['base']); return [isset($r['error']) ? 422 : 200,$r]; }

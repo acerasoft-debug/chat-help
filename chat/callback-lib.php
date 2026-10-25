@@ -350,14 +350,14 @@ function cb_readiness(int $acc, ?array $s=null): array {
     if($acc<=0) return ['twilio'=>false,'twilio_own'=>false,'caller_id'=>'','caller_id_display'=>'','agent'=>null,'agent_name'=>'','phone_on'=>false,'plan_active'=>true,'twilio_ready'=>false,'ready'=>false,'issues'=>['Demo: es wird nicht angerufen.']];
     $tw=th_twilio($acc); $cfg=cb_caller_cfg($acc,$s); $cid=cb_caller_id($acc,$s,$cfg,$tw); $issues=[];
     $planOk=$cfg ? cb_plan_ok($acc,(string)$cfg['plan']) : false; $phoneOn=$cfg && (int)$cfg['phone_on']===1;
-    if(!$tw) $issues[]='Twilio ist nicht verbunden – unter „Telefon → Verbindungen“ das eigene Twilio-Konto hinterlegen oder den Telefon-Agenten über ChatHelp buchen.';
+    if(!$tw) $issues[]='Telefonie ist noch nicht eingerichtet – dein Telefon-Agent braucht eine ChatHelp-Nummer (Studio → Telefon).';
     if(!$cfg) $issues[]='Kein Agent mit eingeschaltetem Telefon – unter „Telefon“ einen Telefon-Agenten einrichten und hier auswählen.';
     else {
         if(!$phoneOn) $issues[]='Beim Agenten „'.cb_plan_name((string)$cfg['plan']).'“ ist das Telefon ausgeschaltet.';
         if(!$planOk) $issues[]='Der Agent „'.cb_plan_name((string)$cfg['plan']).'“ ist nicht gemietet bzw. gekauft.';
     }
-    if($cid==='') $issues[]='Keine Absendernummer: dem Agenten ist noch keine Telefonnummer zugewiesen (oder eigene Twilio-Nummer als Absender eintragen).';
-    elseif($s['from_number']!=='' && !th_same_phone($cid,$s['from_number'])) $issues[]='Die eigene Absendernummer gilt nur mit eigenem Twilio-Konto – angerufen wird mit '.cb_phone_display($cid).'.';
+    if($cid==='') $issues[]='Keine Absendernummer: dem Agenten ist noch keine Telefonnummer zugewiesen.';
+    elseif($s['from_number']!=='' && !th_same_phone($cid,$s['from_number'])) $issues[]='Die eigene Absendernummer gilt nur mit eigener Telefonanbindung – angerufen wird mit '.cb_phone_display($cid).'.';
     return ['twilio'=>$tw!==null,'twilio_own'=>$tw ? (bool)$tw['own'] : false,'caller_id'=>$cid,'caller_id_display'=>$cid!=='' ? cb_phone_display($cid) : '','agent'=>$cfg ? (string)$cfg['plan'] : null,
         'agent_name'=>$cfg ? cb_plan_name((string)$cfg['plan']) : '','phone_on'=>$phoneOn,'plan_active'=>$planOk,'twilio_ready'=>$tw!==null && $cid!=='',
         'ready'=>$tw!==null && $cid!=='' && $phoneOn && $planOk && !empty($cfg['widget_key']),'issues'=>$issues];
@@ -665,7 +665,7 @@ function cb_twilio_call(array $tw, array $params): array {
     $raw=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $err=curl_error($ch); curl_close($ch);
     $j=is_string($raw) ? json_decode($raw,true) : null;
     if($code>=200 && $code<300 && is_array($j) && !empty($j['sid'])) return ['ok'=>true,'sid'=>preg_replace('/[^A-Za-z0-9]/','',(string)$j['sid']),'code'=>$code];
-    $m=is_array($j) ? trim((string)($j['message'] ?? '')) : ''; if($m==='') $m=$code ? 'HTTP '.$code : 'Twilio nicht erreichbar'.($err!=='' ? ' ('.$err.')' : '');
+    $m=is_array($j) ? trim((string)($j['message'] ?? '')) : ''; if($m==='') $m=$code ? 'HTTP '.$code : 'Telefonie nicht erreichbar'.($err!=='' ? ' ('.$err.')' : '');
     error_log('CH cb_twilio_call: '.$code.' '.mb_substr($m,0,200));
     return ['ok'=>false,'code'=>$code,'message'=>mb_substr($m,0,240),'twilio_code'=>is_array($j) ? ($j['code'] ?? null) : null];
 }
@@ -685,7 +685,7 @@ function cb_call_now(int $acc, int $id, bool $force=false): array {
     $cfg=cb_caller_cfg($acc,$s,(string)$r['plan']);
     if(!$cfg || empty($cfg['widget_key']) || (int)$cfg['phone_on']!==1) return ['error'=>'phone_agent_missing','hint'=>$cfg ? 'Beim Agenten „'.cb_plan_name((string)$cfg['plan']).'“ ist das Telefon ausgeschaltet (Studio → Telefon).' : 'Kein Telefon-Agent eingerichtet – im Studio unter „Telefon“ aktivieren und unter „Rückrufe“ als anrufenden Agenten wählen.'];
     if(!cb_plan_ok($acc,(string)$cfg['plan'])) return ['error'=>'plan_inactive','hint'=>'Der anrufende Agent „'.cb_plan_name((string)$cfg['plan']).'“ ist nicht gemietet bzw. gekauft.'];
-    $tw=th_twilio($acc); if(!$tw) return ['error'=>'twilio_not_configured','hint'=>'Twilio ist nicht eingerichtet (Studio → Telefon → Verbindungen).'];
+    $tw=th_twilio($acc); if(!$tw) return ['error'=>'twilio_not_configured','hint'=>'Telefonie ist noch nicht eingerichtet – dein Telefon-Agent braucht eine ChatHelp-Nummer (Studio → Telefon).'];
     $cid=cb_caller_id($acc,$s,$cfg,$tw); if($cid==='') return ['error'=>'twilio_not_configured','hint'=>'Keine Absendernummer (Caller-ID) – dem Agenten ist keine Telefonnummer zugewiesen.'];
     if(!$force && !cb_in_window($s,$now)){ $nx=cb_next_window($s,$now); return ['error'=>'outside_window','next_window'=>$nx ? $nx->format('Y-m-d H:i') : null,'hint'=>'Außerhalb der Anrufzeiten ('.cb_window_text($s).')'.($nx ? ' – frühestens '.cb_when_label($nx,$now) : '').'.']; }
     $u=th_db()->prepare("UPDATE callbacks SET status='calling', attempts=attempts+1, last_attempt_at=NOW(), call_sid='', updated_at=NOW() WHERE id=? AND account_id=? AND status IN ('open','scheduled','failed') AND attempts < ? AND consent=1");
@@ -699,11 +699,11 @@ function cb_call_now(int $acc, int $id, bool $force=false): array {
         cb_log_append($acc,$id,['event'=>'call','sid'=>$res['sid'],'status'=>'initiated','note'=>'Versuch '.$att.($force ? ' (im Studio gestartet)' : '')]);
         return ['ok'=>true,'call_sid'=>$res['sid'],'attempt'=>$att,'from'=>$cid];
     }
-    $note='Anrufversuch '.$att.' fehlgeschlagen – Twilio: '.$res['message'];
+    $note='Anrufversuch '.$att.' fehlgeschlagen – '.$res['message'];
     th_db()->prepare("UPDATE callbacks SET status='failed', result=?, updated_at=NOW() WHERE id=? AND account_id=? AND status='calling'")->execute([mb_substr($note,0,500),$id,$acc]);
     cb_log_append($acc,$id,['event'=>'call','sid'=>'','status'=>'error','note'=>mb_substr($note,0,300)]);
     if($att>=$s['max_attempts']){ try{ cb_notify_result(cb_get($acc,$id),$s,'failed'); }catch(Throwable $e){ error_log('CH cb_notify_result: '.$e->getMessage()); } }
-    return ['error'=>'twilio_error','message'=>$res['message'],'hint'=>'Twilio hat den Anruf nicht angenommen: '.$res['message']];
+    return ['error'=>'twilio_error','message'=>$res['message'],'hint'=>'Der Anruf konnte nicht aufgebaut werden: '.$res['message']];
 }
 
 /* ======================================================================= Planer */

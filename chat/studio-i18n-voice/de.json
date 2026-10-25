@@ -57,7 +57,7 @@
     "vc.p.save": "Stimme speichern",
     "vc.p.saved": "Stimme gespeichert: {n}. Am Telefon spricht der Agent jetzt mit dieser Stimme.",
     "vc.p.reset": "Zurück zum Vorrat",
-    "vc.p.phoneNote": "Telefon (Twilio): Premium- und Browser-Stimmen werden am Telefon durch die nächste natürliche Google-HD-Stimme desselben Geschlechts ersetzt.",
+    "vc.p.phoneNote": "Am Telefon spricht die natürlichste HD-Stimme desselben Geschlechts – mit Premium-Stimme (Studio → Telefon) der gewählte Profisprecher.",
     "vc.p.langNote": "Die Sprache folgt der Telefonsprache des Agenten (Telefon → Stimme / Sprache).",
     "vc.p.noPlans": "Noch kein Agent eingerichtet – zuerst unter „Agenten“ einen Agenten wählen.",
     "vc.p.sampleFail": "Hörprobe gerade nicht möglich.",

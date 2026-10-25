@@ -57,7 +57,7 @@
     "vc.p.save": "Spara röst",
     "vc.p.saved": "Röst sparad: {n}. I telefon talar agenten nu med den här rösten.",
     "vc.p.reset": "Tillbaka till förrådet",
-    "vc.p.phoneNote": "Telefon (Twilio): premium- och webbläsarröster ersätts i telefon av närmaste naturliga Google HD-röst av samma kön.",
+    "vc.p.phoneNote": "I telefon talar den mest naturliga HD-rösten av samma kön – med premiumrösten (Studio → Telefon) den valda professionella speakern.",
     "vc.p.langNote": "Språket följer agentens telefonspråk (Telefon → Röst / Språk).",
     "vc.p.noPlans": "Ingen agent inställd ännu – välj först en agent under ”Agenter”.",
     "vc.p.sampleFail": "Provet går inte att spela just nu.",

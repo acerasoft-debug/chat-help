@@ -57,7 +57,7 @@
     "vc.p.save": "Lagre stemme",
     "vc.p.saved": "Stemme lagret: {n}. På telefon snakker agenten nå med denne stemmen.",
     "vc.p.reset": "Tilbake til forrådet",
-    "vc.p.phoneNote": "Telefon (Twilio): premium- og nettleserstemmer erstattes på telefon av nærmeste naturlige Google HD-stemme av samme kjønn.",
+    "vc.p.phoneNote": "På telefonen snakker den mest naturlige HD-stemmen av samme kjønn – med premiumstemmen (Studio → Telefon) den valgte profesjonelle stemmen.",
     "vc.p.langNote": "Språket følger agentens telefonspråk (Telefon → Stemme / Språk).",
     "vc.p.noPlans": "Ingen agent satt opp ennå – velg først en agent under «Agenter».",
     "vc.p.sampleFail": "Prøven er ikke tilgjengelig akkurat nå.",

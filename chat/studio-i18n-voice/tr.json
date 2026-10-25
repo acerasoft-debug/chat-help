@@ -57,7 +57,7 @@
     "vc.p.save": "Sesi kaydet",
     "vc.p.saved": "Ses kaydedildi: {n}. Ajan telefonda artık bu sesle konuşur.",
     "vc.p.reset": "Havuza dön",
-    "vc.p.phoneNote": "Telefon (Twilio): Premium ve tarayıcı sesleri telefonda aynı cinsiyetteki en yakın doğal Google HD sesiyle değiştirilir.",
+    "vc.p.phoneNote": "Telefonda aynı cinsiyetteki en doğal HD ses konuşur – premium sesle (Studio → Telefon) seçtiğiniz profesyonel seslendirmen.",
     "vc.p.langNote": "Dil, ajanın telefon diline göre belirlenir (Telefon → Ses / Dil).",
     "vc.p.noPlans": "Henüz ajan kurulmadı – önce “Ajanlar” altında bir ajan seçin.",
     "vc.p.sampleFail": "Ses örneği şu anda alınamıyor.",

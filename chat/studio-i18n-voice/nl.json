@@ -57,7 +57,7 @@
     "vc.p.save": "Stem opslaan",
     "vc.p.saved": "Stem opgeslagen: {n}. Aan de telefoon spreekt de agent nu met deze stem.",
     "vc.p.reset": "Terug naar de voorraad",
-    "vc.p.phoneNote": "Telefoon (Twilio): premium- en browserstemmen worden aan de telefoon vervangen door de dichtstbijzijnde natuurlijke Google HD-stem van hetzelfde geslacht.",
+    "vc.p.phoneNote": "Aan de telefoon spreekt de meest natuurlijke HD-stem van hetzelfde geslacht – met de premium-stem (Studio → Telefoon) de gekozen professionele stem.",
     "vc.p.langNote": "De taal volgt de telefoontaal van de agent (Telefoon → Stem / Taal).",
     "vc.p.noPlans": "Nog geen agent ingesteld – kies eerst een agent onder “Agenten”.",
     "vc.p.sampleFail": "Voorbeeld nu niet mogelijk.",

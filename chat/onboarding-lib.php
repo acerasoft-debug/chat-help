@@ -147,25 +147,14 @@ function onb_catalog(array $P): array {
         $opts=[]; foreach($ch as $c) $opts[]=['v'=>$c,'l'=>['web'=>'Website-Chat','phone'=>'Telefon','whatsapp'=>'WhatsApp'][$c],'d'=>['web'=>'Widget mit einer Zeile Code auf deiner Seite','phone'=>'Agent nimmt Anrufe an – rund um die Uhr','whatsapp'=>'Kunden schreiben deinem Agenten per WhatsApp'][$c]];
         $S[]=onb_step('channels','multi','Kanäle','Wo soll dein Agent für Kunden da sein?',['sub'=>'Du kannst alles später im Studio ein- und ausschalten.','options'=>$opts,'min'=>1]);
         if(in_array('phone',$ch,true)){
-            $numNow=is_file(__DIR__.'/number-lib.php') && (require_once __DIR__.'/number-lib.php') && num_ready();   // zentrales Twilio-Konto: Nummer sofort
-            $S[]=onb_step('phone_mode','choice','Telefon','Welche Telefonnummer soll dein Agent nutzen?',['when'=>['channels'=>['phone']],'auto'=>true,'options'=>[
-                $numNow ? ['v'=>'managed','l'=>'ChatHelp-Nummer – sofort','d'=>'Du bekommst sofort eine Ortsnummer mit deiner Vorwahl – ohne Vertrag, ohne Technik. Bestehende Nummer einfach darauf weiterleiten.']
-                        : ['v'=>'managed','l'=>'ChatHelp-Nummer anfragen','d'=>'Wir richten dir eine Nummer mit deiner Vorwahl ein – meist innerhalb von 24 Stunden.'],
-                ['v'=>'own','l'=>'Eigene Twilio-Nummer','d'=>'Du hast schon ein Twilio-Konto mit Nummer – Zugangsdaten eingeben, fertig.'],
-                ['v'=>'later','l'=>'Später entscheiden','d'=>'Den Telefon-Agenten kannst du bis dahin im Browser testen.']]]);
-            $S[]=onb_step('twilio','fields','Telefon','Deine Twilio-Zugangsdaten',['when'=>['channels'=>['phone'],'phone_mode'=>['own']],'sub'=>'Zu finden in der Twilio-Console unter „Account Info“. Wir speichern sie verschlüsselt und prüfen sie sofort.','fields'=>[
-                ['k'=>'twilio_sid','l'=>'Account SID','t'=>'text','ph'=>'AC…','req'=>true],['k'=>'twilio_token','l'=>'Auth Token','t'=>'password','ph'=>'32 Zeichen','req'=>true],['k'=>'twilio_from','l'=>'Deine Twilio-Nummer','t'=>'tel','ph'=>'+49 221 …','req'=>true]]]);
-            $S[]=onb_step('managed_phone','fields','Telefon','Welche Nummer wünschst du dir?',['when'=>['channels'=>['phone'],'phone_mode'=>['managed']],'sub'=>$numNow ? 'Beim Fertigstellen bekommst du sofort eine Nummer mit dieser Vorwahl (in der Testphase direkt nach der Buchung). Bestehende Nummern kannst du einfach darauf weiterleiten.' : 'Wir melden uns innerhalb von 24 Stunden mit deiner Nummer. Bestehende Nummern kannst du einfach auf sie weiterleiten.','fields'=>[
-                ['k'=>'area','l'=>'Ortsnetz / Vorwahl','t'=>'text','ph'=>'z. B. Köln (0221)','req'=>true,'max'=>60],['k'=>'forward','l'=>'An Menschen weiterleiten an (optional)','t'=>'tel','ph'=>'0170 1234567'],['k'=>'note','l'=>'Hinweis für uns (optional)','t'=>'text','max'=>300,'ph'=>'z. B. bestehende Nummer soll umgeleitet werden']]]);
             $S[]=onb_step('phone_persona','choice','Telefon','Welche Stimme passt zu deinem Betrieb?',['when'=>['channels'=>['phone']],'sub'=>'Die Stimme spricht jede Sprache deines Agenten. Probehören: Studio → Telefon.','auto'=>true,'options'=>[
                 ['v'=>'f','l'=>'Weiblich · warm','d'=>'Unsere natürlichste Stimme – Standard'],['v'=>'m','l'=>'Männlich · ruhig','d'=>'Sachlich und vertrauenswürdig'],
-                ['v'=>'g','l'=>'Weiblich · HD','d'=>'Google Chirp HD, besonders klar'],['v'=>'gm','l'=>'Männlich · HD','d'=>'Google Chirp HD, besonders klar']]]);
+                ['v'=>'g','l'=>'Weiblich · HD','d'=>'HD-Stimme, besonders klar'],['v'=>'gm','l'=>'Männlich · HD','d'=>'HD-Stimme, besonders klar']]]);
             $S[]=onb_step('phone_greeting','textarea','Telefon','Wie soll dein Agent Anrufer begrüßen?',['when'=>['channels'=>['phone']],'sub'=>'Leer lassen für die Standardbegrüßung. Der Agent sagt immer dazu, dass er ein digitaler Assistent ist.','ph'=>'Guten Tag, hier ist der digitale Assistent von Salon Luna – wie kann ich helfen?','max'=>400]);
         }
         if(in_array('whatsapp',$ch,true)){
             $S[]=onb_step('wa_provider','choice','WhatsApp','Wie verbindest du WhatsApp?',['when'=>['channels'=>['whatsapp']],'auto'=>true,'options'=>[
                 ['v'=>'meta','l'=>'WhatsApp Business (Meta)','d'=>'Direkt über die WhatsApp-Cloud-API von Meta – kostenlos bis 1.000 Gespräche/Monat.'],
-                ['v'=>'twilio','l'=>'Über Twilio','d'=>'Du nutzt Twilio schon für Telefon oder SMS.'],
                 ['v'=>'later','l'=>'Später verbinden','d'=>'Wir schicken dir die Schritt-für-Schritt-Anleitung per E-Mail.']]]);
             $S[]=onb_step('wa_meta','fields','WhatsApp','Deine WhatsApp-Cloud-API-Daten',['when'=>['channels'=>['whatsapp'],'wa_provider'=>['meta']],'sub'=>'Meta for Developers → deine App → WhatsApp → API-Setup. Kein Zugang? Einfach überspringen – die Anleitung kommt per E-Mail.','fields'=>[
                 ['k'=>'wa_phone_id','l'=>'Telefonnummer-ID','t'=>'text','ph'=>'z. B. 109876543210987','req'=>true],['k'=>'wa_token','l'=>'Dauerhafter Zugriffstoken','t'=>'password','ph'=>'EAAG…','req'=>true],['k'=>'wa_verify','l'=>'Verify-Token (optional)','t'=>'text','ph'=>'frei wählbar']]]);
@@ -260,11 +249,6 @@ function onb_prefill(int $aid, array $P): array {
     $chan=[]; $wa=$os ? onb_wa_ready(ord_settings($aid)) : false;
     if(!empty($cfg['widget_on'])) $chan[]='web'; if(!empty($cfg['phone_on'])) $chan[]='phone'; if($wa) $chan[]='whatsapp';
     $put('channels',$chan ?: $P['channels'],(bool)$chan);
-    $own=th_secret($aid,'twilio_sid')!=='' && th_secret($aid,'twilio_token')!=='';
-    $put('phone_mode',$own ? 'own' : (!empty($cfg['phone_number']) ? 'managed' : ''),$own || !empty($cfg['phone_number']));
-    $hint=th_secret_hints($aid);
-    $put('twilio',['twilio_sid'=>$hint['twilio_sid']!=='' ? '••••'.substr($hint['twilio_sid'],-4) : '','twilio_token'=>$hint['twilio_token'],'twilio_from'=>$hint['twilio_from']],$own && $hint['twilio_from']!=='');
-    $put('managed_phone',['area'=>'','forward'=>(string)($cfg['phone_forward'] ?? ''),'note'=>''],!empty($cfg['phone_number']));
     $pv=(string)($cfg['phone_voice'] ?? 'de-DE'); $put('phone_persona',preg_match('/-(m|g|gm)$/',$pv,$mm) ? $mm[1] : 'f',trim((string)($cfg['phone_greeting'] ?? ''))!=='');
     $put('phone_greeting',(string)($cfg['phone_greeting'] ?? ''),trim((string)($cfg['phone_greeting'] ?? ''))!=='');
     $osx=$os ? ord_settings($aid) : null;
@@ -568,17 +552,19 @@ function onb_apply(int $aid, array $onb): array {
     });
     /* 2) Telefon */
     $numNow=is_file(__DIR__.'/number-lib.php') && (require_once __DIR__.'/number-lib.php') && num_ready();
-    if($use('managed_phone') && in_array('phone',$chan,true) && $numNow) $run('phone_number','Telefonnummer',function() use($aid,&$onb,$v,$b,$phone,$active){
-        $m=(array)($v('managed_phone') ?? []); $area=trim((string)($m['area'] ?? '')) ?: $phone; $cc=onb_country($aid);
-        if(!$active){ $onb['meta']['num_pending']=['area'=>$area,'cc'=>$cc]; onb_save($onb,['meta']); return 'kommt sofort nach der Buchung'; }   // Testphase: Kauf löst die Zahlung aus
-        $r=num_buy($aid,$b,'',$area,$cc); if(isset($r['error'])) throw new RuntimeException((string)$r['message']);
+    $ownTw=th_secret($aid,'twilio_sid')!=='' && th_secret($aid,'twilio_token')!=='';   // Bestand: eigenes Konto bleibt im Hintergrund
+    $wantNum=$P['agent'] && in_array('phone',$chan,true) && in_array('phone',$P['channels'],true) && !$ownTw;
+    if($wantNum && $numNow) $run('phone_number','Telefonnummer',function() use($aid,&$onb,$b,$phone,$active){
+        $cc=onb_country($aid);   // gleiche Vorwahl wie die Geschäftsnummer (Kunden sehen sie nicht – sie wählen weiter die bekannte Nummer)
+        if(!$active){ $onb['meta']['num_pending']=['area'=>$phone,'cc'=>$cc]; onb_save($onb,['meta']); return 'kommt sofort nach der Buchung'; }   // Testphase: Kauf löst die Zahlung aus
+        $r=num_buy($aid,$b,'',$phone,$cc); if(isset($r['error'])) throw new RuntimeException((string)$r['message']);
         unset($onb['meta']['num_pending']); onb_save($onb,['meta']); return 'Nummer '.$r['display'];
     });
-    if($use('managed_phone') && in_array('phone',$chan,true) && !$numNow) $run('phone_request','Telefonnummer angefragt',function() use($aid,$onb,$v,$P,$company){
-        $meta=$onb['meta']; if(!empty($meta['phone_req_at'])) return 'bereits angefragt'; $m=$v('managed_phone');
+    if($wantNum && !$numNow) $run('phone_request','Telefonnummer wird eingerichtet',function() use($aid,$onb,$P,$company,$phone){
+        $meta=$onb['meta']; if(!empty($meta['phone_req_at'])) return 'bereits in Arbeit';
         $to=defined('SMTP_FROM') ? SMTP_FROM : 'support@chat-help.com'; $h=fn($x)=>htmlspecialchars((string)$x,ENT_QUOTES,'UTF-8');
-        th_mail($to,'[ChatHelp] Telefonnummer gewünscht: '.$P['name'],'<p>Konto: '.$h(onb_email($aid)).' (#'.$aid.')<br>Betrieb: '.$h($company).'<br>Agent: '.$h($P['base']).'<br>Ortsnetz: '.$h($m['area'] ?? '').'<br>Weiterleitung: '.$h($m['forward'] ?? '').'<br>Hinweis: '.$h($m['note'] ?? '').'</p>');
-        $meta['phone_req_at']=gmdate('c'); $onb['meta']=$meta; onb_save($onb,['meta']); return 'Ortsnetz '.((string)($m['area'] ?? ''));
+        th_mail($to,'[ChatHelp] Nummer einrichten: '.$P['name'],'<p>Konto: '.$h(onb_email($aid)).' (#'.$aid.')<br>Betrieb: '.$h($company).'<br>Agent: '.$h($P['base']).'<br>Geschäftsnummer (wird umgeleitet): '.$h($phone).'</p>');
+        $meta['phone_req_at']=gmdate('c'); $onb['meta']=$meta; onb_save($onb,['meta']); return 'wir melden uns mit der Nummer';
     });
     /* 3) Module */
     if(in_array('appt',$P['mods'],true) && ($use('services') || $use('hours') || $use('appt_buffer') || $use('company'))) $run('appt','Terminbuchung',function() use($aid,$v,$use,$company,$address,$hours,$hoursAns){
@@ -637,6 +623,9 @@ function onb_finish(int $aid, array $onb): array {
 
 /* ======================================================================= Checkliste + Links */
 function onb_email(int $aid): string { $s=th_db()->prepare("SELECT email FROM token_accounts WHERE id=?"); $s->execute([$aid]); return (string)($s->fetchColumn() ?: ''); }
+/** Rufumleitungs-Codes auf die ChatHelp-Nummer (number-lib). */
+function onb_forward_codes(string $e164): array { if(!function_exists('num_forward_codes') && is_file(__DIR__.'/number-lib.php')) require_once __DIR__.'/number-lib.php'; return function_exists('num_forward_codes') ? num_forward_codes($e164) : []; }
+function onb_num_display(string $e164): string { if(!function_exists('num_display') && is_file(__DIR__.'/number-lib.php')) require_once __DIR__.'/number-lib.php'; return function_exists('num_display') ? num_display($e164) : $e164; }
 function onb_links(int $aid, array $onb): array {
     $b=$onb['base']; $cfg=onb_cfg_row($aid,$b); $wk=(string)($cfg['widget_key'] ?? ''); $P=onb_profile($onb['plan']); $o=['app'=>ONB_APP_URL,'app_android'=>ONB_APP_URL.'#android','app_ios'=>ONB_APP_URL.'#ios',
         'start'=>ONB_START_URL,'studio_test'=>ONB_SITE.'/chat/studio.php?welcome='.$b,'widget_key'=>$wk,'widget_snippet'=>$wk!=='' ? '<script src="'.ONB_SITE.'/chat/widget.js" data-key="'.$wk.'" async></script>' : null,
@@ -665,11 +654,17 @@ function onb_checklist(int $aid, array $onb): array {
             ['Code kopieren (unten bzw. Studio → Website)','In deiner Website vor </body> einfügen (WordPress: Design → Theme-Datei-Editor oder Plugin „Header & Footer“)','Seite neu laden – unten rechts erscheint dein Agent'],['code'=>$L['widget_snippet'],'go'=>'website']);
     }
     if($P['agent'] && in_array('phone',$P['channels'],true) && in_array('phone',$chan,true)){
-        $own=th_secret($aid,'twilio_sid')!=='' && th_secret($aid,'twilio_token')!==''; $mode=(string)($A['phone_mode'] ?? ($own ? 'own' : ''));
-        if($own) $item('phone','Telefonnummer verbinden',!empty($cfg['phone_on']) ? 'done' : 'todo','Eigene Twilio-Nummer '.(th_secret($aid,'twilio_from') ?: '').' – jetzt nur noch den Webhook eintragen.',
-            ['Twilio-Console → Phone Numbers → Manage → Active numbers → deine Nummer','Bei „A call comes in“: Webhook, HTTP POST, URL: '.$L['phone_webhook'],'Speichern und deine Nummer anrufen – dein Agent meldet sich'],['url'=>$L['phone_webhook'],'go'=>'phone']);
-        elseif($mode==='managed' || !empty($cfg['phone_number'])) $item('phone','Telefonnummer',!empty($cfg['phone_number']) ? 'done' : 'info',!empty($cfg['phone_number']) ? 'Deine Nummer: '.$cfg['phone_number'] : 'Angefragt – wir melden uns innerhalb von 24 Stunden mit deiner Nummer. Bis dahin kannst du den Telefon-Agenten im Browser testen.',[],['go'=>'phone']);
-        else $item('phone','Telefonnummer wählen','todo','Eigene Twilio-Nummer verbinden oder eine ChatHelp-Nummer anfragen.',['Studio → Einrichtung → Telefon: „ChatHelp-Nummer anfragen“ (wir richten sie ein) oder „Eigene Twilio-Nummer“','Mit eigener Nummer: Twilio-Console → Account Info → Account SID + Auth Token kopieren','Webhook für eingehende Anrufe: '.($L['phone_webhook'] ?? 'Studio → Telefon')],['go'=>'phone']);
+        $own=th_secret($aid,'twilio_sid')!=='' && th_secret($aid,'twilio_token')!=='';
+        if($own) $item('phone','Telefonnummer verbinden',!empty($cfg['phone_on']) ? 'done' : 'todo','Eigene Nummer '.(th_secret($aid,'twilio_from') ?: '').' – jetzt nur noch den Webhook eintragen.',
+            ['Console → Phone Numbers → Manage → Active numbers → deine Nummer','Bei „A call comes in“: Webhook, HTTP POST, URL: '.$L['phone_webhook'],'Speichern und deine Nummer anrufen – dein Agent meldet sich'],['url'=>$L['phone_webhook'],'go'=>'phone']);
+        elseif(!empty($cfg['phone_number'])){
+            $item('phone','Deine ChatHelp-Nummer','done','Dein Agent nimmt unter '.onb_num_display((string)$cfg['phone_number']).' ab. Kunden wählen weiter deine bekannte Nummer – du leitest sie nur um.',[],['go'=>'phone']);
+            $biz=trim((string)($A['phone_public'] ?? ''));
+            $item('forward','Anrufe auf deinen Agenten umleiten','todo',($biz!=='' ? 'Auf dem Telefon mit '.$biz.' einen Code antippen' : 'Auf dem Telefon mit deiner Geschäftsnummer einen Code antippen').' (oder in der Telefon-App eintippen und anrufen). Empfohlen: „Wenn ich nicht rangehe“ und „Wenn besetzt“ – dann klingelt zuerst bei dir.',
+                ['iPhone: Code in der Telefon-App eintippen und auf Anrufen drücken (Links mit * und # öffnet das iPhone nicht)','Festnetz: dieselben Codes mit einem Stern am Anfang (z. B. *61*…#) oder im Router unter Telefonie → Rufumleitung (Fritzbox: Rufbehandlung)','Bei „Immer umleiten“ unter Studio → Telefon „Weiterleitung an (Mensch)“ eine andere Nummer eintragen (z. B. dein Handy) – sonst landet die Weiterleitung wieder beim Agenten'],
+                ['codes'=>onb_forward_codes((string)$cfg['phone_number']),'go'=>'phone']);
+        }
+        else $item('phone','Deine ChatHelp-Nummer','info','Wir richten deine Nummer ein und schicken sie dir per E-Mail und Push – danach leitest du deine bekannte Nummer mit einem Code darauf um. Bis dahin kannst du den Telefon-Agenten im Browser testen.',[],['go'=>'phone']);
     }
     if($P['agent'] && in_array('whatsapp',$P['channels'],true) && in_array('whatsapp',$chan,true)){
         $os=ord_settings($aid); $ready=onb_wa_ready($os); $prov=(string)($A['wa_provider'] ?? ($ready ? $os['wa_provider'] : 'meta'));
@@ -724,6 +719,8 @@ function onb_guide(int $aid, array $onb, string $phase): array {
         if($c['steps'] && ($c['status']!=='done' || in_array($c['key'],['app','ride','phone'],true))){
             $H.='<ol style="margin:8px 0 0;padding-left:18px;color:#3b4055;font-size:13px;line-height:1.6">'.implode('',array_map(fn($s)=>'<li style="margin:3px 0">'.$h($s).'</li>',$c['steps'])).'</ol>';
             foreach($c['steps'] as $k=>$s) $T.='    '.($k+1).'. '.$s."\n"; }
+        if(!empty($c['codes'])){ $H.='<div style="margin-top:8px">'.implode('',array_map(fn($x)=>'<div style="margin:5px 0;font-size:13.5px"><a href="'.$h($x['tel']).'" style="display:inline-block;min-width:150px;font:600 13px ui-monospace,Menlo,Consolas,monospace;color:#0f1222;background:#f6ecd3;border-radius:10px;padding:7px 10px;text-decoration:none">'.$h($x['code']).'</a> <span style="color:#3b4055">'.$h($x['label']).'</span></div>',$c['codes'])).'</div>';
+            foreach($c['codes'] as $x) $T.='    '.$x['code'].'  '.$x['label']."\n"; }
         if(!empty($c['code'])){ $H.='<div style="font:12.5px ui-monospace,Menlo,Consolas,monospace;background:#0f1222;color:#e6e8f5;border-radius:12px;padding:12px;word-break:break-all;margin-top:8px;-webkit-user-select:all;user-select:all">'.$h($c['code']).'</div>'; $T.='    Code: '.$c['code']."\n"; }
         if(!empty($c['url']) && $c['key']!=='questions'){ $H.='<div style="margin-top:6px;font-size:13px"><a href="'.$h($c['url']).'" style="color:#b8862b;text-decoration:none;font-weight:600">'.$h(['app'=>'App öffnen','test'=>'Test-Chat öffnen','appt'=>'Buchungsseite öffnen','order'=>'Küchen-Board öffnen','hotel'=>'Rezeptions-Board öffnen','ride'=>'Taxi-Board öffnen','callback'=>'Rückruf-Formular öffnen','whatsapp'=>'Webhook-URL'][$c['key']] ?? 'Link öffnen').' →</a></div>'; $T.='    '.$c['url']."\n"; }
         $H.='</td></tr></table>'; }

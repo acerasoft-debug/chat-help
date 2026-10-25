@@ -57,7 +57,7 @@
     "vc.p.save": "Save voice",
     "vc.p.saved": "Voice saved: {n}. The agent now speaks with this voice on the phone.",
     "vc.p.reset": "Back to the pool",
-    "vc.p.phoneNote": "Phone (Twilio): premium and browser voices are replaced on the phone by the closest natural Google HD voice of the same gender.",
+    "vc.p.phoneNote": "On the phone the most natural HD voice of the same gender speaks – with the premium voice (Studio → Phone) your chosen professional speaker.",
     "vc.p.langNote": "The language follows the agent’s phone language (Phone → Voice / Language).",
     "vc.p.noPlans": "No agent set up yet – choose an agent under “Agents” first.",
     "vc.p.sampleFail": "Sample not available right now.",

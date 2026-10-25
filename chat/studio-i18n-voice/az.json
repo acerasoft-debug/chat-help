@@ -57,7 +57,7 @@
     "vc.p.save": "Səsi yadda saxla",
     "vc.p.saved": "Səs yadda saxlanıldı: {n}. Agent telefonda artıq bu səslə danışır.",
     "vc.p.reset": "Ehtiyata qayıt",
-    "vc.p.phoneNote": "Telefon (Twilio): Premium və brauzer səsləri telefonda eyni cinsdən ən yaxın təbii Google HD səsi ilə əvəz olunur.",
+    "vc.p.phoneNote": "Telefonda eyni cinsdən ən təbii HD səs danışır – premium səslə (Studio → Telefon) seçdiyiniz peşəkar diktor.",
     "vc.p.langNote": "Dil agentin telefon dilinə uyğundur (Telefon → Səs / Dil).",
     "vc.p.noPlans": "Hələ agent qurulmayıb – əvvəlcə “Agentlər” bölməsində agent seçin.",
     "vc.p.sampleFail": "Səs nümunəsi hazırda mümkün deyil.",

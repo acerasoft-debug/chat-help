@@ -57,7 +57,7 @@
     "vc.p.save": "Tallenna ääni",
     "vc.p.saved": "Ääni tallennettu: {n}. Puhelimessa agentti puhuu nyt tällä äänellä.",
     "vc.p.reset": "Takaisin varastoon",
-    "vc.p.phoneNote": "Puhelin (Twilio): premium- ja selainäänet korvataan puhelimessa lähimmällä luonnollisella saman sukupuolen Google HD-äänellä.",
+    "vc.p.phoneNote": "Puhelimessa puhuu luonnollisin samaa sukupuolta oleva HD-ääni – premium-äänellä (Studio → Puhelin) valitsemasi ammattilaispuhuja.",
     "vc.p.langNote": "Kieli seuraa agentin puhelinkieltä (Puhelin → Ääni / Kieli).",
     "vc.p.noPlans": "Agenttia ei ole vielä määritetty – valitse ensin agentti kohdasta ”Agentit”.",
     "vc.p.sampleFail": "Näyte ei ole juuri nyt saatavilla.",
