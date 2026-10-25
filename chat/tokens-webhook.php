@@ -56,6 +56,7 @@ if($type==='checkout.session.completed'){
         if($tokens<=0) $tokens = ['10k'=>10000,'50k'=>50000,'200k'=>200000][$o['metadata']['pack']??''] ?? 0;
         if($tokens<=0){ error_log('CH tokens-webhook: miktar yok '.$o['id']); done(['ok'=>true,'skip'=>'no amount']); }
         $credited=th_credit($aid,$tokens,'stripe:tokens',$o['id']);
+        if(function_exists('bl_payment_log')) bl_payment_log($aid,'tokens',(string)($o['metadata']['pack'] ?? ''),(int)($o['amount_total'] ?? 0),(string)($o['currency'] ?? 'eur'),'cs:'.(string)$o['id']);
         $newKey=(!th_has_key($aid)) ? th_issue_key($aid,'auto') : null;
         $bal=th_balance($aid);
         if($credited) th_mail($email,'ChatHelp: '.number_format($tokens,0,',','.').' Tokens gutgeschrieben'.($newKey?' + dein API-Key':''), mail_tokens($tokens,$bal,$newKey));
@@ -78,6 +79,7 @@ if($type==='checkout.session.completed'){
             foreach($st->fetchAll(PDO::FETCH_COLUMN) as $os){ $cr=bl_stripe_call('POST','subscriptions/'.$os,$sk,['cancel_at_period_end'=>'true']); if(($cr['_http'] ?? 0)>=300) error_log('CH tokens-webhook: Folge-Abo '.$os.' nicht gekündigt'); } }
         /* Tokens: sofort, außer bei Folge-Abos in der kostenlosen Anlaufzeit (die kommen mit der ersten bezahlten Rechnung) */
         $credited=($pl['tokens']>0 && !($run && $subStatus==='trialing')) ? th_credit($aid,$pl['tokens'],'stripe:plan',$o['id']) : false;
+        if(function_exists('bl_payment_log')) bl_payment_log($aid,'plan',(string)$pl['id'],(int)($o['amount_total'] ?? 0),(string)($o['currency'] ?? 'eur'),'cs:'.(string)($o['id'] ?? ''));
         $newKey=(!th_has_key($aid)) ? th_issue_key($aid,'auto') : null;
         $bal=th_balance_ledger($aid);
         /* Mails nur beim ersten Eintreffen dieser Checkout-Session (Stripe wiederholt Webhooks) */
@@ -108,6 +110,7 @@ if($type==='invoice.paid'){
     $tok=isset($sub['metadata']['tokens']) && is_numeric($sub['metadata']['tokens']) ? max(0,(int)$sub['metadata']['tokens']) : (int)$pl['tokens'];
     th_plan_tokens($subId,$tok);
     $credited=$tok>0 ? th_credit($aid,$tok,'stripe:renewal',$o['id']) : false;   // eigener Schlüssel: keine Tokens, nur Plattformgebühr
+    if(function_exists('bl_payment_log')) bl_payment_log($aid,'renewal',(string)$pl['id'],(int)($o['amount_paid'] ?? 0),(string)($o['currency'] ?? 'eur'),'in:'.(string)($o['id'] ?? ''));
     if($credited) th_mail($email,'ChatHelp: '.number_format($tok,0,',','.').' Tokens für '.$pl['name'].' gutgeschrieben', mail_plan(['tokens'=>$tok]+$pl,th_balance_ledger($aid),null,false));
     done(['ok'=>true,'renewal'=>$pl['id'],'credited'=>$credited]);
 }

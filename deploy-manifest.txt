@@ -164,6 +164,13 @@ chat/fba-lib.php             chat/fba-lib.php
 chat/contacts-lib.php        chat/contacts-lib.php
 chat/studio-panels/kunden.html chat/studio-panels/kunden.html
 chat/studio-panels/kunden.js chat/studio-panels/kunden.js
+# Übersicht des Betriebs (Kennzahlen, Verlauf, alle Vorgänge, Website-Chats) + Betreiber-Bereich (Umsatz, Konten, Kosten, Systemzustand)
+chat/dash-lib.php            chat/dash-lib.php
+chat/admin-lib.php           chat/admin-lib.php
+chat/studio-panels/dash.html chat/studio-panels/dash.html
+chat/studio-panels/dash.js   chat/studio-panels/dash.js
+chat/studio-panels/admin.html chat/studio-panels/admin.html
+chat/studio-panels/admin.js  chat/studio-panels/admin.js
 # 13 Sprachen: Erkennung, Anweisung, Formatierung, Kundenseiten-Texte
 chat/i18n.php                chat/i18n.php
 # Einrichtung nach dem Kauf (Frage-Antwort, Einrichtungsanleitung per E-Mail)

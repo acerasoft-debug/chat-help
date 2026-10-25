@@ -123,6 +123,9 @@ else { th_ai_eco(!empty($w['ai_eco']) && ch_ai_eco_plan((string)$pl['id']) && th
 if($answer===null) th_json(503,['error'=>'ai_unavailable']);
 $cost=th_charge($aid,$cost,'widget:'.$pl['id']);
 th_log_usage($aid,'widget',$pl['sector'],$cost,(int)((microtime(true)-$t0)*1000));
+/* Website-Chat für die Übersicht des Betriebs speichern (Besuch = sid des Widgets, sonst IP + erste Nachricht) */
+if(function_exists('dash_widget_log')){ $wsid=is_string($in['sid'] ?? null) && preg_match('/^[A-Za-z0-9_-]{8,64}$/',$in['sid']) ? $in['sid'] : th_client_ip().'|'.(string)(($in['messages'][0]['content'] ?? '') ?: ''); 
+    dash_widget_log($aid,(string)$pl['id'],$wsid,$replyLang,$clean,(string)$answer,(array)(th_ai_info()['tool_calls'] ?? []),(string)(parse_url($_SERVER['HTTP_ORIGIN'] ?? ($_SERVER['HTTP_REFERER'] ?? ''),PHP_URL_HOST) ?? '')); }
 
 /* Folge-Vorschläge: Marker [CONFIRM] → Bestätigungs-Knöpfe (Marker wird entfernt); verbindliche Aktion gerade erledigt → keine */
 $confirm=(bool)preg_match('/\[\s*(CONFIRM|BEST(Ä|AE)TIGEN)\s*\]/iu',$answer);

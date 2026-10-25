@@ -1,0 +1,173 @@
+<style>
+#dsRoot{min-width:0;margin-bottom:18px;--c-phone:#2a78d6;--c-whatsapp:#1baf7a;--c-web:#eb6834;--c-one:#4f46e5}
+#dsRoot .ds-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+#dsRoot button:focus-visible,#dsRoot a:focus-visible,#dsRoot input:focus-visible,#dsRoot select:focus-visible,#dsRoot summary:focus-visible{outline:3px solid rgba(184,134,43,.55);outline-offset:2px}
+#dsRoot .ds-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+#dsRoot .ds-head h2{font-size:30px;margin-top:8px;line-height:1.15}#dsRoot .ds-sub{margin:6px 0 0;color:var(--ink2);max-width:62ch}
+#dsRoot .ds-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#dsRoot .ds-seg{display:inline-flex;background:var(--sur2);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+#dsRoot .ds-seg button{min-height:38px;padding:6px 13px;border:0;border-radius:999px;background:transparent;color:var(--ink2);font:600 13px var(--sans);cursor:pointer;white-space:nowrap}
+#dsRoot .ds-seg button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(15,18,34,.12)}
+#dsRoot .ds-live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--mute)}
+#dsRoot .ds-live i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--okl)}
+#dsRoot .ds-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#dsRoot .ds-kpi{background:var(--sur);border:1px solid var(--line);border-radius:18px;padding:16px 16px 12px;box-shadow:var(--sh1);display:flex;flex-direction:column;gap:4px;min-width:0;position:relative;overflow:hidden}
+#dsRoot .ds-kpi .lbl{display:flex;align-items:center;gap:8px;font:600 12.5px var(--sans);color:var(--ink2)}
+#dsRoot .ds-kpi .lbl svg{color:var(--mute)}
+#dsRoot .ds-kpi .val{font:700 30px/1.1 var(--sans);letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums;margin-top:4px}
+#dsRoot .ds-kpi .meta{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;min-height:30px}
+#dsRoot .ds-kpi .meta span{font-size:12px;color:var(--mute);line-height:1.35}
+#dsRoot .ds-delta{display:inline-flex;align-items:center;gap:3px;font:700 11.5px var(--sans);padding:2px 7px;border-radius:999px;background:var(--sur2);color:var(--ink2);white-space:nowrap}
+#dsRoot .ds-delta.up{background:var(--okl);color:#11703f}#dsRoot .ds-delta.down{background:var(--rosel);color:#a8204f}
+#dsRoot .ds-spark{flex:0 0 auto}
+#dsRoot .ds-info{border:0;background:transparent;color:var(--mute);cursor:help;padding:0 2px;min-height:24px;font:600 12px var(--sans)}
+#dsRoot .ds-row{display:grid;gap:12px;margin-top:12px}
+#dsRoot .ds-r2{grid-template-columns:minmax(0,1fr) 300px}
+#dsRoot .ds-r3{grid-template-columns:repeat(3,minmax(0,1fr))}
+#dsRoot .ds-r4{grid-template-columns:repeat(2,minmax(0,1fr))}
+#dsRoot .card{margin:0;min-width:0}
+#dsRoot .ds-ch{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+#dsRoot .ds-ch h3{font-size:18px}
+#dsRoot .ds-tabs{display:flex;gap:4px;flex-wrap:wrap}
+#dsRoot .ds-tabs button{min-height:34px;padding:4px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink2);font:600 12px var(--sans);cursor:pointer}
+#dsRoot .ds-tabs button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+#dsRoot .ds-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin:0 0 6px}
+#dsRoot .ds-legend span{display:inline-flex;align-items:center;gap:6px}#dsRoot .ds-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+#dsRoot .ds-plot{position:relative;width:100%}
+#dsRoot .ds-plot svg{display:block;width:100%;height:auto;overflow:visible}
+#dsRoot .ds-plot .ax{font:11px var(--sans);fill:var(--mute)}
+#dsRoot .ds-plot .gl{stroke:var(--line);stroke-width:1}
+#dsRoot .ds-plot .hit{fill:transparent;cursor:default}
+#dsRoot .ds-plot .hit:hover+.band,#dsRoot .ds-plot .band.on{fill:rgba(15,18,34,.04)}
+#dsRoot .ds-tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.5;min-width:130px;box-shadow:var(--sh2);transform:translate(-50%,-100%);white-space:nowrap;z-index:3}
+#dsRoot .ds-tip b{display:block;font-size:12px;margin-bottom:2px}
+#dsRoot .ds-tip i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+#dsRoot .ds-tip .r{display:flex;justify-content:space-between;gap:14px}
+#dsRoot .ds-empty{padding:26px 10px;text-align:center;color:var(--mute);font-size:13.5px}
+#dsRoot details.ds-tbl{margin-top:8px}#dsRoot details.ds-tbl summary{cursor:pointer;font-size:12.5px;color:var(--ink2);min-height:32px;display:flex;align-items:center}
+#dsRoot details.ds-tbl table{font-size:12.5px;width:100%}#dsRoot details.ds-tbl td,#dsRoot details.ds-tbl th{padding:5px 8px;text-align:right}#dsRoot details.ds-tbl td:first-child,#dsRoot details.ds-tbl th:first-child{text-align:left}
+#dsRoot .ds-side{display:flex;flex-direction:column;gap:12px;min-width:0}
+#dsRoot .ds-bal .big{font:700 32px/1.1 var(--sans);letter-spacing:-.02em;margin:8px 0 2px;font-variant-numeric:tabular-nums}
+#dsRoot .ds-bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:8px}#dsRoot .ds-bar>div{height:8px;border-radius:99px}
+#dsRoot .ds-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+#dsRoot .ds-btns .btn{min-height:40px}
+#dsRoot .ds-chan li{list-style:none;margin:0 0 12px}#dsRoot .ds-chan ul{margin:0;padding:0}
+#dsRoot .ds-chan .t{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:5px}
+#dsRoot .ds-chan .t b{font-variant-numeric:tabular-nums}
+#dsRoot .ds-heat{display:grid;grid-template-columns:26px repeat(24,minmax(0,1fr));gap:2px;align-items:center}
+#dsRoot .ds-heat .c{aspect-ratio:1/1;border-radius:3px;background:var(--sur2);min-width:0}
+#dsRoot .ds-heat .d{font-size:10.5px;color:var(--mute);text-align:left}
+#dsRoot .ds-heat .h{font-size:10px;color:var(--mute);text-align:left;grid-row:8;white-space:nowrap}
+#dsRoot .ds-scale{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--mute);margin-top:10px}#dsRoot .ds-scale i{width:14px;height:10px;border-radius:2px;display:inline-block}
+#dsRoot .ds-list{list-style:none;margin:0;padding:0}
+#dsRoot .ds-list>li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+#dsRoot .ds-list>li:last-child{border-bottom:0}#dsRoot .ds-list b{font-variant-numeric:tabular-nums}
+#dsRoot .ds-stat{display:flex;gap:12px;align-items:center;background:var(--sur2);border-radius:14px;padding:12px;margin-bottom:12px}
+#dsRoot .ds-stat b{font:700 24px/1 var(--sans);font-variant-numeric:tabular-nums}#dsRoot .ds-stat span{font-size:12.5px;color:var(--ink2);line-height:1.4}
+#dsRoot .ds-open{display:flex;gap:8px;flex-wrap:wrap}
+#dsRoot .ds-open button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:14px;border:1px solid var(--line);background:#fff;cursor:pointer;font:600 13px var(--sans);color:var(--ink)}
+#dsRoot .ds-open button b{background:var(--goldl);color:#7a5714;border-radius:999px;padding:1px 8px;font-size:12px}
+#dsRoot .ds-open button:hover{border-color:var(--line2);background:var(--sur2)}
+#dsRoot .ds-cust{width:100%;display:flex;gap:10px;align-items:center;padding:8px 6px;border:0;border-radius:12px;background:transparent;cursor:pointer;text-align:left;font:inherit;color:var(--ink);min-height:52px}
+#dsRoot .ds-cust:hover{background:var(--sur2)}
+#dsRoot .ds-av{flex:0 0 auto;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--indigol);color:var(--indigo);font:700 13px var(--sans)}
+#dsRoot .ds-cust .nm{font-weight:600;font-size:13.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dsRoot .ds-cust .sm{font-size:12px;color:var(--mute)}
+#dsRoot .ds-cust .n{margin-left:auto;font:700 13px var(--sans);color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
+#dsRoot .ds-feed{margin-top:12px}
+#dsRoot .ds-fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 10px}
+#dsRoot .ds-search{position:relative;flex:1 1 220px;min-width:0}
+#dsRoot .ds-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mute2);pointer-events:none}
+#dsRoot .ds-search input{width:100%;min-height:44px;padding:10px 12px 10px 38px;border-radius:12px;border:1px solid var(--line2);background:#fff;color:var(--ink)}
+#dsRoot .ds-fbar select{min-height:44px;border-radius:12px;border:1px solid var(--line2);background:#fff;padding:0 10px;color:var(--ink);max-width:100%}
+#dsRoot .ds-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+#dsRoot .ds-chips button{min-height:38px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink2);font:600 12.5px var(--sans);cursor:pointer}
+#dsRoot .ds-chips button span{color:var(--mute);font-weight:600;margin-left:4px}
+#dsRoot .ds-chips button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}#dsRoot .ds-chips button[aria-pressed="true"] span{color:rgba(255,255,255,.7)}
+#dsRoot .ds-items{list-style:none;margin:0;padding:0}
+#dsRoot .ds-it{width:100%;display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:12px;align-items:center;text-align:left;padding:10px 8px;border:0;border-bottom:1px solid var(--line);background:transparent;cursor:pointer;font:inherit;color:var(--ink);min-height:62px}
+#dsRoot .ds-it:hover{background:var(--sur2)}
+#dsRoot .ds-ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--sur2);color:var(--ink2)}
+#dsRoot .ds-ic.phone{background:#e3eefb;color:#1c5cab}#dsRoot .ds-ic.whatsapp{background:#ddf4ea;color:#0f6e4b}#dsRoot .ds-ic.web{background:#fde8de;color:#a5431c}
+#dsRoot .ds-ic.order,#dsRoot .ds-ic.ride{background:var(--goldl);color:#7a5714}#dsRoot .ds-ic.appt,#dsRoot .ds-ic.hotel,#dsRoot .ds-ic.hotel_request{background:var(--indigol);color:var(--indigo)}
+#dsRoot .ds-ic.callback{background:var(--teall);color:#0b6f6d}#dsRoot .ds-ic.ledger,#dsRoot .ds-ic.plan{background:var(--okl);color:#11703f}
+#dsRoot .ds-it .tt{font-weight:600;font-size:14px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dsRoot .ds-it .ss{font-size:12.5px;color:var(--ink2);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dsRoot .ds-it .mm{font-size:11.5px;color:var(--mute);display:block;margin-top:1px}
+#dsRoot .ds-it .rt{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:12px;color:var(--mute);white-space:nowrap}
+#dsRoot .ds-pill{display:inline-block;padding:2px 8px;border-radius:999px;font:600 11px var(--sans);background:var(--sur2);color:var(--ink2)}
+#dsRoot .ds-pill.ok{background:var(--okl);color:#11703f}#dsRoot .ds-pill.rose{background:var(--rosel);color:#a8204f}#dsRoot .ds-pill.gold{background:var(--goldl);color:#7a5714}
+#dsRoot .ds-pill.indigo{background:var(--indigol);color:var(--indigo)}#dsRoot .ds-pill.teal{background:var(--teall);color:#0b6f6d}
+#dsRoot .ds-more{display:flex;justify-content:center;margin-top:12px}
+#dsRoot .ds-skel{height:16px;border-radius:8px;background:linear-gradient(90deg,var(--sur2),#fff,var(--sur2));background-size:200% 100%;animation:dsSh 1.2s infinite}
+@keyframes dsSh{to{background-position:-200% 0}}
+#dsDrawer{position:fixed;inset:0;z-index:60;display:flex;justify-content:flex-end}
+#dsDrawer[hidden]{display:none}
+#dsDrawer .bk{position:absolute;inset:0;background:rgba(15,18,34,.38)}
+#dsDrawer .pn{position:relative;width:min(560px,100%);height:100%;background:var(--bg);box-shadow:var(--sh2);overflow:auto;padding:18px 18px 28px;animation:dsIn .18s ease-out}
+@keyframes dsIn{from{transform:translateX(24px);opacity:.6}}
+#dsDrawer .hd{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+#dsDrawer .hd h3{font-size:22px;line-height:1.2}
+#dsDrawer .x{min-width:44px;min-height:44px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:18px}
+#dsDrawer dl{display:grid;grid-template-columns:minmax(110px,38%) minmax(0,1fr);gap:0;margin:0;background:var(--sur);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+#dsDrawer dt,#dsDrawer dd{margin:0;padding:9px 12px;border-bottom:1px solid var(--line);font-size:13.5px}
+#dsDrawer dt{color:var(--mute)}#dsDrawer dd{color:var(--ink);overflow-wrap:anywhere}
+#dsDrawer dl>*:nth-last-child(-n+2){border-bottom:0}
+#dsDrawer .lines{width:100%;margin-top:12px;background:var(--sur);border:1px solid var(--line);border-radius:16px;overflow:hidden;border-collapse:separate;border-spacing:0}
+#dsDrawer .lines td{padding:8px 12px;border-bottom:1px solid var(--line);font-size:13.5px}#dsDrawer .lines tr:last-child td{border-bottom:0}#dsDrawer .lines td:last-child{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+#dsDrawer .chat{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+#dsDrawer .chat h4{margin:4px 0;font:600 13px var(--sans);color:var(--ink2)}
+#dsDrawer .bub{max-width:86%;padding:9px 12px;border-radius:14px;font-size:13.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+#dsDrawer .bub small{display:block;font-size:10.5px;opacity:.7;margin-bottom:2px;font-weight:600}
+#dsDrawer .bub.user{align-self:flex-start;background:#fff;border:1px solid var(--line)}
+#dsDrawer .bub.assistant{align-self:flex-end;background:var(--indigol);color:#1e1a6b}
+#dsDrawer .act{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}#dsDrawer .act .btn{min-height:44px}
+@media (max-width:1100px){#dsRoot .ds-r2{grid-template-columns:minmax(0,1fr)}#dsRoot .ds-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#dsRoot .ds-r3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){#dsRoot .ds-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#dsRoot .ds-kpi{padding:12px 12px 10px}#dsRoot .ds-kpi .val{font-size:24px}#dsRoot .ds-spark{display:none}
+  #dsRoot .ds-r3,#dsRoot .ds-r4,#dsRoot .ds-side{grid-template-columns:minmax(0,1fr)}#dsRoot .ds-head h2{font-size:25px}
+  #dsRoot .ds-it{grid-template-columns:34px minmax(0,1fr);gap:10px}#dsRoot .ds-it .rt{grid-column:2;flex-direction:row;justify-content:flex-start;align-items:center;gap:8px}#dsRoot .ds-ic{width:34px;height:34px}}
+@media (prefers-reduced-motion:reduce){#dsRoot .ds-skel,#dsDrawer .pn{animation:none}}
+</style>
+<div id="dsRoot">
+  <div class="ds-head">
+    <div><span class="tag indigo" data-i18n="dsh.tag">Dein Betrieb auf einen Blick</span><h2 id="dsHello">Übersicht</h2><p class="ds-sub" id="dsSub" data-i18n="dsh.sub">Alles, was dein Agent erledigt hat – Gespräche, Buchungen, Bestellungen und Umsatz, live aus allen Kanälen.</p></div>
+    <div class="ds-tools">
+      <span class="ds-live" id="dsLive" aria-live="polite"><i aria-hidden="true"></i><span data-i18n="dsh.live">Live</span></span>
+      <div class="ds-seg" role="group" id="dsDays" data-i18n-attr="aria-label:dsh.period" aria-label="Zeitraum"><button type="button" data-d="1" data-i18n="dsh.d1">24 Std.</button><button type="button" data-d="7" data-i18n="dsh.d7">7 Tage</button><button type="button" data-d="30" aria-pressed="true" data-i18n="dsh.d30">30 Tage</button><button type="button" data-d="90" data-i18n="dsh.d90">90 Tage</button></div>
+    </div>
+  </div>
+  <div class="ds-kpis" id="dsKpis"><div class="ds-kpi"><div class="ds-skel" style="width:60%"></div><div class="ds-skel" style="width:40%;height:28px;margin-top:8px"></div></div><div class="ds-kpi"><div class="ds-skel" style="width:60%"></div><div class="ds-skel" style="width:40%;height:28px;margin-top:8px"></div></div><div class="ds-kpi"><div class="ds-skel" style="width:60%"></div><div class="ds-skel" style="width:40%;height:28px;margin-top:8px"></div></div></div>
+  <div class="ds-row ds-r2">
+    <section class="card" aria-labelledby="dsChT">
+      <div class="ds-ch"><h3 id="dsChT" data-i18n="dsh.chart">Verlauf</h3>
+        <div class="ds-tabs" role="group" id="dsMetric" data-i18n-attr="aria-label:dsh.chart"><button type="button" data-m="answers" aria-pressed="true" data-i18n="dsh.m.answers">Antworten</button><button type="button" data-m="calls" data-i18n="dsh.m.calls">Anrufe</button><button type="button" data-m="actions" data-i18n="dsh.m.actions">Vorgänge</button></div></div>
+      <div class="ds-legend" id="dsLegend"></div>
+      <div class="ds-plot" id="dsChart"></div>
+      <details class="ds-tbl"><summary data-i18n="dsh.table">Als Tabelle anzeigen</summary><div style="overflow:auto;max-height:280px"><table id="dsTable"></table></div></details>
+    </section>
+    <aside class="ds-side">
+      <section class="card ds-bal" id="dsBal" aria-live="polite"></section>
+      <section class="card" id="dsAg"></section>
+    </aside>
+  </div>
+  <div class="ds-row ds-r3">
+    <section class="card ds-chan" aria-labelledby="dsChanT"><div class="ds-ch"><h3 id="dsChanT" data-i18n="dsh.channels">Kanäle</h3></div><div id="dsChan"></div></section>
+    <section class="card" aria-labelledby="dsHeatT"><div class="ds-ch"><h3 id="dsHeatT" data-i18n="dsh.heat">Stoßzeiten</h3></div><div id="dsHeat"></div></section>
+    <section class="card" aria-labelledby="dsOutT"><div class="ds-ch"><h3 id="dsOutT" data-i18n="dsh.results">Ergebnisse</h3></div><div id="dsOut"></div></section>
+  </div>
+  <div class="ds-row ds-r4">
+    <section class="card" aria-labelledby="dsOpenT"><div class="ds-ch"><h3 id="dsOpenT" data-i18n="dsh.open">Offene Vorgänge</h3></div><div id="dsOpen"></div></section>
+    <section class="card" aria-labelledby="dsTopT"><div class="ds-ch"><h3 id="dsTopT" data-i18n="dsh.top">Stammkunden</h3></div><div id="dsTop"></div></section>
+  </div>
+  <section class="card ds-feed" aria-labelledby="dsFeedT">
+    <div class="ds-ch"><h3 id="dsFeedT" data-i18n="dsh.feed">Alle Vorgänge</h3><button class="btn s" type="button" id="dsCsv" style="min-height:40px" data-i18n="dsh.csv">⬇ Export (CSV)</button></div>
+    <div class="ds-fbar">
+      <label class="ds-search"><span class="ds-sr" data-i18n="dsh.search">Suchen</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="dsQ" autocomplete="off" data-i18n-attr="placeholder:dsh.searchPh" placeholder="Name, Nummer, Code oder Text …"></label>
+      <label><span class="ds-sr" data-i18n="dsh.channel">Kanal</span><select id="dsChanSel"><option value="" data-i18n="dsh.allCh">Alle Kanäle</option><option value="phone" data-i18n="dsh.ch.phone">Telefon</option><option value="whatsapp">WhatsApp</option><option value="web" data-i18n="dsh.ch.web">Website</option><option value="studio">Studio</option></select></label>
+    </div>
+    <div class="ds-chips" id="dsTypes" role="group" data-i18n-attr="aria-label:dsh.filter" aria-label="Filter"></div>
+    <ul class="ds-items" id="dsItems" aria-live="polite"></ul>
+    <div class="ds-more"><button class="btn s" type="button" id="dsMore" hidden style="min-height:44px" data-i18n="dsh.more">Mehr laden</button></div>
+  </section>
+  <div id="dsDrawer" hidden><div class="bk" data-close="1"></div><div class="pn" role="dialog" aria-modal="true" aria-labelledby="dsDetT" id="dsDet"></div></div>
+</div>

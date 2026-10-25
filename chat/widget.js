@@ -18,6 +18,10 @@
   var LS='chw:lang:'+KEY.slice(-12), SS='chw:hist:'+KEY.slice(-12);
   function store(k,v){ try{ if(v===undefined) return window.localStorage.getItem(k); window.localStorage.setItem(k,v); }catch(e){} return null; }
   function sess(v){ try{ if(v===undefined) return JSON.parse(window.sessionStorage.getItem(SS)||'null'); window.sessionStorage.setItem(SS,JSON.stringify(v)); }catch(e){} return null; }
+  /* Besuch-Kennung (zufällig, nur in dieser Browser-Sitzung): fasst die Nachrichten eines Besuchs in der Übersicht des Betriebs zusammen */
+  var SID=(function(){ var k='chw:sid:'+KEY.slice(-12), v=''; try{ v=window.sessionStorage.getItem(k)||''; }catch(e){}
+    if(!/^[A-Za-z0-9_-]{8,64}$/.test(v)){ v=''; var a='abcdefghijklmnopqrstuvwxyz0123456789'; for(var i=0;i<24;i++) v+=a.charAt(Math.floor(Math.random()*a.length)); try{ window.sessionStorage.setItem(k,v); }catch(e){} }
+    return v; })();
   var lang=store(LS)||'', chosen=!!lang, meta={}, ui=null, hist=[], isOpen=false, busy=false, started=false, locked=null, greetEl=null;
 
   function boot(){
@@ -134,7 +138,7 @@
     function save(){ sess(hist.slice(-30)); }
     function send(t){ t=String(t||'').trim(); if(!t||busy) return; started=true; setChips([]); bubble('user',t); hist.push({role:'user',content:t}); save(); post(); }
     function post(){ busy=true; SB.disabled=true; M.setAttribute('aria-busy','true'); var ty=typing(), gone=function(){ if(ty.parentNode) ty.parentNode.removeChild(ty); };
-      fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:KEY,messages:hist.slice(-12),lang:lang||'de'})})
+      fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:KEY,messages:hist.slice(-12),lang:lang||'de',sid:SID})})
         .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ return {s:r.status,j:j||{}}; }); })
         .then(function(x){ gone(); var j=x.j;
           if(x.s===200 && j.reply){ hist.push({role:'assistant',content:String(j.reply)}); save();

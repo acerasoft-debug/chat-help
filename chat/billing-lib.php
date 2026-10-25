@@ -270,6 +270,18 @@ function bl_usage_log(int $acc, string $channel, string $provider, string $model
           ->execute([date('Y-m-d'),$ch,$pv,$md,$byok?1:0,$peak,$u['in'],$u['out'],$u['cache_read'],$u['cache_write']]);
     }catch(Throwable $e){ error_log('CH bl_usage_log: '.$e->getMessage()); }
 }
+/**
+ * Zahlungseingang für die Umsatz-Übersicht im Admin-Bereich (Stripe-Webhook): tatsächlich gezahlter Betrag in der Kassenwährung, einmal je Referenz.
+ * kind: tokens | plan | renewal
+ */
+function bl_payment_log(int $acc, string $kind, string $plan, int $cents, string $currency, string $ref): void {
+    if($acc<=0 || $ref==='' || $cents<0) return;
+    try{
+        th_db()->exec("CREATE TABLE IF NOT EXISTS payments (id INT AUTO_INCREMENT PRIMARY KEY, account_id INT NOT NULL, kind VARCHAR(12) NOT NULL, plan VARCHAR(40) NOT NULL DEFAULT '',
+            amount_cents INT NOT NULL DEFAULT 0, currency CHAR(3) NOT NULL DEFAULT 'EUR', ref VARCHAR(120) NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_ref (ref), INDEX(account_id), INDEX(created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        th_db()->prepare("INSERT IGNORE INTO payments(account_id,kind,plan,amount_cents,currency,ref) VALUES(?,?,?,?,?,?)")->execute([$acc,substr($kind,0,12),substr($plan,0,40),$cents,strtoupper(substr($currency ?: 'eur',0,3)),substr($ref,0,120)]);
+    }catch(Throwable $e){ error_log('CH bl_payment_log: '.$e->getMessage()); }
+}
 /** Anteil der Eingabe, die aus dem Prompt-Cache kam (0–1). */
 function bl_cache_share(int $in, int $cr, int $cw): float { $t=$in+$cr+$cw; return $t>0 ? round($cr/$t,3) : 0.0; }
 /** Betreiber der Plattform (db.php bzw. keybox: CH_ADMIN_EMAILS, Komma-getrennt; E-Mail oder „sha256:<hex>“ der kleingeschriebenen E-Mail) – sieht die Plattform-Kosten aller Konten. */
