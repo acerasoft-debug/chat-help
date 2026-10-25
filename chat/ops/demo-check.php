@@ -32,11 +32,14 @@ if($mode==='log'){   /* Server-Protokolle: letzte KI-Fehler (nur Fehlertexte der
         foreach(array_slice($L,-25) as $ln) echo "  $ln\n"; }
     if(!$cands) echo "Kein lesbares Fehlerprotokoll gefunden.\n"; }
 $cases=[]; if($mode==='all'){ foreach($DEMOS as $d){ $cases[]=[$d,'tr',$MSG['tr']]; } }
-if($mode==='tools') foreach($CONV as $d=>$turns){ $hist=[]; foreach($turns as $i=>$m){ $hist[]=['role'=>'user','content'=>$m];
+$only=(string)($_GET['demo'] ?? ''); if($only!=='') $CONV=array_intersect_key($CONV,[$only=>1]);
+$rep=max(1,min(5,(int)($_GET['rep'] ?? 1)));
+if($mode==='tools') for($r=0;$r<$rep;$r++) foreach($CONV as $d=>$turns){ $hist=[]; foreach($turns as $i=>$m){ $hist[]=['role'=>'user','content'=>$m];
         $n++; [$code,$j,$sec,$err,$raw]=$post(['agent'=>$d,'channel'=>'chat','messages'=>$hist,'lang'=>$d==='agent-hair-tr' ? 'de' : 'tr']);
         $ok=$code===200 && is_array($j) && empty($j['error']) && trim((string)($j['reply'] ?? ''))!=='';
         if(!$ok) $bad++;
         echo sprintf("%s %-18s #%d HTTP %d %4.1fs src=%s err=%s tools=%s | %s\n",$ok?'OK ':'XX ',$d,$i+1,$code,$sec,(string)($j['source'] ?? '-'),(string)($j['error'] ?? ($err ?: '-')),json_encode(array_map(fn($t)=>($t['name'] ?? '?').(($t['ok'] ?? true) ? '' : '!'),(array)($j['tools'] ?? []))),mb_substr(preg_replace('/\s+/',' ',(string)($j['reply'] ?? $raw)),0,140));
+        if(!$ok) echo "     detail: ".mb_substr(json_encode($j['detail'] ?? null,JSON_UNESCAPED_UNICODE),0,1500)."\n";
         if($ok) $hist[]=['role'=>'assistant','content'=>(string)$j['reply']]; else break;
         sleep(1); } }
 foreach($cases as [$d,$l,$m]){
