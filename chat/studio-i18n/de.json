@@ -3136,5 +3136,15 @@
 "num.areaPh":"Vorwahl, z. B. 0221",
 "num.find":"Nummern suchen",
 "num.none":"Keine freie Nummer mit dieser Vorwahl – andere Vorwahl versuchen oder leer lassen.",
-"num.ok":"Deine Nummer {n} ist aktiv – dein Agent nimmt ab sofort Anrufe an."
+"num.ok":"Deine Nummer {n} ist aktiv – dein Agent nimmt ab sofort Anrufe an.",
+"st.je_antwort":"Je Antwort",
+"bl.cent":"{c} Cent",
+"bl.cache":"Cache {p} %",
+"bl.pfT":"Plattform: echte KI-Kosten je Antwort",
+"bl.pfS":"Alle Konten und die Demo · Claude über ChatHelp (ohne eigene Schlüssel) · Ziel {c} Cent je Antwort",
+"bl.pfToday":"Heute",
+"bl.pfD7":"7 Tage",
+"bl.pfD30":"30 Tage",
+"bl.pfRow":"{n} Antworten · Ø {c} · {k}",
+"bl.pfNone":"Noch keine Antworten in diesem Zeitraum."
 }

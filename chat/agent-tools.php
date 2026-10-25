@@ -56,6 +56,7 @@ function ch_toolkit(int $acc, string $channel, string $from='', ?array $only=nul
         if($acc!==0) foreach(array_keys($i) as $ik){ if($ik==='force' || $ik==='account_id' || str_starts_with((string)$ik,'_')) unset($i[$ik]); }   // interne Schalter nie aus Modell-Eingaben übernehmen
         $r=($mods[$k]['exec'])($acc,$n,$i,$channel,$from); return is_array($r) ? $r : ['result'=>$r];
     };
+    if($hint!=='' && defined('TH_AI_SPLIT')) $hint=TH_AI_SPLIT.$hint;   // wechselnde Angaben (Uhrzeit, freie Termine, Kundenverlauf) hinter die Prompt-Cache-Grenze
     return ['hint'=>$hint,'tools'=>$tools,'exec'=>$exec,'modules'=>$active,'order'=>in_array('order',$active,true),'appt'=>in_array('appt',$active,true)];
 }
 /**

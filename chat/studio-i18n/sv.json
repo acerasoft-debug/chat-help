@@ -3135,4 +3135,14 @@
 "num.areaPh":"Riktnummer, t.ex. 08",
 "num.find":"Sök nummer",
 "num.none":"Inget ledigt nummer med detta riktnummer – prova ett annat eller lämna tomt.",
-"num.ok":"Ditt nummer {n} är aktivt – din agent svarar från och med nu."}
+"num.ok":"Ditt nummer {n} är aktivt – din agent svarar från och med nu.",
+"st.je_antwort":"Per svar",
+"bl.cent":"{c} cent",
+"bl.cache":"Cache {p} %",
+"bl.pfT":"Plattform: verklig AI-kostnad per svar",
+"bl.pfS":"Alla konton och demon · Claude via ChatHelp (utan egna nycklar) · mål {c} cent per svar",
+"bl.pfToday":"Idag",
+"bl.pfD7":"7 dagar",
+"bl.pfD30":"30 dagar",
+"bl.pfRow":"{n} svar · snitt {c} · {k}",
+"bl.pfNone":"Inga svar under perioden ännu."}

@@ -3135,4 +3135,14 @@
 "num.areaPh":"Area code, e.g. 0221",
 "num.find":"Find numbers",
 "num.none":"No free number with this area code – try another one or leave it empty.",
-"num.ok":"Your number {n} is live – your agent takes calls from now on."}
+"num.ok":"Your number {n} is live – your agent takes calls from now on.",
+"st.je_antwort":"Per answer",
+"bl.cent":"{c} cents",
+"bl.cache":"Cache {p}%",
+"bl.pfT":"Platform: real AI cost per answer",
+"bl.pfS":"All accounts and the demo · Claude via ChatHelp (without own keys) · target {c} cents per answer",
+"bl.pfToday":"Today",
+"bl.pfD7":"7 days",
+"bl.pfD30":"30 days",
+"bl.pfRow":"{n} answers · avg {c} · {k}",
+"bl.pfNone":"No answers in this period yet."}

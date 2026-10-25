@@ -3135,4 +3135,14 @@
 "num.areaPh":"Indicatif, p. ex. 01",
 "num.find":"Chercher des numéros",
 "num.none":"Aucun numéro libre avec cet indicatif – essayez-en un autre ou laissez vide.",
-"num.ok":"Votre numéro {n} est actif – votre agent prend les appels dès maintenant."}
+"num.ok":"Votre numéro {n} est actif – votre agent prend les appels dès maintenant.",
+"st.je_antwort":"Par réponse",
+"bl.cent":"{c} centimes",
+"bl.cache":"Cache {p} %",
+"bl.pfT":"Plateforme : coût IA réel par réponse",
+"bl.pfS":"Tous les comptes et la démo · Claude via ChatHelp (sans clés propres) · objectif {c} centimes par réponse",
+"bl.pfToday":"Aujourd’hui",
+"bl.pfD7":"7 jours",
+"bl.pfD30":"30 jours",
+"bl.pfRow":"{n} réponses · moy. {c} · {k}",
+"bl.pfNone":"Pas encore de réponses sur cette période."}

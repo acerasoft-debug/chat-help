@@ -54,6 +54,10 @@ function bl_bootstrap(): void {
         provider VARCHAR(12) NOT NULL, model VARCHAR(48) NOT NULL, byok TINYINT(1) NOT NULL DEFAULT 0, peak TINYINT(1) NOT NULL DEFAULT 0,
         calls INT NOT NULL DEFAULT 0, in_tok BIGINT NOT NULL DEFAULT 0, out_tok BIGINT NOT NULL DEFAULT 0, cache_read BIGINT NOT NULL DEFAULT 0, cache_write BIGINT NOT NULL DEFAULT 0,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq (account_id, ym, channel, provider, model, byok, peak)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    /* Plattform je Tag (alle Konten + Demo): echte Kosten je Antwort vorher/nachher messen (Prompt-Cache), ohne Kontobezug */
+    $p->exec("CREATE TABLE IF NOT EXISTS ai_usage_day (d DATE NOT NULL, channel VARCHAR(16) NOT NULL, provider VARCHAR(12) NOT NULL, model VARCHAR(48) NOT NULL,
+        byok TINYINT(1) NOT NULL DEFAULT 0, peak TINYINT(1) NOT NULL DEFAULT 0, calls INT NOT NULL DEFAULT 0, in_tok BIGINT NOT NULL DEFAULT 0, out_tok BIGINT NOT NULL DEFAULT 0,
+        cache_read BIGINT NOT NULL DEFAULT 0, cache_write BIGINT NOT NULL DEFAULT 0, PRIMARY KEY (d, channel, provider, model, byok, peak)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
 /* ============================================================== Lizenz, Betrieb, eigener Schlüssel */
@@ -247,16 +251,43 @@ function bl_deepseek_offpeak(?int $ts=null): bool {
     $t=(new DateTimeImmutable('@'.($ts ?? time())))->setTimezone(new DateTimeZone('UTC'))->format('H:i'); [$a,$b]=BL_DEEPSEEK_OFFPEAK_UTC;
     return $a<=$b ? ($t>=$a && $t<$b) : ($t>=$a || $t<$b);
 }
-/** Verbrauch eines KI-Aufrufs verbuchen (Konto > 0). Fehler werden nur protokolliert. */
+/** Verbrauch eines KI-Aufrufs (= einer Antwort, Werkzeug-Runden eingerechnet) verbuchen: je Konto/Monat (Konto 0 = Demo der Plattform) und plattformweit je Tag. */
 function bl_usage_log(int $acc, string $channel, string $provider, string $model, bool $byok, array $u): void {
-    if($acc<=0 || ($u['in']+$u['out']+$u['cache_read']+$u['cache_write'])<=0) return;
+    if($acc<0 || ($u['in']+$u['out']+$u['cache_read']+$u['cache_write'])<=0) return;
     try{
         bl_bootstrap(); $peak=($provider==='deepseek' && !bl_deepseek_offpeak()) ? 1 : 0;
-        $ch=substr(preg_replace('/[^a-z0-9-]/','',strtolower($channel)) ?: 'other',0,16);
+        $ch=substr(preg_replace('/[^a-z0-9-]/','',strtolower($channel)) ?: 'other',0,16); $pv=substr($provider,0,12); $md=substr($model,0,48);
         th_db()->prepare("INSERT INTO ai_usage(account_id,ym,channel,provider,model,byok,peak,calls,in_tok,out_tok,cache_read,cache_write) VALUES(?,?,?,?,?,?,?,1,?,?,?,?)
             ON DUPLICATE KEY UPDATE calls=calls+1,in_tok=in_tok+VALUES(in_tok),out_tok=out_tok+VALUES(out_tok),cache_read=cache_read+VALUES(cache_read),cache_write=cache_write+VALUES(cache_write),updated_at=NOW()")
-          ->execute([$acc,date('Y-m'),$ch,substr($provider,0,12),substr($model,0,48),$byok?1:0,$peak,$u['in'],$u['out'],$u['cache_read'],$u['cache_write']]);
+          ->execute([$acc,date('Y-m'),$ch,$pv,$md,$byok?1:0,$peak,$u['in'],$u['out'],$u['cache_read'],$u['cache_write']]);
+        th_db()->prepare("INSERT INTO ai_usage_day(d,channel,provider,model,byok,peak,calls,in_tok,out_tok,cache_read,cache_write) VALUES(?,?,?,?,?,?,1,?,?,?,?)
+            ON DUPLICATE KEY UPDATE calls=calls+1,in_tok=in_tok+VALUES(in_tok),out_tok=out_tok+VALUES(out_tok),cache_read=cache_read+VALUES(cache_read),cache_write=cache_write+VALUES(cache_write)")
+          ->execute([date('Y-m-d'),$ch,$pv,$md,$byok?1:0,$peak,$u['in'],$u['out'],$u['cache_read'],$u['cache_write']]);
     }catch(Throwable $e){ error_log('CH bl_usage_log: '.$e->getMessage()); }
+}
+/** Anteil der Eingabe, die aus dem Prompt-Cache kam (0–1). */
+function bl_cache_share(int $in, int $cr, int $cw): float { $t=$in+$cr+$cw; return $t>0 ? round($cr/$t,3) : 0.0; }
+/** Betreiber der Plattform (db.php bzw. keybox: CH_ADMIN_EMAILS, Komma-getrennt; E-Mail oder „sha256:<hex>“ der kleingeschriebenen E-Mail) – sieht die Plattform-Kosten aller Konten. */
+function bl_is_admin(int $acc): bool {
+    $l=defined('CH_ADMIN_EMAILS') ? (is_array(CH_ADMIN_EMAILS) ? CH_ADMIN_EMAILS : explode(',',(string)CH_ADMIN_EMAILS)) : []; $l=array_filter(array_map(fn($x)=>strtolower(trim((string)$x)),$l));
+    if($acc<=0 || !$l) return false; $s=th_db()->prepare("SELECT email FROM token_accounts WHERE id=?"); $s->execute([$acc]); $e=strtolower(trim((string)$s->fetchColumn()));
+    return $e!=='' && (in_array($e,$l,true) || in_array('sha256:'.hash('sha256',$e),$l,true));
+}
+/**
+ * Echte Kosten je Antwort der Plattform (Claude über ChatHelp, ohne eigene Schlüssel) aus ai_usage_day: Zeitraum [from, to), je Kanal und gesamt.
+ * Rückgabe: ['from','to','channels'=>[{channel,label,answers,eur,cent_per_answer,cache_share,in,out,cache_read,cache_write}],'total'=>{…}]
+ */
+function bl_answer_costs(string $from, string $to): array {
+    bl_bootstrap(); $fx=bl_usd_eur(); $ch=[]; $tot=['answers'=>0,'eur'=>0.0,'in'=>0,'out'=>0,'cache_read'=>0,'cache_write'=>0];
+    $s=th_db()->prepare("SELECT channel,model,peak,SUM(calls) c,SUM(in_tok) i,SUM(out_tok) o,SUM(cache_read) cr,SUM(cache_write) cw FROM ai_usage_day WHERE d>=? AND d<? AND byok=0 GROUP BY channel,model,peak");
+    $s->execute([$from,$to]);
+    foreach($s->fetchAll(PDO::FETCH_ASSOC) as $r){ $c=(string)$r['channel'];
+        $ch[$c]??=['channel'=>$c,'label'=>BL_CHANNEL_LABELS[$c] ?? $c,'answers'=>0,'eur'=>0.0,'in'=>0,'out'=>0,'cache_read'=>0,'cache_write'=>0];
+        $eur=bl_cost_usd((string)$r['model'],(bool)(int)$r['peak'],(int)$r['i'],(int)$r['o'],(int)$r['cr'],(int)$r['cw'])*$fx;
+        foreach([&$ch[$c],&$tot] as &$x){ $x['answers']+=(int)$r['c']; $x['eur']+=$eur; $x['in']+=(int)$r['i']; $x['out']+=(int)$r['o']; $x['cache_read']+=(int)$r['cr']; $x['cache_write']+=(int)$r['cw']; } unset($x); }
+    $fin=function(array $x){ $x['cent_per_answer']=$x['answers'] ? round(100*$x['eur']/$x['answers'],3) : null; $x['cache_share']=bl_cache_share($x['in'],$x['cache_read'],$x['cache_write']); $x['eur']=round($x['eur'],4); return $x; };
+    $pos=array_flip(array_keys(BL_CHANNEL_LABELS)); $list=array_map($fin,array_values($ch)); usort($list,fn($a,$b)=>($pos[$a['channel']] ?? 99) <=> ($pos[$b['channel']] ?? 99));
+    return ['from'=>$from,'to'=>$to,'channels'=>$list,'total'=>$fin($tot),'fx_usd_eur'=>$fx];
 }
 /** Geschätzte Kosten in USD nach Listenpreis. */
 function bl_cost_usd(string $model, bool $peak, int $in, int $out, int $cr=0, int $cw=0): float {
@@ -291,10 +322,14 @@ function bl_cost_overview(int $acc, string $ym=''): array {
     foreach($s->fetchAll(PDO::FETCH_ASSOC) as $r){ $c=bl_task_channel((string)$r['task']); $row($c); $ch[$c]['platform_tokens']+=(int)$r['t']; }
     $tot=['calls'=>0,'byok_eur'=>0.0,'platform_ai_eur'=>0.0,'platform_tokens'=>0,'platform_tokens_eur'=>0.0,'model_tokens'=>0];
     foreach($ch as &$c){
-        $c['platform_tokens_eur']=round($c['platform_tokens']*BL_TOKEN_EUR,2); $c['byok']['eur']=round($c['byok']['eur'],4); $c['platform_ai']['eur']=round($c['platform_ai']['eur'],4);
+        $c['platform_tokens_eur']=round($c['platform_tokens']*BL_TOKEN_EUR,2);
+        $ai=$c['byok']['eur']+$c['platform_ai']['eur']; $c['cent_per_answer']=$c['calls'] ? round(100*$ai/$c['calls'],3) : null;   // echte KI-Kosten je Antwort (mit Prompt-Cache)
+        $c['cache_share']=bl_cache_share($c['byok']['in']+$c['platform_ai']['in'],$c['byok']['cache_read']+$c['platform_ai']['cache_read'],$c['byok']['cache_write']+$c['platform_ai']['cache_write']);
+        $c['byok']['eur']=round($c['byok']['eur'],4); $c['platform_ai']['eur']=round($c['platform_ai']['eur'],4);
         $tot['calls']+=$c['calls']; $tot['byok_eur']+=$c['byok']['eur']; $tot['platform_ai_eur']+=$c['platform_ai']['eur']; $tot['platform_tokens']+=$c['platform_tokens']; $tot['platform_tokens_eur']+=$c['platform_tokens_eur'];
         foreach(['byok','platform_ai'] as $k) $tot['model_tokens']+=$c[$k]['in']+$c[$k]['out']+$c[$k]['cache_read']+$c[$k]['cache_write'];
     } unset($c);
+    $tot['cent_per_answer']=$tot['calls'] ? round(100*($tot['byok_eur']+$tot['platform_ai_eur'])/$tot['calls'],3) : null;
     foreach(['byok_eur','platform_ai_eur','platform_tokens_eur'] as $k) $tot[$k]=round($tot[$k],2);
     $pos=array_flip(array_keys(BL_CHANNEL_LABELS)); usort($ch,fn($a,$b)=>($pos[$a['channel']] ?? 99) <=> ($pos[$b['channel']] ?? 99));
     return ['month'=>$ym,'channels'=>array_values($ch),'totals'=>$tot,'fx_usd_eur'=>$fx,'token_eur'=>BL_TOKEN_EUR,

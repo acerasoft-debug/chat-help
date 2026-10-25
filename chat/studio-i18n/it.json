@@ -3135,4 +3135,14 @@
 "num.areaPh":"Prefisso, es. 02",
 "num.find":"Cerca numeri",
 "num.none":"Nessun numero libero con questo prefisso: prova un altro o lascia vuoto.",
-"num.ok":"Il tuo numero {n} è attivo: il tuo agente risponde da ora."}
+"num.ok":"Il tuo numero {n} è attivo: il tuo agente risponde da ora.",
+"st.je_antwort":"Per risposta",
+"bl.cent":"{c} centesimi",
+"bl.cache":"Cache {p}%",
+"bl.pfT":"Piattaforma: costo IA reale per risposta",
+"bl.pfS":"Tutti gli account e la demo · Claude tramite ChatHelp (senza chiavi proprie) · obiettivo {c} centesimi per risposta",
+"bl.pfToday":"Oggi",
+"bl.pfD7":"7 giorni",
+"bl.pfD30":"30 giorni",
+"bl.pfRow":"{n} risposte · media {c} · {k}",
+"bl.pfNone":"Ancora nessuna risposta in questo periodo."}

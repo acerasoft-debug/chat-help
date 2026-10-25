@@ -3135,4 +3135,14 @@
 "num.areaPh":"Şəhər kodu, məs. 12",
 "num.find":"Nömrə axtar",
 "num.none":"Bu kodla boş nömrə yoxdur – başqa kod yoxla və ya boş burax.",
-"num.ok":"{n} nömrən aktivdir – agentin artıq zəngləri qəbul edir."}
+"num.ok":"{n} nömrən aktivdir – agentin artıq zəngləri qəbul edir.",
+"st.je_antwort":"Cavab başına",
+"bl.cent":"{c} sent",
+"bl.cache":"Keş {p}%",
+"bl.pfT":"Platforma: cavab başına real süni intellekt xərci",
+"bl.pfS":"Bütün hesablar və demo · ChatHelp üzərindən Claude (öz açarlar istisna) · hədəf cavab başına {c} sent",
+"bl.pfToday":"Bu gün",
+"bl.pfD7":"7 gün",
+"bl.pfD30":"30 gün",
+"bl.pfRow":"{n} cavab · orta {c} · {k}",
+"bl.pfNone":"Bu dövrdə hələ cavab yoxdur."}

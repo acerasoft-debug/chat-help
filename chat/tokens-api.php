@@ -205,7 +205,10 @@ switch(true){
   case $r==='billing' && $m==='GET':
     th_json(200,['licenses'=>bl_billing_overview($aid,(string)$acc['email']),'balance'=>th_balance_ledger($aid),'byok'=>bl_byok_public($aid),'tiers'=>CH_RUN_TIERS,'included_days'=>CH_BUY_INCLUDED_DAYS]);
   case $r==='usage' && $m==='GET':
-    th_json(200,bl_cost_overview($aid,(string)($_GET['month'] ?? '')));
+    $ov=bl_cost_overview($aid,(string)($_GET['month'] ?? ''));
+    /* Betreiber: echte Plattform-Kosten je Antwort (alle Konten + Demo, Claude über ChatHelp) – heute, 7 und 30 Tage */
+    if(bl_is_admin($aid)){ $d=fn(int $n)=>date('Y-m-d',strtotime(($n>=0?'+':'').$n.' day')); $ov['platform']=['today'=>bl_answer_costs($d(0),$d(1)),'d7'=>bl_answer_costs($d(-6),$d(1)),'d30'=>bl_answer_costs($d(-29),$d(1)),'target_cent'=>0.52]; }
+    th_json(200,$ov);
 
   /* ---- Terminbuchung (Kalender des Kontos) ---- */
   case $r==='appt/settings' && $m==='GET':

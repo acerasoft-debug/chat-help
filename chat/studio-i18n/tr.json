@@ -3135,4 +3135,14 @@
 "num.areaPh":"Alan kodu, ör. 0212",
 "num.find":"Numara ara",
 "num.none":"Bu alan koduyla boş numara yok – başka bir kod dene ya da boş bırak.",
-"num.ok":"{n} numaran aktif – agentin artık aramaları karşılıyor."}
+"num.ok":"{n} numaran aktif – agentin artık aramaları karşılıyor.",
+"st.je_antwort":"Yanıt başına",
+"bl.cent":"{c} sent",
+"bl.cache":"Önbellek %{p}",
+"bl.pfT":"Platform: yanıt başına gerçek yapay zekâ maliyeti",
+"bl.pfS":"Tüm hesaplar ve demo · ChatHelp üzerinden Claude (kendi anahtarlar hariç) · hedef yanıt başına {c} sent",
+"bl.pfToday":"Bugün",
+"bl.pfD7":"7 gün",
+"bl.pfD30":"30 gün",
+"bl.pfRow":"{n} yanıt · ort. {c} · {k}",
+"bl.pfNone":"Bu dönemde henüz yanıt yok."}

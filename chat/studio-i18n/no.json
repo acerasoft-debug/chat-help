@@ -3135,4 +3135,14 @@
 "num.areaPh":"Retningsnummer, f.eks. 22",
 "num.find":"Finn numre",
 "num.none":"Ingen ledige numre med dette retningsnummeret – prøv et annet eller la stå tomt.",
-"num.ok":"Nummeret ditt {n} er aktivt – agenten svarer fra nå av."}
+"num.ok":"Nummeret ditt {n} er aktivt – agenten svarer fra nå av.",
+"st.je_antwort":"Per svar",
+"bl.cent":"{c} cent",
+"bl.cache":"Hurtigbuffer {p} %",
+"bl.pfT":"Plattform: reell KI-kostnad per svar",
+"bl.pfS":"Alle kontoer og demoen · Claude via ChatHelp (uten egne nøkler) · mål {c} cent per svar",
+"bl.pfToday":"I dag",
+"bl.pfD7":"7 dager",
+"bl.pfD30":"30 dager",
+"bl.pfRow":"{n} svar · snitt {c} · {k}",
+"bl.pfNone":"Ingen svar i denne perioden ennå."}

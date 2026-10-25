@@ -3135,4 +3135,14 @@
 "num.areaPh":"Prefijo, p. ej. 91",
 "num.find":"Buscar números",
 "num.none":"No hay números libres con este prefijo: prueba otro o déjalo vacío.",
-"num.ok":"Tu número {n} está activo: tu agente ya atiende llamadas."}
+"num.ok":"Tu número {n} está activo: tu agente ya atiende llamadas.",
+"st.je_antwort":"Por respuesta",
+"bl.cent":"{c} céntimos",
+"bl.cache":"Caché {p} %",
+"bl.pfT":"Plataforma: coste real de IA por respuesta",
+"bl.pfS":"Todas las cuentas y la demo · Claude a través de ChatHelp (sin claves propias) · objetivo {c} céntimos por respuesta",
+"bl.pfToday":"Hoy",
+"bl.pfD7":"7 días",
+"bl.pfD30":"30 días",
+"bl.pfRow":"{n} respuestas · media {c} · {k}",
+"bl.pfNone":"Todavía no hay respuestas en este periodo."}

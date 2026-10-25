@@ -381,6 +381,20 @@ function th_ai_models(): array {
     $m = (defined('CLAUDE_MODEL') && CLAUDE_MODEL) ? [CLAUDE_MODEL] : [];
     return array_values(array_unique(array_merge($m, ['claude-sonnet-5-5','claude-sonnet-4-6','claude-sonnet-4-5'])));
 }
+/**
+ * Prompt-Cache (Anthropic): Grenze im Systemtext. Davor steht der feste Teil (Rolle, Wissensbasis, Regeln) – er bekommt cache_control und wird
+ * mit den Werkzeugen als gemeinsamer Präfix aus dem Cache gelesen (ca. 0,1× Eingabepreis). Danach stehen wechselnde Angaben (Uhrzeit, freie Termine,
+ * Anrufer, Kundenverlauf). ch_toolkit() setzt die Grenze vor seine Hinweise; Kanäle mit eigenen wechselnden Zeilen setzen sie selbst davor.
+ */
+const TH_AI_SPLIT = "\x1E";
+function th_ai_sys_plain(string $s): string { return str_replace(TH_AI_SPLIT,'',$s); }
+/** System als Blöcke: fester Teil mit cache_control, wechselnder Teil ohne (erste Grenze zählt). */
+function th_ai_sys_blocks(string $s): array {
+    $i=strpos($s,TH_AI_SPLIT); $fix=$i===false ? $s : substr($s,0,$i); $var=$i===false ? '' : th_ai_sys_plain(substr($s,$i+1));
+    $o=[]; if(trim($fix)!=='') $o[]=['type'=>'text','text'=>$fix,'cache_control'=>['type'=>'ephemeral']];
+    if(trim($var)!=='') $o[]=['type'=>'text','text'=>$var];
+    return $o ?: [['type'=>'text','text'=>'-']];
+}
 /** Son th_ai() çağrısının bilgisi: provider, model, errors[], tool_calls[], byok (eigener Schlüssel benutzt), account, channel, usage */
 function th_ai_info(): array { return $GLOBALS['__th_ai_info'] ?? []; }
 /**
@@ -431,13 +445,19 @@ function th_ai_msgs(array $messages, bool $allowBlocks=false): array {
 function th_ai_route(array $route, string $system, array $msgs, ?array $tools, ?callable $exec, int $maxTokens, int $timeout, int $maxRounds, array &$st): ?string {
     $st+=['model'=>null,'errors'=>[],'auth'=>false,'auth_msg'=>'','ran'=>false,'usage'=>['in'=>0,'out'=>0,'cache_read'=>0,'cache_write'=>0],'tool_calls'=>[]];
     $hdr=['x-api-key: '.$route['key'],'anthropic-version: 2023-06-01','content-type: application/json'];
+    /* Claude: fester Systemteil mit Cache-Marke + automatische Cache-Stelle am Ende des Verlaufs (Folgeschritte lesen das Gespräch aus dem Cache) */
+    static $autoOff=false; $claude=($route['provider'] ?? '')==='claude';
+    $sysOut=$claude ? th_ai_sys_blocks($system) : th_ai_sys_plain($system);
     $model=null; $text='';
     for($round=0;$round<max(1,$maxRounds);$round++){
         $resp=null;
         foreach($model ? [$model] : (array)$route['models'] as $m){
-            $pl=['model'=>$m,'max_tokens'=>$maxTokens,'system'=>$system,'messages'=>$msgs]+(array)($route['extra'] ?? []);
+            $pl=['model'=>$m,'max_tokens'=>$maxTokens,'system'=>$sysOut,'messages'=>$msgs]+(array)($route['extra'] ?? []);
             if($tools) $pl['tools']=$tools;
+            if($claude && !$autoOff) $pl['cache_control']=['type'=>'ephemeral'];
             [$code,$r,$cerr]=th_ai_http((string)$route['url'],$hdr,$pl,$timeout);
+            if($code===400 && $claude && !$autoOff && stripos((string)($r['error']['message'] ?? ''),'cache_control')!==false){   // ohne automatische Cache-Stelle erneut (fester Teil bleibt im Cache)
+                $autoOff=true; unset($pl['cache_control']); [$code,$r,$cerr]=th_ai_http((string)$route['url'],$hdr,$pl,$timeout); }
             if($code===200 && is_array($r) && is_array($r['usage'] ?? null) && function_exists('bl_usage_norm')){ foreach(bl_usage_norm($r['usage']) as $k=>$v) $st['usage'][$k]+=$v; }
             $useful=false;
             if($code===200 && is_array($r) && !empty($r['content'])) foreach((array)$r['content'] as $blk){ $ty=is_array($blk) ? ($blk['type'] ?? 'text') : ''; if(($ty==='text' && trim((string)($blk['text'] ?? ''))!=='') || $ty==='tool_use'){ $useful=true; break; } }
@@ -516,7 +536,7 @@ function th_ai_run(string $system, array $msgs, ?array $tools, ?callable $exec, 
         $plain=th_ai_msgs(array_values(array_filter($msgs,fn($m)=>is_string($m['content'] ?? null))));
         if($plain && end($plain)['role']==='user'){
             [$code,$r,$cerr]=th_ai_http('https://api.deepseek.com/chat/completions',['Authorization: Bearer '.DEEPSEEK_KEY,'content-type: application/json'],
-                ['model'=>'deepseek-chat','max_tokens'=>$maxTokens,'messages'=>array_merge([['role'=>'system','content'=>$system]],$plain)],$timeout);
+                ['model'=>'deepseek-chat','max_tokens'=>$maxTokens,'messages'=>array_merge([['role'=>'system','content'=>th_ai_sys_plain($system)]],$plain)],$timeout);
             $txt=(string)($r['choices'][0]['message']['content'] ?? '');
             if(trim($txt)!==''){ $u=(function_exists('bl_usage_norm') && is_array($r['usage'] ?? null)) ? bl_usage_norm($r['usage']) : ['in'=>0,'out'=>0,'cache_read'=>0,'cache_write'=>0];
                 return $done($txt,['model'=>'deepseek-chat','usage'=>$u],['provider'=>'deepseek','byok'=>false]); }

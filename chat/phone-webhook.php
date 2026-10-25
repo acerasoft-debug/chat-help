@@ -307,8 +307,8 @@ $cfgL=$cfg; $cfgL['lang']=ch_lang_norm($defL) ?: (string)$cfg['lang'];
 $sys=ch_agent_system($pl,$cfgL,ch_lang_norm($L) ?: $L,true).CH_PHONE_RULES;
 if($L!=='de') $sys.="\nTELEFON-SPRACHE: Der Anrufer spricht ".(CH_LANGS[$L]['en'] ?? ($L==='pl' ? 'Polish (polski)' : $L)).". Sprich ausschließlich ".(CH_LANGS[$L]['en'] ?? 'Polish').": Zahlen, Preise, Uhrzeiten und Daten so, wie man sie in dieser Sprache ausspricht – die deutschen Beispiele oben nur sinngemäß übertragen.".($L==='az' ? ' Aserbaidschanisch, nicht Türkisch.' : '').($L==='ja' ? ' Höfliche Telefonsprache (です・ます, Keigo).' : '');
 if(!empty($cfg['phone_hours'])) $sys.="\nTelefonische Erreichbarkeit des Teams (für Rückrufe): ".$cfg['phone_hours'];
-if($cbx) $sys.="\n\n".(string)$cbx['system'];   // Rückruf-Kontext: wen wir anrufen und warum
-$sys.="\n".($outbound?'Nummer des Gesprächspartners':'Anrufer-Nummer')." (für Rückrufe, nicht vorlesen): ".($customer ?: 'unbekannt').". Aktuelle Zeit (Deutschland): ".(new DateTimeImmutable('now',new DateTimeZone('Europe/Berlin')))->format('l, d.m.Y H:i').".";
+if($cbx) $sys.=TH_AI_SPLIT."\n\n".(string)$cbx['system'];   // Rückruf-Kontext: wen wir anrufen und warum
+$sys.=TH_AI_SPLIT."\n".($outbound?'Nummer des Gesprächspartners':'Anrufer-Nummer')." (für Rückrufe, nicht vorlesen): ".($customer ?: 'unbekannt').". Aktuelle Zeit (Deutschland): ".(new DateTimeImmutable('now',new DateTimeZone('Europe/Berlin')))->format('l, d.m.Y H:i').".";
 $sys.="\nZeilen „[intern …]“ im Verlauf sind Systemnotizen (z. B. bereits angelegte Bestellung/Buchung mit Code) – beachten, nie vorlesen, nichts doppelt anlegen.";
 /* Verlauf für die KI: Werkzeug-Ergebnisse früherer Schritte als interne Notiz anhängen */
 $msgs=array_slice(array_values(array_map(fn($m)=>['role'=>$m['role'],'content'=>(string)$m['content'].(!empty($m['done'])?"\n[intern erledigt: ".implode(', ',(array)$m['done']).']':'')],

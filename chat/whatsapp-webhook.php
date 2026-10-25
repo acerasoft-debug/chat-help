@@ -90,7 +90,7 @@ foreach($incoming as $in){
         $hist=ord_wa_session($aid,$from); $hist[]=['role'=>'user','content'=>$text];
         $cost=CH_PRICING['widget_turn'];
         if(th_balance($aid) < $cost){ $replies[]=[$from,$ph!=='' ? t('ch.busy_call',$rl,['phone'=>$ph]) : t('ch.busy',$rl)]; continue; }
-        $sys=ch_agent_system($pl,$cfg,$rl,true)."\n\nKANAL: WhatsApp. Schreib wie ein freundlicher Mitarbeiter im Chat: kurze Nachrichten (max. 4–5 Zeilen), Emojis sparsam, Aufzählungen mit „•“, kein Markdown-Fett (WhatsApp zeigt *Sternchen*). Kunde: ".($in['name']?:'unbekannt').". Telefonnummer des Kunden (nicht erfragen): +".$from.". Zeilen „[intern …]“ im Verlauf sind Systemnotizen (z. B. bereits angelegte Bestellung) – beachten, aber nie zitieren und nichts doppelt anlegen.";
+        $sys=ch_agent_system($pl,$cfg,$rl,true)."\n\nKANAL: WhatsApp. Schreib wie ein freundlicher Mitarbeiter im Chat: kurze Nachrichten (max. 4–5 Zeilen), Emojis sparsam, Aufzählungen mit „•“, kein Markdown-Fett (WhatsApp zeigt *Sternchen*).".TH_AI_SPLIT." Kunde: ".($in['name']?:'unbekannt').". Telefonnummer des Kunden (nicht erfragen): +".$from.". Zeilen „[intern …]“ im Verlauf sind Systemnotizen (z. B. bereits angelegte Bestellung) – beachten, aber nie zitieren und nichts doppelt anlegen.";
         $tk=ch_toolkit($aid,'whatsapp',$from); $sys.=$tk['hint'];
         $reply=$tk['tools'] ? th_ai_tools($sys,$hist,$tk['tools'],$tk['exec'],700,$sync?11:60,$sync?2:5) : th_ai($sys,$hist,600,$sync?11:45);
         if($reply===null){ $replies[]=[$from,$ph!=='' ? t('ch.glitch_call',$rl,['phone'=>$ph]) : t('ch.glitch',$rl)]; continue; }   // kein Abzug bei KI-Ausfall

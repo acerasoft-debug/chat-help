@@ -3135,4 +3135,14 @@
 "num.areaPh":"Netnummer, bijv. 020",
 "num.find":"Nummers zoeken",
 "num.none":"Geen vrij nummer met dit netnummer – probeer een ander of laat leeg.",
-"num.ok":"Je nummer {n} is actief – je agent neemt vanaf nu op."}
+"num.ok":"Je nummer {n} is actief – je agent neemt vanaf nu op.",
+"st.je_antwort":"Per antwoord",
+"bl.cent":"{c} cent",
+"bl.cache":"Cache {p}%",
+"bl.pfT":"Platform: echte AI-kosten per antwoord",
+"bl.pfS":"Alle accounts en de demo · Claude via ChatHelp (zonder eigen sleutels) · doel {c} cent per antwoord",
+"bl.pfToday":"Vandaag",
+"bl.pfD7":"7 dagen",
+"bl.pfD30":"30 dagen",
+"bl.pfRow":"{n} antwoorden · gem. {c} · {k}",
+"bl.pfNone":"Nog geen antwoorden in deze periode."}

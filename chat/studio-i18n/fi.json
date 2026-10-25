@@ -3135,4 +3135,14 @@
 "num.areaPh":"Suuntanumero, esim. 09",
 "num.find":"Hae numeroita",
 "num.none":"Tällä suuntanumerolla ei ole vapaita numeroita – kokeile toista tai jätä tyhjäksi.",
-"num.ok":"Numerosi {n} on käytössä – agenttisi vastaa nyt puheluihin."}
+"num.ok":"Numerosi {n} on käytössä – agenttisi vastaa nyt puheluihin.",
+"st.je_antwort":"Vastausta kohden",
+"bl.cent":"{c} senttiä",
+"bl.cache":"Välimuisti {p} %",
+"bl.pfT":"Alusta: todellinen tekoälykustannus vastausta kohden",
+"bl.pfS":"Kaikki tilit ja demo · Claude ChatHelpin kautta (ilman omia avaimia) · tavoite {c} senttiä vastausta kohden",
+"bl.pfToday":"Tänään",
+"bl.pfD7":"7 päivää",
+"bl.pfD30":"30 päivää",
+"bl.pfRow":"{n} vastausta · ka. {c} · {k}",
+"bl.pfNone":"Ei vielä vastauksia tällä jaksolla."}
