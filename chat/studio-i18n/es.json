@@ -3185,4 +3185,5 @@
 "adm.noKey":"falta la clave",
 "ph.prem":"Voz premium (ElevenLabs)",
 "ph.premH":"Locutor profesional especialmente natural al teléfono · +{n} tokens por respuesta. Sin premium habla la voz estándar (incluida en el paquete).",
-"adm.premium":"Voz premium (recargo)"}
+"adm.premium":"Voz premium (recargo)",
+"ai.deepNote":"Solo para chats sencillos de la web sin datos personales. Teléfono, WhatsApp, citas, pedidos, despacho y hotel funcionan siempre con Claude."}

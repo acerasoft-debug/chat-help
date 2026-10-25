@@ -3185,4 +3185,5 @@
 "adm.noKey":"açar yoxdur",
 "ph.prem":"Premium səs (ElevenLabs)",
 "ph.premH":"Telefonda xüsusilə təbii peşəkar diktor · cavab başına +{n} token. Premium olmadan standart səs danışır (paketə daxildir).",
-"adm.premium":"Premium səs (əlavə haqq)"}
+"adm.premium":"Premium səs (əlavə haqq)",
+"ai.deepNote":"Yalnız şəxsi məlumat olmayan sadə veb-sayt söhbətləri üçün. Telefon, WhatsApp, görüşlər, sifarişlər, hüquq bürosu və otel həmişə Claude ilə işləyir."}

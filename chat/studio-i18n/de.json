@@ -3186,5 +3186,6 @@
 "adm.noKey":"Schlüssel fehlt",
 "ph.prem":"Premium-Stimme (ElevenLabs)",
 "ph.premH":"Besonders natürlicher Profi-Sprecher am Telefon · +{n} Tokens je Antwort. Ohne Premium spricht die Standardstimme (im Paket enthalten).",
-"adm.premium":"Premium-Stimme (Aufpreis)"
+"adm.premium":"Premium-Stimme (Aufpreis)",
+"ai.deepNote":"Nur für einfache Website-Chats ohne Personendaten. Telefon, WhatsApp, Termine, Bestellungen, Kanzlei und Hotel laufen immer über Claude."
 }

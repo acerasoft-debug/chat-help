@@ -3185,4 +3185,5 @@
 "adm.noKey":"nøkkel mangler",
 "ph.prem":"Premiumstemme (ElevenLabs)",
 "ph.premH":"Spesielt naturlig profesjonell stemme på telefonen · +{n} tokens per svar. Uten premium snakker standardstemmen (inkludert i pakken).",
-"adm.premium":"Premiumstemme (tillegg)"}
+"adm.premium":"Premiumstemme (tillegg)",
+"ai.deepNote":"Kun for enkle nettsidechatter uten personopplysninger. Telefon, WhatsApp, timebestilling, bestillinger, advokatkontor og hotell går alltid via Claude."}

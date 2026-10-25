@@ -3185,4 +3185,5 @@
 "adm.noKey":"clé manquante",
 "ph.prem":"Voix premium (ElevenLabs)",
 "ph.premH":"Voix professionnelle particulièrement naturelle au téléphone · +{n} jetons par réponse. Sans premium, la voix standard (incluse dans le forfait) parle.",
-"adm.premium":"Voix premium (supplément)"}
+"adm.premium":"Voix premium (supplément)",
+"ai.deepNote":"Uniquement pour les chats simples du site sans données personnelles. Téléphone, WhatsApp, rendez-vous, commandes, cabinet d'avocats et hôtel passent toujours par Claude."}

@@ -3185,4 +3185,5 @@
 "adm.noKey":"key missing",
 "ph.prem":"Premium voice (ElevenLabs)",
 "ph.premH":"Especially natural professional speaker on the phone · +{n} tokens per answer. Without premium the standard voice speaks (included in the package).",
-"adm.premium":"Premium voice (surcharge)"}
+"adm.premium":"Premium voice (surcharge)",
+"ai.deepNote":"Only for simple website chats without personal data. Phone, WhatsApp, appointments, orders, law firm and hotel always run on Claude."}

@@ -3185,4 +3185,5 @@
 "adm.noKey":"avain puuttuu",
 "ph.prem":"Premium-ääni (ElevenLabs)",
 "ph.premH":"Erityisen luonnollinen ammattilaisääni puhelimessa · +{n} tokenia per vastaus. Ilman premiumia puhuu vakioääni (sisältyy pakettiin).",
-"adm.premium":"Premium-ääni (lisähinta)"}
+"adm.premium":"Premium-ääni (lisähinta)",
+"ai.deepNote":"Vain yksinkertaisiin verkkosivun keskusteluihin ilman henkilötietoja. Puhelin, WhatsApp, ajanvaraukset, tilaukset, asianajotoimisto ja hotelli toimivat aina Clauden kautta."}

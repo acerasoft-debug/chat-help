@@ -3185,4 +3185,5 @@
 "adm.noKey":"anahtar eksik",
 "ph.prem":"Premium ses (ElevenLabs)",
 "ph.premH":"Telefonda özellikle doğal profesyonel seslendirmen · yanıt başına +{n} token. Premium olmadan standart ses konuşur (pakete dahil).",
-"adm.premium":"Premium ses (ek ücret)"}
+"adm.premium":"Premium ses (ek ücret)",
+"ai.deepNote":"Yalnızca kişisel veri içermeyen basit web sitesi sohbetleri için. Telefon, WhatsApp, randevu, sipariş, hukuk bürosu ve otel her zaman Claude ile çalışır."}

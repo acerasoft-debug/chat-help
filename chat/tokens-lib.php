@@ -563,8 +563,11 @@ function th_ai_run(string $system, array $msgs, ?array $tools, ?callable $exec, 
             $info['errors'][]='deepseek-eu: '.($code ?: 'curl').' '.mb_substr((string)($r['error']['message'] ?? $cerr),0,120);
         }
     }
-    /* 1) eigener Schlüssel (Vertrag des Kunden mit seinem Anbieter; ein eigener DeepSeek-Schlüssel bleibt wie gebucht nutzbar – Einschränkung nur nach Rückfrage, Bestandskunden) */
+    /* 1) eigener Schlüssel (Vertrag des Kunden mit seinem Anbieter). Ein eigener DeepSeek-Schlüssel nur für einfache Chats ohne Personendaten
+          (Website/Studio, ohne Werkzeuge, freigegebene Pakete) – Telefon, WhatsApp, Termine, Bestellungen, Kanzlei, Hotel immer über Claude */
     $routes=($acc>0 && function_exists('bl_byok_routes')) ? bl_byok_routes($acc) : [];
+    $simple=!$tools && in_array($channel,['widget','studio'],true) && ch_ai_eco_plan((string)($GLOBALS['__th_ai_plan'] ?? ''));
+    if(!$simple) $routes=array_values(array_filter($routes,fn($r)=>($r['provider'] ?? '')!=='deepseek'));
     foreach($routes as $rt){
         $st=[]; $txt=th_ai_route($rt,$system,$msgs,$tools,$exec,$maxTokens,$timeout,$maxRounds,$st);
         if($txt!==null || $st['ran']){ if(function_exists('bl_byok_ok')) bl_byok_ok($acc,(string)$rt['provider']); return $done($txt,$st,$rt); }
