@@ -8,7 +8,7 @@
  *   • Folgeaufrufe: SpeechResult → KI (ch_agent_system + Telefonregeln) → <Say> Antwort → erneut <Gather>.
  *   • Antwort enthält [WEITERLEITEN] → <Dial> phone_forward (wenn gesetzt), sonst Rückruf-Zusage; [ENDE] → <Hangup>.
  *   • Status-Callback (CallStatus completed/…): Anruf abschließen.
- *   • Tokens: CH_PRICING['phone_turn'] je Antwort vom Konto des Agent-Besitzers; Transkript in phone_calls.
+ *   • Tokens: ch_phone_turn_tokens() je Antwort (ChatHelp-Nummer 12, eigenes Twilio 9, Bestand 8) vom Konto des Agent-Besitzers; Transkript in phone_calls.
  * Sicherheit: X-Twilio-Signature wird mit dem Auth-Token des eigenen Twilio-Kontos (Studio → Verbindungen) bzw. TWILIO_AUTH_TOKEN geprüft.
  * Einrichtung: Twilio-Nummer → Voice → "A call comes in": Webhook (POST) auf obige URL; Status-Callback dieselbe URL.
  */
@@ -145,10 +145,27 @@ const PH_TX=[
  'ja'=>['offer'=>'日本語をご希望の方は、そのまま日本語でお話しください。','switch'=>'かしこまりました。日本語でご案内いたします。ご用件をお聞かせください。','repeat'=>'申し訳ございません、うまく聞き取れませんでした。','vm'=>'こんにちは。{company}のAIアシスタントです。折り返しのご依頼につきお電話いたしました。後ほど改めてお掛けします。失礼いたします。','hints'=>'予約, 折り返し, 注文, 配達, 持ち帰り, 営業時間'],
  'az'=>['offer'=>'Azərbaycan dilində danışmaq üçün sadəcə azərbaycanca danışın.','switch'=>'Əlbəttə, Azərbaycan dilində davam edək. Sizə necə kömək edə bilərəm?','repeat'=>'Bağışlayın, yaxşı başa düşmədim.','vm'=>'Salam, {company} şirkətinin rəqəmsal assistentidir. Geri zəng sorğunuzla bağlı zəng edirik, bir az sonra yenidən cəhd edəcəyik. Sağ olun.','hints'=>'görüş, geri zəng, sifariş, çatdırılma, götürmə, iş saatları, rezervasiya'],
 ];
+/** Grenzen je Paket: alle Leitungen belegt (lines), belegt + Weiterleitung (lines_fw), Höchstdauer erreicht (maxtime). */
+const PH_TL=[
+ 'de'=>['lines'=>'Leider sind gerade alle Leitungen belegt. Bitte rufen Sie in ein paar Minuten noch einmal an. Vielen Dank und auf Wiederhören.','lines_fw'=>'Gerade sind alle Leitungen belegt – ich verbinde Sie mit dem Team.','maxtime'=>'Wir sind leider am Ende der Gesprächszeit. Wir melden uns bei Bedarf gern zurück. Vielen Dank für Ihren Anruf und auf Wiederhören.'],
+ 'en'=>['lines'=>'Sorry, all lines are busy right now. Please call again in a few minutes. Thank you and goodbye.','lines_fw'=>'All lines are busy right now – let me connect you to the team.','maxtime'=>"We've reached the end of the call time. We'll be happy to get back to you if needed. Thank you for calling, goodbye."],
+ 'tr'=>['lines'=>'Şu anda tüm hatlarımız dolu. Lütfen birkaç dakika sonra tekrar arayın. Teşekkürler, iyi günler.','lines_fw'=>'Şu anda tüm hatlar dolu, sizi ekibe bağlıyorum.','maxtime'=>'Görüşme süremizin sonuna geldik. Gerekirse sizi memnuniyetle geri ararız. Aradığınız için teşekkürler, iyi günler.'],
+ 'fr'=>['lines'=>'Désolé, toutes les lignes sont occupées. Merci de rappeler dans quelques minutes. Au revoir.','lines_fw'=>'Toutes les lignes sont occupées – je vous mets en relation avec l’équipe.','maxtime'=>'Nous arrivons à la fin du temps d’appel. Nous vous recontacterons volontiers si besoin. Merci de votre appel, au revoir.'],
+ 'es'=>['lines'=>'Lo sentimos, todas las líneas están ocupadas. Por favor, vuelva a llamar en unos minutos. Gracias y adiós.','lines_fw'=>'Ahora mismo todas las líneas están ocupadas; le paso con el equipo.','maxtime'=>'Hemos llegado al final del tiempo de llamada. Si hace falta, le devolvemos la llamada con gusto. Gracias por llamar, adiós.'],
+ 'it'=>['lines'=>'Ci dispiace, tutte le linee sono occupate. La preghiamo di richiamare tra qualche minuto. Grazie e arrivederci.','lines_fw'=>'Al momento tutte le linee sono occupate: la metto in contatto con il team.','maxtime'=>'Siamo arrivati al termine del tempo di chiamata. Se serve, la richiameremo volentieri. Grazie per la chiamata, arrivederci.'],
+ 'nl'=>['lines'=>'Helaas zijn alle lijnen op dit moment bezet. Belt u over een paar minuten nog eens. Dank u wel en tot ziens.','lines_fw'=>'Alle lijnen zijn bezet – ik verbind u door met het team.','maxtime'=>'We zijn aan het einde van de gesprekstijd. We bellen u graag terug als dat nodig is. Bedankt voor uw telefoontje, tot ziens.'],
+ 'pl'=>['lines'=>'Niestety wszystkie linie są zajęte. Proszę zadzwonić ponownie za kilka minut. Dziękujemy, do widzenia.','lines_fw'=>'Wszystkie linie są zajęte – łączę z zespołem.','maxtime'=>'Dobiegł koniec czasu rozmowy. W razie potrzeby chętnie oddzwonimy. Dziękujemy za telefon, do widzenia.'],
+ 'ru'=>['lines'=>'К сожалению, сейчас все линии заняты. Пожалуйста, перезвоните через несколько минут. Спасибо, до свидания.','lines_fw'=>'Сейчас все линии заняты – соединяю вас с командой.','maxtime'=>'Время разговора подошло к концу. При необходимости мы с удовольствием перезвоним. Спасибо за звонок, до свидания.'],
+ 'sv'=>['lines'=>'Tyvärr är alla linjer upptagna just nu. Ring gärna igen om några minuter. Tack och hej då.','lines_fw'=>'Alla linjer är upptagna just nu – jag kopplar dig till teamet.','maxtime'=>'Samtalstiden är slut. Vi ringer gärna tillbaka vid behov. Tack för samtalet, hej då.'],
+ 'no'=>['lines'=>'Beklager, alle linjer er opptatt akkurat nå. Ring gjerne igjen om noen minutter. Takk og ha det.','lines_fw'=>'Alle linjer er opptatt – jeg setter deg over til teamet.','maxtime'=>'Samtaletiden er over. Vi ringer gjerne tilbake ved behov. Takk for at du ringte, ha det.'],
+ 'fi'=>['lines'=>'Valitettavasti kaikki linjat ovat varattuina. Soitathan uudelleen muutaman minuutin kuluttua. Kiitos ja näkemiin.','lines_fw'=>'Kaikki linjat ovat varattuina – yhdistän sinut tiimille.','maxtime'=>'Puheaika on päättymässä. Soitamme mielellämme takaisin tarvittaessa. Kiitos soitostasi, näkemiin.'],
+ 'ja'=>['lines'=>'申し訳ございません。ただいま回線が大変混み合っております。数分後におかけ直しください。お電話ありがとうございました。','lines_fw'=>'ただいま回線が混み合っておりますので、担当者におつなぎします。','maxtime'=>'通話時間の上限となりました。必要に応じて折り返しご連絡いたします。お電話ありがとうございました。'],
+ 'az'=>['lines'=>'Təəssüf ki, hazırda bütün xətlər məşğuldur. Zəhmət olmasa bir neçə dəqiqədən sonra yenidən zəng edin. Təşəkkürlər, sağ olun.','lines_fw'=>'Hazırda bütün xətlər məşğuldur, sizi komandaya qoşuram.','maxtime'=>'Danışıq vaxtımızın sonuna çatdıq. Lazım olsa, sizə məmnuniyyətlə geri zəng edərik. Zəng etdiyiniz üçün təşəkkürlər, sağ olun.'],
+];
 /** Sprachcode (2 Buchstaben) aus Locale oder Code: 'nb-NO' → 'no'. */
 function ph_l2(string $loc): string { $l=strtolower(substr($loc,0,2)); return ($l==='nb' || $l==='nn') ? 'no' : $l; }
 /** Fester Satz in der Sprache des Anrufs (Locale oder Code); fehlt er, Englisch, dann Deutsch. */
-function ph_t(string $k, string $lang){ $l=ph_l2($lang); return PH_T[$l][$k] ?? PH_TX[$l][$k] ?? PH_T['en'][$k] ?? PH_TX['en'][$k] ?? PH_T['de'][$k] ?? PH_TX['de'][$k] ?? ''; }
+function ph_t(string $k, string $lang){ $l=ph_l2($lang); return PH_T[$l][$k] ?? PH_TX[$l][$k] ?? PH_TL[$l][$k] ?? PH_T['en'][$k] ?? PH_TX['en'][$k] ?? PH_TL['en'][$k] ?? PH_T['de'][$k] ?? PH_TX['de'][$k] ?? ''; }
 /** Twilio-Locale einer Anrufsprache: Standardsprache → eingestellte Locale (z. B. en-GB), sonst Tabelle CH_LANGS (i18n.php). */
 function ph_locale(string $l): string { $def=$GLOBALS['ph_def_locale'] ?? 'de-DE'; if($l===ph_l2($def)) return $def; return CH_LANGS[$l]['phone'] ?? ($l==='pl' ? 'pl-PL' : 'de-DE'); }
 /** Kurze menschliche Überbrückung, wenn das Nachschlagen (Kalender, Karte, Adresse) etwas dauert. */
@@ -232,6 +249,8 @@ if(isset($_GET['dial'])){
 $call=th_call($sid) ?: th_call_start($aid,$pl['id'],$sid,$from,$to);
 $tr=json_decode((string)($call['transcript'] ?? '[]'),true) ?: [];
 $turns=(int)($call['turns'] ?? 0); $silent=(int)($call['silent'] ?? 0);
+/* Grenzen je Paket (Studio → Einstellungen): Höchstdauer je Gespräch, gleichzeitige Gespräche */
+$lim=ch_phone_limits($pl['id']); $elapsed=th_call_elapsed($sid);
 
 /* Antwort der KI abholen (Warteschleife): Die KI rechnet nach dem Abschicken der Antwort an Twilio im Hintergrund weiter.
    Ist sie nach ~2,5 s fertig, antwortet der Agent sofort; sonst sagt er kurz „Einen Moment …“ und holt die Antwort danach ab. Kein 15-s-Timeout von Twilio.
@@ -251,6 +270,13 @@ if($wait!==null){
 
 /* Begrüßung: Standardsprache + kurzes Sprachangebot („For English, just speak English.“); bekannter Anrufer → gleich in seiner Sprache */
 if($speech==='' && $turns===0 && !$tr){
+    /* Alle Leitungen des Pakets belegt → an das Team weiterleiten (falls hinterlegt), sonst freundlich später anrufen lassen */
+    if(!$cbx && !$outbound && th_calls_active($aid,ch_plan_variants($pl['id']),$sid,$lim['max_call_sec'])>=$lim['concurrent']){
+        th_call_update($sid,['outcome'=>'lines_busy']);
+        $fw=(string)$cfg['phone_forward'];
+        if($fw!=='') twiml(say(ph_t('lines_fw',$lang),$lang).'<Dial timeout="25"'.($ourNumber!==''?' callerId="'.x($ourNumber).'"':'').' action="'.x($self.'&dial=1').'" method="POST">'.x($fw).'</Dial>');
+        th_call_update($sid,['status'=>'completed','ended_at'=>'NOW()']); twiml(say(ph_t('lines',$lang),$lang).'<Hangup/>');
+    }
     $rem=$peer!=='' ? ch_conv_lang_get($aid,'phone',$peer) : null;
     if($rem && $rem['lang']!==$defL && in_array($rem['lang'],$allowed,true)){ $L=$rem['lang']; $lang=ph_locale($L); $hints=$hintsFor($L); }
     ch_conv_lang_set($aid,'call',$sid,$L,0);
@@ -295,8 +321,11 @@ if($want!=='' && in_array($want,$allowed,true) && $want!==$L){
 
 /* Antwort der KI (Schutz: höchstens 40 KI-Schritte je Anruf, 2.000 je Konto und Tag) */
 if($turns>=40 || !th_rate('pd:'.$aid,2000,86400)) twiml(say(ph_t('max',$lang),$lang).'<Hangup/>');
+/* Höchstdauer erreicht → freundlich verabschieden und auflegen (kein KI-Schritt, keine Kosten) */
+if($elapsed>=$lim['max_call_sec']){ $tr[]=['role'=>'assistant','content'=>ph_t('maxtime',$lang)]; th_call_update($sid,['transcript'=>json_encode($tr,JSON_UNESCAPED_UNICODE),'outcome'=>'maxtime','status'=>'completed','ended_at'=>'NOW()']); twiml(say(ph_t('maxtime',$lang),$lang).'<Hangup/>'); }
+$closing=$elapsed>=$lim['max_call_sec']-75;   // die nächste Antwort ist die letzte (endet spätestens ~30 s vor der Höchstdauer)
 $tr[]=['role'=>'user','content'=>mb_substr($speech,0,1500)];
-$cost=CH_PRICING['phone_turn'];
+$cost=ch_phone_turn_tokens($aid,$pl['id']);   // 12 ChatHelp-Nummer · 9 eigenes Twilio · 8 Bestand
 if(th_balance($aid) < $cost){
     th_call_update($sid,['transcript'=>json_encode($tr,JSON_UNESCAPED_UNICODE),'outcome'=>'no_tokens']);
     $fw=$cfg['phone_forward'];
@@ -310,6 +339,7 @@ if(!empty($cfg['phone_hours'])) $sys.="\nTelefonische Erreichbarkeit des Teams (
 if($cbx) $sys.=TH_AI_SPLIT."\n\n".(string)$cbx['system'];   // Rückruf-Kontext: wen wir anrufen und warum
 $sys.=TH_AI_SPLIT."\n".($outbound?'Nummer des Gesprächspartners':'Anrufer-Nummer')." (für Rückrufe, nicht vorlesen): ".($customer ?: 'unbekannt').". Aktuelle Zeit (Deutschland): ".(new DateTimeImmutable('now',new DateTimeZone('Europe/Berlin')))->format('l, d.m.Y H:i').".";
 $sys.="\nZeilen „[intern …]“ im Verlauf sind Systemnotizen (z. B. bereits angelegte Bestellung/Buchung mit Code) – beachten, nie vorlesen, nichts doppelt anlegen.";
+if($closing) $sys.="\nGESPRÄCHSENDE: Die Höchstdauer dieses Anrufs ist gleich erreicht. Beantworte das Anliegen in einem Satz, fasse Vereinbartes kurz zusammen, biete bei Offenem einen Rückruf an, verabschiede dich herzlich und schreibe am Ende [ENDE].";
 /* Verlauf für die KI: Werkzeug-Ergebnisse früherer Schritte als interne Notiz anhängen */
 $msgs=array_slice(array_values(array_map(fn($m)=>['role'=>$m['role'],'content'=>(string)$m['content'].(!empty($m['done'])?"\n[intern erledigt: ".implode(', ',(array)$m['done']).']':'')],
     array_filter($tr,fn($m)=>in_array($m['role'] ?? '',['user','assistant'],true)))),-16);

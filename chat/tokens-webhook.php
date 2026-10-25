@@ -71,7 +71,7 @@ if($type==='checkout.session.completed'){
         $until=null;
         if($pl['kind']==='buy'){ $tm=isset($o['metadata']['term']) ? ch_buy_term($pl['id'],(int)$o['metadata']['term']) : null;   // Laufzeitwahl: Tage aus CH_BUY_TERMS (nicht aus den Metadaten)
             $until=bl_license_activate($aid,$pl['id'],$tm ? (int)$tm['days'] : 0); }   // Lizenz + Inklusiv-Betrieb (Bestandskauf ohne Enddatum bleibt unbefristet)
-        else th_plan_upsert($aid,$pl['id'],$subId,$subStatus,$periodEnd);
+        else { th_plan_upsert($aid,$pl['id'],$subId,$subStatus,$periodEnd); if($subId) th_plan_tokens($subId,is_numeric($o['metadata']['tokens'] ?? null) ? (int)$o['metadata']['tokens'] : (int)$pl['tokens']); }
         /* Betrieb und eigener Schlüssel schließen sich aus: das andere Folge-Abo derselben Lizenz endet zum Periodenende */
         if($run && $sk){ $other=($pl['kind']==='betrieb' ? 'byok-' : 'betrieb-').substr((string)$pl['license'],4);
             $st=th_db()->prepare("SELECT stripe_sub FROM token_plans WHERE account_id=? AND plan=? AND status IN ('active','trialing','past_due') AND stripe_sub IS NOT NULL"); $st->execute([$aid,$other]);
@@ -104,8 +104,11 @@ if($type==='invoice.paid'){
     $acc=th_account($email); $aid=(int)$acc['id'];
     $periodEnd=!empty($sub['current_period_end'])?date('Y-m-d H:i:s',(int)$sub['current_period_end']):null;
     th_plan_upsert($aid,$pl['id'],$subId,'active',$periodEnd);
-    $credited=$pl['tokens']>0 ? th_credit($aid,$pl['tokens'],'stripe:renewal',$o['id']) : false;   // eigener Schlüssel: keine Tokens, nur Plattformgebühr
-    if($credited) th_mail($email,'ChatHelp: '.number_format($pl['tokens'],0,',','.').' Tokens für '.$pl['name'].' gutgeschrieben', mail_plan($pl,th_balance_ledger($aid),null,false));
+    /* Bestandsschutz: gutgeschrieben wird die beim Kauf vereinbarte Menge (Abo-Metadaten), nicht der heutige Katalogwert – neue Pakete gelten nur für neue Käufe */
+    $tok=isset($sub['metadata']['tokens']) && is_numeric($sub['metadata']['tokens']) ? max(0,(int)$sub['metadata']['tokens']) : (int)$pl['tokens'];
+    th_plan_tokens($subId,$tok);
+    $credited=$tok>0 ? th_credit($aid,$tok,'stripe:renewal',$o['id']) : false;   // eigener Schlüssel: keine Tokens, nur Plattformgebühr
+    if($credited) th_mail($email,'ChatHelp: '.number_format($tok,0,',','.').' Tokens für '.$pl['name'].' gutgeschrieben', mail_plan(['tokens'=>$tok]+$pl,th_balance_ledger($aid),null,false));
     done(['ok'=>true,'renewal'=>$pl['id'],'credited'=>$credited]);
 }
 

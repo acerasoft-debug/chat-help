@@ -63,7 +63,15 @@ function charged(array $acc, int $cost, string $task, string $sector, callable $
     th_log_usage((int)$acc['id'],$task,$sector,$cost,(int)((microtime(true)-$t0)*1000));
     th_json(200,array_merge(['result'=>$result,'tokens_used'=>$cost,'balance'=>th_balance((int)$acc['id'])],$extra));
 }
-function plans_public(): array { $o=[]; foreach(CH_PLANS as $id=>$v){ $pl=ch_plan($id); $o[]=['id'=>$id,'name'=>$v[0],'eur_month'=>$v[1]/100,'tokens_month'=>$v[2],'sector'=>$v[3],'kind'=>$v[4],'desc'=>$v[5],
+/** Stufen eines Agenten für Website/Studio: Preis, Tokens und geschätzte Gesprächszeit (ChatHelp-Nummer; eigenes Twilio = mehr Stunden). */
+function plan_tiers_public(string $base): array {
+    if(!isset(CH_PLAN_TIERS[$base])) return []; $r=ch_phone_rates(); $o=[];
+    foreach(CH_PLAN_TIERS[$base] as $tid){ $t=ch_plan($tid); $tk=ch_plan_tier($tid); $o[]=['id'=>$tid,'key'=>$tk['key'],'label'=>CH_TIER_LABELS[$tk['key']] ?? '','name'=>$t['name'],'eur_month'=>$t['cents']/100,'tokens_month'=>$t['tokens'],
+        'time'=>bl_tokens_time((int)$t['tokens'],$r['central']),'time_own'=>bl_tokens_time((int)$t['tokens'],$r['own'])]; }
+    return $o;
+}
+function plans_public(): array { $o=[]; foreach(CH_PLANS as $id=>$v){ $pl=ch_plan($id); $o[]=['id'=>$id,'name'=>$v[0],'eur_month'=>$pl['cents']/100,'tokens_month'=>$pl['tokens'],'sector'=>$v[3],'kind'=>$v[4],'desc'=>$v[5],
+    'tier_of'=>$pl['tier_of'] ?? null]+(isset(CH_PLAN_TIERS[$id]) ? ['tiers'=>plan_tiers_public($id),'assumptions'=>bl_assumptions()] : [])+[
     'channels'=>$pl['channels'],'category'=>$pl['category'],'demo'=>isset(CH_DEMO[$pl['base']]) ? $pl['base'] : null]+($v[4]==='buy' ? ['followups'=>array_map(fn($f)=>['id'=>$f['id'],'kind'=>$f['kind'],'eur_month'=>$f['cents']/100,'tokens_month'=>$f['tokens']],ch_followups($id)),'included_days'=>ch_buy_included_days($id)] : []); } return $o; }
 /** Öffentliche, für alle gleiche Antwort: kurz cachebar (Browser 5 Min., Edge 10 Min.), ETag → 304. */
 function public_json(array $data): void {
@@ -80,6 +88,7 @@ function pricing_public(): array {
           'betrieb'=>isset($fu['betrieb']) ? ['id'=>$fu['betrieb']['id'],'price'=>$fu['betrieb']['cents']/100,'tokens'=>$fu['betrieb']['tokens']] : null,
           'byok'=>isset($fu['byok']) ? ['id'=>$fu['byok']['id'],'price'=>$fu['byok']['cents']/100] : null]; }
     return ['currency'=>'EUR','vat'=>'zzgl. USt.','included_days'=>CH_BUY_INCLUDED_DAYS,'tiers'=>CH_RUN_TIERS,'one_time'=>$buys,
+      'phone_tiers'=>array_combine(array_keys(CH_PLAN_TIERS),array_map('plan_tiers_public',array_keys(CH_PLAN_TIERS))),'assumptions'=>bl_assumptions(),'phone_rates'=>['central'=>ch_phone_rates()['central'],'own'=>ch_phone_rates()['own']],
       'byok'=>['providers'=>array_map(fn($c)=>['label'=>$c['label'],'model'=>$c['model']],BL_BYOK_PROVIDERS),'tokens_charged'=>0,
         'note'=>'Mit eigenem Claude- oder DeepSeek-Schlüssel zahlst du die KI direkt beim Anbieter; ChatHelp berechnet nur die Plattformgebühr.'],
       'ai_list_prices_usd_per_mtok'=>BL_AI_PRICES,'deepseek_offpeak_utc'=>BL_DEEPSEEK_OFFPEAK_UTC,'channels'=>CH_CHANNELS,
@@ -159,7 +168,8 @@ switch(true){
     $tr=th_db()->prepare("SELECT COUNT(*) FROM token_ledger WHERE account_id=? AND reason='trial'"); $tr->execute([$aid]);
     $byok=bl_byok_public($aid);
     th_json(200,['email'=>$acc['email'],'balance'=>th_balance_ledger($aid),'byok'=>['active'=>$byok['active'],'alert'=>$byok['alert'] ?? null],'channels'=>ch_account_channels($aid),'plans'=>$plans,'configs'=>$cf->fetchAll(PDO::FETCH_ASSOC),'trial'=>(int)$tr->fetchColumn()>0,
-      'pricing'=>['agent_turn'=>PRICING['agent_turn'],'widget_turn'=>PRICING['widget_turn'],'phone_turn'=>PRICING['phone_turn']],
+      'pricing'=>['agent_turn'=>PRICING['agent_turn'],'widget_turn'=>PRICING['widget_turn'],'phone_turn'=>PRICING['phone_turn'],'phone_call'=>(function() use($aid){ foreach(th_plans($aid) as $p){ if(in_array($p['status'],['active','trialing','past_due','license'],true) && ch_plan_has_channel((string)$p['plan'],'phone')) return ch_phone_turn_tokens($aid,(string)$p['plan']); } return ch_phone_rates()['central']; })()],
+      'admin'=>bl_is_admin($aid),
       'recent'=>array_map(fn($x)=>['created_at'=>th_dbiso($x['created_at'])]+$x,$u->fetchAll(PDO::FETCH_ASSOC)),'sectors'=>array_map(fn($k,$v)=>['id'=>$k,'name'=>$v['name']],array_keys(SECTORS),SECTORS)]);
 
   /* ---- Konto-Profil (Registrierungs-Assistent): Betrieb/privat, Branchen, Bedarf, Sprachen → Empfehlungen + Studio-Bereiche ---- */
@@ -204,6 +214,27 @@ switch(true){
   /* ---- Abrechnung: Lizenzen (Einmalkauf), Betrieb / eigener Schlüssel, Kostenübersicht ---- */
   case $r==='billing' && $m==='GET':
     th_json(200,['licenses'=>bl_billing_overview($aid,(string)$acc['email']),'balance'=>th_balance_ledger($aid),'byok'=>bl_byok_public($aid),'tiers'=>CH_RUN_TIERS,'included_days'=>CH_BUY_INCLUDED_DAYS]);
+  /* ---- Kontingent (Monats-Gesprächszeit) + Upgrade auf die nächste Stufe ---- */
+  case $r==='quota' && $m==='GET':
+    th_json(200,['quota'=>bl_quota_status($aid)]);
+  case $r==='plan/upgrade' && $m==='POST':
+    if(!th_rate('upg:'.$aid,5,3600)) th_json(429,['error'=>'rate_limited','message'=>'Bitte kurz warten.']);
+    $res=bl_plan_upgrade($aid,preg_replace('/[^a-z0-9-]/','',strtolower((string)($b['to'] ?? '')))); th_json(isset($res['error']) ? 409 : 200,$res+['quota'=>bl_quota_status($aid)]);
+  /* ---- Betreiber: Annahmen, Telefon-Grenzen, Tokens je Antwort, Paket-Anpassungen für neue Käufe (ch_settings) ---- */
+  case $r==='admin/settings' && in_array($m,['GET','POST'],true):
+    if(!bl_is_admin($aid)) th_json(403,['error'=>'forbidden']);
+    if($m==='POST'){ $in=is_array($b['settings'] ?? null) ? $b['settings'] : [];
+      $num=fn($v,$lo,$hi,$f=false)=>$v===null || $v==='' ? null : max($lo,min($hi,$f ? (float)$v : (int)$v));
+      if(isset($in['assumptions'])) ch_setting_set('assumptions',array_filter(['answers_per_hour'=>$num($in['assumptions']['answers_per_hour'] ?? null,20,600),'minutes_per_call'=>$num($in['assumptions']['minutes_per_call'] ?? null,0.5,30,true)],fn($x)=>$x!==null));
+      if(isset($in['phone_limits'])) ch_setting_set('phone_limits',array_filter(['max_call_min'=>$num($in['phone_limits']['max_call_min'] ?? null,2,60),'concurrent'=>$num($in['phone_limits']['concurrent'] ?? null,1,30),
+        'concurrent_by_plan'=>array_filter(array_map(fn($x)=>$num($x,1,30),array_intersect_key((array)($in['phone_limits']['concurrent_by_plan'] ?? []),CH_PLANS)),fn($x)=>$x!==null)],fn($x)=>$x!==null && $x!==[]));
+      if(isset($in['phone_rates'])) ch_setting_set('phone_rates',array_filter(['central'=>$num($in['phone_rates']['central'] ?? null,1,100),'own'=>$num($in['phone_rates']['own'] ?? null,1,100),'legacy'=>$num($in['phone_rates']['legacy'] ?? null,1,100)],fn($x)=>$x!==null));
+      if(isset($in['plan_overrides'])){ $ov=[]; foreach(array_intersect_key((array)$in['plan_overrides'],CH_PLANS) as $pid=>$o){ $c=$num($o['cents'] ?? null,100,10000000); $t=$num($o['tokens'] ?? null,0,100000000); if($c!==null || $t!==null) $ov[$pid]=array_filter(['cents'=>$c,'tokens'=>$t],fn($x)=>$x!==null); } ch_setting_set('plan_overrides',$ov); }
+    }
+    $tiers=[]; foreach(CH_PLAN_TIERS as $base=>$ids) foreach($ids as $pid){ $pl=ch_plan($pid); $tiers[]=['id'=>$pid,'base'=>$base,'name'=>$pl['name'],'cents'=>$pl['cents'],'tokens'=>$pl['tokens'],'catalog'=>['cents'=>CH_PLANS[$pid][1],'tokens'=>CH_PLANS[$pid][2]],'time_central'=>bl_tokens_time((int)$pl['tokens'],ch_phone_rates()['central']),'time_own'=>bl_tokens_time((int)$pl['tokens'],ch_phone_rates()['own'])]; }
+    th_json(200,['assumptions'=>bl_assumptions(),'phone_limits'=>ch_setting('phone_limits',[])+CH_PHONE_LIMITS_DEFAULT,'phone_rates'=>ch_phone_rates(),'plan_overrides'=>ch_setting('plan_overrides',[]),'tiers'=>$tiers,
+      'buy_amazon'=>['id'=>'buy-amazon-fba','cents'=>ch_plan('buy-amazon-fba')['cents'],'tokens'=>ch_plan('buy-amazon-fba')['tokens'],'catalog'=>['cents'=>CH_PLANS['buy-amazon-fba'][1],'tokens'=>CH_PLANS['buy-amazon-fba'][2]]]]);
+
   case $r==='usage' && $m==='GET':
     $ov=bl_cost_overview($aid,(string)($_GET['month'] ?? ''));
     /* Betreiber: echte Plattform-Kosten je Antwort (alle Konten + Demo, Claude über ChatHelp) – heute, 7 und 30 Tage */

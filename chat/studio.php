@@ -214,6 +214,7 @@ body.pf-lock{overflow:hidden}
     </div>
     <div id="agWork" class="hidden">
       <div class="row" style="justify-content:space-between;margin-bottom:12px"><div class="row"><button class="btn s" onclick="showList()" data-i18n="st.alle_agenten">← Alle Agenten</button><h2 id="wName" style="font-size:24px" data-i18n="st.agent">Agent</h2><span class="tag" id="wStatus">–</span></div><div class="row"><a class="btn s gold" id="wRent" href="#" target="_blank" data-i18n="st.agent_mieten">Agent mieten</a></div></div>
+      <div id="wTiers" class="hidden" style="margin:-4px 0 14px"></div>
       <div class="ws">
         <div>
           <div class="card">
@@ -371,8 +372,9 @@ body.pf-lock{overflow:hidden}
 
   <!-- Tokens & API -->
   <div id="pTokens" class="hidden">
+    <div id="qCard" class="card hidden" style="margin-bottom:16px"></div>
     <div class="grid g3">
-      <div class="card"><span class="tag" data-i18n="st.guthaben">Guthaben</span><div class="num" style="margin-top:10px" id="tBal">–</div><div class="mute small" data-i18n="st.chat_telefon_widget_tokens">Chat 6 · Telefon 8 · Widget 6 Tokens je Antwort</div><div class="row" style="margin-top:12px"><a class="btn s gold" href="/chat/tokens-checkout.php?pack=10k" target="_blank">10.000 · 49 €</a><a class="btn s" href="/chat/tokens-checkout.php?pack=50k" target="_blank">50.000 · 199 €</a><a class="btn s" href="/#preise" target="_blank" data-i18n="st.mehr">mehr</a></div></div>
+      <div class="card"><span class="tag" data-i18n="st.guthaben">Guthaben</span><div class="num" style="margin-top:10px" id="tBal">–</div><div class="mute small" id="tRates" data-i18n="st.chat_telefon_widget_tokens">Chat 6 · Telefon 8 · Widget 6 Tokens je Antwort</div><div class="row" style="margin-top:12px"><a class="btn s gold" href="/chat/tokens-checkout.php?pack=10k" target="_blank">10.000 · 49 €</a><a class="btn s" href="/chat/tokens-checkout.php?pack=50k" target="_blank">50.000 · 199 €</a><a class="btn s" href="/#preise" target="_blank" data-i18n="st.mehr">mehr</a></div></div>
       <div class="card"><span class="tag indigo">API-Key</span><div class="snip" id="tKey">–</div><div class="mute small" style="margin-top:8px" data-i18n="st.bearer_key_fuer_die">Bearer-Key für die REST-API. Bei Verdacht auf Missbrauch: abmelden und neu anmelden erzeugt einen neuen Key (alte bleiben gültig – Deaktivierung auf Anfrage).</div></div>
       <div class="card"><span class="tag teal" data-i18n="st.endpunkte">Endpunkte</span><div class="snip" style="margin-top:10px">POST /chat/tokens-api.php/v1/agent
 {"plan":"agent-kanzlei","messages":[{"role":"user","content":"…"}]}
@@ -392,6 +394,7 @@ GET|POST /v1/order/settings · GET /v1/order/orders</div></div>
         <div style="overflow:auto;margin-top:10px"><table id="useTbl"><thead><tr><th data-i18n="st.kanal">Kanal</th><th data-i18n="st.ki_aufrufe">KI-Aufrufe</th><th data-i18n="st.modell_tokens">Modell-Tokens</th><th data-i18n="st.ki_kosten">≈ KI-Kosten</th><th data-i18n="st.je_antwort">Je Antwort</th><th data-i18n="st.chathelp_tokens">ChatHelp-Tokens</th></tr></thead><tbody><tr><td colspan="6" class="mute">–</td></tr></tbody></table></div>
         <p class="mute small" id="useNote" style="margin:8px 0 0"></p><div id="useAdm" class="hidden" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"></div></div>
     </div>
+    <div id="admSet" class="card hidden" style="margin-top:16px"></div>
     <div class="card" style="margin-top:16px"><h3 style="font-size:19px" data-i18n="st.verbrauch">Verbrauch</h3><div style="overflow:auto;margin-top:10px"><table id="tRecent"><thead><tr><th data-i18n="st.zeit">Zeit</th><th data-i18n="st.aufgabe">Aufgabe</th><th data-i18n="st.bereich">Bereich</th><th data-i18n="st.tokens">Tokens</th></tr></thead><tbody></tbody></table></div></div>
   </div>
 </div>
@@ -706,7 +709,7 @@ $('#pfWiz').addEventListener('keydown',e=>{
 let filter='all';
 function renderAgents(){const f=$('#agFilter');const REC=profPlans();if(filter==='rec'&&!REC.length)filter='all';const F=[['all',_t('ag.f.all')],...(REC.length?[['rec',_t('ag.f.rec')]]:[]),['mine',_t('ag.f.mine')],['beruf',_t('ag.f.beruf')],['agent',_t('ag.f.agent')],['privat',_t('sj.forPrivate')],['abo',_t('ag.f.abo')]];f.innerHTML=F.map(([k,l])=>`<span class="chip${filter===k?' on':''}" style="${filter===k?'background:var(--ink);color:#fff;border-color:var(--ink)':''}" onclick="filter='${k}';renderAgents()">${l}</span>`).join('');
   const BERUF=['inkasso','kanzlei','steuer','versicherung','hausverwaltung','automotive','praxis','service'];
-  let list=PLANS.filter(p=>p.kind!=='buy');
+  let list=PLANS.filter(p=>p.kind!=='buy'&&!p.tier_of);   // Stufen (Klein/Intensiv) erscheinen beim Agenten selbst
   if(filter==='rec')list=list.filter(p=>REC.includes(p.id));if(filter==='mine')list=list.filter(p=>active(p.id));if(filter==='beruf')list=list.filter(p=>BERUF.includes(p.sector)&&p.kind==='agent');if(filter==='agent')list=list.filter(p=>p.kind==='agent');if(filter==='abo')list=list.filter(p=>p.kind==='abo'&&p.sector!=='privat');if(filter==='privat')list=list.filter(p=>p.sector==='privat');
   /* Reihenfolge: aktiv → passend zum Profil (Branche + Bedarf) → Berufsgruppen */
   const rk=id=>{const i=REC.indexOf(id);return i<0?99:i;};
@@ -716,6 +719,10 @@ function showList(){$('#agWork').classList.add('hidden');$('#agList').classList.
 async function openAgent(id){const p=planOf(id);if(!p)return;CUR=p;focusAdd(p.id);applyNav();HIST=[];$('#agList').classList.add('hidden');$('#agWork').classList.remove('hidden');go('agents');
   $('#wName').textContent=p.name;$('#wDesc').textContent=p.desc;$('#wStatus').textContent=active(id)?_t('ag.on'):_t('ag.studioTest',{n:ME.pricing.agent_turn});$('#wStatus').className='tag '+(active(id)?'ok':'');
   $('#wRent').href='/chat/tokens-checkout.php?plan='+id+'&_='+Date.now().toString(36);$('#wRent').classList.toggle('hidden',active(id));
+  /* Stufen (Telefon/Hotel): Paket mit geschätzter Gesprächszeit wählen – gebucht wird direkt die gewählte Stufe */
+  const wt=$('#wTiers');if(p.tiers&&p.tiers.length&&!active(id)){$('#wRent').classList.add('hidden');wt.classList.remove('hidden');
+    wt.innerHTML=`<div class="row" style="gap:8px;flex-wrap:wrap">${p.tiers.map(t=>`<a class="btn s${t.key==='m'?' gold':''}" style="min-height:44px" target="_blank" href="/chat/tokens-checkout.php?plan=${encodeURIComponent(t.id)}&_=${Date.now().toString(36)}">${esc(_t('tier.'+t.key))} · ${eurF(t.eur_month,0)} · ${esc(_t('tier.time',{h:n1(t.time.hours),c:de(t.time.calls)}))}</a>`).join('')}</div><div class="mute small" style="margin-top:6px">${_t('q.est',{a:p.assumptions.answers_per_hour,m:n1(p.assumptions.minutes_per_call)})}</div>`;}
+  else{wt.classList.add('hidden');wt.innerHTML='';}
   $('#wMs').innerHTML='';$('#wChips').innerHTML=(CHIPS[id]||CHIPS.default).map(c=>`<span class="chip" onclick="send(${JSON.stringify(c).replace(/"/g,'&quot;')})">${esc(c)}</span>`).join('');
   $('#wCost').textContent=active(id)?_t('ag.incl',{n:ME.pricing.agent_turn}):_t('ag.studioTest',{n:ME.pricing.agent_turn});
   try{const j=await api('/agent/config?plan='+id);CFG=j.config;$('#cCompany').value=CFG.company||'';$('#cTone').value=CFG.tone||'freundlich-professionell';$('#cLang').value=CFG.lang||'de';{const al=String(CFG.langs||'').split(',').filter(Boolean);document.querySelectorAll('#cLangs input').forEach(x=>{x.checked=!al.length||al.includes(x.value);});};$('#cKb').value=CFG.kb||'';$('#cWidgetOn').checked=!!+CFG.widget_on;$('#cDomain').value=CFG.widget_domain||'';
@@ -919,7 +926,31 @@ async function loadUsage(){const m=$('#useMonth').value||new Date().toISOString(
   renderPlatformCost(j.platform);
   $('#useNote').textContent=(_tx(j.note||'')||'')+' '+_t('bl.fx',{r:I18N.num(j.fx_usd_eur,{maximumFractionDigits:4})});}catch(e){$('#useNote').textContent=e.message;}}
 $('#useMonth').onchange=loadUsage;
-function renderTokens(){loadBilling();loadUsage();$('#tBal').textContent=de(ME.balance);$('#tKey').textContent=KEY.slice(0,16)+'…'+KEY.slice(-6)+'   '+_t('tk.full',{k:KEY});const tb=$('#tRecent tbody');tb.innerHTML=(ME.recent||[]).map(r=>`<tr><td>${I18N.dt(r.created_at)}</td><td>${esc(r.task)}</td><td>${esc(r.sector||'')}</td><td>${de(r.tokens)}</td></tr>`).join('')||'<tr><td colspan="4" class="mute">'+_t('tk.noUse')+'</td></tr>';}
+/* Gesprächszeit des Monats (GET /v1/quota) + Upgrade auf die nächste Stufe (POST /v1/plan/upgrade) */
+const n1=x=>I18N.num(x,{maximumFractionDigits:1}),n0=x=>I18N.num(Math.round(x));
+async function loadQuota(){try{const j=await api('/quota');renderQuota(j.quota);}catch(e){}}
+function renderQuota(q){const el=$('#qCard');if(!q){el.classList.add('hidden');el.innerHTML='';return;}el.classList.remove('hidden');const pct=Math.min(100,q.pct),warn=q.pct>=80,col=q.pct>=100?'var(--rose)':warn?'var(--gold)':'#1a9e5a';
+  el.innerHTML=`<div class="row" style="justify-content:space-between;gap:8px"><h3 style="font-size:19px;margin:0">${_t('q.title')}</h3><span class="tag ${q.pct>=100?'rose':warn?'gold':'ok'}">${pct} %</span></div>
+  <div class="mute small" style="margin-top:6px">${_t('q.used',{u:n1(q.time_used.hours),h:n1(q.time.hours),c:de(q.time.calls)})}</div>
+  <div style="height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:10px" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div style="height:8px;width:${pct}%;background:${col}"></div></div>
+  ${q.next?`<div class="row" style="justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap"><span class="small">${esc(warn?_t('q.up80',{n:q.next.name,h:n0(q.next.time.hours)}):_t('q.upMore',{n:q.next.name,h:n0(q.next.time.hours)}))}</span><button class="btn s${warn?' gold':''}" id="qUp" type="button" style="min-height:44px">${_t('q.btn')}</button></div>`:''}
+  <div class="mute small" style="margin-top:8px">${_t('q.est',{a:q.assumptions.answers_per_hour,m:n1(q.assumptions.minutes_per_call)})}</div><div id="qMsg"></div>`;
+  const b=$('#qUp');if(b)b.onclick=async()=>{if(!confirm(_t('q.confirm',{n:q.next.name,p:eurF(q.next.eur_month,0)})))return;b.disabled=true;
+    try{const r=await api('/plan/upgrade',{method:'POST',body:JSON.stringify({to:q.next.id})});await refreshMe();renderQuota(r.quota);msg($('#qMsg'),_t('q.done',{n:r.name}),'ok');}catch(e){b.disabled=false;msg($('#qMsg'),e.message,'err');}};}
+/* Betreiber: Annahmen, Telefon-Grenzen, Tokens je Antwort, Paketpreise für neue Käufe (GET/POST /v1/admin/settings) */
+async function loadAdmin(){const el=$('#admSet');if(!ME||!ME.admin){el.classList.add('hidden');return;}try{const S=await api('/admin/settings');renderAdmin(S);}catch(e){el.classList.add('hidden');}}
+function renderAdmin(S){const el=$('#admSet');el.classList.remove('hidden');const f=(id,v,lab,step)=>`<label class="small" style="display:block">${lab}<input type="number" id="${id}" value="${v}" step="${step||1}" min="0" style="display:block;width:100%;min-height:44px;margin-top:4px"></label>`;
+  el.innerHTML=`<h3 style="font-size:19px;margin:0 0 10px">${_t('adm.t')}</h3>
+  <div class="grid g3" style="gap:14px"><div><b class="small">${_t('adm.assume')}</b>${f('aAph',S.assumptions.answers_per_hour,_t('adm.aph'))}${f('aMpc',S.assumptions.minutes_per_call,_t('adm.mpc'),0.1)}</div>
+  <div><b class="small">${_t('adm.limits')}</b>${f('aMax',S.phone_limits.max_call_min,_t('adm.maxmin'))}${f('aConc',S.phone_limits.concurrent,_t('adm.conc'))}</div>
+  <div><b class="small">${_t('adm.rates')}</b>${f('aRc',S.phone_rates.central,_t('adm.central'))}${f('aRo',S.phone_rates.own,_t('adm.own'))}${f('aRl',S.phone_rates.legacy,_t('adm.legacy'))}</div></div>
+  <b class="small" style="display:block;margin-top:14px">${_t('adm.tiers')}</b>
+  <div style="overflow:auto"><table><tbody>${S.tiers.map(t=>`<tr data-plan="${esc(t.id)}"><td><b>${esc(t.name)}</b><div class="mute small">${_t('adm.hours',{h:n1(t.time_central.hours),c:de(t.time_central.calls),o:n1(t.time_own.hours)})}</div></td><td><label class="small">${_t('adm.price')}<input type="number" class="tc" value="${t.cents/100}" min="1" step="1" style="width:110px;min-height:44px;display:block"></label></td><td><label class="small">${_t('adm.tokens')}<input type="number" class="tt" value="${t.tokens}" min="0" step="100" style="width:130px;min-height:44px;display:block"></label></td></tr>`).join('')}</tbody></table></div>
+  <div class="row" style="margin-top:12px"><button class="btn p" id="aSave" type="button" style="min-height:44px">${_t('adm.save')}</button></div><div id="aMsg"></div>`;
+  $('#aSave').onclick=async()=>{const v=id=>$('#'+id).value;const ov={};el.querySelectorAll('tr[data-plan]').forEach(tr=>{const t=S.tiers.find(x=>x.id===tr.dataset.plan);const c=Math.round(parseFloat(tr.querySelector('.tc').value)*100),k=parseInt(tr.querySelector('.tt').value,10);const o={};if(c&&c!==t.catalog.cents)o.cents=c;if(!isNaN(k)&&k!==t.catalog.tokens)o.tokens=k;if(Object.keys(o).length)ov[t.id]=o;});
+    Object.keys(S.plan_overrides||{}).forEach(k=>{if(!S.tiers.some(t=>t.id===k))ov[k]=S.plan_overrides[k];});
+    $('#aSave').disabled=true;try{const R=await api('/admin/settings',{method:'POST',body:JSON.stringify({settings:{assumptions:{answers_per_hour:v('aAph'),minutes_per_call:v('aMpc')},phone_limits:{max_call_min:v('aMax'),concurrent:v('aConc'),concurrent_by_plan:(S.phone_limits.concurrent_by_plan||{})},phone_rates:{central:v('aRc'),own:v('aRo'),legacy:v('aRl')},plan_overrides:ov}})});renderAdmin(R);msg($('#aMsg'),_t('adm.saved'),'ok');loadQuota();}catch(e){$('#aSave').disabled=false;msg($('#aMsg'),e.message,'err');}};}
+function renderTokens(){loadBilling();loadUsage();loadQuota();loadAdmin();if(ME&&ME.pricing)$('#tRates').textContent=_t('tk.rates',{c:ME.pricing.agent_turn,p:ME.pricing.phone_call||ME.pricing.phone_turn,w:ME.pricing.widget_turn});$('#tBal').textContent=de(ME.balance);$('#tKey').textContent=KEY.slice(0,16)+'…'+KEY.slice(-6)+'   '+_t('tk.full',{k:KEY});const tb=$('#tRecent tbody');tb.innerHTML=(ME.recent||[]).map(r=>`<tr><td>${I18N.dt(r.created_at)}</td><td>${esc(r.task)}</td><td>${esc(r.sector||'')}</td><td>${de(r.tokens)}</td></tr>`).join('')||'<tr><td colspan="4" class="mute">'+_t('tk.noUse')+'</td></tr>';}
 boot();
 </script>
 </body></html>

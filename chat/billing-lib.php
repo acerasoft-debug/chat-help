@@ -26,9 +26,13 @@ const BL_BYOK_PROVIDERS = [
  * Listenpreise in US-Dollar je 1 Mio. Tokens (für die Schätzung in der Kostenübersicht).
  * DeepSeek: off-peak/peak (Rabattfenster BL_DEEPSEEK_OFFPEAK_UTC); cache_read = Cache-Treffer, in = Cache-Fehlgriff.
  * Ältere Plattform-Modelle der Fallback-Kette sind mit ihren Listenpreisen enthalten; unbekannte Modelle werden wie Sonnet 5.5 geschätzt.
+ * Claude: geprüft am 25.10.2026 mit claude.com/pricing (Cache-Schreiben = 5-Minuten-Cache).
  */
 const BL_AI_PRICES = [
-  'claude-sonnet-5-5' => ['label'=>'Claude Sonnet 5.5','in'=>2.00,'out'=>10.00,'cache_read'=>0.20,'cache_write'=>2.50],
+  'claude-sonnet-5-5' => ['label'=>'Claude Sonnet 5.5','in'=>2.00,'out'=>10.00,'cache_read'=>0.10,'cache_write'=>2.50],
+  'claude-sonnet-5'   => ['label'=>'Claude Sonnet 5','in'=>2.00,'out'=>10.00,'cache_read'=>0.20,'cache_write'=>2.50],
+  'claude-haiku-5-5'  => ['label'=>'Claude Haiku 5.5','in'=>0.10,'out'=>0.50,'cache_read'=>0.01,'cache_write'=>0.125],
+  'claude-opus-5-5'   => ['label'=>'Claude Opus 5.5','in'=>4.00,'out'=>20.00,'cache_read'=>0.20,'cache_write'=>5.00],
   'claude-sonnet-4-6' => ['label'=>'Claude Sonnet 4.6','in'=>3.00,'out'=>15.00,'cache_read'=>0.30,'cache_write'=>3.75],
   'claude-sonnet-4-5' => ['label'=>'Claude Sonnet 4.5','in'=>3.00,'out'=>15.00,'cache_read'=>0.30,'cache_write'=>3.75],
   'deepseek-flash'    => ['label'=>'DeepSeek Flash','offpeak'=>['in'=>0.15,'out'=>0.60,'cache_read'=>0.003],'peak'=>['in'=>0.30,'out'=>1.20,'cache_read'=>0.006]],
@@ -335,6 +339,84 @@ function bl_cost_overview(int $acc, string $ym=''): array {
     return ['month'=>$ym,'channels'=>array_values($ch),'totals'=>$tot,'fx_usd_eur'=>$fx,'token_eur'=>BL_TOKEN_EUR,
       'prices_usd_per_mtok'=>BL_AI_PRICES,'deepseek_offpeak_utc'=>BL_DEEPSEEK_OFFPEAK_UTC,
       'note'=>'Schätzung nach Listenpreisen der Anbieter (eigener Schlüssel: rechnet der Anbieter direkt mit dir ab). ChatHelp-Tokens: tatsächlich abgebucht, Wert zum Listenpreis '.number_format(BL_TOKEN_EUR,4,',','.').' €/Token.'];
+}
+
+/* ============================================================== Kontingent (Monats-Tokens der Abos) + Upgrade auf die nächste Stufe */
+/** Annahmen für „~Stunden / ~Gespräche“ (Studio → Einstellungen des Betreibers, ch_settings 'assumptions'); nach 2–4 Wochen mit echten Werten nachziehen (ops/ai-costs). */
+function bl_assumptions(): array {
+    $a=function_exists('ch_setting') ? (array)ch_setting('assumptions',[]) : [];
+    return ['answers_per_hour'=>max(20,min(600,(int)($a['answers_per_hour'] ?? 160))),'minutes_per_call'=>max(0.5,min(30,(float)($a['minutes_per_call'] ?? 2.5)))];
+}
+/** Tokens → geschätzte Antworten, Stunden und Gespräche bei $perAnswer Tokens je Antwort. */
+function bl_tokens_time(int $tokens, int $perAnswer): array {
+    $A=bl_assumptions(); $ans=$perAnswer>0 ? max(0,$tokens)/$perAnswer : 0; $h=$ans/$A['answers_per_hour'];
+    return ['answers'=>(int)floor($ans),'hours'=>round($h,1),'calls'=>(int)round($h*60/$A['minutes_per_call'])];
+}
+/**
+ * Kontingent des laufenden Abrechnungsmonats: vereinbarte Monats-Tokens der aktiven Abos (token_plans.tokens_month, sonst Katalog) gegen die seit
+ * Periodenbeginn verbrauchten Tokens. null = kein Abo mit Monats-Tokens. Für Stufen-Agenten: nächste Stufe (Upgrade) und Zeit-Schätzung.
+ */
+function bl_quota_status(int $acc): ?array {
+    if($acc<=0) return null;
+    $s=th_db()->prepare("SELECT * FROM token_plans WHERE account_id=? AND stripe_sub IS NOT NULL AND status IN ('active','trialing','past_due') ORDER BY created_at"); $s->execute([$acc]);
+    $inc=0; $end=null; $main=null;
+    foreach($s->fetchAll(PDO::FETCH_ASSOC) as $r){ $pl=ch_plan((string)$r['plan']); if(!$pl) continue;
+        $t=isset($r['tokens_month']) && $r['tokens_month']!==null ? (int)$r['tokens_month'] : (int)$pl['tokens']; if($t<=0) continue;
+        $inc+=$t; if($r['period_end'] && ($end===null || $r['period_end']<$end)) $end=(string)$r['period_end'];
+        if(ch_plan_tier($pl['id']) && ($main===null || $t>$main['t'])) $main=['id'=>$pl['id'],'t'=>$t]; }
+    if($inc<=0) return null;
+    $tz=new DateTimeZone(date_default_timezone_get());
+    $start=$end ? (new DateTimeImmutable($end,$tz))->modify('-1 month')->format('Y-m-d H:i:s') : date('Y-m-01 00:00:00');
+    $u=th_db()->prepare("SELECT COALESCE(-SUM(delta),0) FROM token_ledger WHERE account_id=? AND delta<0 AND created_at>=?"); $u->execute([$acc,$start]); $used=(int)$u->fetchColumn();
+    $plan=$main['id'] ?? null; $rate=$plan ? ch_phone_turn_tokens($acc,$plan) : (int)CH_PRICING['agent_turn'];
+    $tier=$plan ? ch_plan_tier($plan) : null; $next=$tier['next'] ?? null; $np=$next ? ch_plan($next) : null;
+    return ['included'=>$inc,'used'=>$used,'pct'=>(int)floor(100*$used/$inc),'period_start'=>$start,'period_end'=>$end,'plan'=>$plan,'tier'=>$tier['key'] ?? null,'rate'=>$rate,
+        'time'=>bl_tokens_time($inc,$rate),'time_used'=>bl_tokens_time($used,$rate),'assumptions'=>bl_assumptions(),
+        'next'=>$np ? ['id'=>$np['id'],'name'=>$np['name'],'eur_month'=>$np['cents']/100,'tokens'=>$np['tokens'],'time'=>bl_tokens_time((int)$np['tokens'],$rate)] : null];
+}
+/** Nach jeder Abbuchung (th_charge): bei 80 % und 100 % des Kontingents einmal je Abrechnungsmonat E-Mail + Push, bei 80 % mit Upgrade-Vorschlag. */
+function bl_quota_check(int $acc): void {
+    static $seen=[]; if($acc<=0 || isset($seen[$acc])) return; $seen[$acc]=1;
+    $q=bl_quota_status($acc); if(!$q || $q['pct']<80) return;
+    $lvl=$q['pct']>=100 ? 100 : 80; $per=substr((string)$q['period_start'],0,10);
+    th_db()->exec("CREATE TABLE IF NOT EXISTS quota_alerts (account_id INT NOT NULL, period CHAR(10) NOT NULL, level SMALLINT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(account_id,period,level)) ENGINE=InnoDB");
+    $ins=th_db()->prepare("INSERT IGNORE INTO quota_alerts(account_id,period,level) VALUES(?,?,?)"); $ins->execute([$acc,$per,$lvl]); if($ins->rowCount()!==1) return;
+    $h=fn($x)=>htmlspecialchars((string)$x,ENT_QUOTES,'UTF-8'); $nx=$q['next']; $url='https://chat-help.com/chat/studio.php#tokens';
+    $title=$lvl>=100 ? 'Gesprächszeit dieses Monats aufgebraucht' : 'Schon 80 % deiner Gesprächszeit genutzt';
+    $txt=$lvl>=100 ? 'Dein Monatskontingent ist verbraucht. Weitere Antworten gehen von zusätzlichem Guthaben ab – ohne Guthaben nimmt der Agent keine neuen Gespräche an.'
+        : 'Du hast rund '.number_format($q['time_used']['hours'],1,',','.').' von ~'.number_format($q['time']['hours'],1,',','.').' Stunden genutzt.';
+    if($nx) $txt.=' Mit „'.$nx['name'].'“ ('.number_format($nx['eur_month'],0,',','.').' €/Monat) hast du ~'.number_format($nx['time']['hours'],0,',','.').' Stunden im Monat – ein Klick im Studio, der Unterschied wird anteilig berechnet.';
+    if(function_exists('ch_push')){ try{ ch_push($acc,'tokens_low',$title,$txt,'/chat/studio.php#tokens',['tag'=>'quota-'.$lvl,'urgency'=>$lvl>=100 ? 'high' : 'normal']); }catch(Throwable $e){} }
+    $e=th_db()->prepare("SELECT email FROM token_accounts WHERE id=?"); $e->execute([$acc]); $to=(string)$e->fetchColumn();
+    if($to!=='') th_mail($to,'ChatHelp: '.$title,'<div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:auto;color:#111"><h2 style="color:#b0801f">'.$h($title).'</h2><p>'.$h($txt).'</p>'
+        .'<p><a href="'.$h($url).'" style="display:inline-block;background:#111;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:600">'.($nx ? 'Paket upgraden' : 'Zum Studio').' →</a></p>'
+        .'<p style="color:#666;font-size:13px">Stunden sind Schätzwerte ('.$q['assumptions']['answers_per_hour'].' Antworten je Stunde).</p></div>',$title."\n\n".$txt."\n\n".$url);
+}
+/**
+ * Upgrade auf eine größere Stufe desselben Agenten (Stripe-Abo ändern, Unterschied anteilig sofort berechnet): Preis der Stufe für neue Käufe,
+ * vereinbarte Tokens in den Abo-Metadaten, anteilige Mehr-Tokens für den Rest der Periode sofort gutgeschrieben. Rückgabe ['ok',…] oder ['error','message'].
+ */
+function bl_plan_upgrade(int $acc, string $to): array {
+    $tp=ch_plan($to); $tt=ch_plan_tier($to); if(!$tp || !$tt) return ['error'=>'plan','message'=>'Diese Stufe gibt es nicht.'];
+    $ids=$tt['ids']; $s=th_db()->prepare("SELECT * FROM token_plans WHERE account_id=? AND stripe_sub IS NOT NULL AND status IN ('active','trialing','past_due') AND plan IN (".implode(',',array_fill(0,count($ids),'?')).") ORDER BY created_at DESC LIMIT 1");
+    $s->execute(array_merge([$acc],$ids)); $row=$s->fetch(PDO::FETCH_ASSOC); if(!$row) return ['error'=>'no_subscription','message'=>'Für diesen Agenten gibt es kein laufendes Abo – bitte zuerst buchen.'];
+    $from=ch_plan((string)$row['plan']); if(array_search($to,$ids,true)<=array_search($from['id'],$ids,true)) return ['error'=>'not_upgrade','message'=>'Das ist keine größere Stufe.'];
+    $sk=defined('STRIPE_SK') ? STRIPE_SK : (defined('STRIPE_SECRET') ? STRIPE_SECRET : (defined('STRIPE_SECRET_KEY') ? STRIPE_SECRET_KEY : ''));
+    if($sk==='') return ['error'=>'stripe','message'=>'Zahlungsanbieter nicht eingerichtet.'];
+    $sub=bl_stripe_call('GET','subscriptions/'.rawurlencode((string)$row['stripe_sub']),$sk); $item=$sub['items']['data'][0] ?? null;
+    if(($sub['_http'] ?? 0)>=300 || !$item) return ['error'=>'stripe','message'=>'Abo nicht gefunden – bitte Support kontaktieren.'];
+    $cur=strtolower((string)($item['price']['currency'] ?? 'eur')); $amount=$cur==='eur' ? (int)$tp['cents'] : ch_price_local((int)$tp['cents'],strtoupper($cur));
+    $prod=bl_stripe_call('POST','products',$sk,['name'=>'ChatHelp Agent: '.$tp['name']]); if(empty($prod['id'])) return ['error'=>'stripe','message'=>'Upgrade gerade nicht möglich – bitte später erneut.'];
+    $oldTok=isset($row['tokens_month']) && $row['tokens_month']!==null ? (int)$row['tokens_month'] : (int)$from['tokens'];
+    $up=bl_stripe_call('POST','subscriptions/'.rawurlencode((string)$row['stripe_sub']),$sk,['items[0][id]'=>$item['id'],'items[0][price_data][currency]'=>$cur,'items[0][price_data][product]'=>$prod['id'],
+        'items[0][price_data][unit_amount]'=>$amount,'items[0][price_data][recurring][interval]'=>'month','items[0][price_data][tax_behavior]'=>'exclusive','proration_behavior'=>'always_invoice',
+        'metadata[plan]'=>$to,'metadata[tokens]'=>(int)$tp['tokens'],'metadata[upgraded_from]'=>$from['id'],'metadata[type]'=>'plan','metadata[kind]'=>'agent']);
+    if(($up['_http'] ?? 0)>=300) return ['error'=>'stripe','message'=>'Upgrade abgelehnt: '.mb_substr((string)($up['error']['message'] ?? 'unbekannt'),0,160)];
+    $pe=!empty($up['current_period_end']) ? date('Y-m-d H:i:s',(int)$up['current_period_end']) : $row['period_end'];
+    th_plan_upsert($acc,$to,(string)$row['stripe_sub'],(string)($up['status'] ?? $row['status']),$pe); th_plan_tokens((string)$row['stripe_sub'],(int)$tp['tokens']);
+    $ps=(int)($up['current_period_start'] ?? 0); $pend=(int)($up['current_period_end'] ?? 0); $frac=($pend>$ps && $pend>time()) ? ($pend-time())/($pend-$ps) : 1.0;
+    $extra=(int)max(0,round(((int)$tp['tokens']-$oldTok)*$frac)); $cr=$extra>0 ? th_credit($acc,$extra,'upgrade',$row['stripe_sub'].':'.$to) : false;
+    return ['ok'=>true,'from'=>$from['id'],'plan'=>$to,'name'=>$tp['name'],'tokens_month'=>(int)$tp['tokens'],'credited'=>$cr ? $extra : 0,'amount_minor'=>$amount,'currency'=>$cur];
 }
 
 /* ============================================================== Stripe (Checkout + Webhook) */

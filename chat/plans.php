@@ -21,7 +21,11 @@ const CH_PLANS = [
   'agent-website'   => ['Website-Agent: Texte, Struktur & Setup', 12900, 30000, 'marketing', 'agent', 'Komplette Website-Texte (Start, Leistungen, Über uns, FAQ, Kontakt), Seitenstruktur, SEO-Meta, Impressum-/Datenschutz-Entwurf, WordPress-Einrichtungs-Checkliste'],
   'agent-marketing' => ['Marketing-Agent (Kampagnen, Ads, E-Mail, Social & SEO)', 13900, 35000, 'marketing', 'agent', 'Deine Marketing-Leitung auf Abruf: Strategie und Budgetplan, Google- und Meta-Anzeigen, Newsletter-Sequenzen, Social-Media-Plan, Landingpage-Texte und SEO – mit exakter Rechnung für ROAS, Kundenkosten (CAC), Break-even und Kundenwert, A/B-Test-Auswertung und sauberen UTM-Links; UWG-, Preisangaben- und DSGVO-bewusst'],
   'agent-amazon'    => ['Amazon-FBA-Agent (Seller Central, Listings, PPC, Bestand)', 14900, 40000, 'amazon', 'agent', 'Für Amazon-Händler und Marken: FBA-Kalkulation mit exakter Marge und Break-even-ACoS, Listings (Titel, Bullets, A+, Suchbegriffe) mit Regel-Check, PPC-Auswertung mit Gebotsvorschlägen, Nachschubplanung gegen Out-of-Stock, Käufernachrichten und EU-Pflichten (GPSR, LUCID, CE) – ohne Bewertungs- oder Ranking-Tricks'],
-  'agent-phone'     => ['Telefon-Agent 24/7',   14900, 40000, 'service',   'agent', 'Nimmt Anrufe an, beantwortet Fragen aus deiner Wissensbasis, nimmt Termin- und Rückrufwünsche auf und leitet bei Bedarf an einen Menschen weiter – rund um die Uhr, mehrsprachig'],
+  'agent-phone'     => ['Telefon-Agent 24/7',   14900, 48000, 'service',   'agent', 'Nimmt Anrufe an, beantwortet Fragen aus deiner Wissensbasis, nimmt Termin- und Rückrufwünsche auf und leitet bei Bedarf an einen Menschen weiter – rund um die Uhr, mehrsprachig'],
+  /* Stufen (CH_PLAN_TIERS): Klein ~10 Std. 69 €, Standard ~25 Std. 149 € (agent-phone), Intensiv ~50 Std. 299 € – Tokens = Stunden × Antworten/Std. × 12 (ChatHelp-Nummer).
+     Intensiv 299 € statt 279 €: Marge bei Volllast über ChatHelp-Nummer sonst < 25 % (Twilio-Spracherkennung ~1,7 Cent je Antwort); im Studio änderbar. */
+  'agent-phone-s'   => ['Telefon-Agent Klein',   6900, 19200, 'service',   'agent', 'Telefon-Agent für Praxen, Kanzleien und Salons: rund 10 Stunden Gespräche im Monat – Anrufe annehmen, Fragen beantworten, Termine und Rückrufe aufnehmen, bei Bedarf weiterleiten'],
+  'agent-phone-l'   => ['Telefon-Agent Intensiv', 29900, 96000, 'service',  'agent', 'Telefon-Agent für viel Betrieb (Pizzeria, Restaurant, Hotel): rund 50 Stunden Gespräche im Monat – Bestellungen, Reservierungen, Fragen und Weiterleitung, rund um die Uhr'],
   // Berufsgruppen-Agenten (Fachrollen mit Compliance-Regeln)
   'agent-inkasso'   => ['Inkasso-Agent',        17900, 45000, 'inkasso',   'agent', 'Forderungsaufstellung, Mahnläufe, Ratenzahlungs- und Vergleichsangebote, Einwandbehandlung, Schuldner-Kommunikation nach RDG – sachlich, rechtssicher, dokumentiert'],
   'agent-kanzlei'   => ['Kanzlei-Agent (Rechtsanwälte)', 16900, 45000, 'kanzlei', 'agent', 'Mandantenaufnahme 24/7, Fristen-Vorprüfung, Aktennotizen, Schriftsatz-Entwürfe, Honorarauskunft nach RVG, Terminvergabe – der Anwalt entscheidet, der Agent bereitet vor'],
@@ -31,7 +35,9 @@ const CH_PLANS = [
   'agent-autohaus'  => ['Autohaus & Werkstatt-Agent', 11900, 30000, 'automotive', 'agent', 'Werkstatttermine, Reparaturstatus, Fahrzeuganfragen, Probefahrten, HU/AU-Erinnerungen – am Telefon und auf der Website'],
   'agent-termine'   => ['Termin-Agent (Praxis, Salon, Studio)', 9900, 25000, 'beauty', 'agent', 'Bucht Termine wirklich: freie Zeiten aus deinem Kalender, Leistung, Dauer, Bestätigung per E-Mail, Erinnerung, Absage – im Chat, am Telefon und über deine Buchungsseite'],
   'agent-taxi'      => ['Taxi-Zentrale-Agent (Taxi, Mietwagen, Shuttle)', 12900, 35000, 'taxi', 'agent', 'Nimmt Fahrtwünsche am Telefon, per WhatsApp und im Chat an: Abholadresse, Ziel, sofort oder vorbestellt, Personen, Gepäck, Kindersitz, Rollstuhl – Richtpreis und Wartezeit, Festpreise (Flughafen), Taxistände, Fahrer-App und Dispositions-Board'],
-  'agent-hotel'     => ['Hotel-Rezeptions-Agent (Hotel, Pension, Apartments)', 14900, 40000, 'hotel', 'agent', 'Rezeption rund um die Uhr: Verfügbarkeit und Preise, Buchungen und Anfragen, Gästewünsche aus dem Zimmer (Handtücher, Weckruf, Taxi, Late Check-out), Check-in-Infos – mehrsprachig, mit Rezeptions-Board'],
+  'agent-hotel-s'   => ['Hotel-Rezeptions-Agent Klein', 6900, 19200, 'hotel', 'agent', 'Rezeption für kleine Häuser (Pension, Apartments): rund 10 Stunden Gespräche im Monat – Verfügbarkeit, Preise, Buchungsanfragen und Gästewünsche, mehrsprachig'],
+  'agent-hotel-l'   => ['Hotel-Rezeptions-Agent Intensiv', 29900, 96000, 'hotel', 'agent', 'Rezeption für Hotels mit viel Betrieb: rund 50 Stunden Gespräche im Monat – Buchungen, Gästewünsche, Check-in-Infos und Weiterleitung, rund um die Uhr und mehrsprachig'],
+  'agent-hotel'     => ['Hotel-Rezeptions-Agent (Hotel, Pension, Apartments)', 14900, 48000, 'hotel', 'agent', 'Rezeption rund um die Uhr: Verfügbarkeit und Preise, Buchungen und Anfragen, Gästewünsche aus dem Zimmer (Handtücher, Weckruf, Taxi, Late Check-out), Check-in-Infos – mehrsprachig, mit Rezeptions-Board'],
   'agent-bestellung'=> ['Bestell-Agent (Pizzeria, Restaurant, Lieferdienst)', 12900, 35000, 'gastro', 'agent', 'Nimmt Bestellungen per WhatsApp, Chat und Telefon auf: Speisekarte mit Größen & Extras, Adresse prüfen (Liefergebiet, Entfernung), Liefer- oder Abholzeit, Bezahlart – Küche bekommt den Bon, der Fahrer die Route, der Kunde die Bestätigung'],
   // Einmalkauf = Einrichtung + Lizenz + Startguthaben (Tokens verfallen nicht) + CH_BUY_INCLUDED_DAYS Tage Betrieb inklusive.
   // Danach: Betriebs-Abo (betrieb-…, günstig, inkl. Tokens) ODER eigener KI-Schlüssel (byok-…, kleine Plattformgebühr) – siehe CH_RUN_TIERS.
@@ -124,15 +130,28 @@ function ch_plan(string $id): ?array {
   }
   if(!isset(CH_PLANS[$id])) return null;
   [$name,$cents,$tokens,$sector,$kind,$desc] = CH_PLANS[$id];
+  /* Anpassung durch den Betreiber (Studio → Preise, ch_settings 'plan_overrides'): gilt für neue Käufe – Bestandsabos behalten Preis und Tokens (Stripe-Preis, Abo-Metadaten) */
+  $ov=function_exists('ch_setting') ? (ch_setting('plan_overrides',[])[$id] ?? null) : null;
+  if(is_array($ov)){ if(isset($ov['cents']) && (int)$ov['cents']>=100) $cents=(int)$ov['cents']; if(isset($ov['tokens']) && (int)$ov['tokens']>=0) $tokens=(int)$ov['tokens']; }
   $base = CH_PLAN_BASE[$id] ?? $id;
   $o=['id'=>$id,'name'=>$name,'cents'=>$cents,'tokens'=>$tokens,'sector'=>$sector,'kind'=>$kind,'desc'=>$desc,'rules'=>CH_AGENT_RULES[$id] ?? (CH_AGENT_RULES[$base] ?? ''),'base'=>$base,
-    'channels'=>ch_plan_channels($id),'category'=>ch_plan_category($id)];
+    'channels'=>ch_plan_channels($id),'category'=>ch_plan_category($id) ?? ($base!==$id ? ch_plan_category($base) : null)];
+  if(($t=ch_plan_tier($id))!==null){ $o['tier_key']=$t['key']; $o['tier_of']=$t['base']; }
   if($kind==='buy'){ $o['tier']=CH_BUY_TIER[$id] ?? null; $o['included_days']=ch_buy_included_days($id); if(isset(CH_BUY_TERMS[$id])) $o['terms']=CH_BUY_TERMS[$id]; }
   return $o;
 }
 /* Einmalkauf-Pakete → zugrunde liegender Agent (Rolle/Vorlagen) */
 const CH_PLAN_BASE = ['buy-website'=>'agent-website','buy-support'=>'agent-support','buy-content'=>'agent-content','buy-phone'=>'agent-phone','buy-inkasso'=>'agent-inkasso','buy-kanzlei'=>'agent-kanzlei','buy-steuer'=>'agent-steuer','buy-termine'=>'agent-termine','buy-bestellung'=>'agent-bestellung','buy-taxi'=>'agent-taxi','buy-hotel'=>'agent-hotel',
-  'buy-beauty'=>'agent-beauty','buy-aesthetic'=>'agent-aesthetic','buy-hair-tr'=>'agent-hair-tr','buy-dental-tr'=>'agent-dental-tr','buy-marketing'=>'agent-marketing','buy-amazon-fba'=>'agent-amazon'];
+  'buy-beauty'=>'agent-beauty','buy-aesthetic'=>'agent-aesthetic','buy-hair-tr'=>'agent-hair-tr','buy-dental-tr'=>'agent-dental-tr','buy-marketing'=>'agent-marketing','buy-amazon-fba'=>'agent-amazon',
+  'agent-phone-s'=>'agent-phone','agent-phone-l'=>'agent-phone','agent-hotel-s'=>'agent-hotel','agent-hotel-l'=>'agent-hotel'];
+/** Stufen eines Agenten (klein → groß): gleicher Agent, gleiche Einrichtung, mehr Gesprächszeit. Upgrade im Studio (bl_plan_upgrade). */
+const CH_PLAN_TIERS = ['agent-phone'=>['agent-phone-s','agent-phone','agent-phone-l'],'agent-hotel'=>['agent-hotel-s','agent-hotel','agent-hotel-l']];
+const CH_TIER_LABELS = ['s'=>'Klein','m'=>'Standard','l'=>'Intensiv'];
+/** Stufen-Kennung eines Plans: ['base','key'=>s|m|l,'ids'=>[…]] oder null. */
+function ch_plan_tier(string $id): ?array {
+  foreach(CH_PLAN_TIERS as $base=>$ids){ $i=array_search($id,$ids,true); if($i!==false) return ['base'=>$base,'key'=>['s','m','l'][$i] ?? 'm','ids'=>$ids,'next'=>$ids[$i+1] ?? null]; }
+  return null;
+}
 
 /* ---- Preise nach dem Einmalkauf: Betrieb (inkl. Tokens) oder eigener KI-Schlüssel (BYOK) ---- */
 /** So viele Tage Betrieb sind im Einmalkauf enthalten (danach Betrieb- oder BYOK-Abo). Bestandskäufe ohne Enddatum bleiben unbefristet. */
@@ -166,9 +185,10 @@ function ch_plan_license(string $id): ?string {
   if(preg_match('/^(?:betrieb|byok|buy)-([a-z0-9-]+)$/',$id,$m) && isset(CH_PLANS['buy-'.$m[1]])) return 'buy-'.$m[1];
   $buy=array_search($id,CH_PLAN_BASE,true); return $buy===false ? null : (string)$buy;
 }
-/** Alle IDs, die denselben Agenten freischalten: Monatsplan, Einmalkauf, Betrieb, eigener Schlüssel. */
+/** Alle IDs, die denselben Agenten freischalten: Monatsplan (alle Stufen), Einmalkauf, Betrieb, eigener Schlüssel. */
 function ch_plan_variants(string $id): array {
   $p=ch_plan($id); $base=$p ? (string)$p['base'] : $id; $ids=[$id,$base];
+  if(isset(CH_PLAN_TIERS[$base])) array_push($ids,...CH_PLAN_TIERS[$base]);
   if(($lic=ch_plan_license($base) ?? ch_plan_license($id))!==null){ $x=substr($lic,4); array_push($ids,$lic,'betrieb-'.$x,'byok-'.$x); }
   return array_values(array_unique($ids));
 }
@@ -195,6 +215,31 @@ function ch_plan_has_channel(string $id, string $channel): bool {
   return in_array($c,$ch,true) || ($c==='phone_out' && in_array('phone',$ch,true));
 }
 
+/* ---- Telefon-Grenzen je Paket (Studio → Einstellungen des Betreibers: ch_settings 'phone_limits') ---- */
+const CH_PHONE_LIMITS_DEFAULT = ['max_call_min'=>10,'concurrent'=>2];
+/** ['max_call_sec','concurrent'] für einen Plan: Standard 10 Minuten und 2 gleichzeitige Gespräche, je Plan überschreibbar (concurrent_by_plan). */
+function ch_phone_limits(string $plan): array {
+  $s=function_exists('ch_setting') ? (array)ch_setting('phone_limits',[]) : []; $p=function_exists('ch_plan') ? ch_plan($plan) : null; $base=(string)($p['base'] ?? $plan);
+  $min=(int)($s['max_call_min'] ?? CH_PHONE_LIMITS_DEFAULT['max_call_min']); $c=$s['concurrent_by_plan'][$plan] ?? ($s['concurrent_by_plan'][$base] ?? ($s['concurrent'] ?? CH_PHONE_LIMITS_DEFAULT['concurrent']));
+  return ['max_call_sec'=>max(2,min(60,$min))*60,'concurrent'=>max(1,min(30,(int)$c))];
+}
+/**
+ * Tokens je Telefon-Antwort (im Studio änderbar: ch_settings 'phone_rates'): ChatHelp-Nummer 12 (Twilio zahlt ChatHelp), eigenes Twilio-Konto 9.
+ * Bestandsschutz: Paket vor dem Stichtag (ch_phone_rate_since) gebucht → weiter 8 (CH_PRICING['phone_turn']), egal über welche Nummer, bis der Kunde selbst wechselt.
+ */
+/** Stichtag der neuen Sätze: wird beim ersten Aufruf nach dem Deploy in ch_settings gemerkt (Datenbankzeit wie token_plans.created_at). */
+function ch_phone_rate_since(): string {
+  $s=function_exists('ch_setting') ? (string)ch_setting('phone_rate_since','') : ''; if($s!=='') return $s;
+  try{ $s=(string)th_db()->query("SELECT NOW()")->fetchColumn(); ch_setting_set('phone_rate_since',$s); }catch(Throwable $e){ $s=date('Y-m-d H:i:s'); }
+  return $s;
+}
+function ch_phone_rates(): array { $r=function_exists('ch_setting') ? (array)ch_setting('phone_rates',[]) : []; return ['central'=>max(1,(int)($r['central'] ?? 12)),'own'=>max(1,(int)($r['own'] ?? 9)),'legacy'=>max(1,(int)($r['legacy'] ?? CH_PRICING['phone_turn']))]; }
+function ch_phone_turn_tokens(int $acc, string $plan): int {
+  $r=ch_phone_rates(); if($acc<=0 || !function_exists('th_secret')) return $r['central'];
+  try{ $ids=ch_plan_variants($plan); $s=th_db()->prepare("SELECT MIN(created_at) FROM token_plans WHERE account_id=? AND plan IN (".implode(',',array_fill(0,count($ids),'?')).") AND status IN ('active','trialing','past_due','license')");
+    $s->execute(array_merge([$acc],$ids)); $first=(string)($s->fetchColumn() ?: ''); if($first!=='' && $first<ch_phone_rate_since()) return $r['legacy']; }catch(Throwable $e){}
+  return th_secret($acc,'twilio_token')==='' ? $r['central'] : $r['own'];   // ohne eigenes Twilio läuft der Anruf über das Plattform-Konto (ChatHelp-Nummer)
+}
 /* ---- TARİFE (token / işlem) — siteyle aynı Richtwerte ---- */
 const CH_PRICING = [
   'post'=>5, 'caption'=>3, 'hashtags'=>2, 'script'=>50, 'title'=>5, 'seo'=>8,

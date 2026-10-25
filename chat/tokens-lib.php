@@ -124,6 +124,14 @@ function th_call_start(int $acc, string $plan, string $sid, string $from, string
     th_db()->prepare("INSERT IGNORE INTO phone_calls(account_id,plan,call_sid,from_number,to_number,transcript) VALUES(?,?,?,?,?,'[]')")->execute([$acc,$plan,$sid,$from,$to]);
     return th_call($sid);
 }
+/** Sekunden seit Gesprächsbeginn (Datenbankzeit wie started_at). */
+function th_call_elapsed(string $sid): int { $s=th_db()->prepare("SELECT TIMESTAMPDIFF(SECOND,started_at,NOW()) FROM phone_calls WHERE call_sid=?"); $s->execute([$sid]); return max(0,(int)$s->fetchColumn()); }
+/** Laufende Gespräche mit dem Agenten (ohne dieses und ohne weitergeleitete), höchstens so alt wie die Höchstdauer + 2 Minuten (hängengebliebene zählen nicht). */
+function th_calls_active(int $acc, array $plans, string $exceptSid, int $maxSec): int {
+    if(!$plans) return 0; $in=implode(',',array_fill(0,count($plans),'?'));
+    $s=th_db()->prepare("SELECT COUNT(*) FROM phone_calls WHERE account_id=? AND plan IN ($in) AND call_sid<>? AND status='in-progress' AND ended_at IS NULL AND outcome NOT IN ('lines_busy','forwarded') AND started_at > (NOW() - INTERVAL ? SECOND)");   // weitergeleitete Gespräche belegen keinen Agenten
+    $s->execute(array_merge([$acc],$plans,[$exceptSid,$maxSec+120])); return (int)$s->fetchColumn();
+}
 function th_call_update(string $sid, array $f): void {
     $allowed=['status','turns','silent','tokens','transcript','outcome','ended_at','pending']; $set=[]; $vals=[];
     foreach($f as $k=>$v){ if(in_array($k,$allowed,true)){ if($v==='NOW()'){ $set[]="$k=NOW()"; continue; } $set[]="$k=?"; $vals[]=$v; } }   // 'NOW()' = DB-Zeit (wie started_at)
@@ -142,6 +150,27 @@ function th_plan_upsert(int $acc, string $plan, string $sub, string $status, ?st
     else { $s=$p->prepare("SELECT id FROM token_plans WHERE account_id=? AND plan=? AND stripe_sub IS NULL"); $s->execute([$acc,$plan]); $id=$s->fetchColumn(); }
     if($id) $p->prepare("UPDATE token_plans SET account_id=?, plan=?, status=?, period_end=?, updated_at=NOW() WHERE id=?")->execute([$acc,$plan,$status,$periodEnd,$id]);
     else    $p->prepare("INSERT INTO token_plans(account_id,plan,stripe_sub,status,period_end) VALUES(?,?,?,?,?)")->execute([$acc,$plan,$sub?:null,$status,$periodEnd]);
+}
+/** Vereinbarte Monats-Tokens eines Abos (Bestandsschutz, Anzeige „~Stunden“ für den Kunden). */
+function th_plan_tokens(string $sub, int $tokens): void {
+    if($sub==='') return; static $col=false;
+    if(!$col){ $col=true; try{ $c=th_db()->query("SHOW COLUMNS FROM token_plans LIKE 'tokens_month'")->fetch(); if(!$c) th_db()->exec("ALTER TABLE token_plans ADD COLUMN tokens_month INT NULL"); }catch(Throwable $e){ error_log('CH token_plans.tokens_month: '.$e->getMessage()); } }
+    try{ th_db()->prepare("UPDATE token_plans SET tokens_month=? WHERE stripe_sub=?")->execute([$tokens,$sub]); }catch(Throwable $e){ error_log('CH th_plan_tokens: '.$e->getMessage()); }
+}
+/**
+ * Einstellungen der Plattform, im Studio vom Betreiber änderbar (Tabelle ch_settings, JSON je Schlüssel): Annahmen (Antworten je Stunde,
+ * Minuten je Gespräch), Telefon-Grenzen, Paket-Anpassungen für neue Käufe. Werte werden je Request einmal gelesen.
+ */
+function ch_setting(string $k, $default=null) {
+    static $all=null;
+    if($k==='__reset'){ $all=null; return null; }
+    if($all===null){ $all=[]; try{ th_db()->exec("CREATE TABLE IF NOT EXISTS ch_settings (k VARCHAR(64) PRIMARY KEY, v MEDIUMTEXT NOT NULL, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        foreach(th_db()->query("SELECT k,v FROM ch_settings")->fetchAll(PDO::FETCH_ASSOC) as $r){ $j=json_decode((string)$r['v'],true); $all[$r['k']]=$j; } }catch(Throwable $e){ error_log('CH ch_setting: '.$e->getMessage()); } }
+    return array_key_exists($k,$all) && $all[$k]!==null ? $all[$k] : $default;
+}
+function ch_setting_set(string $k, $v): void {
+    ch_setting('__probe'); th_db()->prepare("INSERT INTO ch_settings(k,v) VALUES(?,?) ON DUPLICATE KEY UPDATE v=VALUES(v), updated_at=NOW()")->execute([substr($k,0,64),json_encode($v,JSON_UNESCAPED_UNICODE)]);
+    ch_setting('__reset');
 }
 function th_plan_status(string $sub, string $status, ?string $periodEnd=null): void {
     th_db()->prepare("UPDATE token_plans SET status=?, period_end=COALESCE(?,period_end), updated_at=NOW() WHERE stripe_sub=?")->execute([$status,$periodEnd,$sub]);
@@ -246,6 +275,7 @@ function th_charge(int $acc, int $amount, string $reason, ?string $ref=null): in
         if($amt>0) $p->prepare("INSERT INTO token_ledger(account_id,delta,reason,ref) VALUES(?,?,?,?)")->execute([$acc,-$amt,$reason,$ref ?: bin2hex(random_bytes(8))]);
         $p->commit();
         if(function_exists('push_tokens_low')){ try{ push_tokens_low($acc,th_balance($acc)); }catch(Throwable $e){} }
+        if($amt>0 && function_exists('bl_quota_check')){ try{ bl_quota_check($acc); }catch(Throwable $e){ error_log('CH quota: '.$e->getMessage()); } }   // 80/100 % des Monatskontingents
         return $amt;
     }catch(Throwable $e){ $p->rollBack(); if($e instanceof PDOException && $e->getCode()==='23000') return 0; throw $e; }
 }
