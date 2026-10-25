@@ -3119,4 +3119,10 @@
 "asj.castOn":"Active",
 "asj.castPick":"Choose {n}",
 "asj.castNow":"{n} is now here for you.",
-"asj.castNow.f":"{n} is now here for you."}
+"asj.castNow.f":"{n} is now here for you.",
+"onbj.pickT":"Which agent shall we set up?",
+"onbj.pickS":"Pick one – setup starts right away and your agent is ready in a few minutes. Test it any time; go live with the matching plan.",
+"onbj.pickBest":"Recommended",
+"onbj.pickGo":"Set up now",
+"onbj.a.live":"Go live",
+"pw.setupNow":"Set up {n} now →"}

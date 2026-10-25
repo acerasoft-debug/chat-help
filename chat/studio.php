@@ -483,7 +483,9 @@ async function boot(){if(LINK_LOGIN&&!boot._link){boot._link=1;if(!KEY||(localSt
   const q=new URLSearchParams(location.search);const w=q.get('welcome');if(w&&PANELS.einrichtung){go('einrichtung');}else if(w&&PLANS.find(p=>p.id===w)){go('agents');openAgent(w);}else{const h=(location.hash||'').slice(1);if(h&&(STATIC_TABS[h]||PANELS[h]))go(h);}
   if(sessionStorage.getItem('ch_trial')){$('#trialBanner').classList.remove('hidden');sessionStorage.removeItem('ch_trial');}
   /* Erste Anmeldung bzw. noch kein Profil: Profil-Assistent (nicht direkt nach einer Zahlung – dort zuerst die Einrichtung) */
-  if(prof&&!prof.exists&&!w)setTimeout(()=>{if(!PW.open)openWiz(false);},200);}
+  if(prof&&!prof.exists&&!w)setTimeout(()=>{if(!PW.open)openWiz(false);},200);
+  /* Einrichtung zuerst: offene Einrichtung – oder noch kein Agent eingerichtet – öffnet beim Start die Einrichtung (Testen bleibt freiwillig) */
+  else if(!w&&!(location.hash||'').slice(1)&&PANELS.einrichtung&&prof&&prof.exists)api('/onboarding/state').then(j=>{if(j&&j.onboarding&&j.onboarding.status==='open'&&!PW.open)go('einrichtung');}).catch(e=>{if(e&&e.data&&e.data.error==='no_plan'&&!((ME&&ME.configs)||[]).length&&!PW.open)go('einrichtung');});}
 function show(v){$('#vLogin').classList.toggle('hidden',v!=='login');$('#vApp').classList.toggle('hidden',v!=='app');$('#nav2').classList.toggle('hidden',v!=='app');$('#acct').classList.toggle('hidden',v!=='app');}
 const STATIC_TABS={home:'pHome',agents:'pAgents',whatsapp:'pWhatsapp',phone:'pPhone',website:'pWebsite',termine:'pTermine',bestellungen:'pBestellungen',tokens:'pTokens'};
 const PANELS=<?= json_encode((object)array_map(fn($x)=>$x['v'],$CH_PANELS)) ?>;window.STUDIO_PANELS=window.STUDIO_PANELS||{};
@@ -619,13 +621,15 @@ async function pwLater(){if(PW.busy)return;
   closeWiz();}
 function pwClearStep(){const d=PW.d;if(PW.step===1)d.kind=null;else if(PW.step===2){if(pwPriv())d.needs=[];else Object.assign(d,{company:'',sectors:[],size:''});d.city='';d.country='';}else if(PW.step===3){if(!pwPriv())d.needs=[];d.langs=[];}}
 async function pwNext(skip){if(PW.busy)return;
-  if(PW.step===4){closeWiz();go('home');return;}
+  if(PW.step===4){closeWiz();const pr=pwSetupPlan();if(pr){window.ONB_PLAN=pr;go('einrichtung');}else go('home');return;}
   if(skip)pwClearStep();
   if(PW.step===1&&PW.d.kind!=='private')PW.d.needs=PW.d.needs.filter(n=>!/^p_/.test(n));
   if(PW.step===1&&PW.d.kind==='private')PW.d.needs=PW.d.needs.filter(n=>/^p_/.test(n));
   PW.dir=1;PW.step++;
   if(PW.step===4){PW.busy=true;PW.rec=null;PW.err='';pwRender();try{await pwSave();}catch(e){PW.err=e.message||_t('c.saveFail');}PW.busy=false;}
   pwRender();}
+/* Nach dem Profil geht es direkt in die Einrichtung des empfohlenen Agenten (nicht beim Bearbeiten) */
+function pwSetupPlan(){if(PW.edit||!PANELS.einrichtung||!PW.rec)return '';return PW.rec.primary||((PW.rec.plans||[])[0]||{}).id||'';}
 function pwBackStep(){if(PW.busy||PW.step<=1)return;PW.dir=-1;PW.step--;pwRender();}
 function pc(attr,id,label,icon,on,extra){return `<button type="button" class="pc${extra||''}" data-${attr}="${esc(id)}" aria-pressed="${on?'true':'false'}">${icon?`<span aria-hidden="true">${icon}</span>`:''}${esc(label)}</button>`;}
 function pwLangs(){const L=PROFILE_OPT.langs||[];return L.map(l=>pc('lang',l.id,l.label,'',PW.d.langs.includes(l.id),l.top?' top':'')).join('');}
@@ -670,7 +674,7 @@ function pwStepHTML(n){const O=PROFILE_OPT,d=PW.d,priv=pwPriv();
 function pwRender(){const n=PW.step,B=$('#pfBody');
   $('#pfStepTxt').textContent=_t('pw.step',{n});document.querySelectorAll('#pfDots i').forEach((d,i)=>{d.className=i+1<n?'done':i+1===n?'on':'';});
   $('#pfBack').classList.toggle('hidden',n===1);$('#pfSkip').classList.toggle('hidden',n===4);
-  const nx=$('#pfNext');nx.textContent=n===4?_t('pw.openStudio'):n===3?_t('pw.build'):_t('pw.next');nx.classList.toggle('fin',n===4);nx.disabled=PW.busy;$('#pfBack').disabled=PW.busy;
+  const nx=$('#pfNext');nx.textContent=n===4?(pwSetupPlan()?_t('pw.setupNow',{n:((PW.rec.plans||[]).find(x=>x.id===pwSetupPlan())||{}).name||''}):_t('pw.openStudio')):n===3?_t('pw.build'):_t('pw.next');nx.classList.toggle('fin',n===4);nx.disabled=PW.busy;$('#pfBack').disabled=PW.busy;
   $('#pfLater').textContent=n===4||PW.edit?_t('c.close'):_t('pw.laterBtn');
   B.innerHTML=`<section class="pfw-s${PW.dir<0?' back':''}">${pwStepHTML(n)}</section>`;B.scrollTop=0;pwBind();
   $('#pfLive').textContent=_t('pw.step',{n})+': '+pwTitle(n);const t=$('#pfTitle');if(t)try{t.focus({preventScroll:true});}catch(e){}}

@@ -3119,4 +3119,10 @@
 "asj.castOn":"Aktiivinen",
 "asj.castPick":"Valitse {n}",
 "asj.castNow":"{n} on nyt käytettävissäsi.",
-"asj.castNow.f":"{n} on nyt käytettävissänne."}
+"asj.castNow.f":"{n} on nyt käytettävissänne.",
+"onbj.pickT":"Minkä agentin otamme käyttöön?",
+"onbj.pickS":"Valitse yksi – käyttöönotto alkaa heti ja agenttisi on valmis muutamassa minuutissa. Testaa milloin vain; julkaise sopivalla paketilla.",
+"onbj.pickBest":"Suositus",
+"onbj.pickGo":"Ota käyttöön nyt",
+"onbj.a.live":"Julkaise",
+"pw.setupNow":"Ota {n} käyttöön nyt →"}

@@ -138,6 +138,16 @@
 #onb .act.p{background:var(--ink);color:#fff;border-color:var(--ink)}
 #onb .act svg{flex:0 0 auto}
 #onb .onb-empty{padding:34px 26px;text-align:center}
+/* Agent wählen (noch nichts gebucht): Empfehlung zuerst, ein Tipp startet die Einrichtung */
+#onb .onb-pick .pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:22px;text-align:left}
+#onb .pk{position:relative;display:flex;flex-direction:column;gap:6px;padding:18px 18px 16px;border-radius:18px;border:1.5px solid var(--line2);background:#fff;color:var(--ink);font:inherit;cursor:pointer;text-align:left;transition:.15s;min-height:44px}
+#onb .pk:hover{border-color:var(--gold);box-shadow:var(--sh1);transform:translateY(-1px)}
+#onb .pk:focus-visible{outline:3px solid rgba(184,134,43,.45);outline-offset:2px}
+#onb .pk.best{border-color:var(--gold);background:#fffbf2}
+#onb .pk b{font:700 16px var(--sans)}
+#onb .pk span{font-size:13px;color:var(--mute);line-height:1.45}
+#onb .pk .pill2{align-self:flex-start;font:700 10.5px var(--sans);letter-spacing:.04em;text-transform:uppercase;background:var(--goldl);color:var(--gold);border-radius:999px;padding:3px 9px}
+#onb .pk i{font-style:normal;font:700 13px var(--sans);color:var(--gold);margin-top:auto;padding-top:6px}
 @media (max-width:640px){
   #onb .onb-head{padding:16px 18px 0;gap:12px}
   #onb .onb-ring{width:48px;height:48px}

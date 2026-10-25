@@ -3120,5 +3120,11 @@
 "asj.castOn":"Aktiv",
 "asj.castPick":"{n} wählen",
 "asj.castNow":"{n} ist jetzt für dich da.",
-"asj.castNow.f":"{n} ist jetzt für Sie da."
+"asj.castNow.f":"{n} ist jetzt für Sie da.",
+"onbj.pickT":"Welchen Agenten richten wir ein?",
+"onbj.pickS":"Wähle einen – die Einrichtung startet sofort, in ein paar Minuten ist dein Agent fertig. Testen kannst du jederzeit, live gehst du mit dem passenden Paket.",
+"onbj.pickBest":"Empfohlen",
+"onbj.pickGo":"Jetzt einrichten",
+"onbj.a.live":"Live schalten",
+"pw.setupNow":"{n} jetzt einrichten →"
 }

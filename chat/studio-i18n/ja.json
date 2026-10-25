@@ -3119,4 +3119,10 @@
 "asj.castOn":"使用中",
 "asj.castPick":"{n}を選ぶ",
 "asj.castNow":"{n}がお手伝いします。",
-"asj.castNow.f":"{n}がお手伝いいたします。"}
+"asj.castNow.f":"{n}がお手伝いいたします。",
+"onbj.pickT":"どのエージェントを設定しますか？",
+"onbj.pickS":"1つ選ぶとすぐに設定が始まり、数分でエージェントの準備が整います。テストはいつでも可能、公開は対応プランで行えます。",
+"onbj.pickBest":"おすすめ",
+"onbj.pickGo":"今すぐ設定",
+"onbj.a.live":"公開する",
+"pw.setupNow":"{n}を今すぐ設定 →"}

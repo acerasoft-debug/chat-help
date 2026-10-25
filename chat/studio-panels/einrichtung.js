@@ -35,11 +35,21 @@
       render();
     }).catch(function (e) {
       S = null; MODE = 'empty';
-      var list = (e.data && e.data.list) || [];
+      var list = (e.data && e.data.list) || [], ch = (e.data && e.data.choices) || [];
+      if (ch.length) { renderChoices(ch); renderSwitch(list); return; }
       g('onbCard').innerHTML = '<div class="onb-empty"><div class="hero" style="padding:8px 0 0;text-align:center"><div class="ic" style="margin:0 auto">' + SV(IC.spark, 28) + '</div><h2 style="font-size:28px">' + _t('onbj.nothing') + '</h2><p style="margin:12px auto 0">' + h(e.message || _t('onbj.notFound')) + '</p></div>'
         + '<div class="row" style="justify-content:center;margin-top:20px"><button class="btn p" type="button" onclick="go(\'agents\')">' + _t('sj.agents.view') + '</button></div></div>';
       renderSwitch(list);
     });
+  }
+  /** Noch nichts gebucht: Agent wählen (Empfehlung aus dem Profil zuerst) – die Einrichtung startet sofort, auch in der Testphase. */
+  function plN(c) { return I18N.has('pl.' + c.id + '.n') ? _t('pl.' + c.id + '.n') : _tx(c.name); }
+  function plD(c) { return I18N.has('pl.' + c.id + '.d') ? _t('pl.' + c.id + '.d') : _tx(c.desc); }
+  function renderChoices(ch) {
+    g('onbCard').innerHTML = '<div class="onb-empty onb-pick"><div class="hero" style="padding:8px 0 0;text-align:center"><div class="ic" style="margin:0 auto">' + SV(IC.spark, 28) + '</div><h2 style="font-size:28px">' + _t('onbj.pickT') + '</h2><p style="margin:12px auto 0">' + _t('onbj.pickS') + '</p></div>'
+      + '<div class="pick">' + ch.map(function (c, i) { return '<button type="button" class="pk' + (i === 0 ? ' best' : '') + '" data-plan="' + h(c.id) + '">' + (i === 0 ? '<span class="pill2">' + _t('onbj.pickBest') + '</span>' : '') + '<b>' + h(plN(c)) + '</b><span>' + h(plD(c)) + '</span><i>' + _t('onbj.pickGo') + ' →</i></button>'; }).join('') + '</div>'
+      + '<div class="row" style="justify-content:center;margin-top:16px"><button class="btn ghost" type="button" onclick="go(\'agents\')">' + _t('sj.agents.view') + '</button></div></div>';
+    g('onbCard').querySelectorAll('[data-plan]').forEach(function (b) { b.onclick = function () { b.disabled = true; load({ plan: b.dataset.plan }); }; });
   }
   function steps() { return (S && S.steps) || []; }
   function stepById(id) { var s = steps(); for (var i = 0; i < s.length; i++) if (s[i].id === id) return s[i]; return null; }
@@ -307,6 +317,7 @@
     if (hasWa) acts.push('<button type="button" class="act" data-a="whatsapp">' + SV(IC.wa) + '<span>' + _t('onbj.a.wa') + '</span></button>');
     acts.push('<a class="act" href="/chat/app.php" data-a="app">' + SV(IC.app) + '<span>' + _t('onbj.a.app') + '</span></a>');
     acts.push('<button type="button" class="act" data-a="test">' + SV(IC.chat) + '<span>' + _t('onbj.a.test') + '</span></button>');
+    if (o.trial && o.checkout) acts.unshift('<a class="act p" href="' + h(o.checkout) + '" target="_blank" rel="noopener" data-a="live">' + SV(IC.spark) + '<span>' + _t('onbj.a.live') + '</span></a>');   // Testphase: eingerichtet – live mit dem Paket
     g('onbCard').innerHTML = '<div class="onb-head">' + ring(nt ? Math.round(100 * nd / nt) : 100) + '<div class="onb-meta"><div class="k">' + _t('onbj.doneK') + '</div><div class="n">' + h(_t('onbj.stepsDone',{d:nd,n:nt})) + ' · ' + h(o.base_name) + '</div></div></div>'
       + '<div class="hero ' + DIR + '" style="padding-top:18px"><h2>' + _t('onbj.ready') + '</h2><p>' + h(ok.length ? (priv ? _t('onbj.knowsPx',{x:ok.map(function (a) { return _tx(a.label); }).join(', ')}) : _t('onbj.knowsAx',{x:ok.map(function (a) { return _tx(a.label); }).join(', ')})) : (priv ? _t('onbj.knowsP') : _t('onbj.knowsA'))) + '</p>'
       + (bad.length ? '<div class="msg err">' + h(bad.map(function (a) { return _tx(a.label) + ': ' + _tx(a.detail); }).join(' · ')) + '</div>' : '') + '</div>'
@@ -334,8 +345,9 @@
   function start() {
     if (!key()) return;
     var w = ''; try { w = new URLSearchParams(location.search).get('welcome') || ''; } catch (e) {}
-    var q = firstLoad && w ? { plan: w } : (S && S.onboarding ? { id: S.onboarding.id } : null); firstLoad = false;
-    if (S && MODE === 'step') return;   // mitten in einer Frage nicht neu laden
+    var pick = window.ONB_PLAN || ''; window.ONB_PLAN = '';   // aus dem Profil-Assistenten: empfohlener Agent
+    var q = pick ? { plan: pick } : (firstLoad && w ? { plan: w } : (S && S.onboarding ? { id: S.onboarding.id } : null)); firstLoad = false;
+    if (S && MODE === 'step' && !pick) return;   // mitten in einer Frage nicht neu laden
     load(q);
   }
   window.STUDIO_PANELS = window.STUDIO_PANELS || {};

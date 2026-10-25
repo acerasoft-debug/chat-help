@@ -3119,4 +3119,10 @@
 "asj.castOn":"Aktiv",
 "asj.castPick":"{n} seç",
 "asj.castNow":"{n} artıq sənin üçün buradadır.",
-"asj.castNow.f":"{n} artıq sizin üçün buradadır."}
+"asj.castNow.f":"{n} artıq sizin üçün buradadır.",
+"onbj.pickT":"Hansı agenti quraq?",
+"onbj.pickS":"Birini seç – quraşdırma dərhal başlayır, agentin bir neçə dəqiqəyə hazır olur. İstədiyin vaxt test edə bilərsən; uyğun paketlə canlıya keçirsən.",
+"onbj.pickBest":"Tövsiyə olunur",
+"onbj.pickGo":"İndi qur",
+"onbj.a.live":"Canlıya keç",
+"pw.setupNow":"{n} indi qur →"}

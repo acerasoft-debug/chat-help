@@ -411,7 +411,8 @@ function onb_progress(array $steps, array $pre, array $ans, array $vals): array 
 function onb_public(array $onb): array {
     $P=onb_profile($onb['plan']);
     return ['id'=>$onb['id'],'plan'=>$onb['plan'],'plan_name'=>$P['name'],'base'=>$onb['base'],'base_name'=>$P['base_name'],'kind'=>$P['kind'],'private'=>$P['private'],
-        'status'=>$onb['status'],'created_at'=>th_dbiso($onb['created_at'] ?? null),'finished_at'=>th_dbiso($onb['finished_at'] ?? null),'guide_sent_at'=>th_dbiso($onb['guide_sent_at'] ?? null),'guide_count'=>$onb['guide_count']];
+        'status'=>$onb['status'],'created_at'=>th_dbiso($onb['created_at'] ?? null),'finished_at'=>th_dbiso($onb['finished_at'] ?? null),'guide_sent_at'=>th_dbiso($onb['guide_sent_at'] ?? null),'guide_count'=>$onb['guide_count'],
+        'trial'=>onb_is_trial($onb),'checkout'=>onb_is_trial($onb) ? '/chat/tokens-checkout.php?plan='.rawurlencode($onb['plan']) : null];   // Testphase: eingerichtet, Live-Schaltung mit dem Paket
 }
 function onb_state(int $aid, array $onb): array {
     [$P,$steps,$pre,$vals]=onb_ctx($aid,$onb); $ans=$onb['answers']; $out=[];
@@ -426,12 +427,25 @@ function onb_resolve(int $aid, int $id, string $plan): array {
     $mine=onb_list($aid);
     if($plan!==''){ $pl=ch_plan($plan); if(!$pl) return [400,['error'=>'plan_unknown','message'=>'Unbekannter Plan.']];
         foreach($mine as $o) if($o['plan']===$pl['id'] || $o['base']===$pl['base']) return [200,$o];
-        if(!th_plan_active($aid,$pl['id'])) return [403,['error'=>'plan_inactive','message'=>'Für diesen Agenten gibt es noch kein aktives Paket.']];
+        if(!th_plan_active($aid,$pl['id'])){
+            /* Noch kein Paket (Testphase): Einrichtung trotzdem sofort – die Antworten bleiben beim Buchen erhalten (onb_on_payment übernimmt sie) */
+            if(!onb_trial_ok($pl)) return [403,['error'=>'plan_inactive','message'=>'Für diesen Agenten gibt es noch kein aktives Paket.']];
+            $o=onb_create($aid,$pl['id'],'trial:'.$aid.':'.$pl['base']); return $o ? [200,$o] : [500,['error'=>'create_failed']]; }
         $o=onb_create($aid,$pl['id'],'studio:'.$aid.':'.$pl['base']); return $o ? [200,$o] : [500,['error'=>'create_failed']]; }
     if($mine) return [200,$mine[0]];
     foreach(th_plans($aid) as $p){ $pl=ch_plan((string)$p['plan']); if(!$pl || !in_array($p['status'],['active','trialing','past_due'],true) || !th_plan_active($aid,$pl['id'])) continue;
         $o=onb_create($aid,$pl['id'],'studio:'.$aid.':'.$pl['base']); if($o) return [200,$o]; }
-    return [404,['error'=>'no_plan','message'=>'Noch kein Paket gebucht – wähle unter „Agenten“ deinen Agenten.']];
+    return [404,['error'=>'no_plan','message'=>'Welchen Agenten richten wir ein? Wähle einen – die Einrichtung startet sofort.','choices'=>onb_choices($aid)]];
+}
+/** Einrichtung ohne gebuchtes Paket erlaubt? Agenten und Privat-Assistenten (keine Token-/Content-Pakete). */
+function onb_trial_ok(array $pl): bool { $b=(string)$pl['base']; return (CH_PLANS[$b][4] ?? '')==='agent' || str_starts_with($b,'privat-'); }
+function onb_is_trial(array $onb): bool { return str_starts_with((string)$onb['checkout_id'],'trial:') && !th_plan_active((int)$onb['account_id'],(string)$onb['base']); }
+/** Vorschläge, wenn noch nichts gebucht ist: Empfehlungen aus dem Profil (beste zuerst), sonst die gefragtesten Agenten. */
+function onb_choices(int $aid): array {
+    $ids=[]; $why=[]; if(is_file(__DIR__.'/profile-lib.php')) require_once __DIR__.'/profile-lib.php';
+    if(function_exists('ch_profile_recommend') && function_exists('profile_get')) foreach(ch_profile_recommend(profile_get($aid))['plans'] ?? [] as $r){ if(onb_trial_ok(ch_plan($r['id']) ?? ['base'=>''])){ $ids[]=$r['id']; $why[$r['id']]=(string)($r['reason'] ?? ''); } }
+    foreach(['agent-phone','agent-termine','agent-bestellung','agent-support'] as $d) if(count($ids)<4 && !in_array($d,$ids,true) && ch_plan($d)) $ids[]=$d;
+    return array_map(function($id) use($why){ $pl=ch_plan($id); return ['id'=>$id,'name'=>(string)$pl['name'],'desc'=>mb_substr((string)$pl['desc'],0,140).(mb_strlen((string)$pl['desc'])>140 ? '…' : ''),'reason'=>$why[$id] ?? '','channels'=>$pl['channels']]; },array_slice($ids,0,4));
 }
 
 /* ======================================================================= Antwort speichern (inkl. Geheimnisse) */
@@ -715,6 +729,11 @@ function onb_send_guide(int $aid, array $onb, string $phase): bool {
 function onb_on_payment(int $aid, string $email, array $pl, string $checkoutId): array {
     if($aid<=0 || $checkoutId==='' || empty($pl['id'])) return ['ok'=>false,'skip'=>'no_checkout'];
     onb_bootstrap(); $base=(string)$pl['base'];
+    /* In der Testphase schon eingerichtet → diese Einrichtung übernimmt die Zahlung (Antworten bleiben, keine zweite leere Einrichtung) */
+    if(!onb_by_checkout($checkoutId) && ($ex=onb_find($aid,$base)) && str_starts_with($ex['checkout_id'],'trial:')){
+        th_db()->prepare("UPDATE onboardings SET plan=?, checkout_id=?, updated_at=NOW() WHERE id=? AND checkout_id=?")->execute([$pl['id'],mb_substr($checkoutId,0,120),$ex['id'],$ex['checkout_id']]);
+        if($ex['status']==='done') th_db()->prepare("UPDATE onboardings SET guide_sent_at=COALESCE(guide_sent_at,NOW()) WHERE id=?")->execute([$ex['id']]);   // fertig eingerichtet: keine „Jetzt einrichten“-Mail
+    }
     if(in_array($pl['kind'],['betrieb','byok'],true) && ($ex=onb_find($aid,$base)) && $ex['checkout_id']!==$checkoutId) return ['ok'=>true,'id'=>$ex['id'],'created'=>false,'mailed'=>false,'reused'=>true];
     $before=onb_by_checkout($checkoutId); $onb=$before ?? onb_create($aid,$pl['id'],$checkoutId);
     if(!$onb || $onb['account_id']!==$aid) return ['ok'=>false,'skip'=>'checkout_mismatch'];

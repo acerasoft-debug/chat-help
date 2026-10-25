@@ -3119,4 +3119,10 @@
 "asj.castOn":"Attivo",
 "asj.castPick":"Scegli {n}",
 "asj.castNow":"{n} ora è qui per te.",
-"asj.castNow.f":"{n} ora è qui per Lei."}
+"asj.castNow.f":"{n} ora è qui per Lei.",
+"onbj.pickT":"Quale agente configuriamo?",
+"onbj.pickS":"Scegline uno: la configurazione parte subito e in pochi minuti il tuo agente è pronto. Puoi provarlo quando vuoi; vai online con il piano giusto.",
+"onbj.pickBest":"Consigliato",
+"onbj.pickGo":"Configura ora",
+"onbj.a.live":"Vai online",
+"pw.setupNow":"Configura {n} ora →"}

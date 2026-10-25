@@ -3119,4 +3119,10 @@
 "asj.castOn":"Actief",
 "asj.castPick":"{n} kiezen",
 "asj.castNow":"{n} staat nu voor je klaar.",
-"asj.castNow.f":"{n} staat nu voor u klaar."}
+"asj.castNow.f":"{n} staat nu voor u klaar.",
+"onbj.pickT":"Welke agent stellen we in?",
+"onbj.pickS":"Kies er een – het instellen begint meteen en je agent is binnen een paar minuten klaar. Testen kan altijd; live gaan doe je met het passende pakket.",
+"onbj.pickBest":"Aanbevolen",
+"onbj.pickGo":"Nu instellen",
+"onbj.a.live":"Live zetten",
+"pw.setupNow":"{n} nu instellen →"}

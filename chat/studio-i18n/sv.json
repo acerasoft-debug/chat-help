@@ -3119,4 +3119,10 @@
 "asj.castOn":"Aktiv",
 "asj.castPick":"Välj {n}",
 "asj.castNow":"{n} är nu här för dig.",
-"asj.castNow.f":"{n} är nu här för dig."}
+"asj.castNow.f":"{n} är nu här för dig.",
+"onbj.pickT":"Vilken agent ska vi sätta upp?",
+"onbj.pickS":"Välj en – uppsättningen börjar direkt och din agent är klar på några minuter. Testa när du vill; gå live med rätt paket.",
+"onbj.pickBest":"Rekommenderas",
+"onbj.pickGo":"Sätt upp nu",
+"onbj.a.live":"Gå live",
+"pw.setupNow":"Sätt upp {n} nu →"}
