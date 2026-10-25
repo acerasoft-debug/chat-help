@@ -20,6 +20,10 @@ on:
         description: "Açarken (isteğe bağlı): BUGÜNKÜ indirim payı (ör. 490). Yalnız bugün geçerli, sunucu tavanını aşamaz; boş = varsayılan (300)"
         required: false
         default: ""
+      daily_cap:
+        description: "İsteğe bağlı: sunucunun KALICI günlük tavanı (en çok 600; boş = değişmez)"
+        required: false
+        default: ""
       unpause_today:
         description: "Açarken (isteğe bağlı): true = durdurulan ülkeler (Almanya) YALNIZ BUGÜN açık; yarın kendiliğinden yine durur"
         required: false
@@ -38,12 +42,13 @@ jobs:
           START: ${{ github.event.inputs.start }}
           QUOTA: ${{ github.event.inputs.quota }}
           UNPAUSE: ${{ github.event.inputs.unpause_today }}
+          DCAP: ${{ github.event.inputs.daily_cap }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: ON,START,QUOTA,UNPAUSE
+          envs: ON,START,QUOTA,UNPAUSE,DCAP
           command_timeout: 2m
           script: |
             cd ~/public_html
@@ -60,6 +65,8 @@ jobs:
             if ($on && strtolower(trim((string)getenv('START'))) !== 'now') {   // bugünün denemeleri ve 23:45 turu tükenmiş sayılır
               $cfg['deals_day'] = date('Y-m-d'); $cfg['deals_tries'] = defined('VESTRA_MAILBOX_DEALS_TRIES') ? VESTRA_MAILBOX_DEALS_TRIES : 3; $cfg['followup_day'] = date('Y-m-d');
             }
+            $dc = (int)preg_replace('/\D/', '', (string)getenv('DCAP'));
+            if ($dc > 0) { $cfg['daily_cap'] = max(1, min($dc, VESTRA_MAILBOX_MAX_CAP)); $cfg['daily_cap_set_at'] = date('c'); echo "gunluk tavan (kalici): ".$cfg['daily_cap']."\n"; }
             $f = vestra_mailbox_file('mailbox.json'); file_put_contents($f, json_encode($cfg, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), LOCK_EX); @chmod($f, 0600);
             $runs = vestra_mailbox_runs(); $kill = false; $c = 0;
             if (!$on) foreach ($runs as $i => $r) {
