@@ -296,9 +296,13 @@ function assistant_langs_of(array $pr): array { $l=(array)($pr['personality']['l
 /** Sprache einer Nachricht innerhalb der gewählten Sprachen; außerhalb → Hauptsprache. */
 function assistant_detect_for(array $pr, string $t, string $fb=''): string { $LS=assistant_langs_of($pr); $fb=in_array($fb,$LS,true) ? $fb : $pr['lang']; $l=assistant_detect_lang($t,$fb); return in_array($l,$LS,true) ? $l : assistant_lang($fb); }
 /** Server-Spracherkennung fürs Mikrofon (erkennt die gesprochene Sprache selbst); sonst Browser-Erkennung in der gewählten Sprache. */
-function assistant_stt_ready(): bool { return function_exists('stt_detect_any') && stt_key('deepgram')!==''; }
+function assistant_stt_ready(): bool { return function_exists('stt_detect_any') && (stt_key('deepgram')!=='' || stt_key('elevenlabs')!==''); }
 /** Sprachen, die die Server-Erkennung versteht (übrige, z. B. az, hört der Browser). */
-function assistant_stt_langs(): array { return assistant_stt_ready() ? array_values(array_intersect(ASSISTANT_LANGS,STT_DEEPGRAM_LANGS)) : []; }
+function assistant_stt_langs(): array {   // Deepgram (12 Sprachen) + ElevenLabs für Aserbaidschanisch
+    if(!assistant_stt_ready()) return [];
+    $l=stt_key('deepgram')!=='' ? array_values(array_intersect(ASSISTANT_LANGS,STT_DEEPGRAM_LANGS)) : [];
+    if(stt_key('elevenlabs')!=='') foreach(array_keys(STT_ELEVEN_LANGS) as $x) if(in_array($x,ASSISTANT_LANGS,true)) $l[]=$x;
+    return $l; }
 /**
  * Sprache eines Textes grob erkennen (für Stimme und Spracheingabe; die KI antwortet in der Sprache des Inhabers). Schrift zuerst (ja, ru),
  * dann typische Wörter und Sonderzeichen. Unsicher (kurzer Text, knappes Ergebnis) → $fallback.
@@ -1449,6 +1453,8 @@ function assistant_api(string $route, string $method, int $aid, array $body, arr
             if($bin===false || strlen($bin)<200 || strlen($bin)>ASSISTANT_STT_MAX) return [422,['error'=>'invalid','field'=>'audio']];
             $pr=assistant_profile($aid); $LS=assistant_langs_of($pr);
             $force=strtolower(substr(assistant_str($body['lang'] ?? ''),0,2)); if(in_array($force,$LS,true)) $LS=[$force];   // Spracheingabe fest auf eine Sprache gestellt
+            elseif(($conv=strtolower(substr(assistant_str($body['conv'] ?? ''),0,2)))!=='' && in_array($conv,$LS,true) && !in_array($conv,STT_DEEPGRAM_LANGS,true)) $LS=[$conv];   // Gespräch auf Aserbaidschanisch → dort erkennen (ElevenLabs)
+            if(count($LS)>1 && !stt_key('deepgram')) $LS=array_values(array_intersect($LS,array_keys(STT_ELEVEN_LANGS))) ?: $LS;
             $r=stt_detect_any($bin,$m[1],$LS,$pr['lang'],min(30.0,max(0.0,(float)($body['sec'] ?? 0))));
             if($r['error']==='lang_unsupported') return [501,['error'=>'stt_lang_unavailable']];   // Browser hört in dieser Sprache zu
             if($r['error']!=='') return [502,['error'=>'stt_failed']];

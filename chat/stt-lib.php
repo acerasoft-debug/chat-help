@@ -11,7 +11,7 @@
  * Verbrauch je Tag (stt_usage_day): Aufrufe, Sekunden Audio, Wartezeit, Fehler → ops/ai-costs zeigt Kosten und Latenz.
  */
 
-const STT_PRICE_USD_MIN = ['deepgram'=>0.0043,'azure'=>1.0/60,'twilio'=>0.0];   // Listenpreise je Minute Audio (Deepgram Nova-3 pre-recorded, Azure real-time)
+const STT_PRICE_USD_MIN = ['deepgram'=>0.0043,'azure'=>1.0/60,'elevenlabs'=>0.4/60,'twilio'=>0.0];   // ElevenLabs Scribe ≈ 0,40 $/Std. (Aserbaidschanisch)   // Listenpreise je Minute Audio (Deepgram Nova-3 pre-recorded, Azure real-time)
 const STT_TWILIO_REC_USD_MIN = 0.0025;   // Twilio-Aufnahme je Minute (wird sofort gelöscht)
 const STT_DEEPGRAM_LANGS = ['de','en','tr','fr','es','it','ru','nl','sv','no','fi','ja'];   // Deepgram Nova-3: kein Aserbaidschanisch → Gather
 
@@ -20,8 +20,11 @@ function stt_cfg(): array {
     $mode=($s['mode'] ?? 'gather')==='record' ? 'record' : 'gather'; $prov=in_array($s['provider'] ?? '',['deepgram','azure'],true) ? $s['provider'] : 'deepgram';
     return ['mode'=>$mode,'provider'=>$prov,'scope'=>($s['scope'] ?? 'central')==='all' ? 'all' : 'central'];
 }
+/** Sprachen, die nur ElevenLabs (Scribe) erkennt – mit fester Sprachvorgabe (frei erkannt hält Scribe Aserbaidschanisch oft für Türkisch). */
+const STT_ELEVEN_LANGS = ['az'=>'aze'];
 function stt_key(string $prov): string {
     if($prov==='deepgram') return defined('DEEPGRAM_KEY') ? trim((string)DEEPGRAM_KEY) : '';
+    if($prov==='elevenlabs'){ foreach(['ELEVENLABS_KEY','ELEVENLABS_API_KEY'] as $c) if(defined($c) && trim((string)constant($c))!=='') return trim((string)constant($c)); return ''; }
     if($prov==='azure') return (defined('AZURE_SPEECH_KEY') && defined('AZURE_SPEECH_REGION')) ? trim((string)AZURE_SPEECH_KEY) : '';
     return '';
 }
@@ -29,7 +32,7 @@ function stt_key(string $prov): string {
 function stt_mode_for(bool $central, string $lang2): string {
     $c=stt_cfg(); if($c['mode']!=='record' || ($c['scope']==='central' && !$central)) return '';
     $p=$c['provider']; if(stt_key($p)==='') return '';
-    if($p==='deepgram' && !in_array($lang2,STT_DEEPGRAM_LANGS,true)) return stt_key('azure')!=='' ? 'azure' : '';
+    if($p==='deepgram' && !in_array($lang2,STT_DEEPGRAM_LANGS,true)) return isset(STT_ELEVEN_LANGS[$lang2]) && stt_key('elevenlabs')!=='' ? 'elevenlabs' : (stt_key('azure')!=='' ? 'azure' : '');
     return $p;
 }
 /** TwiML: nach der Ansage aufnehmen; Stille ohne Aufnahme → gleiche Action ohne RecordingUrl (= „nichts gehört“). */
@@ -64,6 +67,8 @@ function stt_transcribe(string $wav, string $prov, string $lang2, bool $detect=f
         $alt=$r['results']['channels'][0]['alternatives'][0] ?? null;
         if($code===200 && is_array($alt)){ $out['text']=trim((string)($alt['transcript'] ?? '')); $out['conf']=(float)($alt['confidence'] ?? 0); $dl=(string)($r['results']['channels'][0]['detected_language'] ?? ''); if($dl!=='') $out['lang']=strtolower(substr($dl,0,2)); }
         else $out['error']='deepgram '.$code.' '.mb_substr((string)($r['err_msg'] ?? ($r['message'] ?? '')),0,80);
+    } elseif($prov==='elevenlabs'){
+        $r=stt_elevenlabs($wav,'audio/wav',$lang2); foreach(['text','conf','lang','error'] as $k) $out[$k]=$r[$k];
     } else {
         $region=preg_replace('/[^a-z0-9]/','',strtolower((string)AZURE_SPEECH_REGION)); $tag=function_exists('ch_lang_tag') ? ch_lang_tag($lang2) : 'de-DE';
         $ch=curl_init('https://'.$region.'.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?'.http_build_query(['language'=>$tag,'format'=>'detailed','profanity'=>'raw']));
@@ -81,9 +86,12 @@ function stt_detect_any(string $audio, string $mime, array $langs, string $main,
     $t0=microtime(true); $out=['text'=>'','conf'=>0.0,'lang'=>$main,'ms'=>0,'sec'=>$sec,'error'=>''];
     /* Alle gewählten Sprachen erkennbar → nur unter ihnen erkennen; eine davon (z. B. az) nicht → frei erkennen (Ergebnis ordnet der Aufrufer ein) */
     $dg=$langs ? array_values(array_intersect($langs,STT_DEEPGRAM_LANGS)) : [];
-    if($langs && !$dg){ $out['error']='lang_unsupported'; return $out; }
+    /* Nur Sprachen ohne Deepgram (Aserbaidschanisch) → ElevenLabs mit fester Sprache */
+    $el=$langs && !$dg && count($langs)===1 && isset(STT_ELEVEN_LANGS[$langs[0]]) && stt_key('elevenlabs')!=='' ? $langs[0] : '';
+    if($langs && !$dg && $el===''){ $out['error']='lang_unsupported'; return $out; }
     if(count($dg)<count($langs)) $dg=[];
-    if(isset($GLOBALS['__stt_mock']) && is_callable($GLOBALS['__stt_mock']) && in_array(PHP_SAPI,['cli','cli-server'],true)){ $r=($GLOBALS['__stt_mock'])($audio,'deepgram',$main,true,$dg); return $r+$out; }
+    if(isset($GLOBALS['__stt_mock']) && is_callable($GLOBALS['__stt_mock']) && in_array(PHP_SAPI,['cli','cli-server'],true)){ $r=($GLOBALS['__stt_mock'])($audio,$el!=='' ? 'elevenlabs' : 'deepgram',$main,true,$el!=='' ? [$el] : $dg); return $r+$out; }
+    if($el!==''){ $r=stt_elevenlabs($audio,$mime,$el); $r['sec']=$sec; stt_usage_log('elevenlabs',$sec,(int)$r['ms'],$r['error']!==''); return $r; }
     $key=stt_key('deepgram'); if($key===''){ $out['error']='no_key'; return $out; }
     $q=http_build_query(['model'=>'nova-3','smart_format'=>'true','punctuate'=>'true','mip_opt_out'=>'true']);
     if(count($dg)===1) $q.='&language='.$dg[0];
@@ -104,6 +112,24 @@ function stt_detect_any(string $audio, string $mime, array $langs, string $main,
     } else $out['error']='deepgram '.$code;
     $out['ms']=(int)round((microtime(true)-$t0)*1000);
     stt_usage_log('deepgram',(float)$out['sec'],$out['ms'],$out['error']!=='');
+    return $out;
+}
+/** ElevenLabs Speech-to-Text (Scribe) – Audio beliebigen Formats → Text. $lang2: feste Sprache (z. B. az → aze), leer = frei erkennen. */
+function stt_elevenlabs(string $audio, string $mime, string $lang2=''): array {
+    $t0=microtime(true); $out=['text'=>'','conf'=>0.0,'lang'=>$lang2,'ms'=>0,'sec'=>0.0,'error'=>''];
+    $key=stt_key('elevenlabs'); if($key===''){ $out['error']='no_key'; return $out; }
+    $ext=['audio/webm'=>'webm','audio/ogg'=>'ogg','audio/mp4'=>'m4a','audio/x-m4a'=>'m4a','audio/aac'=>'aac','audio/mpeg'=>'mp3','audio/wav'=>'wav'][$mime] ?? 'webm';
+    $tmp=tempnam(sys_get_temp_dir(),'els'); file_put_contents($tmp,$audio);
+    $f=['model_id'=>'scribe_v1','tag_audio_events'=>'false','file'=>new CURLFile($tmp,$mime,'audio.'.$ext)];
+    $lc=STT_ELEVEN_LANGS[$lang2] ?? ''; if($lc!=='') $f['language_code']=$lc;
+    $base=defined('STT_ELEVEN_BASE') ? (string)STT_ELEVEN_BASE : 'https://api.elevenlabs.io';
+    $ch=curl_init($base.'/v1/speech-to-text'); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$f,CURLOPT_TIMEOUT=>20,CURLOPT_HTTPHEADER=>['xi-api-key: '.$key]]);
+    $r=json_decode((string)curl_exec($ch),true); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); @unlink($tmp);
+    if($code===200 && is_array($r)){ $out['text']=trim((string)($r['text'] ?? '')); $out['conf']=(float)($r['language_probability'] ?? 0);
+        $l3=strtolower((string)($r['language_code'] ?? '')); $back=array_flip(STT_ELEVEN_LANGS)+['tur'=>'tr','deu'=>'de','eng'=>'en','rus'=>'ru','fra'=>'fr','spa'=>'es','ita'=>'it','nld'=>'nl','swe'=>'sv','nor'=>'no','nob'=>'no','fin'=>'fi','jpn'=>'ja'];
+        if(isset($back[$l3])) $out['lang']=$back[$l3]; elseif(strlen($l3)===2) $out['lang']=$l3; }
+    else $out['error']='elevenlabs '.$code;
+    $out['ms']=(int)round((microtime(true)-$t0)*1000);
     return $out;
 }
 /** Dauer einer WAV-Datei (μ-law/PCM, aus dem Header). */

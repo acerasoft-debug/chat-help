@@ -671,7 +671,7 @@
     fr.onerror = done;
     fr.onload = function () {
       var body = { audio: String(fr.result || ''), sec: Math.round(sec * 10) / 10 };
-      if (micLangPick !== 'auto' && allowedHas(micLangPick)) body.lang = micLangPick;
+      if (micLangPick !== 'auto' && allowedHas(micLangPick)) body.lang = micLangPick; else body.conv = convLang();   // Gesprächssprache (Aserbaidschanisch wird fest erkannt)
       api('/assistant/stt', { method: 'POST', body: JSON.stringify(body) }).then(function (j) {
         done();
         var t = String(j.text || '').trim(); if (!t) { note(h(_t('asj.sttNone')), 'info'); return; }
