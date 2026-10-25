@@ -3297,5 +3297,4 @@
 "onbj.a.train":"Train your agent",
 "st.max_dauer":"Maximum call length",
 "st.max_dauer_h":"Shortly before the end the agent says goodbye politely – keeping calls short and costs predictable.",
-"ph.maxStd":"Default ({n} min)",
-"asj.noAz":"Voice input isn't available in Azerbaijani – please type."}
+"ph.maxStd":"Default ({n} min)"}

@@ -61,7 +61,7 @@
     return (PROF && PROF.lang) || 'de';
   }
   /** Spracheingabe: gewählte Sprache oder „Auto“ = Sprache des Gesprächs (mit Server-Erkennung: die gesprochene Sprache). */
-  function micLang() { return micLangPick !== 'auto' && micLangPick !== 'az' && LANG_TAG[micLangPick] && allowedHas(micLangPick) ? micLangPick : convLang(); }
+  function micLang() { return micLangPick !== 'auto' && LANG_TAG[micLangPick] && allowedHas(micLangPick) ? micLangPick : convLang(); }
   function T(du, sie) { return isSie() ? sie : du; }
   function note(html, kind) { msg(g('asNote'), html, kind); if (html && kind !== 'err') { setTimeout(function () { if (g('asNote')) msg(g('asNote'), ''); }, 4500); } }
   function setBalance(b) {
@@ -616,11 +616,9 @@
   var MR = window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? window.MediaRecorder : null;
   /** Server-Erkennung: erkennt selbst, welche (gewählte) Sprache gesprochen wird. Ohne sie hört der Browser in der Sprache des Gesprächs zu. */
   function serverStt() { return STT_SERVER && !!MR && STT_LANGS.indexOf(micLangPick !== 'auto' && allowedHas(micLangPick) ? micLangPick : convLang()) >= 0; }
-  /** Aserbaidschanisch: keine Spracheingabe (weder Server noch Browser erkennen es zuverlässig) – dann wird getippt. */
-  function micAz() { return micLang() === 'az'; }
-  function micOk() { return !micAz() && (!!SR || serverStt()); }
+  function micOk() { return !!SR || serverStt(); }
   function micUi(on) { ['asMic', 'asMicBig'].forEach(function (id) { var b = g(id); if (b) { b.classList.toggle('rec', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); } }); }
-  function micAvail() { var why = micAz() ? _t('asj.noAz') : _t('asj.noSR'); ['asMic', 'asMicBig'].forEach(function (id) { var b = g(id); if (b) { b.disabled = !micOk(); if (!micOk()) b.title = why; else if (b.title === _t('asj.noSR') || b.title === _t('asj.noAz')) b.title = ''; } }); }
+  function micAvail() { ['asMic', 'asMicBig'].forEach(function (id) { var b = g(id); if (b) { b.disabled = !micOk(); if (!micOk()) b.title = _t('asj.noSR'); else if (b.title === _t('asj.noSR')) b.title = ''; } }); }
   function startListen(auto) { if (serverStt()) recStart(auto); else srStart(auto); }
   function recMime() { var c = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/webm']; for (var i = 0; i < c.length; i++) { try { if (MR.isTypeSupported && MR.isTypeSupported(c[i])) return c[i]; } catch (e) { /* egal */ } } return ''; }
   function recStop() { if (REC.mr && REC.mr.state !== 'inactive') { try { REC.mr.stop(); } catch (e) { /* egal */ } } }
@@ -802,7 +800,7 @@
     if (!sel) return;
     var cur = sel.value;
     var pre = withAuto ? '🎙 ' : '';
-    var list = withAuto ? LANGS.filter(function (l) { return allowedHas(l.code) && l.code !== 'az'; }) : LANGS;   // Spracheingabe: nur die Sprachen des Assistenten, ohne Aserbaidschanisch
+    var list = withAuto ? LANGS.filter(function (l) { return allowedHas(l.code); }) : LANGS;   // Spracheingabe: nur die Sprachen des Assistenten
     sel.innerHTML = (withAuto ? '<option value="auto">' + pre + h(_t('asj.auto')) + '</option>' : '') +
       list.map(function (l) { var ln = lname(l); return '<option value="' + h(l.code) + '">' + (withAuto ? pre + h(l.code.toUpperCase()) + ' · ' + h(l.native) : h(l.native) + (l.native !== ln ? ' · ' + h(ln) : '')) + '</option>'; }).join('');
     if (cur && sel.querySelector('option[value="' + cur + '"]')) sel.value = cur;
@@ -810,12 +808,11 @@
   function micLangUi() {
     var sel = g('asMicLang'); if (!sel) return;
     langOptions(sel, true);
-    sel.value = micLangPick !== 'auto' && micLangPick !== 'az' && LANG_TAG[micLangPick] && allowedHas(micLangPick) ? micLangPick : 'auto';
+    sel.value = micLangPick !== 'auto' && LANG_TAG[micLangPick] && allowedHas(micLangPick) ? micLangPick : 'auto';
     var cl = ((LANGS.filter(function (l) { return l.code === convLang(); })[0]) || LANGS[0]);
     sel.title = serverStt() && sel.value === 'auto' ? _t('asj.micDetect') : _t('asj.micT',{l:lname(cl)});
     sel.setAttribute('aria-label', sel.title);
-    sel.classList.toggle('hidden', allowed().filter(function (c) { return c !== 'az'; }).length < 2);   // nur eine Sprache: nichts zu wählen
-    micAvail();   // Gesprächssprache Aserbaidschanisch → Mikrofon aus
+    sel.classList.toggle('hidden', allowed().length < 2);   // nur eine Sprache: nichts zu wählen
   }
   function voiceBtn() {
     var b = g('asVoiceBtn'); if (!b) return;

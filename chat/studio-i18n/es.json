@@ -3297,5 +3297,4 @@
 "onbj.a.train":"Entrenar a tu agente",
 "st.max_dauer":"Duración máxima por llamada",
 "st.max_dauer_h":"Poco antes del final el agente se despide con cortesía: llamadas cortas y costes previsibles.",
-"ph.maxStd":"Estándar ({n} min)",
-"asj.noAz":"La entrada de voz no está disponible en azerbaiyano; escribe, por favor."}
+"ph.maxStd":"Estándar ({n} min)"}
