@@ -90,9 +90,13 @@ function stt_detect_any(string $audio, string $mime, array $langs, string $main,
     elseif($dg && count($dg)<count(STT_DEEPGRAM_LANGS)) foreach($dg as $l) $q.='&detect_language='.$l;
     else $q.='&detect_language=true';
     $base=defined('STT_DEEPGRAM_BASE') ? (string)STT_DEEPGRAM_BASE : 'https://api.eu.deepgram.com';
-    $ch=curl_init($base.'/v1/listen?'.$q); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$audio,CURLOPT_TIMEOUT=>12,CURLOPT_HTTPHEADER=>['Authorization: Token '.$key,'Content-Type: '.$mime]]);
-    $r=json_decode((string)curl_exec($ch),true); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
-    $c0=$r['results']['channels'][0] ?? []; $alt=$c0['alternatives'][0] ?? null;
+    $call=function(string $q) use($base,$audio,$key,$mime): array { $ch=curl_init($base.'/v1/listen?'.$q); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$audio,CURLOPT_TIMEOUT=>12,CURLOPT_HTTPHEADER=>['Authorization: Token '.$key,'Content-Type: '.$mime]]);
+        $r=json_decode((string)curl_exec($ch),true); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); return [$code,$r]; };
+    [$code,$r]=$call($q); $c0=$r['results']['channels'][0] ?? []; $alt=$c0['alternatives'][0] ?? null;
+    /* Nur unter den gewählten Sprachen nichts verstanden → einmal frei erkennen (andere Sprache wird verstanden, die Antwort kommt in der Hauptsprache) */
+    if($code===200 && $dg && trim((string)($alt['transcript'] ?? ''))==='' && (float)($r['metadata']['duration'] ?? 0)>=0.8){
+        [$c2,$r2]=$call(http_build_query(['model'=>'nova-3','smart_format'=>'true','punctuate'=>'true','mip_opt_out'=>'true']).'&detect_language=true');
+        $a2=$r2['results']['channels'][0]['alternatives'][0] ?? null; if($c2===200 && trim((string)($a2['transcript'] ?? ''))!==''){ $r=$r2; $c0=$r2['results']['channels'][0]; $alt=$a2; } }
     if($code===200 && is_array($alt)){
         $out['text']=trim((string)($alt['transcript'] ?? '')); $out['conf']=(float)($alt['confidence'] ?? 0);
         $dl=strtolower(substr((string)($c0['detected_language'] ?? ''),0,2)); if($dl==='nb' || $dl==='nn') $dl='no'; if($dl!=='') $out['lang']=$dl;
