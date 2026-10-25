@@ -3215,4 +3215,15 @@
 "srx.fwnum":"Agenten din svarer på {n}. Kundene ringer fortsatt ditt kjente nummer – du bare viderekobler.",
 "srx.fwtap":"Trykk på en kode på telefonen med {n} (eller skriv den i Telefon-appen og ring). Anbefalt: «Hvis jeg ikke svarer» og «Ved opptatt» – da ringer telefonen din først.",
 "srx.cbtry":"Anropsforsøk {a} mislyktes – {m}",
-"srx.cbfail":"Samtalet kunne ikke kobles opp: {m}"}
+"srx.cbfail":"Samtalet kunne ikke kobles opp: {m}",
+"as.sprachen_des_assistenten":"Samtalespråk",
+"asj.lsAll":"Alle {n}",
+"asj.lsMain":"hovedspråk",
+"asj.lsSome":"Svarer på: {l}. Andre språk forstås – svaret kommer da på {m}.",
+"asj.lsOnly":"Svarer alltid på {m} – også når det skrives eller snakkes et annet språk.",
+"asj.micDetect":"Taleinndata – Auto: gjenkjenner selv hvilket språk som snakkes",
+"asj.sttWork":"Talen gjenkjennes …",
+"asj.sttNone":"Oppfattet ingenting – snakk igjen.",
+"asj.sttFail":"Taleinndata fungerte ikke – prøv igjen eller skriv.",
+"src.3eed957a84":"Velg språkene som en liste.",
+"src.34349e533f":"Dette språket støttes ikke."}

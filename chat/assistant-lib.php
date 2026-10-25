@@ -22,6 +22,7 @@ require_once __DIR__.'/order-lib.php';
 require_once __DIR__.'/agent-tools.php';   // ch_plan_active_any, Fachmodule (Taxi, Hotel, Rückruf, Training) – bereits geladen, wenn agent-tools uns einbindet
 if(is_file(__DIR__.'/speech-lib.php')) require_once __DIR__.'/speech-lib.php';
 if(is_file(__DIR__.'/voice-catalog.php')) require_once __DIR__.'/voice-catalog.php';   // Stimmenkatalog: profile.voice.id (≥ 6 Stimmen je Sprache und Geschlecht)
+if(is_file(__DIR__.'/stt-lib.php')) require_once __DIR__.'/stt-lib.php';   // Mikrofon: Spracherkennung mit Sprach-Erkennung (Deepgram EU), sonst Browser
 if(is_file(__DIR__.'/profile-lib.php')) require_once __DIR__.'/profile-lib.php';   // Registrierungs-Profil (ch_profile_brief) als kurzer Kontext
 
 const ASSISTANT_COST_TURN = 6;          // Tokens je Antwort
@@ -31,6 +32,7 @@ const ASSISTANT_HISTORY_KEEP = 400;     // ältere Nachrichten werden aufgeräum
 const ASSISTANT_MEMORY_MAX = 150;
 const ASSISTANT_MSG_MAX = 2000;
 const ASSISTANT_PHOTO_MAX = 358400;     // 350 KB (Binärgröße nach dem Verkleinern im Browser)
+const ASSISTANT_STT_MAX = 1572864;      // 1,5 MB Mikrofon-Aufnahme (Opus ≈ 30 s)
 const ASSISTANT_SPEAK_MAX = 400;
 const ASSISTANT_TONES = ['warm','ruhig','energisch','sachlich'];
 const ASSISTANT_MOODS = ['herzlich','professionell','locker'];
@@ -283,6 +285,20 @@ function assistant_langs_public(): array {
         $o[]=['code'=>$c,'name'=>$t['de'],'native'=>$t['native'],'tag'=>$t['tag'],'formal'=>$t['formal'],'preview'=>$pv]; }
     return $o;
 }
+/** Sprachen, die der Assistent sprechen soll (vom Inhaber gewählt): gültige Codes, Hauptsprache zuerst; leer oder alle = alle Sprachen. */
+function assistant_langs_norm($ls, string $main): array {
+    $o=[]; foreach((array)$ls as $x){ $x=strtolower(trim((string)$x)); if($x==='nb') $x='no'; if(in_array($x,ASSISTANT_LANGS,true) && !in_array($x,$o,true)) $o[]=$x; }
+    if(!$o) return []; $o=array_values(array_unique(array_merge([$main],$o)));
+    return count($o)>=count(ASSISTANT_LANGS) ? [] : $o;
+}
+/** Tatsächlich gesprochene Sprachen des Assistenten (leer gewählt = alle). */
+function assistant_langs_of(array $pr): array { $l=(array)($pr['personality']['langs'] ?? []); return $l ?: ASSISTANT_LANGS; }
+/** Sprache einer Nachricht innerhalb der gewählten Sprachen; außerhalb → Hauptsprache. */
+function assistant_detect_for(array $pr, string $t, string $fb=''): string { $LS=assistant_langs_of($pr); $fb=in_array($fb,$LS,true) ? $fb : $pr['lang']; $l=assistant_detect_lang($t,$fb); return in_array($l,$LS,true) ? $l : assistant_lang($fb); }
+/** Server-Spracherkennung fürs Mikrofon (erkennt die gesprochene Sprache selbst); sonst Browser-Erkennung in der gewählten Sprache. */
+function assistant_stt_ready(): bool { return function_exists('stt_detect_any') && stt_key('deepgram')!==''; }
+/** Sprachen, die die Server-Erkennung versteht (übrige, z. B. az, hört der Browser). */
+function assistant_stt_langs(): array { return assistant_stt_ready() ? array_values(array_intersect(ASSISTANT_LANGS,STT_DEEPGRAM_LANGS)) : []; }
 /**
  * Sprache eines Textes grob erkennen (für Stimme und Spracheingabe; die KI antwortet in der Sprache des Inhabers). Schrift zuerst (ja, ru),
  * dann typische Wörter und Sonderzeichen. Unsicher (kurzer Text, knappes Ergebnis) → $fallback.
@@ -405,7 +421,7 @@ function assistant_ui_lang(): string {
 function assistant_profile_defaults(int $acc): array {
     $l=assistant_ui_lang(); $c=assistant_cast($l)[0] ?? null; $tone=$c['tone'] ?? 'warm';
     return ['account_id'=>$acc,'name'=>$c['name'] ?? 'Lea','gender'=>'f','portrait'=>$c['portrait'] ?? assistant_default_portrait('f'),'portrait_data'=>null,
-        'voice'=>['tone'=>$tone,'rate'=>1.0,'pitch'=>1.0,'preset'=>assistant_preset_for('f',$tone)],'personality'=>['address'=>'du','mood'=>$c['mood'] ?? 'herzlich','humor'=>1,'detail'=>'kurz'],'lang'=>$l,'saved'=>false,
+        'voice'=>['tone'=>$tone,'rate'=>1.0,'pitch'=>1.0,'preset'=>assistant_preset_for('f',$tone)],'personality'=>['address'=>'du','mood'=>$c['mood'] ?? 'herzlich','humor'=>1,'detail'=>'kurz','langs'=>[]],'lang'=>$l,'saved'=>false,
         'cast'=>$c];
 }
 /**
@@ -506,6 +522,7 @@ function assistant_profile(int $acc): array {
     $o['personality']['humor']=max(0,min(2,(int)$o['personality']['humor']));
     if(!in_array($o['personality']['detail'],['kurz','ausführlich'],true)) $o['personality']['detail']='kurz';
     if(isset($o['personality']['cast']) && !(is_string($o['personality']['cast']) && preg_match('/^[a-z]{2}-[fm]-[a-z0-9]{1,30}$/',$o['personality']['cast']))) unset($o['personality']['cast']);
+    $o['personality']['langs']=assistant_langs_norm($o['personality']['langs'] ?? [],$o['lang']);
     $pre=assistant_voice_presets(); $pid=(string)($o['voice']['preset'] ?? '');
     if(!isset($pre[$pid]) || $pre[$pid]['gender']!==$o['gender']) $o['voice']['preset']=assistant_preset_for($o['gender'],$o['voice']['tone']);
     $o['voice']['id']=assistant_voice_id($o);
@@ -607,7 +624,11 @@ function assistant_profile_save(int $acc, array $d, ?array &$err=null): array {
         if(isset($pe['mood'])){ if(!in_array($pe['mood'],ASSISTANT_MOODS,true)) return $bad('personality.mood','Persönlichkeit: herzlich, professionell oder locker.'); $v['personality']['mood']=$pe['mood']; }
         if(isset($pe['humor'])){ if(!is_numeric($pe['humor']) || (int)$pe['humor']<0 || (int)$pe['humor']>2) return $bad('personality.humor','Humor: 0, 1 oder 2.'); $v['personality']['humor']=(int)$pe['humor']; }
         if(isset($pe['detail'])){ if(!in_array($pe['detail'],['kurz','ausführlich'],true)) return $bad('personality.detail','Antwortlänge: kurz oder ausführlich.'); $v['personality']['detail']=$pe['detail']; }
+        if(array_key_exists('langs',$pe)){ if(!is_array($pe['langs'])) return $bad('personality.langs','Bitte Sprachen als Liste wählen.');
+            foreach($pe['langs'] as $x) if(!is_string($x) || !in_array(strtolower($x)==='nb' ? 'no' : strtolower($x),ASSISTANT_LANGS,true)) return $bad('personality.langs','Diese Sprache wird nicht unterstützt.');
+            $v['personality']['langs']=$pe['langs']; }
     }
+    $v['personality']['langs']=assistant_langs_norm($v['personality']['langs'] ?? [],$v['lang']);   // Hauptsprache gehört immer dazu
     /* Markierung des fertigen Assistenten (Auswahl im Panel) – fällt weg, sobald Name, Gesicht, Stimme oder Sprache selbst geändert werden */
     if($cast) $v['personality']['cast']=$cast['id'];
     elseif($v['name']!==$c['name'] || $v['gender']!==$c['gender'] || $v['portrait']!==$c['portrait'] || ($v['voice']['id'] ?? '')!==($c['voice']['id'] ?? '') || $v['lang']!==$c['lang']) unset($v['personality']['cast']);
@@ -637,7 +658,7 @@ function assistant_tts_provider(): ?string {
 function assistant_tts_langs(): array {
     $p=assistant_tts_provider(); if($p===null) return [];
     if($p==='google') return ['de'];
-    if($p==='elevenlabs') return array_values(array_diff(ASSISTANT_LANGS,['no','az']));
+    if($p==='elevenlabs') return ASSISTANT_LANGS;   // Norwegisch/Aserbaidschanisch über Eleven v3/v4 (speech-lib)
     return ASSISTANT_LANGS;
 }
 function assistant_tts_ready(string $lang=''): bool { $l=assistant_tts_langs(); return $lang==='' ? (bool)$l : in_array(assistant_lang($lang),$l,true); }
@@ -948,8 +969,9 @@ function assistant_system(int $acc, array $pr, array $ov, array $items, int $pro
     $s.="\n• Antwortlänge: ".($pe['detail']==='kurz' ? 'kurz – meist 1 bis 3 Sätze.' : 'ausführlicher – bis 6 Sätze, mit kurzer Erklärung, wo es hilft.');
     $s.="\n• Ehrlichkeit: Fragt dich jemand, ob du ein Mensch bist, sagst du freundlich, dass du eine KI-".($f ? 'Assistentin' : 'Assistent')." bist. Behaupte nie, ein Mensch zu sein oder Dinge außerhalb des Studios getan zu haben.";
     $ln=assistant_lang_name($pr['lang']);
-    $s.="\n• Sprache: Antworte auf ".$ln.", außer der Inhaber schreibt oder spricht erkennbar in einer anderen Sprache – dann antwortest du in seiner Sprache, so natürlich wie eine Muttersprachlerin bzw. ein Muttersprachler. Du verstehst und sprichst fließend: "
-        .implode(', ',array_map('assistant_lang_name',ASSISTANT_LANGS)).'. Die Anrede-Regel gilt sinngemäß in jeder Sprache ('.($sie ? 'förmlich, z. B. vous, usted, Lei, siz, вы, u, Te' : 'vertraut, z. B. tu, tú, sen, ты, je, sinä').'). Werkzeug-Eingaben (Abschnitte, FAQ, Leistungen) schreibst du in der Sprache, in der die Kunden des Betriebs bedient werden – im Zweifel Deutsch.';
+    $LS=assistant_langs_of($pr); $all=count($LS)>=count(ASSISTANT_LANGS);
+    $s.="\n• Sprache: Antworte auf ".$ln.", außer der Inhaber schreibt oder spricht erkennbar in einer anderen Sprache".($all ? '' : ', die du sprichst')." – dann antwortest du in seiner Sprache, so natürlich wie eine Muttersprachlerin bzw. ein Muttersprachler; wechselt er mitten im Gespräch, wechselst du sofort mit (ohne es zu kommentieren). ".($all ? 'Du verstehst und sprichst fließend: ' : 'Der Inhaber hat festgelegt, dass du diese Sprachen sprichst: ')
+        .implode(', ',array_map('assistant_lang_name',$LS)).'.'.($all ? '' : ' Schreibt er in einer anderen Sprache, verstehst du ihn trotzdem, antwortest aber auf '.$ln.'.').' Die Anrede-Regel gilt sinngemäß in jeder Sprache ('.($sie ? 'förmlich, z. B. vous, usted, Lei, siz, вы, u, Te' : 'vertraut, z. B. tu, tú, sen, ты, je, sinä').'). Werkzeug-Eingaben (Abschnitte, FAQ, Leistungen) schreibst du in der Sprache, in der die Kunden des Betriebs bedient werden – im Zweifel Deutsch.';
     $s.=$voice ? "\n• SPRACHAUSGABE IST AN: Deine Antwort wird mit deiner Stimme vorgelesen. Sprich natürlich wie im echten Gespräch: kurze Sätze, Alltagswörter, keine Listen, kein Markdown, keine Emojis, keine Klammern, keine URLs (Links stehen ohnehin im Chat). Zahlen und Uhrzeiten so, wie man sie spricht."
                : "\n• Schreibstil: natürlich und persönlich. Kurze Aufzählungen mit „•“ sind erlaubt, wenn du etwas zusammenfasst; sonst Fließtext. Kein Markdown außer **fett** für einzelne Wörter.";
     $s.="\n\nARBEITSWEISE";
@@ -1288,7 +1310,7 @@ function assistant_history_public(array $hist, array $pr): array {
     $du=$pr['personality']['address']!=='sie';
     return array_map(function($m) use($pr,$du){
         $o=['id'=>$m['id'],'role'=>$m['role'],'content'=>$m['content'],'actions'=>$m['actions'],'greeting'=>$m['greeting'],'created_at'=>$m['created_at'],'lang'=>$m['lang']];
-        if($m['role']==='assistant'){ $o['lang']=$m['lang'] ?? assistant_detect_lang((string)$m['content'],$pr['lang']); $o['speech']=assistant_speech((string)$m['content'],$o['lang'],$du); }
+        if($m['role']==='assistant'){ $o['lang']=$m['lang'] ?? assistant_detect_for($pr,(string)$m['content']); $o['speech']=assistant_speech((string)$m['content'],$o['lang'],$du); }
         return $o; },$hist);
 }
 /**
@@ -1297,7 +1319,7 @@ function assistant_history_public(array $hist, array $pr): array {
  * Werkzeuge, die etwas ändern (ASSISTANT_CHANGING_TOOLS), laufen nur nach Bestätigung: letzte Assistenten-Nachricht war eine Frage
  * UND die neue Nachricht ist eine kurze, klare Zustimmung – sonst bekommt die KI confirm_first und muss erst fragen.
  */
-function assistant_chat(int $acc, string $message, bool $voice=false): array {
+function assistant_chat(int $acc, string $message, bool $voice=false, string $hint=''): array {   // $hint: von der Spracherkennung erkannte Sprache
     assistant_bootstrap(); $message=trim(str_replace("\r",'',$message));
     $pr=assistant_profile($acc); $sie=$pr['personality']['address']==='sie'; $S=fn(string $du,string $s)=>$sie ? $s : $du;
     if($message==='') return [400,['error'=>'message_required','message'=>'Bitte eine Nachricht eingeben.']];
@@ -1311,7 +1333,8 @@ function assistant_chat(int $acc, string $message, bool $voice=false): array {
         assistant_ensure_greeting($acc,$pr);
         $prev=assistant_last_message($acc);
         $confirmed=$prev && $prev['role']==='assistant' && assistant_asked((string)$prev['content']) && assistant_affirmative($message);
-        $uid=assistant_add_message($acc,'user',$message,['lang'=>assistant_detect_lang($message,$pr['lang'])]);
+        $ulang=in_array($hint,assistant_langs_of($pr),true) ? $hint : assistant_detect_for($pr,$message);
+        $uid=assistant_add_message($acc,'user',$message,['lang'=>$ulang]);
         $ov=assistant_overview($acc); $mem=assistant_memory($acc,120); [$items,$pg]=assistant_checklist($acc,$ov,$mem);
         $toolsReady=assistant_tools_ready();
         $sys=assistant_system($acc,$pr,$ov,$items,$pg,$mem,$voice,$toolsReady);
@@ -1333,7 +1356,7 @@ function assistant_chat(int $acc, string $message, bool $voice=false): array {
             else assistant_add_message($acc,'assistant','Ich habe Folgendes erledigt, aber meine Antwort ist unterwegs verloren gegangen: '.implode('; ',array_map(fn($a)=>$a['summary'],$actions)).'.',['actions'=>$actions,'lang'=>'de']);
             return [503,['error'=>'ai_unavailable','message'=>'Ich bin gerade nicht erreichbar – bitte '.$S('versuch es','versuchen Sie es').' in einem Moment noch einmal. Es wurden keine Tokens berechnet.','actions'=>$actions]];
         }
-        $lang=assistant_detect_lang($reply,$pr['lang']);
+        $lang=assistant_detect_for($pr,$reply,$ulang);   // unsicher → Sprache der Frage
         $mid=assistant_add_message($acc,'assistant',$reply,($actions ? ['actions'=>$actions] : [])+['lang'=>$lang]);
         $cost=ASSISTANT_COST_TURN+ASSISTANT_COST_TOOL*$calls;
         $charged=th_charge($acc,$cost,'assistant:chat'); th_log_usage($acc,'assistant','assistant',$charged,(int)((microtime(true)-$t0)*1000));
@@ -1391,7 +1414,7 @@ function assistant_api(string $route, string $method, int $aid, array $body, arr
     assistant_bootstrap();
     /* tts_active: Server-Stimme eingerichtet UND nutzbar (Guthaben oder aktiver Agent, wie bei /speak) – für die ehrliche Statuszeile im Panel */
     $pub=fn()=>['profile'=>assistant_profile_public(assistant_profile($aid)),'tts_active'=>assistant_tts_ready() && (th_balance($aid)>0 || (bool)assistant_active_plans($aid)),'portraits'=>array_map(fn($p)=>['id'=>$p['id'],'url'=>$p['url'],'gender'=>$p['gender'],'label'=>$p['label']],assistant_portraits()),
-        'voices'=>assistant_voice_presets_public(),'langs'=>assistant_langs_public(),'tts'=>assistant_tts_ready(),'tts_langs'=>assistant_tts_langs(),'tools_ready'=>assistant_tools_ready(),'photo_max'=>ASSISTANT_PHOTO_MAX,
+        'voices'=>assistant_voice_presets_public(),'langs'=>assistant_langs_public(),'tts'=>assistant_tts_ready(),'tts_langs'=>assistant_tts_langs(),'stt_server'=>assistant_stt_ready(),'stt_langs'=>assistant_stt_langs(),'tools_ready'=>assistant_tools_ready(),'photo_max'=>ASSISTANT_PHOTO_MAX,
         'voice_providers'=>function_exists('vc_providers') ? vc_providers() : [],'voice_api'=>'/chat/voice-api.php/v1/voices',   // Stimmenkatalog je Sprache: GET voice_api?lang=xx
         'cast'=>assistant_cast(assistant_profile($aid)['lang'])];   // fertige Assistenten der Profilsprache (andere Sprache: GET /v1/assistant/cast?lang=xx)
     switch(true){
@@ -1402,7 +1425,7 @@ function assistant_api(string $route, string $method, int $aid, array $body, arr
         case $route==='assistant/state' && $method==='GET': return [200,assistant_state($aid)];
         case $route==='assistant/cast' && $method==='GET': $l=assistant_lang((string)($_GET['lang'] ?? assistant_profile($aid)['lang'])); return [200,['lang'=>$l,'cast'=>assistant_cast($l)]];
         case $route==='assistant/chat' && $method==='POST':
-            return assistant_chat($aid,assistant_str($body['message'] ?? ''),assistant_truthy($body['voice'] ?? null)===true);
+            return assistant_chat($aid,assistant_str($body['message'] ?? ''),assistant_truthy($body['voice'] ?? null)===true,strtolower(substr(assistant_str($body['lang'] ?? ''),0,2)));
         case $route==='assistant/speak' && $method==='POST':
             $pr=assistant_profile($aid); $sie=$pr['personality']['address']==='sie';
             if(!assistant_tts_ready()) return [501,['error'=>'tts_unavailable','message'=>'Server-Stimme nicht eingerichtet – das Studio nutzt die Stimme '.($sie ? 'Ihres' : 'deines').' Browsers.']];
@@ -1416,6 +1439,21 @@ function assistant_api(string $route, string $method, int $aid, array $body, arr
             try{ $mp3=ch_tts_synth($text,['channel'=>'studio']+assistant_voice($pr,is_array($over) ? $over : [],$lang)); }catch(Throwable $e){ error_log('CH assistant tts: '.$e->getMessage()); }
             if(!is_string($mp3) || $mp3==='') return [502,['error'=>'tts_failed','message'=>'Die Stimme konnte gerade nicht erzeugt werden.']];
             return assistant_emit_audio($mp3);
+        case $route==='assistant/stt' && $method==='POST':
+            /* Mikrofon-Aufnahme (data-URL webm/ogg/mp4, ≤ 30 s) → Text + erkannte Sprache, nur unter den gewählten Sprachen. Ohne Server-Erkennung nutzt das Panel die Browser-Erkennung. */
+            if(!assistant_stt_ready()) return [501,['error'=>'stt_unavailable']];
+            if(th_balance($aid)<=0 && !assistant_active_plans($aid)) return [402,['error'=>'insufficient_tokens']];
+            if(!th_rate('as:stt:'.$aid,400,86400)) return [429,['error'=>'rate_limited']];
+            if(!preg_match('#^data:(audio/(?:webm|ogg|mp4|mpeg|wav|x-m4a|aac))(?:;[^,]*)?;base64,(.+)$#s',(string)($body['audio'] ?? ''),$m)) return [422,['error'=>'invalid','field'=>'audio']];
+            $bin=base64_decode(preg_replace('/\s+/','',$m[2]),true);
+            if($bin===false || strlen($bin)<200 || strlen($bin)>ASSISTANT_STT_MAX) return [422,['error'=>'invalid','field'=>'audio']];
+            $pr=assistant_profile($aid); $LS=assistant_langs_of($pr);
+            $force=strtolower(substr(assistant_str($body['lang'] ?? ''),0,2)); if(in_array($force,$LS,true)) $LS=[$force];   // Spracheingabe fest auf eine Sprache gestellt
+            $r=stt_detect_any($bin,$m[1],$LS,$pr['lang'],min(30.0,max(0.0,(float)($body['sec'] ?? 0))));
+            if($r['error']==='lang_unsupported') return [501,['error'=>'stt_lang_unavailable']];   // Browser hört in dieser Sprache zu
+            if($r['error']!=='') return [502,['error'=>'stt_failed']];
+            $l=in_array($r['lang'],$LS,true) ? $r['lang'] : ($r['text']!=='' ? assistant_detect_for($pr,$r['text']) : assistant_lang($pr['lang']));
+            return [200,['text'=>mb_substr($r['text'],0,2000),'lang'=>$l,'lang_tag'=>assistant_lang_tag($l)]];
         case $route==='assistant/reset' && $method==='POST':
             th_db()->prepare("DELETE FROM assistant_messages WHERE account_id=?")->execute([$aid]);
             return [200,['ok'=>true]+assistant_state($aid)];
@@ -1425,5 +1463,5 @@ function assistant_api(string $route, string $method, int $aid, array $body, arr
             $ov=assistant_overview($aid); $mem=assistant_memory($aid,100); [$items,$pg]=assistant_checklist($aid,$ov,$mem);
             return [200,['ok'=>true,'memory'=>array_map(fn($m)=>['id'=>$m['id'],'topic'=>$m['topic'],'fact'=>$m['fact']],$mem),'checklist'=>$items,'progress'=>$pg,'suggestions'=>assistant_suggestions($items,$mem)]];
     }
-    return [404,['error'=>'not_found','routes'=>['GET|POST /v1/assistant/profile','GET /v1/assistant/cast?lang=xx','GET /v1/assistant/state','POST /v1/assistant/chat','POST /v1/assistant/speak','POST /v1/assistant/reset','POST /v1/assistant/forget']]];
+    return [404,['error'=>'not_found','routes'=>['GET|POST /v1/assistant/profile','GET /v1/assistant/cast?lang=xx','GET /v1/assistant/state','POST /v1/assistant/chat','POST /v1/assistant/speak','POST /v1/assistant/stt','POST /v1/assistant/reset','POST /v1/assistant/forget']]];
 }

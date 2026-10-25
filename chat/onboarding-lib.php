@@ -7,7 +7,7 @@
  * (E-Mail mit „Einrichtung starten“ + App-Download) und eine Push-Meldung.
  *
  * Im Studio (Panel „einrichtung“) beantwortet der Kunde einen Fragenkatalog, der aus dem gekauften Plan abgeleitet wird (Basis-Agent, Kanäle, Module):
- *   Betrieb (Name, Website-Import, Adresse, Telefon, Öffnungszeiten) · Kanäle (Widget, Telefon: eigene Twilio-Nummer oder ChatHelp-Nummer, WhatsApp: Meta/Twilio)
+ *   Betrieb (Name, Website-Import, Adresse, Telefon, Öffnungszeiten) · Kanäle (Widget, Telefon: ChatHelp-Nummer + Rufumleitung, WhatsApp: Meta)
  *   · Module (Termine: Leistungen; Bestellungen: Karte, Liefergebiete, Mindestbestellwert; Taxi: Tarif, Stände, Fahrer; Hotel: Zimmer; Rückruf: Zeiten)
  *   · Sprachen, Anrede, Tonalität, „Was soll dein Agent nie tun?“, FAQ.   Private Pläne: kurzer Privat-Katalog.
  * Bereits vorhandene Einstellungen werden vorbelegt (known=true → der Assistent überspringt die Frage).
@@ -158,8 +158,6 @@ function onb_catalog(array $P): array {
                 ['v'=>'later','l'=>'Später verbinden','d'=>'Wir schicken dir die Schritt-für-Schritt-Anleitung per E-Mail.']]]);
             $S[]=onb_step('wa_meta','fields','WhatsApp','Deine WhatsApp-Cloud-API-Daten',['when'=>['channels'=>['whatsapp'],'wa_provider'=>['meta']],'sub'=>'Meta for Developers → deine App → WhatsApp → API-Setup. Kein Zugang? Einfach überspringen – die Anleitung kommt per E-Mail.','fields'=>[
                 ['k'=>'wa_phone_id','l'=>'Telefonnummer-ID','t'=>'text','ph'=>'z. B. 109876543210987','req'=>true],['k'=>'wa_token','l'=>'Dauerhafter Zugriffstoken','t'=>'password','ph'=>'EAAG…','req'=>true],['k'=>'wa_verify','l'=>'Verify-Token (optional)','t'=>'text','ph'=>'frei wählbar']]]);
-            $S[]=onb_step('wa_twilio','fields','WhatsApp','Deine WhatsApp-Nummer bei Twilio',['when'=>['channels'=>['whatsapp'],'wa_provider'=>['twilio']],'sub'=>'Die Nummer, die in Twilio als WhatsApp-Sender freigeschaltet ist.','fields'=>[
-                ['k'=>'wa_number','l'=>'WhatsApp-Nummer','t'=>'tel','ph'=>'+49 151 …','req'=>true],['k'=>'twilio_sid','l'=>'Account SID (falls noch nicht hinterlegt)','t'=>'text','ph'=>'AC…'],['k'=>'twilio_token','l'=>'Auth Token (falls noch nicht hinterlegt)','t'=>'password','ph'=>'32 Zeichen']]]);
         }
     }
     if(in_array('appt',$m,true)){
@@ -254,7 +252,6 @@ function onb_prefill(int $aid, array $P): array {
     $osx=$os ? ord_settings($aid) : null;
     $put('wa_provider',$wa ? $osx['wa_provider'] : '',$wa);
     $put('wa_meta',['wa_phone_id'=>(string)($osx['wa_phone_id'] ?? ''),'wa_token'=>!empty($osx['wa_token']) ? '••••'.substr((string)$osx['wa_token'],-4) : '','wa_verify'=>(string)($osx['wa_verify'] ?? '')],$wa && ($osx['wa_provider'] ?? '')==='meta');
-    $put('wa_twilio',['wa_number'=>(string)($osx['wa_number'] ?? ''),'twilio_sid'=>'','twilio_token'=>''],$wa && ($osx['wa_provider'] ?? '')==='twilio');
     if(in_array('appt',$P['mods'],true)){
         $sv=array_map(fn($x)=>['name'=>$x['name'],'duration_min'=>$x['duration_min'],'price_cents'=>$x['price_cents']],appt_services($aid,true)); $put('services',$sv,(bool)$sv);
         $put('appt_buffer',(string)($as ? (int)$as['buffer_min'] : 0),(bool)$as);
@@ -668,8 +665,7 @@ function onb_checklist(int $aid, array $onb): array {
     }
     if($P['agent'] && in_array('whatsapp',$P['channels'],true) && in_array('whatsapp',$chan,true)){
         $os=ord_settings($aid); $ready=onb_wa_ready($os); $prov=(string)($A['wa_provider'] ?? ($ready ? $os['wa_provider'] : 'meta'));
-        if($prov==='twilio') $item('whatsapp','WhatsApp verbinden',$ready ? 'done' : 'todo',$ready ? 'Über Twilio: '.$os['wa_number'].' – Webhook eintragen, fertig.' : 'WhatsApp-Sender in Twilio freischalten und hier eintragen.',
-            ['Twilio-Console → Messaging → Senders → WhatsApp senders → Nummer registrieren (Meta-Freigabe dauert 1–3 Tage)','Beim Sender „A message comes in“: '.($L['whatsapp_webhook'] ?? 'Studio → WhatsApp'),'Studio → WhatsApp: Anbieter Twilio und Nummer speichern'],['url'=>$L['whatsapp_webhook'] ?? null,'go'=>'whatsapp']);
+        if($prov==='twilio' && $ready) $item('whatsapp','WhatsApp verbinden','done','WhatsApp ist verbunden ('.$os['wa_number'].').',[],['go'=>'whatsapp']);   // bestehende Verbindung (im Hintergrund)
         else $item('whatsapp','WhatsApp verbinden',$ready ? 'done' : 'todo',$ready ? 'WhatsApp-Cloud-API verbunden – jetzt den Webhook bei Meta bestätigen.' : 'In 5 Schritten mit der WhatsApp-Cloud-API von Meta verbinden.',
             ['business.facebook.com → Einstellungen → Sicherheitscenter → Unternehmensverifizierung starten (Gewerbeanmeldung oder Handelsregisterauszug bereithalten, Prüfung 1–5 Tage)','developers.facebook.com → App erstellen (Typ „Business“) → Produkt „WhatsApp“ hinzufügen → eigene Telefonnummer hinzufügen und per SMS bestätigen',
              'Business-Einstellungen → Systemnutzer anlegen → Token mit „whatsapp_business_messaging“ erzeugen (dauerhaft); Telefonnummer-ID unter WhatsApp → API-Setup kopieren',

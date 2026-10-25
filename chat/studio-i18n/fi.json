@@ -3215,4 +3215,15 @@
 "srx.fwnum":"Agenttisi vastaa numerossa {n}. Asiakkaat soittavat edelleen tuttuun numeroosi – sinä vain siirrät sen.",
 "srx.fwtap":"Napauta koodia puhelimessa, jonka numero on {n} (tai kirjoita se Puhelin-sovellukseen ja soita). Suositus: ”Jos en vastaa” ja ”Varattuna” – ensin soi oma puhelimesi.",
 "srx.cbtry":"Soittoyritys {a} epäonnistui – {m}",
-"srx.cbfail":"Puhelua ei voitu muodostaa: {m}"}
+"srx.cbfail":"Puhelua ei voitu muodostaa: {m}",
+"as.sprachen_des_assistenten":"Keskustelukielet",
+"asj.lsAll":"Kaikki {n}",
+"asj.lsMain":"pääkieli",
+"asj.lsSome":"Vastaa kielillä: {l}. Muita kieliä ymmärretään, mutta vastaus tulee silloin kielellä {m}.",
+"asj.lsOnly":"Vastaa aina kielellä {m}, vaikka kirjoittaisit tai puhuisit muuta kieltä.",
+"asj.micDetect":"Puhesyöte – Auto: tunnistaa puhutun kielen itse",
+"asj.sttWork":"Puhetta tunnistetaan …",
+"asj.sttNone":"Mitään ei ymmärretty – puhu uudelleen.",
+"asj.sttFail":"Puhesyöte ei toiminut – yritä uudelleen tai kirjoita.",
+"src.3eed957a84":"Valitse kielet luettelona.",
+"src.34349e533f":"Tätä kieltä ei tueta."}

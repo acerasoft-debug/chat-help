@@ -76,6 +76,32 @@ function stt_transcribe(string $wav, string $prov, string $lang2, bool $detect=f
     $out['ms']=(int)round((microtime(true)-$t0)*1000);
     return $out;
 }
+/** Browser-Aufnahme (webm/ogg/mp4) → Text mit Spracherkennung, beschränkt auf $langs (leer = alle). Nur Deepgram (EU). Rückgabe wie stt_transcribe. */
+function stt_detect_any(string $audio, string $mime, array $langs, string $main, float $sec=0.0): array {
+    $t0=microtime(true); $out=['text'=>'','conf'=>0.0,'lang'=>$main,'ms'=>0,'sec'=>$sec,'error'=>''];
+    /* Alle gewählten Sprachen erkennbar → nur unter ihnen erkennen; eine davon (z. B. az) nicht → frei erkennen (Ergebnis ordnet der Aufrufer ein) */
+    $dg=$langs ? array_values(array_intersect($langs,STT_DEEPGRAM_LANGS)) : [];
+    if($langs && !$dg){ $out['error']='lang_unsupported'; return $out; }
+    if(count($dg)<count($langs)) $dg=[];
+    if(isset($GLOBALS['__stt_mock']) && is_callable($GLOBALS['__stt_mock']) && in_array(PHP_SAPI,['cli','cli-server'],true)){ $r=($GLOBALS['__stt_mock'])($audio,'deepgram',$main,true,$dg); return $r+$out; }
+    $key=stt_key('deepgram'); if($key===''){ $out['error']='no_key'; return $out; }
+    $q=http_build_query(['model'=>'nova-3','smart_format'=>'true','punctuate'=>'true','mip_opt_out'=>'true']);
+    if(count($dg)===1) $q.='&language='.$dg[0];
+    elseif($dg && count($dg)<count(STT_DEEPGRAM_LANGS)) foreach($dg as $l) $q.='&detect_language='.$l;
+    else $q.='&detect_language=true';
+    $base=defined('STT_DEEPGRAM_BASE') ? (string)STT_DEEPGRAM_BASE : 'https://api.eu.deepgram.com';
+    $ch=curl_init($base.'/v1/listen?'.$q); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$audio,CURLOPT_TIMEOUT=>12,CURLOPT_HTTPHEADER=>['Authorization: Token '.$key,'Content-Type: '.$mime]]);
+    $r=json_decode((string)curl_exec($ch),true); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+    $c0=$r['results']['channels'][0] ?? []; $alt=$c0['alternatives'][0] ?? null;
+    if($code===200 && is_array($alt)){
+        $out['text']=trim((string)($alt['transcript'] ?? '')); $out['conf']=(float)($alt['confidence'] ?? 0);
+        $dl=strtolower(substr((string)($c0['detected_language'] ?? ''),0,2)); if($dl==='nb' || $dl==='nn') $dl='no'; if($dl!=='') $out['lang']=$dl;
+        $d=(float)($r['metadata']['duration'] ?? 0); if($d>0) $out['sec']=round($d,2);
+    } else $out['error']='deepgram '.$code;
+    $out['ms']=(int)round((microtime(true)-$t0)*1000);
+    stt_usage_log('deepgram',(float)$out['sec'],$out['ms'],$out['error']!=='');
+    return $out;
+}
 /** Dauer einer WAV-Datei (μ-law/PCM, aus dem Header). */
 function stt_wav_seconds(string $wav): float {
     if(strlen($wav)<44 || substr($wav,0,4)!=='RIFF') return 0.0;

@@ -3215,4 +3215,15 @@
 "srx.fwnum":"Votre agent répond au {n}. Vos clients composent toujours votre numéro habituel – vous le renvoyez simplement.",
 "srx.fwtap":"Touchez un code sur le téléphone du {n} (ou saisissez-le dans l'app Téléphone et appelez). Recommandé : « Si je ne réponds pas » et « Si occupé » – votre téléphone sonne d'abord.",
 "srx.cbtry":"Tentative d'appel {a} échouée – {m}",
-"srx.cbfail":"L'appel n'a pas pu être établi : {m}"}
+"srx.cbfail":"L'appel n'a pas pu être établi : {m}",
+"as.sprachen_des_assistenten":"Langues de conversation",
+"asj.lsAll":"Toutes ({n})",
+"asj.lsMain":"langue principale",
+"asj.lsSome":"Répond en : {l}. Les autres langues sont comprises – la réponse arrive alors en {m}.",
+"asj.lsOnly":"Répond toujours en {m} – même si vous écrivez ou parlez une autre langue.",
+"asj.micDetect":"Saisie vocale – Auto : détecte la langue parlée",
+"asj.sttWork":"Reconnaissance vocale …",
+"asj.sttNone":"Rien compris – veuillez répéter.",
+"asj.sttFail":"La saisie vocale n'a pas fonctionné – réessayez ou tapez votre message.",
+"src.3eed957a84":"Veuillez choisir les langues sous forme de liste.",
+"src.34349e533f":"Cette langue n'est pas prise en charge."}

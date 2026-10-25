@@ -3215,4 +3215,15 @@
 "srx.fwnum":"Din agent svarar på {n}. Kunderna ringer som vanligt ditt kända nummer – du vidarekopplar bara.",
 "srx.fwtap":"Tryck på en kod på telefonen med {n} (eller skriv den i Telefon-appen och ring). Rekommenderat: ”Om jag inte svarar” och ”Vid upptaget” – då ringer din telefon först.",
 "srx.cbtry":"Samtalsförsök {a} misslyckades – {m}",
-"srx.cbfail":"Samtalet kunde inte kopplas upp: {m}"}
+"srx.cbfail":"Samtalet kunde inte kopplas upp: {m}",
+"as.sprachen_des_assistenten":"Samtalsspråk",
+"asj.lsAll":"Alla {n}",
+"asj.lsMain":"huvudspråk",
+"asj.lsSome":"Svarar på: {l}. Andra språk förstås – svaret kommer då på {m}.",
+"asj.lsOnly":"Svarar alltid på {m} – även om man skriver eller talar ett annat språk.",
+"asj.micDetect":"Röstinmatning – Auto: känner själv igen vilket språk som talas",
+"asj.sttWork":"Talet känns igen …",
+"asj.sttNone":"Uppfattade inget – tala igen.",
+"asj.sttFail":"Röstinmatningen fungerade inte – försök igen eller skriv.",
+"src.3eed957a84":"Välj språken som en lista.",
+"src.34349e533f":"Det här språket stöds inte."}

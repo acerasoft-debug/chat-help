@@ -40,7 +40,7 @@
   var CHECK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   var SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 
-  var PROF = null, PORTRAITS = [], VOICES = [], TTS = false, TTS_LANGS = [], TOOLS = true, PHOTO_MAX = 358400, COST = { turn: 6, tool: 2 };
+  var PROF = null, PORTRAITS = [], VOICES = [], TTS = false, TTS_LANGS = [], STT_SERVER = false, STT_LANGS = [], TOOLS = true, PHOTO_MAX = 358400, COST = { turn: 6, tool: 2 };
   var HIST = [], busy = false, bound = false, lastLoad = 0, state = 'idle';
   var voiceOn = LS.get('ch_as_voice') === '1', micUsed = false, lastViaVoice = false;
   var micLangPick = LS.get('ch_as_miclang') || 'auto';
@@ -52,13 +52,16 @@
   function normLang(c) { c = String(c || '').toLowerCase().slice(0, 2); return c === 'nb' || c === 'nn' ? 'no' : c; }
   function tagOf(code) { return LANG_TAG[normLang(code)] || LANG_TAG[(PROF && PROF.lang) || 'de'] || 'de-DE'; }
   function lang() { return tagOf(PROF && PROF.lang); }
-  /** Sprache des Gesprächs: Sprache der letzten Antwort (vom Server erkannt), sonst die Profilsprache. */
+  /** Sprachen, die der Assistent sprechen soll (vom Inhaber gewählt; leer = alle). Die Hauptsprache steht immer zuerst. */
+  function allowed(p) { p = p || PROF; var l = p && p.personality && p.personality.langs; return l && l.length ? l : LANGS.map(function (x) { return x.code; }); }
+  function allowedHas(c) { return allowed().indexOf(c) >= 0; }
+  /** Sprache des Gesprächs: Sprache der letzten Antwort (vom Server erkannt, nur gewählte Sprachen), sonst die Profilsprache. */
   function convLang() {
-    for (var i = HIST.length - 1; i >= 0; i--) { if (HIST[i].role === 'assistant' && HIST[i].lang && LANG_TAG[HIST[i].lang]) return HIST[i].lang; }
+    for (var i = HIST.length - 1; i >= 0; i--) { if (HIST[i].role === 'assistant' && HIST[i].lang && LANG_TAG[HIST[i].lang] && allowedHas(HIST[i].lang)) return HIST[i].lang; }
     return (PROF && PROF.lang) || 'de';
   }
-  /** Spracheingabe: gewählte Sprache oder „Auto“ = Sprache des Gesprächs. */
-  function micLang() { return micLangPick !== 'auto' && LANG_TAG[micLangPick] ? micLangPick : convLang(); }
+  /** Spracheingabe: gewählte Sprache oder „Auto“ = Sprache des Gesprächs (mit Server-Erkennung: die gesprochene Sprache). */
+  function micLang() { return micLangPick !== 'auto' && LANG_TAG[micLangPick] && allowedHas(micLangPick) ? micLangPick : convLang(); }
   function T(du, sie) { return isSie() ? sie : du; }
   function note(html, kind) { msg(g('asNote'), html, kind); if (html && kind !== 'err') { setTimeout(function () { if (g('asNote')) msg(g('asNote'), ''); }, 4500); } }
   function setBalance(b) {
@@ -609,9 +612,80 @@
 
   /* ======================================================================= Spracheingabe */
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-  var REC = { r: null, on: false, final: '', down: 0, sent: false };
+  var REC = { r: null, mr: null, on: false, final: '', down: 0, sent: false, manual: false };
+  var MR = window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? window.MediaRecorder : null;
+  /** Server-Erkennung: erkennt selbst, welche (gewählte) Sprache gesprochen wird. Ohne sie hört der Browser in der Sprache des Gesprächs zu. */
+  function serverStt() { return STT_SERVER && !!MR && STT_LANGS.indexOf(micLangPick !== 'auto' && allowedHas(micLangPick) ? micLangPick : convLang()) >= 0; }
+  function micOk() { return !!SR || serverStt(); }
   function micUi(on) { ['asMic', 'asMicBig'].forEach(function (id) { var b = g(id); if (b) { b.classList.toggle('rec', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); } }); }
-  function startListen(auto) {
+  function micAvail() { ['asMic', 'asMicBig'].forEach(function (id) { var b = g(id); if (b) { b.disabled = !micOk(); if (!micOk()) b.title = _t('asj.noSR'); else if (b.title === _t('asj.noSR')) b.title = ''; } }); }
+  function startListen(auto) { if (serverStt()) recStart(auto); else srStart(auto); }
+  function recMime() { var c = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4', 'audio/webm']; for (var i = 0; i < c.length; i++) { try { if (MR.isTypeSupported && MR.isTypeSupported(c[i])) return c[i]; } catch (e) { /* egal */ } } return ''; }
+  function recStop() { if (REC.mr && REC.mr.state !== 'inactive') { try { REC.mr.stop(); } catch (e) { /* egal */ } } }
+  /** Aufnahme bis zur Sprechpause (gedrückt halten = bis zum Loslassen), dann Text + erkannte Sprache vom Server. */
+  function recStart(auto) {
+    if (REC.on || busy) return;
+    stopSpeaking();
+    REC.on = true; REC.sent = false; REC.manual = false; micUsed = true; micUi(true); setState('listening');
+    var ended = function () { REC.on = false; REC.mr = null; micUi(false); if (state === 'listening') setState('idle'); };
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }).then(function (stream) {
+      var stopTracks = function () { stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) { /* egal */ } }); };
+      if (!REC.on || REC.sent) { stopTracks(); ended(); return; }
+      var mime = recMime(), mr;
+      try { mr = mime ? new MR(stream, { mimeType: mime }) : new MR(stream); } catch (e) { stopTracks(); ended(); STT_SERVER = false; if (SR) srStart(auto); return; }
+      var chunks = [], t0 = Date.now(), heard = false, quiet = 0, floor = 1, ac = null, timer = 0;
+      REC.mr = mr;
+      mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+      mr.onstop = function () {
+        clearInterval(timer); stopTracks(); if (ac) { try { ac.close(); } catch (e) { /* egal */ } }
+        var sec = (Date.now() - t0) / 1000, drop = REC.sent || !(heard || (REC.manual && sec > 0.8));
+        ended();
+        if (!drop) recSend(new Blob(chunks, { type: (mr.mimeType || mime || 'audio/webm').split(';')[0] }), sec, auto);
+      };
+      /* Sprechpause erkennen: Lautstärke über dem Grundrauschen = Sprache; 1,3 s still danach = fertig; 7 s nichts gesagt oder 28 s Aufnahme = Ende */
+      try {
+        var AC = window.AudioContext || window.webkitAudioContext; ac = new AC();
+        var an = ac.createAnalyser(); an.fftSize = 1024; ac.createMediaStreamSource(stream).connect(an); var buf = new Uint8Array(an.fftSize);
+        timer = setInterval(function () {
+          an.getByteTimeDomainData(buf); var q = 0; for (var i = 0; i < buf.length; i++) { var v = (buf[i] - 128) / 128; q += v * v; }
+          var rms = Math.sqrt(q / buf.length), now = Date.now(), held = !!REC.down;
+          if (now - t0 < 350) { floor = Math.min(floor, rms); return; }
+          if (rms > Math.max(0.018, floor * 2.6)) { heard = true; quiet = 0; }
+          else if (heard && !held) { if (!quiet) quiet = now; else if (now - quiet > 1300) recStop(); }
+          if ((!heard && !held && now - t0 > 7000) || now - t0 > 28000) recStop();
+        }, 100);
+      } catch (e) { heard = true; timer = setInterval(function () { if (Date.now() - t0 > 28000) recStop(); }, 500); }
+      try { mr.start(250); } catch (e) { mr.onstop(); }
+    }).catch(function (e) {
+      ended();
+      if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) { micUsed = false; note(_t('asj.micBlocked'), 'err'); }
+      else if (SR) { STT_SERVER = false; srStart(auto); }
+    });
+  }
+  function recSend(blob, sec, auto) {
+    if (!blob || blob.size < 600) return;
+    var input = g('asInput'), before = auto ? '' : input.value.trim(), ph = input.placeholder;
+    setState('thinking'); input.placeholder = _t('asj.sttWork');
+    var done = function () { input.placeholder = ph; if (state === 'thinking' && !busy) setState('idle'); };
+    var fr = new FileReader();
+    fr.onerror = done;
+    fr.onload = function () {
+      var body = { audio: String(fr.result || ''), sec: Math.round(sec * 10) / 10 };
+      if (micLangPick !== 'auto' && allowedHas(micLangPick)) body.lang = micLangPick;
+      api('/assistant/stt', { method: 'POST', body: JSON.stringify(body) }).then(function (j) {
+        done();
+        var t = String(j.text || '').trim(); if (!t) { note(h(_t('asj.sttNone')), 'info'); return; }
+        input.value = ((before ? before + ' ' : '') + t).trim(); autosize();
+        send(input.value, { viaVoice: true, lang: j.lang || '' });
+      }).catch(function (e) {
+        done();
+        if (e && e.status === 501) { if (e.data && e.data.error === 'stt_lang_unavailable') { if (SR) { srStart(auto); return; } } else { STT_SERVER = false; micAvail(); } }
+        note(h(_t('asj.sttFail')), 'err');
+      });
+    };
+    fr.readAsDataURL(blob);
+  }
+  function srStart(auto) {
     if (!SR || REC.on || busy) return;
     stopSpeaking();
     var r; try { r = new SR(); } catch (e) { return; }
@@ -635,20 +709,21 @@
     };
     try { r.start(); REC.on = true; micUsed = true; micUi(true); setState('listening'); } catch (e) { REC.on = false; }
   }
-  function stopListen() { if (REC.r && REC.on) { try { REC.r.stop(); } catch (e) { /* egal */ } } }
-  function abortListen() { if (REC.r && REC.on) { REC.sent = true; try { REC.r.abort(); } catch (e) { /* egal */ } } }
+  function stopListen() { if (REC.mr && REC.on) { REC.manual = true; recStop(); return; } if (REC.r && REC.on) { try { REC.r.stop(); } catch (e) { /* egal */ } } }
+  function abortListen() { if (!REC.on) return; REC.sent = true; if (REC.mr) { recStop(); return; } if (REC.r) { try { REC.r.abort(); } catch (e) { /* egal */ } } }
   function bindMic(btn) {
     if (!btn) return;
-    if (!SR) { btn.disabled = true; btn.title = _t('asj.noSR'); return; }
+    micAvail();
     btn.addEventListener('pointerdown', function (e) {
       if (e.button !== undefined && e.button !== 0) return;
+      if (!micOk()) return;
       e.preventDefault(); unlockAudio();
       if (REC.on) { stopListen(); REC.down = 0; return; }
       REC.down = Date.now(); startListen(false);
     });
     var up = function () { if (REC.down && Date.now() - REC.down > 450) stopListen(); REC.down = 0; };   // gedrückt gehalten = Push-to-Talk
     btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up); btn.addEventListener('pointerleave', function () { if (REC.down) up(); });
-    btn.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); unlockAudio(); if (REC.on) stopListen(); else startListen(false); } });
+    btn.addEventListener('keydown', function (e) { if ((e.key === 'Enter' || e.key === ' ') && micOk()) { e.preventDefault(); unlockAudio(); if (REC.on) stopListen(); else startListen(false); } });
     btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   }
 
@@ -725,18 +800,19 @@
     if (!sel) return;
     var cur = sel.value;
     var pre = withAuto ? '🎙 ' : '';
-    var cl = (LANGS.filter(function (l) { return l.code === convLang(); })[0]) || LANGS[0];
+    var list = withAuto ? LANGS.filter(function (l) { return allowedHas(l.code); }) : LANGS;   // Spracheingabe: nur die Sprachen des Assistenten
     sel.innerHTML = (withAuto ? '<option value="auto">' + pre + h(_t('asj.auto')) + '</option>' : '') +
-      LANGS.map(function (l) { var ln = lname(l); return '<option value="' + h(l.code) + '">' + (withAuto ? pre + h(l.code.toUpperCase()) + ' · ' + h(l.native) : h(l.native) + (l.native !== ln ? ' · ' + h(ln) : '')) + '</option>'; }).join('');
+      list.map(function (l) { var ln = lname(l); return '<option value="' + h(l.code) + '">' + (withAuto ? pre + h(l.code.toUpperCase()) + ' · ' + h(l.native) : h(l.native) + (l.native !== ln ? ' · ' + h(ln) : '')) + '</option>'; }).join('');
     if (cur && sel.querySelector('option[value="' + cur + '"]')) sel.value = cur;
   }
   function micLangUi() {
     var sel = g('asMicLang'); if (!sel) return;
     langOptions(sel, true);
-    sel.value = micLangPick !== 'auto' && LANG_TAG[micLangPick] ? micLangPick : 'auto';
+    sel.value = micLangPick !== 'auto' && LANG_TAG[micLangPick] && allowedHas(micLangPick) ? micLangPick : 'auto';
     var cl = ((LANGS.filter(function (l) { return l.code === convLang(); })[0]) || LANGS[0]);
-    sel.title = _t('asj.micT',{l:lname(cl)});
+    sel.title = serverStt() && sel.value === 'auto' ? _t('asj.micDetect') : _t('asj.micT',{l:lname(cl)});
     sel.setAttribute('aria-label', sel.title);
+    sel.classList.toggle('hidden', allowed().length < 2);   // nur eine Sprache: nichts zu wählen
   }
   function voiceBtn() {
     var b = g('asVoiceBtn'); if (!b) return;
@@ -827,7 +903,8 @@
     var input = g('asInput'); input.value = ''; autosize(); msg(g('asNote'), '');
     addMsg({ role: 'user', content: text });
     typing(true); setState('thinking');
-    api('/assistant/chat', { method: 'POST', body: JSON.stringify({ message: text, voice: voiceOn }) }).then(function (j) {
+    var cb = { message: text, voice: voiceOn }; if (o && o.lang && allowedHas(o.lang)) cb.lang = o.lang;   // von der Spracherkennung erkannte Sprache
+    api('/assistant/chat', { method: 'POST', body: JSON.stringify(cb) }).then(function (j) {
       typing(false);
       var am = { id: j.id, role: 'assistant', content: String(j.reply || ''), actions: j.actions || [], lang: j.lang || null, speech: j.speech || null };
       addMsg(am); micLangUi();
@@ -837,7 +914,7 @@
       if (voiceOn && j.speech && j.speech.length) {
         speakMsg(am, function () {
           runOpens(acts);
-          if (voiceOn && micUsed && lastViaVoice && SR && visible() && !document.hidden && !acts.some(function (a) { return a.open; })) setTimeout(function () { if (!busy && !speaking()) startListen(true); }, 250);
+          if (voiceOn && micUsed && lastViaVoice && micOk() && visible() && !document.hidden && !acts.some(function (a) { return a.open; })) setTimeout(function () { if (!busy && !speaking()) startListen(true); }, 250);
         });
       } else { setState('idle'); runOpens(acts); }
     }).catch(function (e) {
@@ -881,6 +958,7 @@
     if (TTS && j.tts_active === false && SPK.serverOk) { SPK.serverOk = false; SPK.why = 'balance'; }   // eingerichtet, aber ohne Guthaben/Agent nicht nutzbar
     else if (TTS && j.tts_active === true && SPK.why === 'balance') { SPK.serverOk = true; SPK.why = ''; }
     if (j.tts_langs) TTS_LANGS = j.tts_langs.map(normLang);
+    if (typeof j.stt_server === 'boolean') { STT_SERVER = j.stt_server; STT_LANGS = (j.stt_langs || []).map(normLang); micAvail(); }
     if (typeof j.tools_ready === 'boolean') TOOLS = j.tools_ready;
     if (j.langs && j.langs.length) { LANGS = j.langs; LANG_TAG = {}; LANGS.forEach(function (l) { LANG_TAG[l.code] = l.tag; }); }
     langOptions(g('asFLang'), false);
@@ -941,7 +1019,7 @@
   function draftFrom(p) {
     return { name: p.name, gender: p.gender, portrait: p.portrait, photo: null, remove_photo: false, photoUrl: p.portrait === 'custom' ? p.portrait_url : (p.photo_url || null),
       voice: { tone: p.voice.tone, rate: Number(p.voice.rate) || 1, pitch: Number(p.voice.pitch) || 1, preset: p.voice.preset, id: p.voice.id || null },
-      personality: { address: p.personality.address, mood: p.personality.mood, humor: Number(p.personality.humor), detail: p.personality.detail }, lang: p.lang || 'de', autoName: true, mode: 'drawer',
+      personality: { address: p.personality.address, mood: p.personality.mood, humor: Number(p.personality.humor), detail: p.personality.detail, langs: (p.personality.langs || []).slice() }, lang: p.lang || 'de', autoName: true, mode: 'drawer',
       cast: p.personality.cast || null };
   }
   /** Entwurfsstimme an Sprache/Geschlecht anpassen (Katalog nachladen, dann id + Voreinstellung nachziehen). */
@@ -994,8 +1072,31 @@
     var sie = D.personality.address === 'sie';
     g('asFGenderL').textContent = sie ? _t('asj.who.f') : _t('asj.who');
     g('asFRights').textContent = sie ? _t('asj.rights.f') : _t('asj.rights');
-    g('asFLangHint').textContent = _t('asj.langHint' + (f ? 'F' : 'M') + (sie ? '.f' : ''), { n: LANGS.length });
+    drawLangs();
     voiceInfo(); markPlaying();
+  }
+  /** Sprachen des Assistenten: „Alle“ oder eigene Auswahl (Hauptsprache immer dabei). */
+  function draftLangs() { var l = (D.personality.langs || []).filter(function (c) { return LANG_TAG[c]; }); if (!l.length) return []; if (l.indexOf(D.lang) < 0) l.unshift(D.lang); return l.length >= LANGS.length ? [] : l; }
+  function drawLangs() {
+    var box = g('asFLangs'); if (!box || !D) return;
+    var sel = draftLangs(), all = !sel.length, f = D.gender !== 'm', sie = D.personality.address === 'sie';
+    box.innerHTML = '<button type="button" data-l="*" aria-pressed="' + (all ? 'true' : 'false') + '">' + h(_t('asj.lsAll', { n: LANGS.length })) + '</button>' +
+      LANGS.map(function (l) {
+        var main = l.code === D.lang, on = main || (!all && sel.indexOf(l.code) >= 0);
+        return '<button type="button" data-l="' + h(l.code) + '" aria-pressed="' + (on && !all ? 'true' : 'false') + '"' + (main ? ' class="main" aria-disabled="true" title="' + h(_t('asj.lsMain')) + '"' : '') + ' lang="' + h(l.code) + '">' + h(l.native) + (main ? ' <small>' + h(_t('asj.lsMain')) + '</small>' : '') + '</button>';
+      }).join('');
+    var mainL = LANGS.filter(function (l) { return l.code === D.lang; })[0];
+    g('asFLangHint').textContent = all ? _t('asj.langHint' + (f ? 'F' : 'M') + (sie ? '.f' : ''), { n: LANGS.length })
+      : sel.length === 1 ? _t('asj.lsOnly', { m: lname(mainL) })
+      : _t('asj.lsSome', { l: LANGS.filter(function (l) { return sel.indexOf(l.code) >= 0; }).map(lname).join(', '), m: lname(mainL) });
+  }
+  function toggleLang(c) {
+    if (!D || c === D.lang) return;
+    var sel = draftLangs();
+    if (c === '*') sel = [];
+    else if (!sel.length) sel = [D.lang, c];   // von „Alle“ zur eigenen Auswahl: Hauptsprache + angetippte
+    else { var i = sel.indexOf(c); if (i >= 0) sel.splice(i, 1); else sel.push(c); }
+    D.personality.langs = sel; drawLangs();
   }
   function drawChooser() {
     var f = D.gender !== 'm', sie = D.personality.address === 'sie', nm = draftName(), cur = cardOf(D.voice.id || D.voice.preset, D.gender);
@@ -1138,7 +1239,8 @@
     var name = (inp.value || '').replace(/\s+/g, ' ').trim();
     var ok = false; try { ok = new RegExp('^\\p{L}[\\p{L}\\p{M} \\-]*$', 'u').test(name); } catch (e) { ok = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ \-]*$/.test(name); }
     if (!name || name.length > 30 || !ok) { msg(box, _t('asj.nameRule'), 'err'); inp.focus(); return; }
-    var body = { name: name, gender: D.gender, voice: { tone: D.voice.tone, rate: D.voice.rate, pitch: D.voice.pitch, preset: D.voice.preset }, personality: D.personality, lang: D.lang };
+    var pers = {}; Object.keys(D.personality).forEach(function (k) { pers[k] = D.personality[k]; }); pers.langs = draftLangs();
+    var body = { name: name, gender: D.gender, voice: { tone: D.voice.tone, rate: D.voice.rate, pitch: D.voice.pitch, preset: D.voice.preset }, personality: pers, lang: D.lang };
     if (D.voice.id && catEntry(D.voice.id)) body.voice.id = D.voice.id;   // Katalogstimme (Server prüft Sprache + Geschlecht)
     if (D.photo) body.photo = D.photo; else body.portrait = D.portrait;
     if (D.remove_photo && !D.photo) body.remove_photo = 1;
@@ -1287,6 +1389,7 @@
     g('asFRate').addEventListener('input', function () { if (D) { D.voice.rate = Number(this.value); g('asFRateO').textContent = fx(D.voice.rate); } });
     g('asFPitch').addEventListener('input', function () { if (D) { D.voice.pitch = Number(this.value); g('asFPitchO').textContent = fx(D.voice.pitch); } });
     g('asFLang').addEventListener('change', function () { if (D) { D.lang = this.value; draftFit(); drawDrawer(); } });
+    g('asFLangs').addEventListener('click', function (e) { var b = e.target.closest('button[data-l]'); if (b) toggleLang(b.dataset.l); });
     g('asMicLang').addEventListener('change', function () { micLangPick = this.value; LS.set('ch_as_miclang', micLangPick); micLangUi(); if (REC.on) abortListen(); });
     /* Browserstimmen laden asynchron */
     var onVoices = function () { voicesReady(); voiceInfo(); };

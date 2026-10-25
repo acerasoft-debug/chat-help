@@ -215,6 +215,12 @@
 #panel-assistant .as-cho-step>label{margin-top:16px}
 #panel-assistant .as-cho input[type=text]{min-height:48px;font-size:16px}
 #panel-assistant .as-chips{display:flex;flex-wrap:wrap;gap:8px}
+#panel-assistant .as-langs{display:flex;flex-wrap:wrap;gap:6px}
+#panel-assistant .as-langs button{min-height:36px;padding:0 13px;border-radius:999px;border:1.5px solid var(--line2);background:#fff;font:600 13px var(--sans);color:var(--ink2);cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+#panel-assistant .as-langs button:hover{border-color:var(--ink2)}
+#panel-assistant .as-langs button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+#panel-assistant .as-langs button.main{background:var(--sur2);border-color:var(--ink);color:var(--ink);cursor:default}
+#panel-assistant .as-langs button small{font-size:10.5px;font-weight:500;opacity:.7;margin-left:3px}
 #panel-assistant .as-chips button{min-height:46px;padding:0 20px;border-radius:999px;border:1.5px solid var(--line2);background:#fff;font:600 14.5px var(--sans);color:var(--ink2);cursor:pointer;transition:background .15s,color .15s,border-color .15s}
 #panel-assistant .as-chips button:hover{border-color:var(--ink2)}
 #panel-assistant .as-chips button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
@@ -500,6 +506,8 @@
       <div class="as-seg" id="asFDetail" role="group" aria-label="Antwortlänge" data-i18n-attr="aria-label:as.antwortlaenge"><button type="button" data-v="kurz" data-i18n="as.kurz_knapp">Kurz &amp; knapp</button><button type="button" data-v="ausführlich" data-i18n="as.ausfuehrlich">Ausführlich</button></div>
       <label for="asFLang" data-i18n="as.sprache">Sprache</label>
       <select id="asFLang"><option value="de">Deutsch</option><option value="en" data-i18n="as.english_englisch">English · Englisch</option><option value="fr" data-i18n="as.francais_franzoesisch">Français · Französisch</option><option value="es" data-i18n="as.espanol_spanisch">Español · Spanisch</option><option value="tr" data-i18n="as.tuerkce_tuerkisch">Türkçe · Türkisch</option><option value="ru" data-i18n="as.russisch">Русский · Russisch</option><option value="it" data-i18n="as.italiano_italienisch">Italiano · Italienisch</option><option value="nl" data-i18n="as.nederlands_niederlaendisch">Nederlands · Niederländisch</option><option value="sv" data-i18n="as.svenska_schwedisch">Svenska · Schwedisch</option><option value="no" data-i18n="as.norsk_norwegisch">Norsk · Norwegisch</option><option value="fi" data-i18n="as.suomi_finnisch">Suomi · Finnisch</option><option value="ja" data-i18n="as.japanisch">日本語 · Japanisch</option><option value="az" data-i18n="as.az_rbaycanca_aserbaidschanis">Azərbaycanca · Aserbaidschanisch</option></select>
+      <label data-i18n="as.sprachen_des_assistenten">Gesprächssprachen</label>
+      <div class="as-langs" id="asFLangs" role="group" aria-label="Gesprächssprachen" data-i18n-attr="aria-label:as.sprachen_des_assistenten"></div>
       <div class="mute small" style="margin-top:6px" id="asFLangHint" data-i18n="as.schreibst_oder_sprichst_du">Schreibst oder sprichst du in einer anderen Sprache, antwortet der Assistent automatisch darin – in allen 13 Sprachen.</div>
       <div id="asFMsg"></div>
     </div>

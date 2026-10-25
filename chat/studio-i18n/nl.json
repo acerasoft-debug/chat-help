@@ -3215,4 +3215,15 @@
 "srx.fwnum":"Je agent neemt op via {n}. Klanten bellen gewoon je bekende nummer – jij schakelt het alleen door.",
 "srx.fwtap":"Tik een code aan op de telefoon met {n} (of tik hem in de Telefoon-app in en bel). Aanbevolen: 'Als ik niet opneem' en 'Bij bezet' – dan gaat eerst jouw telefoon over.",
 "srx.cbtry":"Belpoging {a} mislukt – {m}",
-"srx.cbfail":"Het gesprek kon niet worden opgezet: {m}"}
+"srx.cbfail":"Het gesprek kon niet worden opgezet: {m}",
+"as.sprachen_des_assistenten":"Gesprekstalen",
+"asj.lsAll":"Alle {n}",
+"asj.lsMain":"hoofdtaal",
+"asj.lsSome":"Antwoordt in: {l}. Andere talen worden begrepen – het antwoord komt dan in het {m}.",
+"asj.lsOnly":"Antwoordt altijd in het {m} – ook als er in een andere taal geschreven of gesproken wordt.",
+"asj.micDetect":"Spraakinvoer – Auto: herkent zelf welke taal er gesproken wordt",
+"asj.sttWork":"Spraak wordt herkend …",
+"asj.sttNone":"Niets verstaan – spreek het nog eens in.",
+"asj.sttFail":"Spraakinvoer lukte niet – probeer het opnieuw of typ.",
+"src.3eed957a84":"Kies de talen als lijst.",
+"src.34349e533f":"Deze taal wordt niet ondersteund."}

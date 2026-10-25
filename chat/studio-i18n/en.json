@@ -3215,4 +3215,15 @@
 "srx.fwnum":"Your agent answers on {n}. Customers keep dialling your usual number – you just forward it.",
 "srx.fwtap":"Tap a code on the phone with {n} (or type it in the Phone app and call). Recommended: \"If I don't answer\" and \"If busy\" – your phone rings first.",
 "srx.cbtry":"Call attempt {a} failed – {m}",
-"srx.cbfail":"The call couldn't be connected: {m}"}
+"srx.cbfail":"The call couldn't be connected: {m}",
+"as.sprachen_des_assistenten":"Conversation languages",
+"asj.lsAll":"All {n}",
+"asj.lsMain":"main language",
+"asj.lsSome":"Replies in: {l}. Other languages are understood – the reply then comes in {m}.",
+"asj.lsOnly":"Always replies in {m} – even when you write or speak another language.",
+"asj.micDetect":"Voice input – Auto: detects which language is spoken",
+"asj.sttWork":"Recognising speech …",
+"asj.sttNone":"Didn't catch that – please speak again.",
+"asj.sttFail":"Voice input didn't work just now – please try again or type.",
+"src.3eed957a84":"Please choose languages as a list.",
+"src.34349e533f":"This language isn't supported."}

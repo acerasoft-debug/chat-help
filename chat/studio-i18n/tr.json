@@ -3215,4 +3215,15 @@
 "srx.fwnum":"Ajanınız {n} numarasında cevap verir. Müşterileriniz bildikleri numarayı aramaya devam eder – siz sadece yönlendirirsiniz.",
 "srx.fwtap":"{n} numaralı telefonda bir koda dokunun (ya da Telefon uygulamasına yazıp arayın). Önerilen: „Açmazsam“ ve „Meşgulse“ – önce sizin telefonunuz çalar.",
 "srx.cbtry":"{a}. arama denemesi başarısız – {m}",
-"srx.cbfail":"Arama kurulamadı: {m}"}
+"srx.cbfail":"Arama kurulamadı: {m}",
+"as.sprachen_des_assistenten":"Konuşma dilleri",
+"asj.lsAll":"Tümü ({n})",
+"asj.lsMain":"ana dil",
+"asj.lsSome":"Yanıt dilleri: {l}. Diğer diller de anlaşılır – yanıt o zaman {m} olur.",
+"asj.lsOnly":"Başka bir dilde yazılsa veya konuşulsa bile her zaman {m} yanıt verir.",
+"asj.micDetect":"Sesli giriş – Otomatik: konuşulan dili kendisi algılar",
+"asj.sttWork":"Ses tanınıyor …",
+"asj.sttNone":"Bir şey anlaşılmadı – lütfen tekrar konuşun.",
+"asj.sttFail":"Sesli giriş şu an çalışmadı – lütfen tekrar deneyin veya yazın.",
+"src.3eed957a84":"Lütfen dilleri liste olarak seçin.",
+"src.34349e533f":"Bu dil desteklenmiyor."}

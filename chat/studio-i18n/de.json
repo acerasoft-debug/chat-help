@@ -3216,5 +3216,16 @@
 "srx.fwnum":"Dein Agent nimmt unter {n} ab. Kunden wählen weiter deine bekannte Nummer – du leitest sie nur um.",
 "srx.fwtap":"Auf dem Telefon mit {n} einen Code antippen (oder in der Telefon-App eintippen und anrufen). Empfohlen: „Wenn ich nicht rangehe“ und „Wenn besetzt“ – dann klingelt zuerst bei dir.",
 "srx.cbtry":"Anrufversuch {a} fehlgeschlagen – {m}",
-"srx.cbfail":"Der Anruf konnte nicht aufgebaut werden: {m}"
+"srx.cbfail":"Der Anruf konnte nicht aufgebaut werden: {m}",
+"as.sprachen_des_assistenten":"Gesprächssprachen",
+"asj.lsAll":"Alle {n}",
+"asj.lsMain":"Hauptsprache",
+"asj.lsSome":"Antwortet in: {l}. Andere Sprachen werden verstanden – die Antwort kommt dann auf {m}.",
+"asj.lsOnly":"Antwortet immer auf {m} – auch wenn in einer anderen Sprache geschrieben oder gesprochen wird.",
+"asj.micDetect":"Spracheingabe – Auto: erkennt selbst, welche Sprache gesprochen wird",
+"asj.sttWork":"Sprache wird erkannt …",
+"asj.sttNone":"Nichts verstanden – bitte noch einmal sprechen.",
+"asj.sttFail":"Die Spracheingabe hat gerade nicht geklappt – bitte noch einmal versuchen oder tippen.",
+"src.3eed957a84":"Bitte Sprachen als Liste wählen.",
+"src.34349e533f":"Diese Sprache wird nicht unterstützt."
 }
