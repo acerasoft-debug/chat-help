@@ -202,7 +202,7 @@ switch(true){
     if((isset($chg['twilio_sid']) || isset($chg['twilio_token'])) && $sid!=='' && $tok!==''){
         $ch=curl_init('https://api.twilio.com/2010-04-01/Accounts/'.rawurlencode($sid).'.json'); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>12,CURLOPT_USERPWD=>$sid.':'.$tok]);
         curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); $verified=$code===200;
-        if($code===401 || $code===404) th_json(422,['error'=>'twilio_auth_failed','message'=>'Twilio hat SID/Token abgelehnt – bitte in der Twilio-Console (Account Info) prüfen.']);
+        if($code===401 || $code===404) th_json(422,['error'=>'twilio_auth_failed','message'=>'Die Zugangsdaten wurden abgelehnt – bitte prüfen.']);
     }
     foreach($chg as $k=>$v) th_secret_set($aid,$k,$v);
     th_json(200,['ok'=>true,'connections'=>th_secret_hints($aid),'twilio_verified'=>$verified,'ai'=>bl_byok_public($aid),'ai_tests'=>$ai['tests'] ?? []]);
