@@ -31,6 +31,13 @@ if($mode==='log'){   /* Server-Protokolle: letzte KI-Fehler (nur Fehlertexte der
     foreach($cands as $f){ echo "Log: $f (".round(filesize($f)/1024)." KB)\n"; $fh=fopen($f,'r'); fseek($fh,max(0,filesize($f)-2000000)); $L=[]; while(($ln=fgets($fh))!==false){ if(str_contains($ln,'CH th_ai') || str_contains($ln,'concierge') || str_contains($ln,'Fatal')) $L[]=mb_substr(trim($ln),0,260); } fclose($fh);
         foreach(array_slice($L,-25) as $ln) echo "  $ln\n"; }
     if(!$cands) echo "Kein lesbares Fehlerprotokoll gefunden.\n"; }
+if($mode==='stt'){   /* Spracherkennung mit Spracherkennung (Studio-Mikrofon): Sätze per Server-Stimme erzeugen → stt_detect_any (echter Anbieter) */
+    require_once __DIR__.'/tokens-lib.php'; require_once __DIR__.'/speech-lib.php'; require_once __DIR__.'/stt-lib.php';
+    foreach([['tr','Merhaba, yarın saat onda randevu almak istiyorum.'],['de','Guten Tag, ich möchte morgen um zehn Uhr einen Termin.'],['en','Hello, I would like to book an appointment tomorrow at ten.'],['fr','Bonjour, je voudrais un rendez-vous demain à dix heures.']] as [$l,$txt]){
+        $mp3=null; try{ $mp3=ch_tts_synth($txt,['lang'=>$l,'gender'=>'f','channel'=>'studio']); }catch(Throwable $e){ echo "TTS $l: ".$e->getMessage()."\n"; }
+        if(!is_string($mp3) || $mp3===''){ echo "XX  tts $l: keine Audiodaten\n"; $bad++; continue; }
+        foreach([['de','tr','en'],[]] as $LS){ $n++; $r=stt_detect_any($mp3,'audio/mpeg',$LS,'de',3.0); $ok=$r['error']==='' && $r['text']!=='' && $r['lang']===$l || ($LS && !in_array($l,$LS,true) && $r['error']==='');
+            if(!$ok) $bad++; echo sprintf("%s stt %s (Auswahl %s) → lang=%s %d ms err=%s | %s\n",$ok?'OK ':'XX ',$l,$LS ? implode(',',$LS) : 'alle',$r['lang'],$r['ms'],$r['error'] ?: '-',mb_substr($r['text'],0,90)); } } }
 $cases=[]; if($mode==='all'){ foreach($DEMOS as $d){ $cases[]=[$d,'tr',$MSG['tr']]; } }
 $only=(string)($_GET['demo'] ?? ''); if($only!=='') $CONV=array_intersect_key($CONV,[$only=>1]);
 $rep=max(1,min(5,(int)($_GET['rep'] ?? 1)));
