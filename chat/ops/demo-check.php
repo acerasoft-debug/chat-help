@@ -20,14 +20,25 @@ $CONV=['agent-termine'=>['Yarın saat 10 için randevu var mı?','Saç kesimi ol
        'agent-taxi'=>['Şimdi Köln Hauptbahnhof\'tan Köln/Bonn havalimanına taksi istiyorum.','Adım Demo, telefon 0170 0000000. Evet, onaylıyorum.'],
        'agent-hotel'=>['Gelecek cuma iki gece için çift kişilik oda var mı?','İki yetişkin. Fiyat ne kadar, kahvaltı dahil mi?'],
        'agent-hair-tr'=>['Hallo, was kostet eine Haartransplantation ungefähr?']];
+/* Ohne Umweg über das Internet (die Gateway-Anfragegrenze des Hosters greift sonst bei der eigenen Server-IP): concierge.php im Unterprozess */
+$post=function(array $body) use($post){ if(($_GET['net'] ?? '')==='1') return $post($body);
+    $tmp=tempnam(sys_get_temp_dir(),'cin'); file_put_contents($tmp,json_encode($body,JSON_UNESCAPED_UNICODE)); $t=microtime(true);
+    $cmd='php -d display_errors=0 -r '.escapeshellarg('$_SERVER["REQUEST_METHOD"]="POST"; $_SERVER["REMOTE_ADDR"]="127.0.0.1"; $GLOBALS["__in"]=file_get_contents("'.$tmp.'"); stream_wrapper_unregister("php"); stream_wrapper_register("php", "CHIn"); class CHIn { public $context; private $p=0; function stream_open($u,$m,$o,&$op){ return str_ends_with($u,"input"); } function stream_read($n){ $d=substr($GLOBALS["__in"],$this->p,$n); $this->p+=strlen($d); return $d; } function stream_eof(){ return $this->p>=strlen($GLOBALS["__in"]); } function stream_stat(){ return []; } } include "'.__DIR__.'/concierge.php";').' 2>&1';
+    $out=(string)shell_exec($cmd); @unlink($tmp); $i=strpos($out,'{"'); $j=$i!==false ? json_decode(substr($out,$i),true) : null;
+    return [is_array($j) ? 200 : 0,$j,round(microtime(true)-$t,1),is_array($j) ? '' : 'no_json',mb_substr(trim($out),0,300)]; };
+if($mode==='log'){   /* Server-Protokolle: letzte KI-Fehler (nur Fehlertexte der KI-Anbieter, keine Nutzerdaten) */
+    $cands=array_filter(array_unique([ini_get('error_log'),__DIR__.'/error_log',dirname(__DIR__).'/error_log',dirname(__DIR__,2).'/logs/error.log',dirname(__DIR__,2).'/logs/error_log',(getenv('HOME') ?: '').'/logs/error.log',(getenv('HOME') ?: '').'/logs/php_error.log']),fn($f)=>is_string($f) && $f!=='' && @is_readable($f));
+    foreach($cands as $f){ echo "Log: $f (".round(filesize($f)/1024)." KB)\n"; $fh=fopen($f,'r'); fseek($fh,max(0,filesize($f)-2000000)); $L=[]; while(($ln=fgets($fh))!==false){ if(str_contains($ln,'CH th_ai') || str_contains($ln,'concierge') || str_contains($ln,'Fatal')) $L[]=mb_substr(trim($ln),0,260); } fclose($fh);
+        foreach(array_slice($L,-25) as $ln) echo "  $ln\n"; }
+    if(!$cands) echo "Kein lesbares Fehlerprotokoll gefunden.\n"; }
 $cases=[]; if($mode==='all'){ foreach($DEMOS as $d){ $cases[]=[$d,'tr',$MSG['tr']]; } }
-if($mode!=='all') foreach($CONV as $d=>$turns){ $hist=[]; foreach($turns as $i=>$m){ $hist[]=['role'=>'user','content'=>$m];
+if($mode==='tools') foreach($CONV as $d=>$turns){ $hist=[]; foreach($turns as $i=>$m){ $hist[]=['role'=>'user','content'=>$m];
         $n++; [$code,$j,$sec,$err,$raw]=$post(['agent'=>$d,'channel'=>'chat','messages'=>$hist,'lang'=>$d==='agent-hair-tr' ? 'de' : 'tr']);
         $ok=$code===200 && is_array($j) && empty($j['error']) && trim((string)($j['reply'] ?? ''))!=='';
         if(!$ok) $bad++;
         echo sprintf("%s %-18s #%d HTTP %d %4.1fs src=%s err=%s tools=%s | %s\n",$ok?'OK ':'XX ',$d,$i+1,$code,$sec,(string)($j['source'] ?? '-'),(string)($j['error'] ?? ($err ?: '-')),json_encode(array_map(fn($t)=>($t['name'] ?? '?').(($t['ok'] ?? true) ? '' : '!'),(array)($j['tools'] ?? []))),mb_substr(preg_replace('/\s+/',' ',(string)($j['reply'] ?? $raw)),0,140));
         if($ok) $hist[]=['role'=>'assistant','content'=>(string)$j['reply']]; else break;
-        sleep(7); } }
+        sleep(1); } }
 foreach($cases as [$d,$l,$m]){
     $n++; [$code,$j,$sec,$err,$raw]=$post(['agent'=>$d,'channel'=>$d==='agent-phone' ? 'phone' : 'chat','messages'=>[['role'=>'user','content'=>$m]],'lang'=>$l]);
     $ok=$code===200 && is_array($j) && empty($j['error']) && trim((string)($j['reply'] ?? ''))!=='';
