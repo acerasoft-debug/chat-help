@@ -126,6 +126,7 @@ const ONB_COLS_ROOMS = [['k'=>'name','l'=>'Zimmerkategorie','t'=>'text','req'=>t
 const ONB_COLS_FAQ = [['k'=>'question','l'=>'Frage','t'=>'text','req'=>true,'max'=>500,'ph'=>'Gibt es Parkplätze?','w'=>5],['k'=>'answer','l'=>'Antwort','t'=>'textarea','req'=>true,'max'=>2000,'ph'=>'Ja, direkt hinter dem Haus – kostenlos.','w'=>5]];
 
 function onb_catalog(array $P): array {
+    $PAY=[];   // Zahlarten der Kunden: ganz am Ende der Einrichtung, nach allen anderen Fragen
     $S=[]; $b=$P['base']; $m=$P['mods']; $ch=$P['channels'];
     $langs=onb_step('langs','langs','Agent','In welchen Sprachen soll dein '.($P['private'] ? 'Assistent' : 'Agent').' antworten?',['sub'=>'Die Standardsprache nutzt er zuerst. Schreibt oder spricht jemand in einer der erlaubten Sprachen, antwortet er automatisch in dieser Sprache.']);
     $anrede=onb_step('anrede','choice','Agent',$P['private'] ? 'Wie soll dein Assistent mit dir sprechen?' : 'Duzt oder siezt dein Agent die Kunden?',['options'=>[['v'=>'sie','l'=>'Sie','d'=>'„Wie kann ich Ihnen helfen?“'],['v'=>'du','l'=>'Du','d'=>'„Wie kann ich dir helfen?“']],'auto'=>true]);
@@ -163,15 +164,25 @@ function onb_catalog(array $P): array {
     if(in_array('appt',$m,true)){
         $S[]=onb_step('services','rows','Termine','Welche Leistungen kann man buchen?',['sub'=>'Mit Dauer und Preis – daraus berechnet dein Agent freie Termine. Preis 0 = „auf Anfrage“.','cols'=>ONB_COLS_SERVICES,'min'=>1,'max'=>40,'presets'=>ONB_PRESETS[$b] ?? ONB_PRESETS['agent-termine'],'add'=>'Leistung hinzufügen']);
         $S[]=onb_step('appt_buffer','choice','Termine','Wie viel Puffer brauchst du zwischen zwei Terminen?',['auto'=>true,'options'=>[['v'=>'0','l'=>'Keinen'],['v'=>'5','l'=>'5 Minuten'],['v'=>'10','l'=>'10 Minuten'],['v'=>'15','l'=>'15 Minuten'],['v'=>'30','l'=>'30 Minuten']]]);
+        $S[]=onb_step('visit_mode','choice','Termine','Machst du auch Hausbesuche?',['auto'=>true,'options'=>[['v'=>'none','l'=>'Nein, nur bei uns','d'=>'Kunden kommen zu dir'],['v'=>'both','l'=>'Ja, auch Hausbesuche','d'=>'Kunde wählt: bei dir oder bei sich zu Hause'],['v'=>'home','l'=>'Nur Hausbesuche','d'=>'z. B. mobile Pflege, Handwerk, mobiler Friseur']]]);
+        $S[]=onb_step('visit_fee','fields','Termine','Was kostet die Anfahrt?',['when'=>['visit_mode'=>['both','home']],'sub'=>'Pauschale plus Preis je km – die Entfernung schätzen wir als Fahrstrecke ab deiner Adresse. Der Agent nennt die Kosten vor der Buchung.','fields'=>[
+            ['k'=>'visit_fee_cents','l'=>'Anfahrtspauschale','t'=>'money','suffix'=>'€','ph'=>'10,00'],['k'=>'visit_km_cents','l'=>'Preis je km','t'=>'money','suffix'=>'€','ph'=>'0,50'],
+            ['k'=>'visit_km_incl','l'=>'In der Pauschale enthalten','t'=>'int','min'=>0,'max'=>50,'suffix'=>'km','ph'=>'5'],['k'=>'visit_max_km','l'=>'Hausbesuche bis','t'=>'int','min'=>0,'max'=>300,'suffix'=>'km','ph'=>'25']]]);
     }
     if(in_array('order',$m,true)){
         $S[]=onb_step('menu','rows','Bestellungen','Was steht auf deiner Karte?',['sub'=>'Die wichtigsten Gerichte genügen für den Start – Extras und Größen ergänzt du im Studio unter Bestellungen.','cols'=>ONB_COLS_MENU,'min'=>1,'max'=>200,'presets'=>ONB_PRESETS['menu'],'add'=>'Gericht hinzufügen']);
         $S[]=onb_step('order_modes','multi','Bestellungen','Lieferst du, oder holen Kunden ab?',['options'=>[['v'=>'delivery','l'=>'Lieferung','d'=>'Wir bringen das Essen'],['v'=>'pickup','l'=>'Abholung','d'=>'Kunden holen selbst ab']],'min'=>1]);
-        $S[]=onb_step('zones','rows','Bestellungen','Wohin lieferst du?',['when'=>['order_modes'=>['delivery']],'sub'=>'Je Liefergebiet die Postleitzahlen, Gebühr und Mindestbestellwert. Ohne Gebiete lieferst du überallhin im Umkreis.','cols'=>ONB_COLS_ZONES,'max'=>40,'add'=>'Liefergebiet hinzufügen']);
+        $S[]=onb_step('fee_mode','choice','Bestellungen','Wie berechnest du die Liefergebühr?',['when'=>['order_modes'=>['delivery']],'auto'=>true,'options'=>[
+            ['v'=>'zones','l'=>'Fest oder je Liefergebiet','d'=>'Eine Gebühr für alle – oder je Postleitzahl-Gebiet'],['v'=>'km','l'=>'Grundgebühr + je km','d'=>'z. B. 2,50 € + 0,80 € pro km – nach Entfernung vom Restaurant']]]);
+        $S[]=onb_step('fee_km','fields','Bestellungen','Preis je Kilometer',['when'=>['order_modes'=>['delivery'],'fee_mode'=>['km']],'sub'=>'Die Grundgebühr trägst du gleich bei „Liefergebühr“ ein. Die Entfernung schätzen wir als Fahrstrecke ab deiner Adresse.','fields'=>[
+            ['k'=>'fee_km_cents','l'=>'Preis je km','t'=>'money','suffix'=>'€','ph'=>'0,80','req'=>true],['k'=>'fee_km_incl','l'=>'In der Grundgebühr enthalten','t'=>'int','min'=>0,'max'=>50,'suffix'=>'km','ph'=>'2'],
+            ['k'=>'max_km','l'=>'Lieferung bis','t'=>'int','min'=>0,'max'=>200,'suffix'=>'km','ph'=>'10']]]);
+        $S[]=onb_step('zones','rows','Bestellungen','Wohin lieferst du?',['when'=>['order_modes'=>['delivery'],'fee_mode'=>['zones']],'sub'=>'Je Liefergebiet die Postleitzahlen, Gebühr und Mindestbestellwert. Ohne Gebiete lieferst du überallhin im Umkreis.','cols'=>ONB_COLS_ZONES,'max'=>40,'add'=>'Liefergebiet hinzufügen']);
         $S[]=onb_step('order_fees','fields','Bestellungen','Mindestbestellwert & Wartezeiten',['sub'=>'Gilt überall, wo kein Liefergebiet etwas anderes festlegt.','fields'=>[
-            ['k'=>'min_order_cents','l'=>'Mindestbestellwert','t'=>'money','suffix'=>'€','ph'=>'15,00'],['k'=>'delivery_fee_cents','l'=>'Liefergebühr','t'=>'money','suffix'=>'€','ph'=>'2,50'],
+            ['k'=>'min_order_cents','l'=>'Mindestbestellwert','t'=>'money','suffix'=>'€','ph'=>'15,00'],['k'=>'delivery_fee_cents','l'=>'Liefergebühr (bzw. Grundgebühr)','t'=>'money','suffix'=>'€','ph'=>'2,50'],
+            ['k'=>'free_from_cents','l'=>'Gratis liefern ab (optional)','t'=>'money','suffix'=>'€','ph'=>'30,00'],
             ['k'=>'eta_delivery_min','l'=>'Lieferzeit','t'=>'int','min'=>5,'max'=>240,'suffix'=>'Min.','ph'=>'40'],['k'=>'eta_pickup_min','l'=>'Abholbereit nach','t'=>'int','min'=>5,'max'=>240,'suffix'=>'Min.','ph'=>'20']]]);
-        $S[]=onb_step('payments','multi','Bestellungen','Wie können Kunden bezahlen?',['options'=>[['v'=>'bar','l'=>'Bar'],['v'=>'karte','l'=>'EC-/Kreditkarte'],['v'=>'paypal','l'=>'PayPal'],['v'=>'online','l'=>'Online'],['v'=>'rechnung','l'=>'Rechnung']],'min'=>1]);
+        $PAY[]=onb_step('payments','multi','Bestellungen','Wie können Kunden bezahlen?',['options'=>[['v'=>'bar','l'=>'Bar'],['v'=>'karte','l'=>'EC-/Kreditkarte'],['v'=>'paypal','l'=>'PayPal'],['v'=>'online','l'=>'Online'],['v'=>'rechnung','l'=>'Rechnung']],'min'=>1]);
     }
     if(in_array('ride',$m,true) && function_exists('ride_settings_save')){
         $S[]=onb_step('tariff','fields','Taxi','Dein Taxitarif',['sub'=>'Daraus nennt dein Agent Richtpreise. Die Werte deines örtlichen Tarifs stehen in der Taxiordnung.','fields'=>[
@@ -180,7 +191,7 @@ function onb_catalog(array $P): array {
         $S[]=onb_step('ride_area','choice','Taxi','Wie groß ist dein Einsatzgebiet?',['sub'=>'Umkreis um deine Adresse. Fahrten von weiter weg nimmt der Agent als Anfrage auf.','auto'=>true,'options'=>[['v'=>'10','l'=>'10 km'],['v'=>'15','l'=>'15 km'],['v'=>'25','l'=>'25 km'],['v'=>'40','l'=>'40 km'],['v'=>'80','l'=>'80 km']]]);
         $S[]=onb_step('stands','rows','Taxi','An welchen Taxiständen stehen deine Wagen?',['sub'=>'Der Agent erkennt „am Bahnhof“ oder „am Dom“ als Abholort.','cols'=>ONB_COLS_STANDS,'max'=>30,'add'=>'Taxistand hinzufügen']);
         $S[]=onb_step('drivers','rows','Taxi','Wer fährt bei dir?',['sub'=>'Jede Fahrerin, jeder Fahrer bekommt einen eigenen Link zur Fahrer-App (Fahrten, Status, Navigation).','cols'=>ONB_COLS_DRIVERS,'max'=>200,'add'=>'Fahrer/in hinzufügen']);
-        $S[]=onb_step('ride_payments','multi','Taxi','Wie können Fahrgäste bezahlen?',['options'=>array_map(fn($k,$l)=>['v'=>$k,'l'=>$l],array_keys(RIDE_PAYMENTS),RIDE_PAYMENTS),'min'=>1]);
+        $PAY[]=onb_step('ride_payments','multi','Taxi','Wie können Fahrgäste bezahlen?',['options'=>array_map(fn($k,$l)=>['v'=>$k,'l'=>$l],array_keys(RIDE_PAYMENTS),RIDE_PAYMENTS),'min'=>1]);
     }
     if(in_array('hotel',$m,true) && function_exists('hotel_settings_save')){
         $S[]=onb_step('rooms','rows','Hotel','Welche Zimmer bietest du an?',['sub'=>'Je Kategorie: Personen, Anzahl der Zimmer und Preis pro Nacht. Wochenendpreise ergänzt du im Studio unter Hotel.','cols'=>ONB_COLS_ROOMS,'min'=>1,'max'=>40,'presets'=>ONB_PRESETS['rooms'],'add'=>'Zimmerkategorie hinzufügen']);
@@ -201,7 +212,7 @@ function onb_catalog(array $P): array {
     $S[]=onb_step('tone','choice','Agent','Welcher Ton passt zu dir?',['auto'=>true,'options'=>array_map(fn($k,$l)=>['v'=>$k,'l'=>$l],array_keys(ONB_TONES),ONB_TONES)]);
     $S[]=$never;
     if($P['agent']) $S[]=onb_step('faq','rows','Agent','Welche Fragen hörst du am häufigsten?',['sub'=>'Frage und Antwort – genau so antwortet dein Agent. Optional, du kannst später im Training ergänzen.','cols'=>ONB_COLS_FAQ,'max'=>30,'add'=>'Frage hinzufügen']);
-    return $S;
+    return array_merge($S,$PAY);
 }
 
 /* ======================================================================= Vorbelegung aus bestehenden Einstellungen */
@@ -255,14 +266,17 @@ function onb_prefill(int $aid, array $P): array {
     if(in_array('appt',$P['mods'],true)){
         $sv=array_map(fn($x)=>['name'=>$x['name'],'duration_min'=>$x['duration_min'],'price_cents'=>$x['price_cents']],appt_services($aid,true)); $put('services',$sv,(bool)$sv);
         $put('appt_buffer',(string)($as ? (int)$as['buffer_min'] : 0),(bool)$as);
+        $vm=in_array($as['visit_mode'] ?? '',['both','home'],true) ? (string)$as['visit_mode'] : 'none'; $put('visit_mode',$vm,(bool)$as);
+        $put('visit_fee',['visit_fee_cents'=>(int)($as['visit_fee_cents'] ?? 0) ?: null,'visit_km_cents'=>(int)($as['visit_km_cents'] ?? 0) ?: null,'visit_km_incl'=>(int)round((float)($as['visit_km_incl'] ?? 0)),'visit_max_km'=>(int)round((float)($as['visit_max_km'] ?? 0)) ?: null],$vm!=='none');
     }
     if(in_array('order',$P['mods'],true)){
         $os2=ord_settings($aid); $mn=array_map(fn($x)=>['name'=>$x['name'],'category'=>$x['category'],'price_cents'=>$x['price_cents'],'description'=>$x['description']],ord_menu($aid,true));
         $put('menu',$mn,(bool)$mn);
         $put('order_modes',array_values(array_filter([$os2['delivery_on'] ? 'delivery' : null,$os2['pickup_on'] ? 'pickup' : null])),(bool)$os);
         $put('zones',array_map(fn($z)=>['plz'=>$z['plz'],'name'=>$z['name'],'fee_cents'=>(int)$z['fee_cents'],'min_cents'=>(int)$z['min_cents']],$os2['zones']),(bool)$os2['zones']);
-        $put('order_fees',['min_order_cents'=>$os2['min_order_cents'],'delivery_fee_cents'=>$os2['delivery_fee_cents'],'eta_delivery_min'=>$os2['eta_delivery_min'],'eta_pickup_min'=>$os2['eta_pickup_min']],(bool)$os);
+        $put('order_fees',['min_order_cents'=>$os2['min_order_cents'],'delivery_fee_cents'=>$os2['delivery_fee_cents'],'free_from_cents'=>$os2['free_from_cents'] ?: null,'eta_delivery_min'=>$os2['eta_delivery_min'],'eta_pickup_min'=>$os2['eta_pickup_min']],(bool)$os);
         $put('payments',array_values(array_filter(explode(',',(string)$os2['payment_methods']))),(bool)$os);
+        $put('fee_mode',$os2['fee_mode'],(bool)$os); $put('fee_km',['fee_km_cents'=>$os2['fee_km_cents'] ?: null,'fee_km_incl'=>(int)round($os2['fee_km_incl']),'max_km'=>(int)round($os2['max_km']) ?: null],(bool)$os && $os2['fee_mode']==='km');
     }
     if($rs!==null || (in_array('ride',$P['mods'],true) && function_exists('ride_settings'))){
         $r2=ride_settings($aid,true); $t=$r2['tariff'];
@@ -564,17 +578,20 @@ function onb_apply(int $aid, array $onb): array {
         $meta['phone_req_at']=gmdate('c'); $onb['meta']=$meta; onb_save($onb,['meta']); return 'wir melden uns mit der Nummer';
     });
     /* 3) Module */
-    if(in_array('appt',$P['mods'],true) && ($use('services') || $use('hours') || $use('appt_buffer') || $use('company'))) $run('appt','Terminbuchung',function() use($aid,$v,$use,$company,$address,$hours,$hoursAns){
+    if(in_array('appt',$P['mods'],true) && ($use('services') || $use('hours') || $use('appt_buffer') || $use('visit_mode') || $use('visit_fee') || $use('company'))) $run('appt','Terminbuchung',function() use($aid,$v,$use,$company,$address,$hours,$hoursAns,$vis){
         $d=['appt_on'=>1]; if($company!=='') $d['company']=$company; if($address!=='') $d['address']=$address; if($hours && $hoursAns) $d['hours']=$hours; if($use('appt_buffer')) $d['buffer_min']=(int)$v('appt_buffer');
+        if($use('visit_mode')) $d['visit_mode']=(string)$v('visit_mode'); if($use('visit_fee') && ($vis['visit_fee'] ?? false)) foreach((array)$v('visit_fee') as $k=>$x) $d[$k]=$x===null ? 0 : (int)$x;
         if($use('services')) $d['services']=array_map(fn($r)=>['name'=>$r['name'],'duration_min'=>(int)$r['duration_min'],'price_cents'=>(int)($r['price_cents'] ?? 0)],(array)$v('services'));
         appt_settings_save($aid,$d,$err); if($err) throw new RuntimeException((string)$err['message']);
         $n=count(appt_services($aid,true)); return ($n===1 ? '1 Leistung' : $n.' Leistungen').' · Buchung an';
     });
-    if(in_array('order',$P['mods'],true) && ($use('menu') || $use('order_modes') || $use('zones') || $use('order_fees') || $use('payments') || $use('hours'))) $run('order','Bestellannahme',function() use($aid,$v,$use,$company,$address,$phone,$hours,$hoursAns,$vis){
+    if(in_array('order',$P['mods'],true) && ($use('menu') || $use('order_modes') || $use('zones') || $use('fee_mode') || $use('fee_km') || $use('order_fees') || $use('payments') || $use('hours'))) $run('order','Bestellannahme',function() use($aid,$v,$use,$company,$address,$phone,$hours,$hoursAns,$vis){
         $d=['order_on'=>1]; if($company!=='') $d['name']=$company; if($address!=='') $d['address']=$address; if($phone!=='') $d['phone']=$phone; if($hours && $hoursAns) $d['hours']=$hours;
         if($use('order_modes')){ $m=(array)$v('order_modes'); $d['delivery_on']=in_array('delivery',$m,true) ? 1 : 0; $d['pickup_on']=in_array('pickup',$m,true) ? 1 : 0; }
         if($use('zones') && ($vis['zones'] ?? false)) $d['zones']=array_map(fn($z)=>['plz'=>(string)$z['plz'],'name'=>(string)($z['name'] ?? ''),'fee_cents'=>(int)($z['fee_cents'] ?? 0),'min_cents'=>(int)($z['min_cents'] ?? 0)],(array)$v('zones'));
         if($use('order_fees')) foreach((array)$v('order_fees') as $k=>$x) if($x!==null) $d[$k]=(int)$x;
+        if($use('fee_mode') && ($vis['fee_mode'] ?? false)) $d['fee_mode']=(string)$v('fee_mode');
+        if($use('fee_km') && ($vis['fee_km'] ?? false)) foreach((array)$v('fee_km') as $k=>$x) $d[$k]=$x===null ? 0 : (int)$x;
         if($use('payments')) $d['payment_methods']=implode(',',(array)$v('payments'));
         if($use('menu')) $d['menu']=array_map(fn($r)=>['name'=>$r['name'],'category'=>(string)($r['category'] ?? ''),'price_cents'=>(int)($r['price_cents'] ?? 0),'description'=>(string)($r['description'] ?? '')],(array)$v('menu'));
         $s=ord_settings_save($aid,$d);

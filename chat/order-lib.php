@@ -54,6 +54,9 @@ function ord_bootstrap(): void {
         UNIQUE KEY uq (account_id, wa_from)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $p->exec("CREATE TABLE IF NOT EXISTS geo_cache (h CHAR(32) PRIMARY KEY, lat DECIMAL(9,6) NULL, lon DECIMAL(9,6) NULL, display VARCHAR(240) DEFAULT '', plz VARCHAR(10) DEFAULT '', created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $c=$p->query("SHOW COLUMNS FROM order_settings")->fetchAll(PDO::FETCH_COLUMN); if(!in_array('pickup_discount_pct',$c,true)) $p->exec("ALTER TABLE order_settings ADD COLUMN pickup_discount_pct INT DEFAULT 0");
+    /* Liefergebühr: Zonen (PLZ) oder fest + je km; gratis ab Bestellwert; maximale Entfernung; Zuschlag statt Ablehnung unter dem Mindestbestellwert */
+    foreach(['fee_mode'=>"VARCHAR(8) DEFAULT 'zones'",'fee_km_cents'=>'INT DEFAULT 0','fee_km_incl'=>'DECIMAL(4,1) DEFAULT 0','max_km'=>'DECIMAL(5,1) DEFAULT 0','free_from_cents'=>'INT DEFAULT 0','small_fee_cents'=>'INT DEFAULT 0'] as $col=>$def)
+        if(!in_array($col,$c,true)) $p->exec("ALTER TABLE order_settings ADD COLUMN $col $def");
     $c=$p->query("SHOW COLUMNS FROM orders")->fetchAll(PDO::FETCH_COLUMN); if(!in_array('discount_cents',$c,true)) $p->exec("ALTER TABLE orders ADD COLUMN discount_cents INT DEFAULT 0");
     if(random_int(1,40)===1){ $p->exec("DELETE FROM orders WHERE account_id=0 AND created_at < (NOW() - INTERVAL 2 DAY)"); $p->exec("DELETE FROM wa_sessions WHERE updated_at < (NOW() - INTERVAL 7 DAY)"); }
 }
@@ -66,7 +69,8 @@ function ord_settings(int $acc): array {
         if($acc===0){ foreach(['name','address','lat','lon','phone','min_order_cents','delivery_fee_cents','eta_delivery_min','eta_pickup_min','pickup_discount_pct','payment_methods'] as $k) $r[$k]=ORD_DEMO[$k]; $r['hours']=json_encode(ORD_DEMO['hours']); $r['zones']=json_encode(ORD_DEMO['zones']); } }
     $h=json_decode((string)($r['hours']??''),true); $r['hours']=is_array($h)&&$h ? $h : ['0'=>[['12:00','22:00']],'1'=>[['11:30','22:00']],'2'=>[['11:30','22:00']],'3'=>[['11:30','22:00']],'4'=>[['11:30','22:00']],'5'=>[['11:30','23:00']],'6'=>[['12:00','23:00']]];
     $z=json_decode((string)($r['zones']??''),true); $r['zones']=is_array($z) ? $z : [];
-    foreach(['order_on','delivery_on','pickup_on','min_order_cents','delivery_fee_cents','eta_delivery_min','eta_pickup_min','pickup_discount_pct'] as $k) $r[$k]=(int)($r[$k] ?? 0);
+    foreach(['order_on','delivery_on','pickup_on','min_order_cents','delivery_fee_cents','eta_delivery_min','eta_pickup_min','pickup_discount_pct','fee_km_cents','free_from_cents','small_fee_cents'] as $k) $r[$k]=(int)($r[$k] ?? 0);
+    $r['fee_mode']=($r['fee_mode'] ?? '')==='km' ? 'km' : 'zones'; $r['fee_km_incl']=round((float)($r['fee_km_incl'] ?? 0),1); $r['max_km']=round((float)($r['max_km'] ?? 0),1);
     $r['lat']=$r['lat']!==null?(float)$r['lat']:null; $r['lon']=$r['lon']!==null?(float)$r['lon']:null;
     return $r;
 }
@@ -91,6 +95,9 @@ function ord_settings_save(int $acc, array $d): array {
     th_db()->prepare("INSERT INTO order_settings(account_id,order_on,name,address,lat,lon,phone,hours,zones,delivery_on,pickup_on,min_order_cents,delivery_fee_cents,eta_delivery_min,eta_pickup_min,pickup_discount_pct,payment_methods,notify_email,wa_provider,wa_phone_id,wa_token,wa_number,wa_verify,board_token,tz)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE order_on=VALUES(order_on),name=VALUES(name),address=VALUES(address),lat=VALUES(lat),lon=VALUES(lon),phone=VALUES(phone),hours=VALUES(hours),zones=VALUES(zones),delivery_on=VALUES(delivery_on),pickup_on=VALUES(pickup_on),min_order_cents=VALUES(min_order_cents),delivery_fee_cents=VALUES(delivery_fee_cents),eta_delivery_min=VALUES(eta_delivery_min),eta_pickup_min=VALUES(eta_pickup_min),pickup_discount_pct=VALUES(pickup_discount_pct),payment_methods=VALUES(payment_methods),notify_email=VALUES(notify_email),wa_provider=VALUES(wa_provider),wa_phone_id=VALUES(wa_phone_id),wa_token=VALUES(wa_token),wa_number=VALUES(wa_number),wa_verify=VALUES(wa_verify),board_token=VALUES(board_token),tz=VALUES(tz),updated_at=NOW()")
       ->execute([$acc,$v['order_on'],$v['name'],$v['address'],$v['lat'],$v['lon'],$v['phone'],$v['hours'],$v['zones'],$v['delivery_on'],$v['pickup_on'],$v['min_order_cents'],$v['delivery_fee_cents'],$v['eta_delivery_min'],$v['eta_pickup_min'],$v['pickup_discount_pct'],$v['payment_methods'],$v['notify_email'],$v['wa_provider'],$v['wa_phone_id'],$v['wa_token'],$v['wa_number'],$v['wa_verify'],$v['board_token'],$v['tz']]);
+    $num=fn($k,$lo,$hi,$dec=0)=>array_key_exists($k,$d) && is_numeric($d[$k]) ? round(max($lo,min($hi,(float)$d[$k])),$dec) : $c[$k];
+    th_db()->prepare("UPDATE order_settings SET fee_mode=?,fee_km_cents=?,fee_km_incl=?,max_km=?,free_from_cents=?,small_fee_cents=? WHERE account_id=?")
+      ->execute([in_array($d['fee_mode'] ?? '',['zones','km'],true) ? $d['fee_mode'] : $c['fee_mode'],(int)$num('fee_km_cents',0,2000),$num('fee_km_incl',0,50,1),$num('max_km',0,200,1),(int)$num('free_from_cents',0,100000),(int)$num('small_fee_cents',0,5000),$acc]);
     if(isset($d['menu'])&&is_array($d['menu'])) ord_menu_save($acc,$d['menu']);
     if(isset($d['drivers'])&&is_array($d['drivers'])) ord_drivers_save($acc,$d['drivers']);
     return ord_settings($acc);
@@ -263,15 +270,39 @@ function ord_geocode(string $address): ?array {
 }
 function ord_distance_km(float $la1,float $lo1,float $la2,float $lo2): float { $r=6371; $dLa=deg2rad($la2-$la1); $dLo=deg2rad($lo2-$lo1); $a=sin($dLa/2)**2+cos(deg2rad($la1))*cos(deg2rad($la2))*sin($dLo/2)**2; return round($r*2*atan2(sqrt($a),sqrt(1-$a)),1); }
 function ord_zone(array $s, string $plz): ?array { foreach($s['zones'] as $z){ if(in_array($plz,array_map('trim',explode(',',$z['plz'])),true)) return $z; } return null; }
-/** Adresse prüfen: Zone, Gebühr, Mindestbestellwert, Geodaten, Entfernung. */
+const ORD_ROAD_FACTOR = 1.25;   // Luftlinie → geschätzte Fahrstrecke (für Gebühr je km und maximale Entfernung)
+function ord_eur(int $c): string { return number_format($c/100,2,',','.').' €'; }
+function ord_km(float $k): string { return str_replace('.',',',(string)round($k,1)); }
+/** Liefergebühr nach Einstellung: Zone/Standard oder Grundgebühr + je km (ab inkl. km), auf 10 Cent gerundet. null = Entfernung unbekannt. */
+function ord_fee_for(array $s, ?array $zone, ?float $roadKm): ?int {
+    if($s['fee_mode']!=='km') return (int)($zone['fee_cents'] ?? $s['delivery_fee_cents']);
+    if($roadKm===null) return null;
+    return (int)(round(($s['delivery_fee_cents']+max(0.0,$roadKm-$s['fee_km_incl'])*$s['fee_km_cents'])/10)*10);
+}
+/** Gebührenregel als Satz (für Agent, Studio und Kunden). */
+function ord_fee_text(array $s): string {
+    if($s['fee_mode']==='km') $t='Liefergebühr '.ord_eur($s['delivery_fee_cents']).($s['fee_km_cents']>0 ? ' + '.ord_eur($s['fee_km_cents']).' je km'.($s['fee_km_incl']>0 ? ' ab '.ord_km($s['fee_km_incl']).' km' : '') : '').($s['max_km']>0 ? ', Lieferung bis '.ord_km($s['max_km']).' km' : '');
+    else $t=$s['zones'] ? 'Liefergebühr je Liefergebiet' : 'Liefergebühr '.ord_eur($s['delivery_fee_cents']);
+    if($s['free_from_cents']>0) $t.=', gratis ab '.ord_eur($s['free_from_cents']).' Bestellwert';
+    if($s['small_fee_cents']>0) $t.=', unter dem Mindestbestellwert Zuschlag '.ord_eur($s['small_fee_cents']);
+    return $t;
+}
+/** Adresse prüfen: Zone bzw. Entfernung, Gebühr, Mindestbestellwert, Geodaten. */
 function ord_check_address(int $acc, string $address): array {
     $s=ord_settings($acc); $pa=ord_parse_address($address); $geo=ord_geocode($address);
-    $plz=$pa['plz'] ?: (string)($geo['plz'] ?? ''); $zone=$plz!=='' ? ord_zone($s,$plz) : null;
-    $dist=($geo && $s['lat']!==null) ? ord_distance_km($s['lat'],$s['lon'],$geo['lat'],$geo['lon']) : null;
-    $deliverable = $s['delivery_on'] && ($zone!==null || (!$s['zones'] && $plz!==''));
-    if(!$deliverable && $plz==='') return ['ok'=>false,'reason'=>'unvollständig','hint'=>'PLZ fehlt bzw. Adresse nicht gefunden – bitte Straße, Hausnummer, PLZ und Ort nennen.','parsed'=>$pa];   // ohne PLZ kein „außerhalb“-Urteil
-    return ['ok'=>$deliverable,'reason'=>$deliverable?null:'ausserhalb_liefergebiet','parsed'=>$pa,'plz'=>$plz,'zone'=>$zone['name']??null,'fee_cents'=>$zone['fee_cents']??$s['delivery_fee_cents'],'min_cents'=>$zone['min_cents']??$s['min_order_cents'],
-        'geo'=>$geo?['lat'=>$geo['lat'],'lon'=>$geo['lon'],'display'=>$geo['display']]:null,'distance_km'=>$dist,'pickup_possible'=>(bool)$s['pickup_on'],'eta_min'=>$s['eta_delivery_min']];
+    $plz=$pa['plz'] ?: (string)($geo['plz'] ?? ''); $km=$s['fee_mode']==='km'; $zone=$plz!=='' && !$km ? ord_zone($s,$plz) : null;
+    $dist=($geo && $s['lat']!==null) ? ord_distance_km($s['lat'],$s['lon'],$geo['lat'],$geo['lon']) : null; $road=$dist!==null ? round($dist*ORD_ROAD_FACTOR,1) : null;
+    if($km){
+        if($road===null && $s['lat']!==null) return ['ok'=>false,'reason'=>'unvollständig','hint'=>'Adresse nicht gefunden – für die Liefergebühr je km bitte Straße, Hausnummer, PLZ und Ort genau nennen.','parsed'=>$pa];
+        $deliverable=$s['delivery_on'] && ($road===null ? $plz!=='' : ($s['max_km']<=0 || $road<=$s['max_km']));
+    } else $deliverable = $s['delivery_on'] && ($zone!==null || (!$s['zones'] && $plz!==''));
+    if(!$deliverable && $plz==='' && $road===null) return ['ok'=>false,'reason'=>'unvollständig','hint'=>'PLZ fehlt bzw. Adresse nicht gefunden – bitte Straße, Hausnummer, PLZ und Ort nennen.','parsed'=>$pa];   // ohne PLZ kein „außerhalb“-Urteil
+    $fee=ord_fee_for($s,$zone,$road); if($fee===null) $fee=$s['delivery_fee_cents'];   // Restaurant ohne Koordinaten: Grundgebühr
+    return ['ok'=>$deliverable,'reason'=>$deliverable?null:'ausserhalb_liefergebiet','parsed'=>$pa,'plz'=>$plz,'zone'=>$zone['name']??null,'fee_cents'=>$fee,'min_cents'=>$zone['min_cents']??$s['min_order_cents'],
+        'free_from_cents'=>$s['free_from_cents'] ?: null,'small_fee_cents'=>$s['small_fee_cents'] ?: null,'fee_rule'=>ord_fee_text($s),
+        'geo'=>$geo?['lat'=>$geo['lat'],'lon'=>$geo['lon'],'display'=>$geo['display']]:null,'distance_km'=>$dist,'road_km'=>$road,'max_km'=>$km && $s['max_km']>0 ? $s['max_km'] : null,
+        'hint'=>$deliverable ? null : ($km && $road!==null ? 'Etwa '.ord_km($road).' km entfernt – geliefert wird bis '.ord_km($s['max_km']).' km. Abholung anbieten.' : 'Außerhalb des Liefergebiets – Abholung anbieten.'),
+        'pickup_possible'=>(bool)$s['pickup_on'],'eta_min'=>$s['eta_delivery_min']];
 }
 
 /* ---------- Bestellung ---------- */
@@ -403,8 +434,11 @@ function ord_create(int $acc, array $d, string $channel, string $waFrom=''): arr
     if($name==='') return ['error'=>'name_required','problems'=>$problems]; if($phone==='') return ['error'=>'phone_required','problems'=>$problems];
     $addr=['ok'=>true,'fee_cents'=>0,'min_cents'=>$s['min_order_cents'],'plz'=>'','zone'=>'','geo'=>null,'distance_km'=>null,'parsed'=>['city'=>'']];
     if($type==='delivery'){ $addr=ord_check_address($acc,(string)($d['address']??'')); if(!$addr['ok']) return ['error'=>$addr['reason']==='unvollständig'?'address_incomplete':'outside_delivery_area','address'=>$addr,'problems'=>$problems]; }
-    $fee=$type==='delivery'?(int)$addr['fee_cents']:0; $min=(int)($addr['min_cents'] ?? $s['min_order_cents']);
-    if($type==='delivery' && $sub<$min) return ['error'=>'below_minimum','min_cents'=>$min,'subtotal_cents'=>$sub,'hint'=>'Mindestbestellwert '.number_format($min/100,2,',','.').' € für Lieferung.','problems'=>$problems];
+    $fee=$type==='delivery'?(int)$addr['fee_cents']:0; $min=(int)($addr['min_cents'] ?? $s['min_order_cents']); $small=0;
+    if($type==='delivery' && $s['free_from_cents']>0 && $sub>=$s['free_from_cents']) $fee=0;   // gratis ab Bestellwert
+    if($type==='delivery' && $sub<$min){
+        if($s['small_fee_cents']<=0) return ['error'=>'below_minimum','min_cents'=>$min,'subtotal_cents'=>$sub,'hint'=>'Mindestbestellwert '.number_format($min/100,2,',','.').' € für Lieferung.','problems'=>$problems];
+        $small=$s['small_fee_cents']; $fee+=$small; $problems[]='Unter dem Mindestbestellwert '.ord_eur($min).': Zuschlag '.ord_eur($small).' in der Liefergebühr enthalten.'; }
     $pay=strtolower(trim((string)($d['payment']??'bar'))); $allowed=explode(',',$s['payment_methods']); if(!in_array($pay,$allowed,true)) $pay=$allowed[0] ?? 'bar';
     $disc=$type==='pickup' && $s['pickup_discount_pct']>0 ? (int)round($sub*$s['pickup_discount_pct']/100) : 0;   // Abholrabatt (Einstellung)
     $code=ord_code(); $total=$sub-$disc+$fee;
@@ -594,7 +628,7 @@ function ord_wa_session_save(int $acc, string $from, array $msgs, string $profil
 function ord_tools(): array {
     return [
       ['name'=>'get_menu','description'=>'Speisekarte mit Kategorien, Preisen, Optionen (Größen/Extras) und Hinweisen (vegetarisch, scharf …). Optional nach Kategorie oder Suchbegriff filtern.','input_schema'=>['type'=>'object','properties'=>['category'=>['type'=>'string'],'query'=>['type'=>'string']],'required'=>[]]],
-      ['name'=>'check_delivery_address','description'=>'Lieferadresse prüfen: liegt sie im Liefergebiet, welche Liefergebühr und welcher Mindestbestellwert gelten, voraussichtliche Lieferzeit. Immer aufrufen, bevor eine Lieferbestellung angelegt wird.','input_schema'=>['type'=>'object','properties'=>['address'=>['type'=>'string','description'=>'Straße Hausnummer, PLZ Ort']],'required'=>['address']]],
+      ['name'=>'check_delivery_address','description'=>'Lieferadresse prüfen: liegt sie im Liefergebiet (bzw. in der maximalen Entfernung), welche Liefergebühr gilt (je Zone oder fest + je km aus der Entfernung), Mindestbestellwert, „gratis ab“, voraussichtliche Lieferzeit. Immer aufrufen, bevor eine Lieferbestellung angelegt wird.','input_schema'=>['type'=>'object','properties'=>['address'=>['type'=>'string','description'=>'Straße Hausnummer, PLZ Ort']],'required'=>['address']]],
       ['name'=>'create_order','description'=>'Bestellung verbindlich anlegen – erst nach Zusammenfassung und ausdrücklicher Bestätigung des Kunden. Positionen mit Menge und ggf. Optionen (z. B. Größe).','input_schema'=>['type'=>'object','properties'=>['type'=>['type'=>'string','enum'=>['delivery','pickup']],'items'=>['type'=>'array','items'=>['type'=>'object','properties'=>['name'=>['type'=>'string','description'=>'Artikelname wie in get_menu (Größe/Extras in options, Wünsche ohne Aufpreis wie „ohne Zwiebeln“ in note)'],'id'=>['type'=>'integer','description'=>'id aus get_menu (bevorzugt)'],'qty'=>['type'=>'integer'],'options'=>['type'=>'array','items'=>['type'=>'string'],'description'=>'Auswahl wie in get_menu, z. B. "Größe: Groß 32 cm" oder "Groß 32 cm"'],'note'=>['type'=>'string']],'required'=>['qty']]],'name'=>['type'=>'string'],'phone'=>['type'=>'string'],'address'=>['type'=>'string'],'payment'=>['type'=>'string','description'=>'bar | karte | paypal | online'],'note'=>['type'=>'string'],'requested_time'=>['type'=>'string','description'=>'Optional (Vorbestellung/Wunschzeit): HH:MM für heute oder YYYY-MM-DD HH:MM; muss in den Öffnungszeiten der nächsten 7 Tage liegen (auch während geschlossen ist)']],'required'=>['type','items','name']]],
       ['name'=>'get_order_status','description'=>'Status einer Bestellung per Bestellcode. Ohne Code: Bestellungen der verifizierten Absender-/Anrufernummer (WhatsApp/Telefon) – fremde Nummern sind gesperrt.','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string'],'phone'=>['type'=>'string']],'required'=>[]]],
       ['name'=>'cancel_order','description'=>'Bestellung stornieren (nur solange Status new/confirmed und nach Bestätigung des Kunden).','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string']],'required'=>['code']]],
@@ -627,7 +661,9 @@ function ord_exec(int $acc, string $name, array $in, string $channel, string $wa
 function ord_system_hint(int $acc): string {
     $s=ord_settings($acc); $tz=ord_tz($s); $now=new DateTimeImmutable('now',$tz); $open=ord_is_open($s);
     $wd=['So','Mo','Di','Mi','Do','Fr','Sa']; $h=[]; for($w=1;$w<=7;$w++){ $k=(string)($w%7); $r=$s['hours'][$k]??[]; $h[]=$wd[$w%7].' '.($r?implode(', ',array_map(fn($x)=>$x[0].'–'.$x[1],$r)):'Ruhetag'); }
-    $zones=$s['zones']?implode('; ',array_map(fn($z)=>$z['name'].' (PLZ '.$z['plz'].'): Gebühr '.number_format($z['fee_cents']/100,2,',','.').' €, Mindestbestellwert '.number_format($z['min_cents']/100,2,',','.').' €',$s['zones'])):'Liefergebiet nach PLZ-Prüfung';
+    $zones=$s['fee_mode']==='km' ? 'nach Entfernung (check_delivery_address berechnet die Gebühr), Mindestbestellwert '.ord_eur($s['min_order_cents'])
+        : ($s['zones']?implode('; ',array_map(fn($z)=>$z['name'].' (PLZ '.$z['plz'].'): Gebühr '.number_format($z['fee_cents']/100,2,',','.').' €, Mindestbestellwert '.number_format($z['min_cents']/100,2,',','.').' €',$s['zones'])):'Liefergebiet nach PLZ-Prüfung');
+    $zones.='. Gebührenregel: '.ord_fee_text($s);
     $cats=array_count_values(array_column(ord_menu($acc),'category'));
     return "\n\nBESTELLANNAHME (aktiv) für ".($s['name']?:'das Restaurant').($s['address']?', '.$s['address']:'').". Jetzt: ".$now->format('l H:i')." – ".($open['open']?(!empty($open['always']) ? 'GEÖFFNET (durchgehend)' : 'GEÖFFNET bis '.(new DateTimeImmutable($open['until_at'],$tz)<=$now->modify('+12 hours') ? $open['until'] : $open['until_label'])):'GESCHLOSSEN'.($open['next_label']?', öffnet '.$open['next_label'].' (Vorbestellung mit requested_time innerhalb der Öffnungszeiten möglich)':'')).". Öffnungszeiten: ".implode(' · ',$h).". Lieferung ".($s['delivery_on']?'ja':'nein').", Abholung ".($s['pickup_on']?'ja':'nein').". Liefergebiete: $zones. Zahlarten: ".$s['payment_methods'].". Lieferzeit ca. ".$s['eta_delivery_min']." Min, Abholung ca. ".$s['eta_pickup_min']." Min.".($s['pickup_discount_pct']>0?" Abholrabatt: ".$s['pickup_discount_pct']." % auf den Warenwert (wird bei create_order automatisch abgezogen).":" Es gibt KEINEN Abholrabatt – auch wenn die Wissensbasis etwas anderes sagt.")." Karte: ".implode(', ',array_map(fn($c,$n)=>"$c ($n)",array_keys($cats),$cats)).".
 REGELN: Karte/Preise NUR über get_menu (nicht raten). Gesamtsummen nie selbst anders ankündigen als die Werkzeuge: nach create_order gilt ausschließlich das Feld total (inkl. Liefergebühr bzw. Abholrabatt). In der Zusammenfassung vor der Bestellung: Positionen mit Einzelpreisen + Liefergebühr bzw. Abholrabatt laut Einstellungen. Bestellung aufnehmen: Positionen mit Menge und Größe/Optionen, Lieferung oder Abholung, bei Lieferung Adresse mit Straße, Hausnummer, PLZ, Ort → check_delivery_address (nur im Liefergebiet weiter; sonst Abholung anbieten), Name, Telefonnummer, Zahlart. Dann Zusammenfassung mit Gesamtsumme (inkl. Liefergebühr) und „Soll ich die Bestellung so aufgeben?“ – erst nach Ja create_order. Danach Bestellcode, Gesamtsumme und voraussichtliche Zeit nennen; im Chat/WhatsApp zusätzlich den Status-Link (Feld track) mitschicken, am Telefon den Link NICHT vorlesen (Bestätigung kommt per SMS). Upselling höchstens einmal, dezent (Getränk/Dessert). Allergien/Unverträglichkeiten: Hinweise aus der Karte nennen, bei Unsicherheit ans Team verweisen. Kurz, freundlich, in der Sprache des Kunden.";

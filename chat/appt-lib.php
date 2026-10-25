@@ -31,6 +31,13 @@ function appt_bootstrap(): void {
     $p->exec("CREATE TABLE IF NOT EXISTS appt_blocks (
         id INT AUTO_INCREMENT PRIMARY KEY, account_id INT NOT NULL, start_at DATETIME NOT NULL, end_at DATETIME NOT NULL, reason VARCHAR(120) DEFAULT '', INDEX(account_id, start_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $p->exec("CREATE TABLE IF NOT EXISTS appt_jobs (name VARCHAR(40) PRIMARY KEY, last_run DATETIME NULL) ENGINE=InnoDB");   // Zeitsperre für lazy Jobs (Erinnerungen), ersetzt die frühere Sperrdatei
+    /* Hausbesuch: none = nur im Betrieb, both = Kunde wählt, home = nur beim Kunden; Anfahrt = Pauschale + je km (ab inkl. km), bis max. km */
+    $c=$p->query("SHOW COLUMNS FROM appt_settings")->fetchAll(PDO::FETCH_COLUMN);
+    foreach(['visit_mode'=>"VARCHAR(8) DEFAULT 'none'",'visit_fee_cents'=>'INT DEFAULT 0','visit_km_cents'=>'INT DEFAULT 0','visit_km_incl'=>'DECIMAL(4,1) DEFAULT 0','visit_max_km'=>'DECIMAL(5,1) DEFAULT 0'] as $col=>$def)
+        if(!in_array($col,$c,true)) $p->exec("ALTER TABLE appt_settings ADD COLUMN $col $def");
+    $c=$p->query("SHOW COLUMNS FROM appt_bookings")->fetchAll(PDO::FETCH_COLUMN);
+    foreach(['visit_address'=>"VARCHAR(240) DEFAULT ''",'travel_fee_cents'=>'INT DEFAULT 0','visit_km'=>'DECIMAL(5,1) NULL'] as $col=>$def)
+        if(!in_array($col,$c,true)) $p->exec("ALTER TABLE appt_bookings ADD COLUMN $col $def");
     if(random_int(1,40)===1) $p->exec("DELETE FROM appt_bookings WHERE account_id=0 AND created_at < (NOW() - INTERVAL 2 DAY)");
 }
 
@@ -40,8 +47,32 @@ function appt_settings(int $acc): array {
     $s=th_db()->prepare("SELECT * FROM appt_settings WHERE account_id=?"); $s->execute([$acc]); $r=$s->fetch(PDO::FETCH_ASSOC);
     if(!$r){ $r=['account_id'=>$acc,'appt_on'=>$acc===0?1:0,'company'=>$acc===0?APPT_DEMO['company']:'','address'=>$acc===0?APPT_DEMO['address']:'','slot_min'=>30,'buffer_min'=>0,'lead_min'=>120,'max_days'=>60,'tz'=>'Europe/Berlin','hours'=>null,'notify_email'=>'','confirm_text'=>'']; }
     $h=json_decode((string)($r['hours']??''),true); $r['hours']=is_array($h)&&$h ? appt_hours_parse($h) : APPT_DEFAULT_HOURS;   // gespeicherte Altwerte (z. B. 25:00) werden beim Lesen verworfen statt appt_slots abstürzen zu lassen
-    foreach(['slot_min','buffer_min','lead_min','max_days','appt_on'] as $k) $r[$k]=(int)$r[$k];
+    foreach(['slot_min','buffer_min','lead_min','max_days','appt_on','visit_fee_cents','visit_km_cents'] as $k) $r[$k]=(int)($r[$k] ?? 0);
+    $r['visit_mode']=in_array($r['visit_mode'] ?? '',['both','home'],true) ? $r['visit_mode'] : 'none'; $r['visit_km_incl']=round((float)($r['visit_km_incl'] ?? 0),1); $r['visit_max_km']=round((float)($r['visit_max_km'] ?? 0),1);
     return $r;
+}
+/** Anfahrt als Satz (Agent, Studio, Bestätigung). */
+function appt_visit_text(array $s): string {
+    if($s['visit_mode']==='none') return '';
+    $e=fn(int $c)=>number_format($c/100,2,',','.').' €'; $k=fn(float $x)=>str_replace('.',',',(string)round($x,1));
+    $t=($s['visit_mode']==='home' ? 'Termine nur als Hausbesuch' : 'Hausbesuch möglich').': Anfahrt '.($s['visit_fee_cents']>0 ? $e($s['visit_fee_cents']) : 'ohne Pauschale');
+    if($s['visit_km_cents']>0) $t.=' + '.$e($s['visit_km_cents']).' je km'.($s['visit_km_incl']>0 ? ' ab '.$k($s['visit_km_incl']).' km' : '');
+    if($s['visit_max_km']>0) $t.=', bis '.$k($s['visit_max_km']).' km';
+    return $t;
+}
+/** Hausbesuch-Adresse prüfen: Entfernung (geschätzte Fahrstrecke ab Betriebsadresse), Anfahrtskosten, innerhalb des Radius? */
+function appt_visit_check(int $acc, string $address, ?array $s=null): array {
+    $s=$s ?: appt_settings($acc);
+    if($s['visit_mode']==='none') return ['ok'=>false,'error'=>'no_home_visits','hint'=>'Dieser Betrieb macht keine Hausbesuche – Termine finden vor Ort statt.'];
+    $address=trim($address); if(mb_strlen($address)<6) return ['ok'=>false,'error'=>'address_required','hint'=>'Für den Hausbesuch bitte Straße, Hausnummer, PLZ und Ort erfragen.'];
+    if(!function_exists('ord_geocode') && is_file(__DIR__.'/order-lib.php')) require_once __DIR__.'/order-lib.php';
+    $to=ord_geocode($address); if(!$to) return ['ok'=>false,'error'=>'address_not_found','hint'=>'Adresse nicht gefunden – bitte Straße, Hausnummer, PLZ und Ort genau erfragen.'];
+    $from=trim((string)$s['address'])!=='' ? ord_geocode((string)$s['address']) : null;
+    $km=$from ? round(ord_distance_km($from['lat'],$from['lon'],$to['lat'],$to['lon'])*(defined('ORD_ROAD_FACTOR') ? ORD_ROAD_FACTOR : 1.25),1) : null;
+    if($km!==null && $s['visit_max_km']>0 && $km>$s['visit_max_km']) return ['ok'=>false,'error'=>'too_far','km'=>$km,'max_km'=>$s['visit_max_km'],'hint'=>'Etwa '.str_replace('.',',',(string)$km).' km entfernt – Hausbesuche nur bis '.str_replace('.',',',(string)$s['visit_max_km']).' km.'.($s['visit_mode']==='both' ? ' Termin vor Ort anbieten.' : '')];
+    $fee=$s['visit_fee_cents']+($km!==null ? max(0.0,$km-$s['visit_km_incl'])*$s['visit_km_cents'] : 0);
+    return ['ok'=>true,'km'=>$km,'travel_fee_cents'=>(int)(round($fee/10)*10),'travel_fee_eur'=>round(round($fee/10)*10/100,2),'address'=>$to['display'] ?: $address,'rule'=>appt_visit_text($s),
+        'note'=>$km===null ? 'Entfernung unbekannt (Betriebsadresse fehlt) – nur die Pauschale berechnet.' : null];
 }
 /** Öffnungszeiten prüfen: je Wochentag 0–6 Liste [von,bis] im Format HH:MM (auch H:MM), bis darf 24:00 sein.
  *  Gemeinsame Konvention (Bestellungen + Termine): bis ≤ von = endet am Folgetag (['17:00','00:00'], ['18:00','01:30']; gleich = 24 h), '24:00' = Tagesende.
@@ -71,6 +102,9 @@ function appt_settings_save(int $acc, array $d, &$err=null): array {
     th_db()->prepare("INSERT INTO appt_settings(account_id,appt_on,company,address,slot_min,buffer_min,lead_min,max_days,tz,hours,notify_email,confirm_text) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
         ON DUPLICATE KEY UPDATE appt_on=VALUES(appt_on),company=VALUES(company),address=VALUES(address),slot_min=VALUES(slot_min),buffer_min=VALUES(buffer_min),lead_min=VALUES(lead_min),max_days=VALUES(max_days),tz=VALUES(tz),hours=VALUES(hours),notify_email=VALUES(notify_email),confirm_text=VALUES(confirm_text),updated_at=NOW()")
       ->execute([$acc,$v['appt_on'],$v['company'],$v['address'],$v['slot_min'],$v['buffer_min'],$v['lead_min'],$v['max_days'],$v['tz'],json_encode($hours),$v['notify_email'],$v['confirm_text']]);
+    $num=fn($k,$lo,$hi,$dec=0)=>array_key_exists($k,$d) && is_numeric($d[$k]) ? round(max($lo,min($hi,(float)$d[$k])),$dec) : $cur[$k];
+    th_db()->prepare("UPDATE appt_settings SET visit_mode=?,visit_fee_cents=?,visit_km_cents=?,visit_km_incl=?,visit_max_km=? WHERE account_id=?")
+      ->execute([in_array($d['visit_mode'] ?? '',['none','both','home'],true) ? $d['visit_mode'] : $cur['visit_mode'],(int)$num('visit_fee_cents',0,50000),(int)$num('visit_km_cents',0,2000),$num('visit_km_incl',0,50,1),$num('visit_max_km',0,300,1),$acc]);
     if(isset($d['services']) && is_array($d['services'])) appt_services_save($acc,$d['services']);
     return appt_settings($acc);
 }
@@ -157,7 +191,7 @@ function appt_next_days(int $acc, ?int $serviceId, int $days=10): array {
 
 /* ---------- Buchen / Stornieren ---------- */
 function appt_code(): string { $a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; $c=''; for($i=0;$i<8;$i++) $c.=$a[random_int(0,strlen($a)-1)]; return $c; }
-function appt_book(int $acc, ?int $serviceId, string $start, string $name, string $phone, string $email, string $note, string $source): array {
+function appt_book(int $acc, ?int $serviceId, string $start, string $name, string $phone, string $email, string $note, string $source, string $address=''): array {
     $s=appt_settings($acc); $tz=appt_tz($s);
     if(!$s['appt_on']) return ['error'=>'appointments_disabled'];
     $name=mb_substr(trim($name),0,120); $phone=mb_substr(trim($phone),0,40); $email=filter_var(trim($email),FILTER_VALIDATE_EMAIL)?trim($email):''; $note=mb_substr(trim($note),0,500);
@@ -166,6 +200,10 @@ function appt_book(int $acc, ?int $serviceId, string $start, string $name, strin
     $date=$m[1].'-'.$m[2].'-'.$m[3]; $time=$m[4].':'.$m[5];
     if(!checkdate((int)$m[2],(int)$m[3],(int)$m[1])) return ['error'=>'date_invalid','date'=>$date,'hint'=>'Dieses Datum gibt es nicht (z. B. 31.11. oder 30.02.) – bitte das Datum mit dem Kunden klären.'];
     [$svc,$dur,$err]=appt_resolve_service($acc,$serviceId,$s,true); if($err) return $err;
+    /* Hausbesuch: Adresse prüfen und Anfahrt berechnen (nur „home“ verlangt sie; bei „both“ entscheidet die Adresse) */
+    $visit=null; $address=trim($address);
+    if($s['visit_mode']==='home' && $address==='') return ['error'=>'address_required','hint'=>'Termine finden beim Kunden statt – bitte Adresse (Straße, Hausnummer, PLZ, Ort) erfragen.'];
+    if($address!=='' && $s['visit_mode']!=='none'){ $visit=appt_visit_check($acc,$address,$s); if(empty($visit['ok'])) return $visit+['error'=>$visit['error'] ?? 'address_invalid']; }
     $slots=appt_slots($acc,$date,$svc ? (int)$svc['id'] : null); if(isset($slots['error'])) return $slots;   // gleiche Leistung/Dauer wie beim Speichern
     if(!in_array($time,$slots['slots'] ?? [],true)) return ['error'=>'slot_unavailable','date'=>$date,'available'=>array_slice($slots['slots'] ?? [],0,10),'closed'=>$slots['closed'] ?? false];
     $st=new DateTimeImmutable($date.' '.$time,$tz); $en=$st->modify('+'.$dur.' minutes'); $p=th_db(); $code='';
@@ -176,8 +214,8 @@ function appt_book(int $acc, ?int $serviceId, string $start, string $name, strin
                 $p->beginTransaction();
                 if(appt_conflicts($acc,$st,$en,(int)$s['buffer_min'],0,true)>0){ $p->rollBack(); return ['error'=>'slot_unavailable','date'=>$date,'hint'=>'Diese Zeit wurde gerade vergeben.','available'=>array_slice(appt_slots($acc,$date,$svc ? (int)$svc['id'] : null)['slots'] ?? [],0,10)]; }
                 $code=appt_code();
-                $p->prepare("INSERT INTO appt_bookings(account_id,service_id,service_name,start_at,end_at,customer_name,phone,email,note,status,source,code) VALUES(?,?,?,?,?,?,?,?,?,'booked',?,?)")
-                  ->execute([$acc,$svc['id'] ?? null,$svc['name'] ?? 'Termin',$st->format('Y-m-d H:i:s'),$en->format('Y-m-d H:i:s'),$name,$phone,$email,$note,mb_substr($source,0,16),$code]);
+                $p->prepare("INSERT INTO appt_bookings(account_id,service_id,service_name,start_at,end_at,customer_name,phone,email,note,status,source,code,visit_address,travel_fee_cents,visit_km) VALUES(?,?,?,?,?,?,?,?,?,'booked',?,?,?,?,?)")
+                  ->execute([$acc,$svc['id'] ?? null,$svc['name'] ?? 'Termin',$st->format('Y-m-d H:i:s'),$en->format('Y-m-d H:i:s'),$name,$phone,$email,$note,mb_substr($source,0,16),$code,$visit ? mb_substr($address,0,240) : '',$visit ? (int)$visit['travel_fee_cents'] : 0,$visit['km'] ?? null]);
                 $p->commit(); break;
             }catch(Throwable $e){
                 try{ if($p->inTransaction()) $p->rollBack(); }catch(Throwable $e2){}
@@ -197,6 +235,7 @@ function appt_public(array $b, ?array $s=null): array {
     $wd=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][(int)$st->format('w')];
     return ['code'=>$b['code'],'service'=>$b['service_name'],'date'=>$st->format('Y-m-d'),'time'=>$st->format('H:i'),'end'=>(new DateTimeImmutable($b['end_at'],$tz))->format('H:i'),'weekday'=>$wd,
         'human'=>$wd.', '.$st->format('d.m.Y').' um '.$st->format('H:i').' Uhr','name'=>$b['customer_name'],'phone'=>$b['phone'],'email'=>$b['email'],'note'=>$b['note'],'status'=>$b['status'],'company'=>$s['company'],'address'=>$s['address'],
+        'home_visit'=>trim((string)($b['visit_address'] ?? ''))!=='','visit_address'=>(string)($b['visit_address'] ?? ''),'travel_fee_cents'=>(int)($b['travel_fee_cents'] ?? 0),'visit_km'=>isset($b['visit_km']) ? (float)$b['visit_km'] : null,
         'manage_url'=>'https://chat-help.com/chat/appt.php?c='.$b['code'],'cancellable'=>$b['status']==='booked' && $st > appt_now($s)];
 }
 /** Absagen per Buchungscode (öffentlich, Agent, Studio). Nur Status 'booked' mit Beginn in der Zukunft (Wanduhr der Konto-Zeitzone);
@@ -261,7 +300,7 @@ function appt_notify(array $b, array $s, string $kind): bool {
     $pub=appt_public($b,$s); $company=$s['company'] ?: 'Ihr Termin'; $ok=true;
     if(function_exists('ch_push') && in_array($kind,['confirm','cancel'],true)) ch_push((int)$b['account_id'],$kind==='confirm'?'booking_new':'booking_cancel',($kind==='confirm'?'Neuer Termin: ':'Termin abgesagt: ').$pub['service'],$pub['human'].' · '.$b['customer_name'].($b['phone']?' · '.$b['phone']:''),'/chat/studio.php#termine',['tag'=>'appt-'.$b['code'],'email'=>false]);
     $box=function(string $title,string $body) use($pub,$s){ return '<div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;padding:30px;border:1px solid #e6e8ef;border-radius:20px;color:#0f1222"><div style="font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#b8862b;font-weight:700">'.htmlspecialchars($s['company']).'</div><h2 style="margin:10px 0 14px;font-size:22px">'.$title.'</h2>'.$body
-        .'<div style="margin:18px 0;padding:16px;border-radius:14px;background:#f6ecd3"><b style="font-size:17px">'.htmlspecialchars($pub['service']).'</b><br>'.htmlspecialchars($pub['human']).' (bis '.htmlspecialchars($pub['end']).' Uhr)'.($s['address']?'<br>'.htmlspecialchars($s['address']):'').'<br><span style="color:#6b7083;font-size:13px">Buchungscode '.$pub['code'].'</span></div>'
+        .'<div style="margin:18px 0;padding:16px;border-radius:14px;background:#f6ecd3"><b style="font-size:17px">'.htmlspecialchars($pub['service']).'</b><br>'.htmlspecialchars($pub['human']).' (bis '.htmlspecialchars($pub['end']).' Uhr)'.($pub['home_visit'] ? '<br>Hausbesuch: '.htmlspecialchars($pub['visit_address']).($pub['travel_fee_cents']>0 ? '<br>Anfahrt: '.number_format($pub['travel_fee_cents']/100,2,',','.').' €' : '') : ($s['address']?'<br>'.htmlspecialchars($s['address']):'')).'<br><span style="color:#6b7083;font-size:13px">Buchungscode '.$pub['code'].'</span></div>'
         .'<p style="font-size:13px;color:#6b7083">Termin verwalten / absagen / in den Kalender: <a href="'.$pub['manage_url'].'" style="color:#b8862b">'.$pub['manage_url'].'</a></p></div>'; };
     if($kind==='confirm'){
         if($b['email']) $ok=th_mail($b['email'],'Terminbestätigung · '.$company.' · '.$pub['human'],$box('Ihr Termin ist bestätigt ✓','<p>Hallo '.htmlspecialchars($b['customer_name']).',</p><p>vielen Dank für Ihre Buchung.'.($s['confirm_text']?' '.htmlspecialchars($s['confirm_text']):'').'</p>')) && $ok;
@@ -330,7 +369,8 @@ function appt_tools(): array {
     return [
       ['name'=>'list_services','description'=>'Liste der buchbaren Leistungen mit Dauer und Preis.','input_schema'=>['type'=>'object','properties'=>new stdClass(),'required'=>[]]],
       ['name'=>'get_available_slots','description'=>'Freie Terminzeiten für ein Datum (YYYY-MM-DD) und optional eine Leistung (service_id). Ohne Datum: die nächsten Tage mit freien Zeiten.','input_schema'=>['type'=>'object','properties'=>['date'=>['type'=>'string','description'=>'YYYY-MM-DD'],'service_id'=>['type'=>'integer']],'required'=>[]]],
-      ['name'=>'book_appointment','description'=>'Termin verbindlich buchen. Vorher Leistung, Datum, Uhrzeit, Name und Telefonnummer (oder E-Mail) vom Kunden bestätigen lassen.','input_schema'=>['type'=>'object','properties'=>['service_id'=>['type'=>'integer'],'start'=>['type'=>'string','description'=>'YYYY-MM-DD HH:MM'],'name'=>['type'=>'string'],'phone'=>['type'=>'string'],'email'=>['type'=>'string'],'note'=>['type'=>'string']],'required'=>['start','name']]],
+      ['name'=>'book_appointment','description'=>'Termin verbindlich buchen. Vorher Leistung, Datum, Uhrzeit, Name und Telefonnummer (oder E-Mail) vom Kunden bestätigen lassen. Hausbesuch: address angeben (Anfahrtskosten werden berechnet).','input_schema'=>['type'=>'object','properties'=>['service_id'=>['type'=>'integer'],'start'=>['type'=>'string','description'=>'YYYY-MM-DD HH:MM'],'name'=>['type'=>'string'],'phone'=>['type'=>'string'],'email'=>['type'=>'string'],'note'=>['type'=>'string'],'address'=>['type'=>'string','description'=>'Nur bei Hausbesuch: Straße Hausnummer, PLZ Ort des Kunden']],'required'=>['start','name']]],
+      ['name'=>'check_home_visit','description'=>'Hausbesuch prüfen: Entfernung zur Kundenadresse, Anfahrtskosten und ob die Adresse im Einsatzradius liegt. Vor einer Hausbesuch-Buchung aufrufen und die Anfahrtskosten nennen.','input_schema'=>['type'=>'object','properties'=>['address'=>['type'=>'string','description'=>'Straße Hausnummer, PLZ Ort']],'required'=>['address']]],
       ['name'=>'find_appointments','description'=>'Bestehende Termine finden: per Buchungscode, sonst nur für die verifizierte Absender-/Anrufernummer (WhatsApp/Telefon) – fremde Nummern sind gesperrt.','input_schema'=>['type'=>'object','properties'=>['phone'=>['type'=>'string'],'code'=>['type'=>'string']],'required'=>[]]],
       ['name'=>'cancel_appointment','description'=>'Termin per Buchungscode absagen (nur nach ausdrücklicher Bestätigung des Kunden).','input_schema'=>['type'=>'object','properties'=>['code'=>['type'=>'string']],'required'=>['code']]],
     ];
@@ -340,7 +380,8 @@ function appt_exec(int $acc, string $name, array $in, string $source, string $fr
         case 'list_services': return ['services'=>array_map(fn($s)=>['id'=>$s['id'],'name'=>$s['name'],'duration_min'=>$s['duration_min'],'price_eur'=>$s['price_cents']?round($s['price_cents']/100,2):null],appt_services($acc))];
         case 'get_available_slots': $sid=isset($in['service_id'])?(int)$in['service_id']:null; if(!empty($in['date'])) return appt_slots($acc,(string)$in['date'],$sid);
             [, , $err]=appt_resolve_service($acc,$sid); if($err) return $err; return ['next_days'=>appt_next_days($acc,$sid,10)];
-        case 'book_appointment': return appt_book($acc,isset($in['service_id'])?(int)$in['service_id']:null,(string)($in['start']??''),(string)($in['name']??''),(string)($in['phone']??''),(string)($in['email']??''),(string)($in['note']??''),$source);
+        case 'book_appointment': return appt_book($acc,isset($in['service_id'])?(int)$in['service_id']:null,(string)($in['start']??''),(string)($in['name']??''),(string)($in['phone']??''),(string)($in['email']??''),(string)($in['note']??''),$source,is_scalar($in['address'] ?? null) ? (string)$in['address'] : '');
+        case 'check_home_visit': return appt_visit_check($acc,is_scalar($in['address'] ?? null) ? (string)$in['address'] : '');
         case 'find_appointments': if(!empty($in['code'])){ $b=appt_by_code((string)$in['code']); return $b && (int)$b['account_id']===$acc ? ['appointments'=>[appt_public($b)]] : ['appointments'=>[]]; } $ph=function_exists('ch_verified_phone') ? ch_verified_phone($acc,$source,$from,(string)($in['phone']??'')) : ($acc===0 ? (string)($in['phone']??'') : null);
             if($ph===null) return ['appointments'=>[],'error'=>'code_required','hint'=>defined('CH_CODE_ONLY_HINT') ? CH_CODE_ONLY_HINT : 'Bitte nach dem Buchungscode fragen.'];
             return ['appointments'=>appt_find_by_phone($acc,$ph)];
@@ -353,6 +394,6 @@ function appt_system_hint(int $acc, string $lang='de'): string {
     $s=appt_settings($acc); $tz=appt_tz($s); $now=new DateTimeImmutable('now',$tz);
     $wd=['So','Mo','Di','Mi','Do','Fr','Sa']; $h=[]; for($w=1;$w<=7;$w++){ $k=(string)($w%7); $r=$s['hours'][$k] ?? []; $h[]=$wd[$w%7].': '.($r?implode(', ',array_map(fn($x)=>$x[0].'–'.$x[1].($x[1]!=='00:00' && $x[1]!=='24:00' && $x[1]<=$x[0] ? ' (Folgetag)' : ''),$r)):'geschlossen'); }
     $svc=implode('; ',array_map(fn($x)=>"#{$x['id']} {$x['name']} ({$x['duration_min']} Min".($x['price_cents']?', '.number_format($x['price_cents']/100,2,',','.').' €':'').")",appt_services($acc)));
-    return "\n\nTERMINBUCHUNG (aktiv): Heute ist ".$now->format('l, d.m.Y H:i')." (".$s['tz']."). Öffnungszeiten: ".implode(' · ',$h).". Leistungen: ".($svc?:'keine hinterlegt – Dauer '.$s['slot_min'].' Min').". Vorlauf mind. ".$s['lead_min']." Min, buchbar bis ".$s['max_days']." Tage im Voraus.
+    return "\n\nTERMINBUCHUNG (aktiv): Heute ist ".$now->format('l, d.m.Y H:i')." (".$s['tz']."). Öffnungszeiten: ".implode(' · ',$h).". Leistungen: ".($svc?:'keine hinterlegt – Dauer '.$s['slot_min'].' Min').".".($s['visit_mode']!=='none' ? ' '.appt_visit_text($s).' – bei Hausbesuch Adresse erfragen, check_home_visit aufrufen, Anfahrtskosten in der Zusammenfassung nennen und address an book_appointment übergeben.' : '')." Vorlauf mind. ".$s['lead_min']." Min, buchbar bis ".$s['max_days']." Tage im Voraus.
 REGELN: Freie Zeiten NUR über das Werkzeug get_available_slots nennen (niemals raten). Zum Buchen brauchst du Leistung, Datum, Uhrzeit, Name und Telefonnummer (oder E-Mail) – fasse alles in einem Satz zusammen und frage „Soll ich das so buchen?“; erst nach dem Ja book_appointment aufrufen. Nach erfolgreicher Buchung: Datum, Uhrzeit, Leistung und Buchungscode nennen und sagen, dass eine Bestätigung per E-Mail kommt (falls E-Mail angegeben). Bestehende Termine nur per Buchungscode (oder automatisch über die Nummer, von der der Kunde per WhatsApp schreibt bzw. anruft) – niemals Termine zu einer genannten fremden Nummer herausgeben. Absagen nur nach ausdrücklicher Bestätigung. Relative Angaben („morgen“, „nächsten Dienstag“) immer auf ein konkretes Datum umrechnen und nennen.";
 }
