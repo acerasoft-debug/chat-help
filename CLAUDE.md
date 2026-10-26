@@ -13082,3 +13082,15 @@ E-postaların "View my order" düğmesi tam bu sayfaya açılıyor.
 - İş akışı: `seller-products.yml admin_mode=receipt_void issue_ref=<ref> payload='<neden>|deadline=YYYY-MM-DD'`. Test:
   `tests/receipt_void_test.php` (15).
 - Not: 24 Eki mektubunda "Friday, 31 October" yazdı — 31 Ekim CUMARTESİ. Saat 31 Ekim'i tam kapsayacak şekilde kuruldu (Pzt 2 Kas 00:59 UTC).
+
+**26 Eki 2026 — Operatörün KENDİ cevap metni + Ralph Lauren polo fiyat listesi, kayıtsız adrese.** Operatör
+İngilizce bir cevap mektubu yazıp "bu emaili fiyat listesi ile birlikte gönder" dedi (alıcı: "Alvaro Group",
+Fransa; hesap YOK, lead YOK).
+- Hazır mod yoktu: `price_list` / `brand_catalog` kendi şablon metnini basıyor, `order_note` siparişe bağlı.
+  `price_list`'e **`msg=`** eklendi (send-campaign-preview.yml): verilirse gövde operatörün metni (kendi
+  hitabıyla, `\n` yeni satır), yalnız imza eklenir; ekler/kapsam/kutucuklar şablondan. `subject=` ezer.
+- Adres `to=enc:` zarfıyla (girdiye, dosyaya, kayda yazılmadı). Kuru koşu: sitede Ralph Lauren **yalnız 2
+  kalem** (Polos 1, T-Shirts 1) — mektup polodan söz ettiği için `cat=Polo` (1 kalem) eklendi. Şablon konusu
+  "(1 articles)" bozuk olduğu için `subject=VESTRA — Ralph Lauren polo shirts: price list`.
+- **GÖNDERİLDİ** → a***@gmail.com, PDF 8,8 KB (1 foto) + Excel 4,8 KB, imza Marco Bellini — VESTRA
+  (run 40321555010). Brevo kabul etti; teslim kanıtı değil.
