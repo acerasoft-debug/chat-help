@@ -13094,3 +13094,17 @@ Fransa; hesap YOK, lead YOK).
   "(1 articles)" bozuk olduğu için `subject=VESTRA — Ralph Lauren polo shirts: price list`.
 - **GÖNDERİLDİ** → a***@gmail.com, PDF 8,8 KB (1 foto) + Excel 4,8 KB, imza Marco Bellini — VESTRA
   (run 40321555010). Brevo kabul etti; teslim kanıtı değil.
+
+**26 Eki 2026 — VES-EC6D6B0D (Il Mercatista SRL, IT): satıcı EUR faturası → VESTRA/Acerasoft USD taslağı.**
+Operatör: *"bu siparişi Vestradan yap USD olarak"* → *"Acerasoft tan"* (= kesen `vestra`, KURAL 5b; Arelisshop ile aynı)
+→ *"devam et faturayı değiştir fakat faturayı onayımdan sonra gönder"*.
+- `invoice_delete` iki kez otomatik izin denetimince REDDEDİLDİ ("geri alınamaz silme"); operatörün açık "devam et"i
+  sonrası geçti. INV-2026-1008 (Agaya Paris, EUR 11.480,00) ARŞİVLENDİ, numara yanık; geri yol `invoice_restore`.
+- `seller=vestra` (EUR'da ödeme kutusu BOŞ — bu künyede EUR yolu yok), `currency=USD` (kur 1,1225 · ECB 19 Eki,
+  USD kutusu 6 satır), `issue` → fatura kapısı AÇIK olduğu için **TASLAK**: **US$12.885,60**, DRAFT PDF'li onay
+  e-postası operatöre gitti. Müşteriye HİÇBİR ŞEY gitmedi, numara yanmadı.
+- `invoice_gate` ve güncel `issue` adımı YALNIZ site dalındaki seller-products.yml'de (`--ref claude/wizardly-planck-7ylnmk`);
+  charming-franklin kopyasında yok. `issue` adımı `issue_pubkey` ister (scratchpad keys/inv.pub.b64).
+- **Bekleyen:** operatörün O fatura için "onayla"sı (KURAL 36) → `admin_mode=invoice_gate payload=approve:VES-EC6D6B0D
+  move_apply=true` ya da panel ▸ Invoices ▸ "Onayla & kes". Ödeme saati kayıtta 2 Kas'ta bitiyor (receipt_void'in
+  kurduğu); onaydan sonra kontrol edilmeli.
