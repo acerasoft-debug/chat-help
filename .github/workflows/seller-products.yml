@@ -1494,6 +1494,7 @@ jobs:
               elseif ($k === 'qty') $opt['qty'] = (int)$v;
               elseif ($k === 'colours' || $k === 'colors') $opt['colours'] = array_values(array_filter(array_map('trim', explode(';', $v))));
               elseif ($k === 'allow_invoiced') $allowInv = $v === '1';
+              elseif ($k === 'merge') $opt['merge'] = $v === '1';
               else { fwrite(STDERR, "bilinmeyen alan: {$k}\n"); exit(1); }
             }
 

@@ -1090,7 +1090,7 @@ jobs:
                 $a0 = $accts[$cand[0]];
                 [$s0, $b0, $o0] = $buildLetter($a0);
                 $cpTo = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
-                $ok0 = vestra_send_mail($cpTo, '[KOPYA] '.$s0, $b0, '', 'VESTRA', null, '', $o0);
+                $ok0 = vestra_send_mail($cpTo, '[COPY] '.$s0, $b0, '', 'VESTRA', null, '', $o0);
                 echo "operator kopyasi: ".($ok0 ? 'GONDERILDI' : '*** HATA ***')
                    . " | dil=".$accLang($a0)." | fiyat=".(auth_prices_unlocked($a0) ? 'acik' : 'KAPALI')
                    . " | govde=".mb_strlen($b0)." karakter | foto=".count($o0['shots'] ?? [])."\n";
@@ -1559,7 +1559,7 @@ jobs:
               if ($LEAD_COPY) {
                 [$s0, $b0, $o0] = vestra_tpl_listing_offer($lang, $company, $OFFER_BLOCKS, false, $OFFER_MORE, true);
                 $cpTo = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
-                $ok0 = vestra_send_mail($cpTo, '[KOPYA] '.$s0, $b0, '', $FROM, null, '', $o0);
+                $ok0 = vestra_send_mail($cpTo, '[COPY] '.$s0, $b0, '', $FROM, null, '', $o0);
                 echo "operator kopyasi (lead surumu): ".($ok0 ? 'GONDERILDI' : '*** HATA ***')
                    . " | dil={$lang} | govde=".mb_strlen($b0)." karakter | foto=".count($o0['shots'] ?? [])."\n";
                 echo "MUSTERIYE HICBIR SEY GITMEDI, damga dusmedi.\n";

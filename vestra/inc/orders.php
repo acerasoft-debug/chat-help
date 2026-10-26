@@ -2202,7 +2202,12 @@ function vestra_listing_size_run(array $p, int $qty): array {
  * FATURALI siparişte varsayılan RED; `allow_invoiced` ile yazılır ve
  * `must_redraft` döner (KURAL 5f: AYNI numarayla yeniden çizim).
  *
- * @param array $opt ['unit'=>?float, 'qty'=>?int, 'colours'=>string[]]
+ * BİRLEŞTİRME (26 Eki 2026, VES-EC6D6B0D: "sweatpant yerine Lacoste sweatshirt yazılacak toplam
+ * 280 adet oldu"): yeni SKU siparişte ZATEN varsa varsayılan RED (ikinci satır açılmaz).
+ * `merge` ile eski satır SİLİNİR ve adedi o satıra EKLENİR; birim ve renkler HEDEF satırın
+ * kendisinden (verilmedikçe), beden dökümü yeni toplamdan. `qty` verilirse hedefin SON adedi.
+ *
+ * @param array $opt ['unit'=>?float, 'qty'=>?int, 'colours'=>string[], 'merge'=>bool]
  */
 function vestra_order_replace_line(string $ref, string $oldSku, string $newSku, array $opt = [],
                                    bool $allowInvoiced = false): array {
@@ -2250,18 +2255,22 @@ function vestra_order_replace_line(string $ref, string $oldSku, string $newSku, 
         return ['error' => "sipariş durumu '{$status}' — model değiştirilemez"];
     }
 
-    $oldLine = null;
+    $oldLine = null; $tgtLine = null; $merge = !empty($opt['merge']);
     foreach (vestra_order_lines($oldAssoc)['lines'] as $l) {
         if (strcasecmp((string)$l['sku'], $oldSku) === 0) { $oldLine = $l; }
         if (strcasecmp((string)$l['sku'], $newSku) === 0) {
-            return ['error' => 'yeni SKU zaten siparişte ('.(int)$l['qty'].' adet) — ikinci satır açılmaz'];
+            if (!$merge) return ['error' => 'yeni SKU zaten siparişte ('.(int)$l['qty'].' adet) — ikinci satır açılmaz (birleştirmek için merge=1)'];
+            $tgtLine = $l;
         }
     }
     if (!$oldLine) return ['error' => 'eski SKU bu siparişte yok: '.$oldSku];
+    if ($merge && !$tgtLine) return ['error' => 'merge=1 ama yeni SKU siparişte yok — birleştirilecek satır yok'];
     $oldSku = (string)$oldLine['sku'];
 
-    $qty  = isset($opt['qty'])  && (int)$opt['qty'] > 0 ? (int)$opt['qty'] : (int)$oldLine['qty'];
-    $unit = isset($opt['unit']) && $opt['unit'] !== null ? round((float)$opt['unit'], 2) : round((float)$oldLine['unit'], 2);
+    $baseLine = $tgtLine ?: $oldLine;   // birleştirmede birim HEDEF satırdan
+    $qty  = isset($opt['qty'])  && (int)$opt['qty'] > 0 ? (int)$opt['qty']
+          : ($tgtLine ? (int)$tgtLine['qty'] + (int)$oldLine['qty'] : (int)$oldLine['qty']);
+    $unit = isset($opt['unit']) && $opt['unit'] !== null ? round((float)$opt['unit'], 2) : round((float)$baseLine['unit'], 2);
     if ($unit <= 0) return ['error' => 'birim fiyat geçersiz'];
 
     /* YÖN: yeni ilanın bu adetteki kademesinden PAHALI olamaz. */
@@ -2280,6 +2289,7 @@ function vestra_order_replace_line(string $ref, string $oldSku, string $newSku, 
         if (str_contains($c, ',') || str_contains($c, '|') || str_contains($c, '.')) return ['error' => 'renk adında , | . olamaz: '.$c];
         $colours[] = $c;
     }
+    if (!$colours && $tgtLine) $colours = array_values(array_map('strval', (array)($tgtLine['colors'] ?? [])));
     if (!$colours) {
         if (count($listed) === 1) $colours = $listed;
         elseif (count($listed) > 1) return ['error' => 'yeni ilanda '.count($listed).' renk var ('.implode(' / ', $listed).') — renk belirtilmeli'];
@@ -2294,7 +2304,10 @@ function vestra_order_replace_line(string $ref, string $oldSku, string $newSku, 
        (vestra_parse_order_items onu sessizce atar — yeniden kurmak onu kaybederdi). */
     $segs = [];
     foreach (explode(' | ', (string)($oldAssoc['items'] ?? '')) as $seg) {
-        if (preg_match('/^(\d+)x\s+(.+)\s+@([\d.]+)$/', trim($seg), $m) && strcasecmp(trim($m[2]), $oldSku) === 0) {
+        $segSku = preg_match('/^(\d+)x\s+(.+)\s+@([\d.]+)$/', trim($seg), $m) ? trim($m[2]) : null;
+        if ($segSku !== null && $tgtLine && strcasecmp($segSku, $oldSku) === 0) {
+            continue;                                              // birleştirme: eski satır düşer
+        } elseif ($segSku !== null && strcasecmp($segSku, $tgtLine ? $newSku : $oldSku) === 0) {
             $segs[] = $qty.'x '.$newSku.' @'.number_format($unit, 2, '.', '');
         } else {
             $segs[] = $seg;
@@ -2369,6 +2382,7 @@ function vestra_order_replace_line(string $ref, string $oldSku, string $newSku, 
             'old_goods' => $oldGoods, 'goods' => $newGoods, 'discount' => $discount, 'shipping' => $ship,
             'fee' => $fee, 'old_total' => $oldTot, 'subtotal' => $newSubtotal, 'payout' => $newPayout,
             'total' => $newTotal, 'items' => $newItemsRaw, 'notes' => $notes,
+            'merged' => (bool)$tgtLine, 'merged_from_qty' => $tgtLine ? (int)$tgtLine['qty'] : 0,
             'must_redraft' => (bool)$invoiced];
     /* KURU KOŞU aynı gövdeden: önizleme ile yazma AYRI hesaplasaydı operatör bir
        şey görür, kayda başkası girerdi (KURAL 5d'nin dersi). */
@@ -2413,7 +2427,7 @@ function vestra_order_replace_line(string $ref, string $oldSku, string $newSku, 
     if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
     $st[$ref]['line_changes'] = array_slice(array_merge((array)($st[$ref]['line_changes'] ?? []), [[
         'at' => date('c'), 'by' => 'operator', 'from' => $oldSku, 'to' => $newSku,
-        'qty' => $qty, 'unit' => $unit,
+        'qty' => $qty, 'unit' => $unit, 'merge' => (bool)$tgtLine,
     ]]), -20);
     vestra_write_json('order_statuses.json', $st);
 

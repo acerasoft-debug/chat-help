@@ -184,25 +184,27 @@ function vestra_invoice_gate_request(string $kind, array $args, array $payloads,
 
     $money = fn(float $v) => vestra_invoice_gate_money($sum['cur'], $v);
     $link  = 'https://vestrasales.com/admin?tab=invoices&approve='.$token;
-    $kindTxt = ['order' => 'sipariş faturası', 'offer' => 'teklif faturası', 'combined' => 'birleşik teklif faturası'][$kind] ?? $kind;
-    $subject = '⏳ FATURA ONAYI — '.$ref.' · '.$money($sum['grand']).' · '.$sum['buyer'];
-    $body = "Bir {$kindTxt} kesilmek üzere ve ONAYINIZI bekliyor. Müşteriye HİÇBİR ŞEY gitmedi, numara yanmadı.\n\n"
-          . "Referans   : {$ref}\n"
-          . "Alıcı      : {$sum['buyer']}\n"
-          . "Kesen      : {$sum['issuer']}\n"
-          . "Birim      : {$sum['cur']}".($sum['fx'] !== '' ? "  (".preg_replace('/\s+/', ' ', $sum['fx']).")" : '')."\n"
-          . "Kalemler   : {$sum['lines']} satır, {$sum['qty']} adet — mal ".$money($sum['goods'])
-          . ($sum['disc'] > 0 ? ", indirim -".$money($sum['disc']) : '')
-          . ", kargo ".$money($sum['ship'])."\n"
-          . "TOPLAM     : ".$money($sum['grand'])."\n"
-          . "Ödeme kutusu: {$sum['pay_lines']} satır".($sum['bank'] !== '' ? " (profil: {$sum['bank']})" : '')
-          . ($sum['pay_lines'] === 0 ? "  *** BOŞ — kesim zaten durur ***" : '')."\n"
-          . "Belge      : {$sum['docs']} adet, taslak PDF ekte (DRAFT damgalı)\n"
-          . "İsteyen    : {$by}\n\n"
-          . "Taslağı kontrol edin. Doğruysa onaylayın — belge o anda kesilir ve müşteriye e-postalanır:\n{$link}\n\n"
-          . "Yanlışsa panelden 'Vazgeç' deyin ya da hiçbir şey yapmayın: istek 7 gün sonra kendiliğinden düşer.\n"
-          . "Kargo, fiyat, birim ya da banka profili onaydan önce değişirse onay DURUR ve yeni taslak gerekir.\n\n"
-          . "— VESTRA fatura onay kapısı";
+    /* Operatör bildirimi İNGİLİZCE (operatör, 26 Eki 2026: "bana bildirimleri de İngilizce
+       ya da Almanca yap"); diğer yönetici bildirimleri zaten İngilizce. */
+    $kindTxt = ['order' => 'order invoice', 'offer' => 'offer invoice', 'combined' => 'combined offer invoice'][$kind] ?? $kind;
+    $subject = '⏳ INVOICE APPROVAL — '.$ref.' · '.$money($sum['grand']).' · '.$sum['buyer'];
+    $body = "An {$kindTxt} is ready to be issued and is WAITING FOR YOUR APPROVAL. Nothing has been sent to the customer and no invoice number has been used.\n\n"
+          . "Reference  : {$ref}\n"
+          . "Buyer      : {$sum['buyer']}\n"
+          . "Issuer     : {$sum['issuer']}\n"
+          . "Currency   : {$sum['cur']}".($sum['fx'] !== '' ? "  (".preg_replace('/\s+/', ' ', $sum['fx']).")" : '')."\n"
+          . "Items      : {$sum['lines']} lines, {$sum['qty']} pcs — goods ".$money($sum['goods'])
+          . ($sum['disc'] > 0 ? ", discount -".$money($sum['disc']) : '')
+          . ", shipping ".$money($sum['ship'])."\n"
+          . "TOTAL      : ".$money($sum['grand'])."\n"
+          . "Payment box: {$sum['pay_lines']} lines".($sum['bank'] !== '' ? " (profile: {$sum['bank']})" : '')
+          . ($sum['pay_lines'] === 0 ? "  *** EMPTY — issuing will stop ***" : '')."\n"
+          . "Documents  : {$sum['docs']}, draft PDF attached (stamped DRAFT)\n"
+          . "Requested by: {$by}\n\n"
+          . "Please check the draft. If it is correct, approve it — the invoice is issued at that moment and e-mailed to the customer:\n{$link}\n\n"
+          . "If it is wrong, click 'Discard' in the admin panel or do nothing: the request expires by itself after 7 days.\n"
+          . "If shipping, prices, currency or the bank profile change before approval, approval STOPS and a new draft is needed.\n\n"
+          . "— VESTRA invoice approval gate";
 
     $to = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
     $mailed = false;

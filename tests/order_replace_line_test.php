@@ -249,6 +249,28 @@ $fig2 = $fig; $fig2['currency'] = 'USD';
 [, $bUsd] = vestra_tpl_order_item_changed('X', 'VES-X', $fig2, 'INV-9', true, true, '', 'en');
 $t('birim metne gömülü değil (USD kayıtta USD basar)', str_contains($bUsd, 'US$495.00') && !str_contains($bUsd, '€'));
 
+echo "\n== 6. BİRLEŞTİRME (merge=1, 26 Eki 2026 — sweatpants satırı sweatshirt'e katıldı) ==\n";
+$mk('VES-M1', '160x LOW-MOQ-TEE @25.00 | 100x LARCHE-COLORE-PRINTED-BLACK @25.00 | 180x TENNIS-CLUB-ICON-WHITE @25.00',
+    'Payment: Bank transfer. Colours — LOW-MOQ-TEE: Green | LARCHE-COLORE-PRINTED-BLACK: Black | TENNIS-CLUB-ICON-WHITE: White.', 11000.00);
+$hM = md5_file($sand.'/data/orders.csv');
+$e = vestra_order_replace_line('VES-M1', 'LARCHE-COLORE-PRINTED-BLACK', 'TENNIS-CLUB-ICON-WHITE');
+$t('merge OLMADAN hâlâ RED', !empty($e['error']) && str_contains((string)$e['error'], 'merge=1'));
+$d = vestra_order_replace_line('VES-M1', 'LARCHE-COLORE-PRINTED-BLACK', 'TENNIS-CLUB-ICON-WHITE', ['merge' => true, 'dry' => true]);
+$t('kuru koşu: 180 + 100 = 280, birim hedeften 25', empty($d['error']) && $d['qty'] === 280 && abs($d['unit'] - 25.0) < 0.001 && !empty($d['merged']));
+$t('kuru koşu: toplam aynı (11000)', abs($d['total'] - 11000.0) < 0.005);
+$t('kuru koşu HİÇBİR ŞEY yazmadı', md5_file($sand.'/data/orders.csv') === $hM);
+$m = vestra_order_replace_line('VES-M1', 'LARCHE-COLORE-PRINTED-BLACK', 'TENNIS-CLUB-ICON-WHITE', ['merge' => true]);
+$t('birleştirme yazıldı', empty($m['error']));
+$mr = $row('VES-M1'); $ml = vestra_order_lines($mr)['lines'];
+$t('eski satır YOK, iki satır kaldı', count($ml) === 2 && !array_filter($ml, fn($l) => $l['sku'] === 'LARCHE-COLORE-PRINTED-BLACK'));
+$tn = array_values(array_filter($ml, fn($l) => $l['sku'] === 'TENNIS-CLUB-ICON-WHITE'))[0] ?? [];
+$t('hedef 280 @25, rengi korundu', (int)($tn['qty'] ?? 0) === 280 && abs((float)($tn['unit'] ?? 0) - 25.0) < 0.001 && (array)($tn['colors'] ?? []) === ['White']);
+$t('dokunulmayan satır aynı (160 @25)', (bool)array_filter($ml, fn($l) => $l['sku'] === 'LOW-MOQ-TEE' && (int)$l['qty'] === 160));
+$t('notta eski SKU rengi yok', !str_contains((string)$mr['notes'], 'LARCHE-COLORE-PRINTED-BLACK'));
+$t('toplam 11000.00', (string)$mr['total'] === '11000.00');
+$e = vestra_order_replace_line('VES-M1', 'LOW-MOQ-TEE', 'MULTI-COLOUR-TEE', ['merge' => true]);
+$t('merge=1 ama hedef siparişte yok -> RED', !empty($e['error']) && str_contains((string)$e['error'], 'birleştirilecek satır yok'));
+
 echo "\n== 9. Kablolama ==\n";
 $wfL = (string)@file_get_contents(dirname(__DIR__).'/.github/workflows/send-campaign-preview.yml');
 $br  = substr($wfL, (int)strpos($wfL, "\$letter === 'order_item_changed'"), 9000);
@@ -262,6 +284,7 @@ $st2 = substr($wfS, (int)strpos($wfS, "admin_mode == 'order_replace_line'"), 700
 $t('iş akışı adımı var', str_contains($wfS, "admin_mode == 'order_replace_line'"));
 $t('kuru koşu yazıcının KENDİ dry kipi', str_contains($st2, "\$opt + ['dry' => true]"));
 $t('uygulama move_apply ile', str_contains($st2, "if (!\$APPLY) {"));
+$t('iş akışı merge=1 okuyor', str_contains($st2, "elseif (\$k === 'merge') \$opt['merge'] = \$v === '1';"));
 
 /* Temizlik */
 $rm = function ($p) use (&$rm) { if (is_dir($p)) { foreach (array_diff(scandir($p), ['.', '..']) as $f) $rm("$p/$f"); rmdir($p); } elseif (is_file($p)) unlink($p); };
