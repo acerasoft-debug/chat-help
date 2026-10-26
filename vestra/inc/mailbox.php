@@ -717,9 +717,10 @@ function vestra_mailbox_followup_targets(int $limit, ?array $leads = null, ?int 
     $lf = vestra_mailbox_letters_for($e, $ix);
     if (isset($acc['mail'][$e]) || ($lf['dom'] !== '' && isset($acc['sellerDom'][$lf['dom']]))) continue;   // kayıtlı alıcı / satıcı
     $lt = vestra_lead_letters($l);
-    if ($lt['last'] <= 0 || $lf['last'] > $cut) continue;
     $next = vestra_mailbox_followup_next($lf['camps'], $camps);
     if ($next === '') continue;
+    $cutK = ($minDays === null && $next === (defined('VESTRA_SPOT_KEY') ? VESTRA_SPOT_KEY : '')) ? $now - VESTRA_SPOT_MIN_DAYS * 86400 : $cut;   // 26 Eki 2026: özel kampanyada 3 gün
+    if ($lt['last'] <= 0 || $lf['last'] > $cutK) continue;
     $cand[] = ['i' => $i, 'n' => $lt['count'], 'last' => $lt['last'], 'camp' => $next, 'email' => $e, 'dom' => $lf['dom'], 'eu' => vestra_country_in_europe((string)($l['country'] ?? '')) ? 0 : 1];
   }
   /* 17 Eki 2026 (operatör: "daha çok Avrupa'dan"): Avrupa'daki dükkânlar önce, sonra en az mektup alan, en uzun süredir yazılmamış. */
@@ -764,7 +765,7 @@ function vestra_mailbox_still_sendable(string $leadId, string $email, ?int $now 
 
 /** Takip gönderiminden hemen önce: kayıt hâlâ takip alabilir mi? Durum + dinlenme ADRES ve DÜKKÂN genelinde (bu arada
  *  aynı dükkânın başka adresine — sunucudan ya da Brevo'dan — yazıldıysa atlanır). */
-function vestra_mailbox_followup_still_ok(string $leadId, ?int $now = null): bool {
+function vestra_mailbox_followup_still_ok(string $leadId, ?int $now = null, string $camp = ''): bool {
   $now = $now ?? time(); $leads = vestra_leads();
   foreach ($leads as $l) {
     if ((string)($l['id'] ?? '') !== $leadId) continue;
@@ -773,7 +774,8 @@ function vestra_mailbox_followup_still_ok(string $leadId, ?int $now = null): boo
     if ((function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) || vestra_lead_off_target($l) || vestra_email_is_junk((string)($l['email'] ?? ''))) return false;
     $ix = vestra_mailbox_letter_index($leads); $e = vestra_email_clean((string)($l['email'] ?? ''));
     if (vestra_mailbox_addr_stopped($e, $ix)) return false;
-    return max(vestra_lead_letters($l)['last'], vestra_mailbox_letters_for($e, $ix)['last']) <= $now - VESTRA_MAILBOX_FOLLOWUP_MIN_DAYS * 86400;
+    $days = (defined('VESTRA_SPOT_KEY') && $camp === VESTRA_SPOT_KEY) ? VESTRA_SPOT_MIN_DAYS : VESTRA_MAILBOX_FOLLOWUP_MIN_DAYS;   // 26 Eki 2026
+    return max(vestra_lead_letters($l)['last'], vestra_mailbox_letters_for($e, $ix)['last']) <= $now - $days * 86400;
   }
   return false;
 }
@@ -1031,7 +1033,7 @@ function vestra_mailbox_run(array $req, array $o = []): array {
       $log(sprintf('~ [%d/%d] %s atlandi: hariç tutuldu / ülke durduruldu', $k + 1, $n, vestra_mailbox_mask((string)$it['email'])));
       continue;
     }
-    if (($it['followup'] ?? '') !== '' && !vestra_mailbox_followup_still_ok((string)$it['leadId'], $o['now'] ?? null)) {
+    if (($it['followup'] ?? '') !== '' && !vestra_mailbox_followup_still_ok((string)$it['leadId'], $o['now'] ?? null, (string)$it['followup'])) {
       $sum['deferred'] = ($sum['deferred'] ?? 0) + 1;
       $log(sprintf('~ [%d/%d] %s atlandi: bu arada yazilmis / cikmis', $k + 1, $n, vestra_mailbox_mask((string)$it['email'])));
       continue;

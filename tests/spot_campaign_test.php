@@ -30,6 +30,19 @@ $camps = vestra_finder_campaigns();
 $t('kampanya listesinde fplac', isset($camps[VESTRA_SPOT_KEY]));
 $t('takip: her şeyden önce (indirim mektubu almamışa da, almışa da)', vestra_mailbox_followup_next(['edit'], $camps) === 'fplac' && vestra_mailbox_followup_next(['edit', 'deals', 'lacoste'], $camps) === 'fplac'
    && vestra_mailbox_followup_next(['edit', 'fplac'], $camps) === 'deals');
+echo "\n== 3 günlük dinlenme (yalnız bu kampanya), Almanya kapalı ==\n";
+$ago = fn(int $d) => date('c', time() - $d * 86400);
+$fuBase = ['country' => 'France', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'contacted', 'contact_via' => 'mailbox', 'added_at' => $ago(12), 'premium_brands' => ['Lacoste', 'Fred Perry']];
+vestra_write_json('leads.json', [
+  ['id' => 'R4', 'company' => 'Shop Quatre', 'email' => 'info@shop-quatre.example', 'last_contacted_at' => $ago(4), 'unsub_token' => 'r4'] + $fuBase,
+  ['id' => 'R2', 'company' => 'Shop Deux', 'email' => 'info@shop-deux.example', 'last_contacted_at' => $ago(2), 'unsub_token' => 'r2'] + $fuBase,
+  ['id' => 'RD', 'company' => 'Laden Vier', 'email' => 'info@laden-vier.example', 'last_contacted_at' => $ago(4), 'unsub_token' => 'rd', 'country' => 'Germany'] + $fuBase,
+  ['id' => 'RF', 'company' => 'Shop Fait', 'email' => 'info@shop-fait.example', 'last_contacted_at' => $ago(10), 'followups' => [['at' => $ago(4), 'campaign' => 'fplac']], 'unsub_token' => 'rf'] + $fuBase,
+]);
+$ft = vestra_mailbox_followup_targets(50);
+$t('4 gün önce yazılmış dükkân: bu kampanyaya uygun (3 gün yeter)', isset(array_column($ft, null, 'id')['R4']) && array_column($ft, '_followup', 'id')['R4'] === 'fplac');
+$t('2 gün önce yazılmış: uygun değil · Almanya: kapalı · kampanyayı almış (sıradaki deals): 5 gün kuralı', !isset(array_column($ft, null, 'id')['R2']) && !isset(array_column($ft, null, 'id')['RD']) && !isset(array_column($ft, null, 'id')['RF']));
+$t('gönderim anı kontrolü: fplac 3 gün, başka kampanya 5 gün', vestra_mailbox_followup_still_ok('R4', null, 'fplac') && !vestra_mailbox_followup_still_ok('R4', null, 'deals') && !vestra_mailbox_followup_still_ok('R2', null, 'fplac'));
 $leads = []; for ($i = 0; $i < VESTRA_SPOT_TARGET; $i++) $leads[] = ['id' => 'S'.$i, 'followups' => [['at' => date('c'), 'campaign' => 'fplac']]];
 $t('sayaç: 600 dükkân', vestra_spot_sent($leads) === 600 && vestra_spot_sent([['followups' => [['campaign' => 'deals']]]]) === 0);
 vestra_write_json('leads.json', $leads);

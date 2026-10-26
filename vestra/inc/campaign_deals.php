@@ -208,6 +208,9 @@ const VESTRA_SPOT_KEY = 'fplac';
 const VESTRA_SPOT_IDS = ['fp-m3600-polo', 'fp-m7535-sweat', 'lac-crew-sweatshirt', 'lac-fleece-hoodie', 'lac-zip-hoodie', 'csb-tennis-club-icon-white'];   // aynı gün: "bir ürün daha koy, Casablanca t-shirt"
 const VESTRA_SPOT_TARGET = 600;
 const VESTRA_SPOT_UNTIL = '2026-10-31';
+/* Aynı gün (operatör: "Almanya kapalı kalsın, uygun dükkânlara gönder, önceki 2. ya da 3. e-postayı almayanlara da"):
+   bu kampanyada son mektuptan sonra 5 değil 3 gün yeter; sıra yine Avrupa önce, en az mektup alan önce. Almanya kapalı. */
+const VESTRA_SPOT_MIN_DAYS = 3;
 function vestra_spot_texts(string $lang): array {
   $T = [
     'en' => ['Fred Perry, Lacoste & Casablanca: polos, sweatshirts, hoodies & tees · VESTRA', 'Fred Perry, Lacoste & Casablanca — polos, sweatshirts, hoodies & tees.',
