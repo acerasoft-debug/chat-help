@@ -13,17 +13,17 @@ $L = fn($id, $b, $n, $list, $pr) => ['id' => $id, 'brand' => $b, 'name' => $n, '
 vestra_write_json('listings.json', [
   $L('fp-m3600-polo', 'Fred Perry', 'M3600 Twin Tipped Polo', 0, 41), $L('fp-m7535-sweat', 'Fred Perry', 'M7535 Crew Sweatshirt', 0, 52),
   $L('lac-crew-sweatshirt', 'Lacoste', 'SH9608 Crew Sweatshirt', 100, 68), $L('lac-fleece-hoodie', 'Lacoste', 'SH9623 Fleece Hoodie', 100, 70),
-  $L('lac-zip-hoodie', 'Lacoste', 'SH9626 Zip Hoodie', 100, 73), $L('d1', 'DSQUARED2', 'Logo T-Shirt', 50, 29),
+  $L('lac-zip-hoodie', 'Lacoste', 'SH9626 Zip Hoodie', 100, 73), $L('csb-tennis-club-icon-white', 'Casablanca', 'Tennis Club Icon T-Shirt — White', 0, 85), $L('d1', 'DSQUARED2', 'Logo T-Shirt', 50, 29),
 ]);
 $p = vestra_spot_pick();
-$t('yalnız beş ilan, VESTRA_SPOT_IDS sırasıyla, hepsi öne çıkan', array_column($p['items'], 'id') === VESTRA_SPOT_IDS && count(array_filter($p['items'], fn($r) => !empty($r['featured']))) === 5);
+$t('yalnız altı ilan (indirimsiz Casablanca dahil), VESTRA_SPOT_IDS sırasıyla, hepsi öne çıkan', array_column($p['items'], 'id') === VESTRA_SPOT_IDS && count($p['items']) === 6 && count(array_filter($p['items'], fn($r) => !empty($r['featured']))) === 6);
 $t('rozet: Lacoste −%, Fred Perry yeni (0); marka satırında yalnız Lacoste', $p['items'][0]['pct'] === 0 && $p['items'][2]['pct'] === 32 && array_keys($p['brands']) === ['Lacoste'] && $p['max'] === 32);
 [$s, $b, $o] = vestra_campaign_spot('Boutique Une', 'en', $p);
-$t('konu ve başlık kampanyaya özel', $s === 'Fred Perry & Lacoste: polos, sweatshirts & hoodies for your store · VESTRA' && $o['hero']['title'] === 'Fred Perry & Lacoste — polos, sweatshirts & hoodies.');
+$t('konu ve başlık kampanyaya özel', $s === 'Fred Perry, Lacoste & Casablanca: polos, sweatshirts, hoodies & tees · VESTRA' && $o['hero']['title'] === 'Fred Perry, Lacoste & Casablanca — polos, sweatshirts, hoodies & tees.' && str_contains($b, 'product?id=csb-tennis-club-icon-white'));
 $t('giriş: iki marka + Lacoste indirimi; eski "we wrote to you" cümlesi yok', str_contains($b, 'Fred Perry polos and sweatshirts') && str_contains($b, 'up to 32% off') && !str_contains($b, 'We wrote to you recently')
    && str_contains($o['html'], 'Fred Perry polos and sweatshirts'));
-$t('fiyat yok (KURAL 19), ürün bağlantıları, çıkış bağlantısı, DSQUARED2 yok', !preg_match('/€|EUR|41[.,]|52[.,]|68[.,]|70[.,]|73[.,]/', $b.$o['html']) && str_contains($b, 'product?id=lac-zip-hoodie') && str_contains($b, 'lead-unsubscribe') && !str_contains($b.$o['html'], 'DSQUARED2'));
-foreach (['de' => 'Hoodies für Ihren Laden', 'fr' => 'hoodies pour votre boutique', 'it' => 'per il tuo negozio', 'es' => 'para tu tienda', 'nl' => 'voor je winkel', 'pt' => 'para a sua loja'] as $lg => $needle) {
+$t('fiyat yok (KURAL 19), ürün bağlantıları, çıkış bağlantısı, DSQUARED2 yok', !preg_match('/€|EUR|41[.,]|52[.,]|68[.,]|70[.,]|73[.,]|85[.,]/', $b.$o['html']) && str_contains($b, 'product?id=lac-zip-hoodie') && str_contains($b, 'lead-unsubscribe') && !str_contains($b.$o['html'], 'DSQUARED2'));
+foreach (['de' => 'Hoodies & T-Shirts', 'fr' => 'hoodies et t-shirts', 'it' => 'hoodie e t-shirt', 'es' => 'hoodies y camisetas', 'nl' => 'hoodies & T-shirts', 'pt' => 'hoodies e t-shirts'] as $lg => $needle) {
   [$sx, $bx] = vestra_campaign_spot('', $lg, $p); $t("dil $lg: konu + giriş değişti", str_contains($sx, $needle) && str_contains($bx, vestra_spot_texts($lg)[2]));
 }
 $camps = vestra_finder_campaigns();

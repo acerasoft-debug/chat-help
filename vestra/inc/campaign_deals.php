@@ -144,11 +144,11 @@ function vestra_deals_brand_label(string $b): string {
  * 'max' => en yüksek %, 'count' => uygun ilan sayısı]. Izgara önce marka başına bir ürün (en yüksek indirimli), marka
  * azsa ikinci ürünlerle dolar. $all / $now testte verilir.
  */
-function vestra_deals_pick(int $n = 6, ?array $all = null, ?int $now = null): array {
+function vestra_deals_pick(int $n = 6, ?array $all = null, ?int $now = null, array $extra = []): array {   // $extra: indirimsiz de alınacak ilanlar (özel kampanya)
   static $memo = [];
   /* Süreç içi önbellek (kampanya listesi her çağrıda sorar); ilan dosyası değişince ve 10 dk'da bir tazelenir. */
   $lf = vestra_data_dir().'/listings.json'; clearstatcache(true, $lf);
-  $key = $all === null ? $n.'|'.($now ?? 0).'|'.(int)@filemtime($lf).'|'.(int)@filesize($lf).'|'.intdiv(time(), 600) : '';
+  $key = $all === null ? $n.'|'.implode(',', $extra).'|'.($now ?? 0).'|'.(int)@filemtime($lf).'|'.(int)@filesize($lf).'|'.intdiv(time(), 600) : '';
   if ($key !== '' && isset($memo[$key])) return $memo[$key];
   $all = $all ?? (function_exists('vestra_live_listings') ? vestra_live_listings() : []);
   $rows = [];
@@ -159,7 +159,7 @@ function vestra_deals_pick(int $n = 6, ?array $all = null, ?int $now = null): ar
     if (($p['status'] ?? 'approved') !== 'approved') continue;                         // liste dışarıdan verilse de yalnız onaylı ilan
     $pct = vestra_on_sale($p) ? (int)vestra_discount($p) : 0;
     if (($a = vestra_aktion($p, $now))) $pct = max($pct, (int)$a['pct']);
-    $isFeat = in_array((string)($p['id'] ?? ''), VESTRA_DEALS_FEATURED, true);
+    $isFeat = in_array((string)($p['id'] ?? ''), VESTRA_DEALS_FEATURED, true) || in_array((string)($p['id'] ?? ''), $extra, true);
     if ($pct >= 90 || ($pct < VESTRA_DEALS_MIN_PCT && !$isFeat)) continue;   // %90+ veri hatasıdır, mektuba girmez
     if ($pct < VESTRA_DEALS_MIN_PCT) $pct = 0;   // öne çıkan, indirimsiz: rozet 'yeni'
     $imgs = $p['images'] ?? []; $img = is_array($imgs) && $imgs ? (string)$imgs[0] : (string)($p['image'] ?? '');
@@ -205,31 +205,31 @@ function vestra_deals_pick(int $n = 6, ?array $all = null, ?int $now = null): ar
    listesinde durur. Ürünler yalnız VESTRA_SPOT_IDS'teki canlı ilanlar (öne çıkanlar ızgarası + depo fotoğrafları);
    indirimli olanlar −% rozetli, diğerleri "yeni". Fiyat yok (KURAL 19). Konu / başlık / giriş bu kampanyaya özel. */
 const VESTRA_SPOT_KEY = 'fplac';
-const VESTRA_SPOT_IDS = ['fp-m3600-polo', 'fp-m7535-sweat', 'lac-crew-sweatshirt', 'lac-fleece-hoodie', 'lac-zip-hoodie'];
+const VESTRA_SPOT_IDS = ['fp-m3600-polo', 'fp-m7535-sweat', 'lac-crew-sweatshirt', 'lac-fleece-hoodie', 'lac-zip-hoodie', 'csb-tennis-club-icon-white'];   // aynı gün: "bir ürün daha koy, Casablanca t-shirt"
 const VESTRA_SPOT_TARGET = 600;
 const VESTRA_SPOT_UNTIL = '2026-10-31';
 function vestra_spot_texts(string $lang): array {
   $T = [
-    'en' => ['Fred Perry & Lacoste: polos, sweatshirts & hoodies for your store · VESTRA', 'Fred Perry & Lacoste — polos, sweatshirts & hoodies.',
-             'Two classics for the season: Fred Perry polos and sweatshirts, Lacoste sweatshirts and hoodies — new stock in original packaging, ready to ship from our EU warehouse.', ' Lacoste is marked down for trade right now — up to %d%% off the regular wholesale price.'],
-    'de' => ['Fred Perry & Lacoste: Polos, Sweatshirts & Hoodies für Ihren Laden · VESTRA', 'Fred Perry & Lacoste — Polos, Sweatshirts & Hoodies.',
-             'Zwei Klassiker für die Saison: Polos und Sweatshirts von Fred Perry, Sweatshirts und Hoodies von Lacoste — Neuware in Originalverpackung, sofort lieferbar aus unserem EU-Lager.', ' Lacoste gibt es gerade mit Händlerrabatt — bis zu %d%% unter dem regulären Großhandelspreis.'],
-    'fr' => ['Fred Perry & Lacoste : polos, sweat-shirts et hoodies pour votre boutique · VESTRA', 'Fred Perry & Lacoste — polos, sweat-shirts et hoodies.',
-             'Deux classiques pour la saison : polos et sweat-shirts Fred Perry, sweat-shirts et hoodies Lacoste — stock neuf en emballage d’origine, expédié depuis notre entrepôt européen.', ' Lacoste bénéficie en ce moment d’une remise pro — jusqu’à %d %% sous le prix de gros habituel.'],
-    'it' => ['Fred Perry & Lacoste: polo, felpe e hoodie per il tuo negozio · VESTRA', 'Fred Perry & Lacoste — polo, felpe e hoodie.',
-             'Due classici per la stagione: polo e felpe Fred Perry, felpe e hoodie Lacoste — merce nuova in confezione originale, pronta alla spedizione dal nostro magazzino UE.', ' Lacoste è ora in sconto trade — fino al %d%% in meno rispetto al normale prezzo all’ingrosso.'],
-    'es' => ['Fred Perry y Lacoste: polos, sudaderas y hoodies para tu tienda · VESTRA', 'Fred Perry y Lacoste — polos, sudaderas y hoodies.',
-             'Dos clásicos para la temporada: polos y sudaderas Fred Perry, sudaderas y hoodies Lacoste — stock nuevo en embalaje original, listo para enviar desde nuestro almacén en la UE.', ' Lacoste tiene ahora descuento profesional — hasta un %d%% menos que el precio mayorista habitual.'],
-    'nl' => ['Fred Perry & Lacoste: polo’s, sweatshirts & hoodies voor je winkel · VESTRA', 'Fred Perry & Lacoste — polo’s, sweatshirts & hoodies.',
-             'Twee klassiekers voor het seizoen: polo’s en sweatshirts van Fred Perry, sweatshirts en hoodies van Lacoste — nieuwe voorraad in originele verpakking, direct leverbaar uit ons EU-magazijn.', ' Lacoste is nu afgeprijsd voor de handel — tot %d%% onder de normale groothandelsprijs.'],
-    'pt' => ['Fred Perry & Lacoste: polos, sweatshirts e hoodies para a sua loja · VESTRA', 'Fred Perry & Lacoste — polos, sweatshirts e hoodies.',
-             'Dois clássicos para a estação: polos e sweatshirts Fred Perry, sweatshirts e hoodies Lacoste — stock novo na embalagem original, pronto a enviar do nosso armazém na UE.', ' A Lacoste está agora com desconto profissional — até %d%% abaixo do preço grossista habitual.'],
+    'en' => ['Fred Perry, Lacoste & Casablanca: polos, sweatshirts, hoodies & tees · VESTRA', 'Fred Perry, Lacoste & Casablanca — polos, sweatshirts, hoodies & tees.',
+             'Three names for the season: Fred Perry polos and sweatshirts, Lacoste sweatshirts and hoodies, and Casablanca tees — new stock in original packaging, ready to ship from our EU warehouse.', ' Lacoste is marked down for trade right now — up to %d%% off the regular wholesale price.'],
+    'de' => ['Fred Perry, Lacoste & Casablanca: Polos, Sweatshirts, Hoodies & T-Shirts · VESTRA', 'Fred Perry, Lacoste & Casablanca — Polos, Sweatshirts, Hoodies & T-Shirts.',
+             'Drei Namen für die Saison: Polos und Sweatshirts von Fred Perry, Sweatshirts und Hoodies von Lacoste und T-Shirts von Casablanca — Neuware in Originalverpackung, sofort lieferbar aus unserem EU-Lager.', ' Lacoste gibt es gerade mit Händlerrabatt — bis zu %d%% unter dem regulären Großhandelspreis.'],
+    'fr' => ['Fred Perry, Lacoste & Casablanca : polos, sweat-shirts, hoodies et t-shirts · VESTRA', 'Fred Perry, Lacoste & Casablanca — polos, sweat-shirts, hoodies et t-shirts.',
+             'Trois noms pour la saison : polos et sweat-shirts Fred Perry, sweat-shirts et hoodies Lacoste, t-shirts Casablanca — stock neuf en emballage d’origine, expédié depuis notre entrepôt européen.', ' Lacoste bénéficie en ce moment d’une remise pro — jusqu’à %d %% sous le prix de gros habituel.'],
+    'it' => ['Fred Perry, Lacoste & Casablanca: polo, felpe, hoodie e t-shirt · VESTRA', 'Fred Perry, Lacoste & Casablanca — polo, felpe, hoodie e t-shirt.',
+             'Tre nomi per la stagione: polo e felpe Fred Perry, felpe e hoodie Lacoste e t-shirt Casablanca — merce nuova in confezione originale, pronta alla spedizione dal nostro magazzino UE.', ' Lacoste è ora in sconto trade — fino al %d%% in meno rispetto al normale prezzo all’ingrosso.'],
+    'es' => ['Fred Perry, Lacoste y Casablanca: polos, sudaderas, hoodies y camisetas · VESTRA', 'Fred Perry, Lacoste y Casablanca — polos, sudaderas, hoodies y camisetas.',
+             'Tres nombres para la temporada: polos y sudaderas Fred Perry, sudaderas y hoodies Lacoste y camisetas Casablanca — stock nuevo en embalaje original, listo para enviar desde nuestro almacén en la UE.', ' Lacoste tiene ahora descuento profesional — hasta un %d%% menos que el precio mayorista habitual.'],
+    'nl' => ['Fred Perry, Lacoste & Casablanca: polo’s, sweatshirts, hoodies & T-shirts · VESTRA', 'Fred Perry, Lacoste & Casablanca — polo’s, sweatshirts, hoodies & T-shirts.',
+             'Drie namen voor het seizoen: polo’s en sweatshirts van Fred Perry, sweatshirts en hoodies van Lacoste en T-shirts van Casablanca — nieuwe voorraad in originele verpakking, direct leverbaar uit ons EU-magazijn.', ' Lacoste is nu afgeprijsd voor de handel — tot %d%% onder de normale groothandelsprijs.'],
+    'pt' => ['Fred Perry, Lacoste & Casablanca: polos, sweatshirts, hoodies e t-shirts · VESTRA', 'Fred Perry, Lacoste & Casablanca — polos, sweatshirts, hoodies e t-shirts.',
+             'Três nomes para a estação: polos e sweatshirts Fred Perry, sweatshirts e hoodies Lacoste e t-shirts Casablanca — stock novo na embalagem original, pronto a enviar do nosso armazém na UE.', ' A Lacoste está agora com desconto profissional — até %d%% abaixo do preço grossista habitual.'],
   ];
   return $T[$lang] ?? $T['en'];
 }
 /** Kampanyanın ürünleri (vestra_deals_pick biçiminde, sıra VESTRA_SPOT_IDS). */
 function vestra_spot_pick(?array $all = null, ?int $now = null): array {
-  $p = vestra_deals_pick(200, $all, $now); $by = [];
+  $p = vestra_deals_pick(200, $all, $now, VESTRA_SPOT_IDS); $by = [];
   foreach ($p['items'] as $r) $by[$r['id']] = $r;
   $items = []; foreach (VESTRA_SPOT_IDS as $id) if (isset($by[$id])) $items[] = $by[$id] + ['featured' => true];
   $brands = []; foreach ($items as $r) if ((int)$r['pct'] > 0) $brands[$r['label']] = max($brands[$r['label']] ?? 0, (int)$r['pct']);
