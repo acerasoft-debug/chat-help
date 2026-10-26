@@ -1100,7 +1100,8 @@ function vestra_tpl_order_payment_notice(string $buyerName, string $ref, string 
         "Dear {$buyerName},\n\n"
       . "Your invoice".($invoiceNo !== '' ? " {$invoiceNo}" : '')." for order {$ref} is with you"
       . ($amt !== '' ? ", for {$amt}" : '').". Payment is by bank transfer to the account shown on the invoice; "
-      . "please quote {$ref} as the reference so we can match it.\n\n"
+      . ($invoiceNo !== '' ? "please quote only the invoice number {$invoiceNo} as the reference so we can match it.\n\n"
+                            : "please quote {$ref} as the reference so we can match it.\n\n")
       . "One thing we would ask: once you have sent the transfer, please let us know. "
       . "Bank transfers can take a few days to appear on our side, and a word from you means we can "
       . "start preparing your goods straight away instead of waiting for the credit to show.\n\n"
@@ -1124,6 +1125,7 @@ function vestra_tpl_order_payment_notice(string $buyerName, string $ref, string 
       . ($signer !== ''
           ? $signer."\nVESTRA – vestrasales.com"
           : "VESTRA · Acerasoft LLC\n8 The Green, Suite B, Dover, Delaware 19901, USA\nsupport@vestrasales.com · vestrasales.com");
+    if ($invoiceNo !== '' && function_exists('vestra_invoice_ref_note')) $opts['note'] = vestra_invoice_ref_note('en', $invoiceNo);   // havale aciklamasi notu (26 Eki 2026); is akisi alicinin diliyle ezer
     return [$subject, $body, $opts];
 }
 
@@ -1234,7 +1236,7 @@ function vestra_tpl_order_item_changed(string $buyerName, string $ref, array $fi
                  'invU' => "Your invoice {$invoiceNo} has been updated with this model and keeps its number. It is available now on your order page; please use this version, the earlier copy is no longer valid.",
                  'invY' => "Your invoice {$invoiceNo} shows this model; you will find it on your order page.",
                  'invN' => "Your invoice will be issued with this model.",
-                 'bank' => "The bank details do not change: payment is made as planned, to the account shown on the invoice, quoting {$ref}.",
+                 'bank' => "The bank details do not change: payment is made as planned, to the account shown on the invoice, quoting only the invoice number {$invoiceNo}.",
                  'end' => "If anything is unclear, just reply to this e-mail.",
                  'bye' => 'Kind regards,'],
         'fr' => ['hi' => 'Madame, Monsieur', 'badge' => 'Commande', 'ref' => 'Commande', 'model' => 'Nouveau modèle',
@@ -1248,7 +1250,7 @@ function vestra_tpl_order_item_changed(string $buyerName, string $ref, array $fi
                  'invU' => "Votre facture {$invoiceNo} a été mise à jour avec ce modèle et conserve son numéro. Elle est disponible dès maintenant sur la page de votre commande ; merci d'utiliser cette version, l'ancienne n'est plus valable.",
                  'invY' => "Votre facture {$invoiceNo} indique ce modèle ; vous la trouverez sur la page de votre commande.",
                  'invN' => "Votre facture sera établie avec ce modèle.",
-                 'bank' => "Les coordonnées bancaires ne changent pas : le règlement se fait comme prévu, sur le compte indiqué sur la facture, avec la référence {$ref}.",
+                 'bank' => "Les coordonnées bancaires ne changent pas : le règlement se fait comme prévu, sur le compte indiqué sur la facture, en indiquant uniquement le numéro de facture {$invoiceNo}.",
                  'end' => "Si quelque chose n'est pas clair, répondez simplement à ce courriel.",
                  'bye' => 'Cordialement,'],
         'de' => ['hi' => 'Kundin, sehr geehrter Kunde', 'badge' => 'Bestellung', 'ref' => 'Bestellung', 'model' => 'Neues Modell',
@@ -1262,7 +1264,7 @@ function vestra_tpl_order_item_changed(string $buyerName, string $ref, array $fi
                  'invU' => "Ihre Rechnung {$invoiceNo} wurde mit diesem Modell aktualisiert und behält ihre Nummer. Sie steht ab sofort auf Ihrer Bestellseite bereit; bitte verwenden Sie diese Fassung, die frühere ist nicht mehr gültig.",
                  'invY' => "Ihre Rechnung {$invoiceNo} weist dieses Modell aus; Sie finden sie auf Ihrer Bestellseite.",
                  'invN' => "Ihre Rechnung wird mit diesem Modell ausgestellt.",
-                 'bank' => "Die Bankverbindung ändert sich nicht: Die Zahlung erfolgt wie vorgesehen auf das Konto auf der Rechnung, mit dem Verwendungszweck {$ref}.",
+                 'bank' => "Die Bankverbindung ändert sich nicht: Die Zahlung erfolgt wie vorgesehen auf das Konto auf der Rechnung, mit ausschließlich der Rechnungsnummer {$invoiceNo} als Verwendungszweck.",
                  'end' => "Bei Fragen antworten Sie einfach auf diese E-Mail.",
                  'bye' => 'Mit freundlichen Grüßen,'],
         'es' => ['hi' => 'cliente', 'badge' => 'Pedido', 'ref' => 'Pedido', 'model' => 'Nuevo modelo',
@@ -1276,7 +1278,7 @@ function vestra_tpl_order_item_changed(string $buyerName, string $ref, array $fi
                  'invU' => "Su factura {$invoiceNo} se ha actualizado con este modelo y conserva su número. Ya está disponible en la página de su pedido; utilice esta versión, la anterior queda sin efecto.",
                  'invY' => "Su factura {$invoiceNo} recoge este modelo; la encontrará en la página de su pedido.",
                  'invN' => "Su factura se emitirá con este modelo.",
-                 'bank' => "Los datos bancarios no cambian: el pago se hace como estaba previsto, a la cuenta que figura en la factura, con la referencia {$ref}.",
+                 'bank' => "Los datos bancarios no cambian: el pago se hace como estaba previsto, a la cuenta que figura en la factura, indicando únicamente el número de factura {$invoiceNo} como concepto.",
                  'end' => "Si algo no queda claro, responda a este correo.",
                  'bye' => 'Un cordial saludo,'],
     ][$lang];
@@ -1313,6 +1315,7 @@ function vestra_tpl_order_item_changed(string $buyerName, string $ref, array $fi
     $opts = ['badge' => $L['badge'], 'rows' => $rows];
     if ($hasAccount) $opts['button'] = ['label' => $L['btn'],
         'url' => 'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref)];
+    if ($invoiceNo !== '' && function_exists('vestra_invoice_ref_note')) $opts['note'] = vestra_invoice_ref_note($lang, $invoiceNo);   // havale aciklamasi notu (26 Eki 2026); is akisi alicinin diliyle ezer
     return [$L['subj'], $body, $opts];
 }
 
@@ -1394,13 +1397,14 @@ function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $in
           . ($redrafted && !$itemsFixed
               ? "Cette version conserve le même numéro de facture et remplace toute version précédente de {$invoiceNo}.\n\n"
               : '')
-          . "Merci de régler par virement bancaire sur le compte indiqué sur la facture, en indiquant la référence {$ref}. "
+          . "Merci de régler par virement bancaire sur le compte indiqué sur la facture, en indiquant uniquement le numéro de facture {$invoiceNo}. "
           . "Une fois le virement effectué, prévenez-nous : déposez la preuve de paiement sur la page de votre commande, "
           . "ou répondez simplement à ce courriel.\n\n"
           . "Cordialement,\n\n"
           . ($signer !== ''
               ? $signer."\nVESTRA – vestrasales.com"
               : "VESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com");
+        if ($invoiceNo !== '' && function_exists('vestra_invoice_ref_note')) $opts['note'] = vestra_invoice_ref_note('fr', $invoiceNo);   // havale aciklamasi notu (26 Eki 2026); is akisi alicinin diliyle ezer
         return [$subject, $body, $opts];
     }
 
@@ -1438,13 +1442,14 @@ function vestra_tpl_order_invoice_pdf(string $buyerName, string $ref, string $in
       . ($redrafted && !$itemsFixed
           ? "This copy keeps the same invoice number and replaces any earlier version of {$invoiceNo}.\n\n"
           : '')
-      . "Please pay by bank transfer to the account shown on the invoice and quote {$ref} as the reference. "
+      . "Please pay by bank transfer to the account shown on the invoice and quote only the invoice number {$invoiceNo} as the reference. "
       . "Once you have sent the transfer, let us know: upload the payment confirmation on your order page, "
       . "or simply reply to this e-mail.\n\n"
       . "Kind regards,\n\n"
       . ($signer !== ''
           ? $signer."\nVESTRA – vestrasales.com"
           : "VESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com");
+    if ($invoiceNo !== '' && function_exists('vestra_invoice_ref_note')) $opts['note'] = vestra_invoice_ref_note('en', $invoiceNo);   // havale aciklamasi notu (26 Eki 2026); is akisi alicinin diliyle ezer
     return [$subject, $body, $opts];
 }
 

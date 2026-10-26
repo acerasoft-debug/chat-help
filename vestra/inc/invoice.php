@@ -1202,11 +1202,10 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         /* The reference the payer must quote, stated directly under the account it is paid
            into. Without one, a five-figure transfer arrives carrying whatever the buyer's
            clerk typed and matching it becomes somebody's afternoon.
-           The order reference, not the invoice number: it is what the buyer's own purchasing
-           system tracks, what every message about this sale already quotes, and what stays
-           constant across the part-shipments this order will be delivered in — one string
-           tying the bank statement back to the sale from either side. */
-        $payRef = trim((string)($order['ref'] ?? ''));
+           26 Eki 2026: operator kurali -- havale aciklamasina YALNIZ FATURA NUMARASI (mektuplar
+           da bunu soyluyor, vestra_invoice_ref_note). Belge numaralanmissa referans o numara;
+           numarasi henuz olmayan TASLAKTA siparis referansi kalir (taslak musteriye gitmez). */
+        $payRef = trim($invoiceNo) !== '' ? trim($invoiceNo) : trim((string)($order['ref'] ?? ''));
         /* Satir sirasi bilincli: kutu TANIDIK isimle acilir (Account holder =
            faturayi kesen sirket), hesabin oturdugu kurum asagida teknik detay
            olarak durur. Onceki hali "Bank: Choice Financial Group" ile aciliyordu
@@ -2479,7 +2478,7 @@ function vestra_order_invoice_issue(string $ref, bool $notify = true, string $co
           . "Good news — stock for your order {$ref} is confirmed and your invoice ("
           . implode(', ', $nos).") is now ready.\n\n"
           . "Download it from your order confirmation page or under My orders, and pay by bank transfer "
-          . "to the account shown on the invoice, quoting {$ref} as the reference.\n\n"
+          . "to the account shown on the invoice, quoting only the invoice number as the reference.\n\n"
           . "Once you have sent the transfer, please let us know: upload the payment confirmation on your "
           . "order page, or simply reply to this e-mail. Bank transfers take a few days to reach us, and a "
           . "word from you means we can start preparing your goods straight away.\n\n"
@@ -2487,13 +2486,15 @@ function vestra_order_invoice_issue(string $ref, bool $notify = true, string $co
           . "— VESTRA · vestrasales.com";
 
     $em   = trim((string)($orderRow['email'] ?? ''));
+    /* Fatura referans notu ALICININ dilinde (26 Eki 2026); kopya BİREBİR aynı not. */
+    $mOpts = (function_exists('vestra_invoice_ref_note_for') && ($note = vestra_invoice_ref_note_for($em, $nos))) ? ['note' => $note] : [];
     $sent = false;
     if ($notify && filter_var($em, FILTER_VALIDATE_EMAIL)) {
-        $sent = (bool)vestra_send_mail($em, $subject, $body);
+        $sent = (bool)vestra_send_mail($em, $subject, $body, '', '', null, '', $mOpts);
     }
     $copied = false;
     if (trim($copyTo) !== '' && filter_var(trim($copyTo), FILTER_VALIDATE_EMAIL)) {
-        $copied = (bool)vestra_send_mail(trim($copyTo), $subject, $body);
+        $copied = (bool)vestra_send_mail(trim($copyTo), $subject, $body, '', '', null, '', $mOpts);
     }
     return ['ok' => true, 'nos' => $nos, 'count' => count($issued),
             'notified' => $notify, 'sent' => $sent, 'copied' => $copied];

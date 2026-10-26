@@ -1645,6 +1645,39 @@ function vestra_email_brand_logo_html(string $brand): string {
   return '<span style="font-family:'.$sf.';color:'.$ink.';font-size:16px;font-weight:600;letter-spacing:.12em">'.htmlspecialchars(strtoupper($brand),ENT_QUOTES,'UTF-8').'</span>';
 }
 
+/* FATURA REFERANS NOTU (operatör, 26 Eki 2026: "ödemenin doğru eşleştirilmesi için banka
+   transferi açıklamasında sadece fatura numarasının belirtildiğinden emin olun -- kullanıcının
+   kendi dilinde, fazla korkutmadan, diğer metnin altına, estetik"). Fatura gönderen HER mektup
+   bunu $opts['note'] olarak verir; çizim vestra_html_email()'de (gövdenin hemen altında, krem
+   zemin + ince altın kenar) ve düz metinde. Dil ALICININ hesabından (vestra_user_lang'in aynı
+   kuralı: tanınmayan/boş dil -> İngilizce). Birden çok belge = numaralar " / " ile. */
+function vestra_invoice_ref_note(string $lang, $nos): array {
+  $nos = array_values(array_filter(array_map(fn($x) => trim((string)$x), (array)$nos), fn($x) => $x !== ''));
+  if (!$nos) return [];
+  static $T = [
+    'en' => ['Payment reference', 'To ensure your payment is matched correctly, please enter only the invoice number {no} in the bank transfer description.'],
+    'de' => ['Verwendungszweck', 'Damit wir Ihre Zahlung korrekt zuordnen können, geben Sie im Verwendungszweck der Überweisung bitte nur die Rechnungsnummer {no} an.'],
+    'fr' => ['Libellé du virement', 'Afin que votre paiement soit correctement rapproché, merci d’indiquer uniquement le numéro de facture {no} dans le libellé du virement.'],
+    'it' => ['Causale del bonifico', 'Per abbinare correttamente il pagamento, la preghiamo di indicare nella causale del bonifico soltanto il numero di fattura {no}.'],
+    'es' => ['Concepto de la transferencia', 'Para que su pago se asigne correctamente, indique únicamente el número de factura {no} en el concepto de la transferencia.'],
+    'pt' => ['Descrição da transferência', 'Para que o seu pagamento seja corretamente associado, indique apenas o número da fatura {no} na descrição da transferência.'],
+    'ru' => ['Назначение платежа', 'Чтобы мы правильно сопоставили ваш платёж, укажите, пожалуйста, в назначении банковского перевода только номер счёта {no}.'],
+    'ar' => ['مرجع التحويل', 'لضمان مطابقة دفعتكم بشكل صحيح، يُرجى ذكر رقم الفاتورة {no} فقط في وصف التحويل المصرفي.'],
+    'ja' => ['お振込みの際のお願い', 'お支払いを正しく照合するため、銀行振込の摘要欄には請求書番号 {no} のみをご記入ください。'],
+  ];
+  $l = strtolower(substr(trim($lang), 0, 2));
+  if (!isset($T[$l])) $l = 'en';
+  $no = implode(' / ', $nos);
+  return ['title' => $T[$l][0], 'text' => str_replace('{no}', $no, $T[$l][1]), 'no' => $no,
+          'lang' => $l, 'dir' => $l === 'ar' ? 'rtl' : 'ltr'];
+}
+
+/** Aynı not, ALICININ e-postasından: hesap bulunursa onun dili, yoksa İngilizce. */
+function vestra_invoice_ref_note_for(string $email, $nos): array {
+  $acc = (function_exists('auth_find') && trim($email) !== '') ? auth_find(trim($email)) : null;
+  return vestra_invoice_ref_note(is_array($acc) ? (string)($acc['lang'] ?? '') : '', $nos);
+}
+
 function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=[]): string {
   $parts=explode("\n\n—\n",$bodyPlain,2);
   $main=trim($parts[0]); $footer=isset($parts[1])?trim($parts[1]):'';
@@ -1876,6 +1909,7 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
     .$heroHtml
     .$badgeHtml
     .'<div style="padding:20px 28px 8px">'.$mainHtml.'</div>'
+    .vestra_email_note_html($opts)
     .$voucherHtml
     .$rowsHtml
     .$brandsHtml
@@ -2824,7 +2858,28 @@ function vestra_email_signature_text(array $sig): string {
 function vestra_mail_text_part(string $bodyPlain, array $opts): string {
   $sig=(!empty($opts['signature']) && is_array($opts['signature']))
     ? vestra_email_signature_text($opts['signature']) : '';
+  /* Not (ör. fatura referansı) düz metinde de gövdenin altında: HTML'i göstermeyen
+     istemci aynı talimatı görmeli. */
+  if(!empty($opts['note']['text'])){
+    $bodyPlain=rtrim($bodyPlain)."\n\n— ".(string)($opts['note']['title'] ?? '')." —\n".(string)$opts['note']['text'];
+  }
   return $sig==='' ? $bodyPlain : rtrim($bodyPlain)."\n\n".$sig;
+}
+
+/** Gövdenin altındaki sakin not kutusu: krem zemin, ince altın kenar, küçük başlık.
+ *  Uyarı rengi YOK (operatör: "fazla korkutmadan"). Numara kalın. */
+function vestra_email_note_html(array $opts): string {
+  if(empty($opts['note']['text'])) return '';
+  $n=(array)$opts['note'];
+  $rtl=(($n['dir'] ?? '')==='rtl');
+  $txt=htmlspecialchars((string)$n['text'],ENT_QUOTES,'UTF-8');
+  $no=trim((string)($n['no'] ?? ''));
+  if($no!=='') $txt=str_replace(htmlspecialchars($no,ENT_QUOTES,'UTF-8'),'<b style="color:#14110c;white-space:nowrap">'.htmlspecialchars($no,ENT_QUOTES,'UTF-8').'</b>',$txt);
+  return '<div dir="'.($rtl?'rtl':'ltr').'" style="margin:2px 28px 18px;padding:12px 16px;background:#faf8f3;'
+    .'border:1px solid #ece6d8;border-'.($rtl?'right':'left').':3px solid #c9a86a;border-radius:8px;text-align:'.($rtl?'right':'left').'">'
+    .'<div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#a07d3a;font-weight:700;margin:0 0 4px">'
+    .htmlspecialchars((string)($n['title'] ?? ''),ENT_QUOTES,'UTF-8').'</div>'
+    .'<div style="font-size:13px;line-height:1.55;color:#4a4436">'.$txt.'</div></div>';
 }
 
 function vestra_mime_multipart(string $bodyPlain, string $boundary, string $heroImage='', array $opts=[]): string {

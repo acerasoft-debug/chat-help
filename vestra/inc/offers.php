@@ -1199,7 +1199,7 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
     $body = "Hello ".((string)($p['meta']['buyer']['company'] ?? '') ?: 'there').",\n\n"
           . "Your invoice ({$iv['no']}) for the accepted offers is ready — the PDF is attached.\n\n"
           . $tot."\n"
-          . "Please pay by bank transfer to the account shown on the invoice, quoting reference {$primary}.\n\n"
+          . "Please pay by bank transfer to the account shown on the invoice, quoting only the invoice number {$iv['no']} as the reference.\n\n"
           . "Once you have sent the transfer, please let us know: upload the payment confirmation on your order page, or simply reply to this e-mail. We will confirm receipt and your goods ship as soon as the payment arrives.\n\n"
           . "Your order page: https://vestrasales.com/buyer?tab=orders&view=".rawurlencode($primary)."\n"
           . "The invoice is also available any time under My offers: https://vestrasales.com/buyer?tab=offers\n\n"
@@ -1209,6 +1209,7 @@ function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = 
     $opts = ['attachments' => [['name' => 'Invoice-'.$iv['no'].'.pdf', 'path' => (string)$iv['path']]]];
 
     $em     = trim((string)($p['meta']['buyer']['email'] ?? ''));
+    if (function_exists('vestra_invoice_ref_note_for') && $note = vestra_invoice_ref_note_for($em, $iv['no'])) $opts['note'] = $note;   // alicinin dilinde (26 Eki 2026)
     $sent   = false;
     if ($notify && filter_var($em, FILTER_VALIDATE_EMAIL)) {
         $sent = (bool)vestra_send_mail($em, $subject, $body, '', '', null, '', $opts);
@@ -1464,13 +1465,14 @@ function vestra_offer_invoice_redraft_apply(string $ref, ?float $ship = null, ?a
     $body = "Hello ".(($p['meta']['buyer']['company'] ?? '') ?: 'there').",\n\n"
           ."Your invoice ({$iv['no']}) is ready — the corrected PDF is attached and replaces any earlier copy of the same invoice number.\n\n"
           .vestra_invoice_letter_amounts($p['meta'], $p['items'])."\n"
-          ."Please pay by bank transfer to the account shown on the invoice, quoting reference ".$p['meta']['ref'].".\n"
+          ."Please pay by bank transfer to the account shown on the invoice, quoting only the invoice number ".$iv['no']." as the reference.\n"
           ."You can also download it any time under My offers.\n\n"
           ."View: https://vestrasales.com/buyer?tab=offers\n\n— VESTRA · vestrasales.com";
     $att  = is_file((string)($iv['path'] ?? ''))
           ? ['attachments' => [['name' => 'Invoice-'.$iv['no'].'.pdf', 'path' => $iv['path']]]] : [];
 
     $em   = (string)($p['meta']['buyer']['email'] ?? '');
+    if (function_exists('vestra_invoice_ref_note_for') && $note = vestra_invoice_ref_note_for($em, $iv['no'])) $att['note'] = $note;   // alicinin dilinde (26 Eki 2026)
     $sent = false;
     if ($notifyBuyer && filter_var($em, FILTER_VALIDATE_EMAIL)) {
         $sent = (bool)vestra_send_mail($em, $subj, $body, '', '', null, '', $att);
@@ -1539,6 +1541,7 @@ function vestra_offer_invoice_after_issue(string $ref, array $iv): array {
         require_once __DIR__.'/notify.php';
         /* RAKAM VE BIRIM BELGEDEN, kayittan degil: teklif faturasi USD kesilebilir. */
         $att = is_file((string)($iv['path'] ?? '')) ? ['attachments' => [['name' => 'Invoice-'.$iv['no'].'.pdf', 'path' => $iv['path']]]] : [];
+        if (function_exists('vestra_invoice_ref_note_for') && $note = vestra_invoice_ref_note_for((string)$orow['email'], $iv['no'])) $att['note'] = $note;   // alicinin dilinde (26 Eki 2026)
         $sent = (bool)vestra_send_mail($orow['email'], "VESTRA — invoice for {$ref}",
           "Hello ".(($orow['company'] ?? '') ?: 'there').",\n\nStock is confirmed and your invoice ({$iv['no']}) for the agreed offer is ready.\n\n"
          ."Reference : {$ref}\nProduct   : ".($orow['product'] ?? '')."\n\n"

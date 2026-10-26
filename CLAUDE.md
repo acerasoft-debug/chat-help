@@ -13121,3 +13121,18 @@ Operatör: *"bu siparişi Vestradan yap USD olarak"* → *"Acerasoft tan"* (= ke
   - **Taslak yenilendi:** 2 satır / 440 ad. / **US$12.885,60**, onay kuyruğunda TEK istek. Müşteriye hiçbir şey gitmedi.
   - **Operatör bildirimleri İngilizce:** fatura onay e-postası (`inc/invoice_gate.php`, konu "INVOICE APPROVAL") ve
     send-outreach kopya öneki `[COPY]`. Cron özetleri zaten İngilizceydi.
+
+## Fatura mektuplarında havale açıklaması notu (26 Eki 2026)
+- Operatör: *"(Ödemenin doğru şekilde eşleştirilmesi için lütfen banka transferi açıklamasında sadece fatura numarasının
+  belirtildiğinden emin olun.) bunu kullanıcıların kendi dilinde sonraki fatura gönderimlerine ekle, fazla korkutmadan,
+  diğer textin altına, estetik"*.
+- `vestra_invoice_ref_note($lang, $nos)` + `vestra_invoice_ref_note_for($email, $nos)` (inc/notify.php): 9 dil (en de fr it
+  es pt ru ar ja), dil ALICININ hesabından, tanınmayan → en, ar → rtl. `$opts['note']` → `vestra_email_note_html()`:
+  gövdenin hemen altında krem zemin + ince altın kenar + küçük başlık, numara kalın, uyarı rengi YOK; düz metinde de var.
+- Bağlı yollar: sipariş faturası (`vestra_order_invoice_issue` — panel/onay kapısı), 3 teklif faturası yolu (offers.php:
+  birleşik, redraft, after_issue), şablonlar `order_payment_notice` / `order_invoice_pdf` (en+fr) / `order_item_changed`;
+  send-campaign-preview son gönderimden önce notu alıcının diliyle yeniden kurar (kopya aynı notu taşır).
+- **ÇELİŞKİ GİDERİLDİ:** mektuplar ve PDF'in "Payment reference" satırı SİPARİŞ ref'ini istiyordu. Artık numaralı belgede
+  referans = FATURA NUMARASI; taslakta (numara yok) sipariş ref kalır. Önceden kesilmiş PDF'ler eski referansı taşır.
+  Sitedeki "faturada yazan referansı kullanın" cümleleri değişmedi (artık fatura numarasını gösteriyorlar).
+- Test `tests/invoice_ref_note_test.php` (26); order_letters_test'in iki referans iddiası yeni kurala çevrildi.

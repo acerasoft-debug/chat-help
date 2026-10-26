@@ -149,7 +149,8 @@ $t('ref govdede',                       str_contains($b11, 'O7A484'));
    "hangisi dogru" diye sordurur. */
 $t('tutar govdede',                     str_contains($b11, '3,320.00'));
 $t('para birimi simgesi',               str_contains($b11, '€3,320.00'));
-$t('referans yazmasi isteniyor',        str_contains($b11, 'quote O7A484'));
+/* 26 Eki 2026: havale aciklamasina YALNIZ fatura numarasi (operator kurali) */
+$t('referans yazmasi isteniyor',        str_contains($b11, 'quote only the invoice number INV-2026-1103'));
 /* Hesabi olana dekont kutusu; olmayana duz cevap. Olmayan bir dugmeye
    yollamak, KURAL 2b'nin kilitli sayfaya yollama hatasinin aynisi olurdu. */
 $t('dekont yukleme dugmesi',            ($o11['button']['url'] ?? '') === 'https://vestrasales.com/buyer?tab=orders&view=O7A484');
@@ -221,7 +222,7 @@ $t('currency hatasi mektubu durdurur', str_contains($issFn, "isset(\$issued['err
 $t('havale sonrasi haber verme yolu', str_contains($issFn, 'let us know'));
 $t('dekont yukleme yolu yazili',      str_contains($issFn, 'upload the payment confirmation'));
 $t('cevap yolu da yazili',            str_contains($issFn, 'reply to this e-mail'));
-$t('referans yazmasi isteniyor',      str_contains($issFn, 'quoting {$ref}'));
+$t('referans yazmasi isteniyor',      str_contains($issFn, 'quoting only the invoice number'));
 /* IBAN gomulmez: faturada duruyor, ikinci kopya ayrisir. */
 $t('IBAN mektuba gomulmemis',         !preg_match('/\bIBAN\b/', $issFn));
 /* notify=false: belge kesilir, aliciya mektup gitmez (kayit duzeltmesi). */

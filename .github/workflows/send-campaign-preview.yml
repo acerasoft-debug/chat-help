@@ -3791,6 +3791,9 @@ jobs:
                yazmak bu depoda defalarca ayrisma uretti.
                send=true ile birlikte verilirse KOPYA kazanir -- guvenli yon bu:
                yanlislikla iki bayrak birden verildiginde musteriye GITMEZ. */
+            /* Havale aciklamasi notu (26 Eki 2026) ALICININ dilinde: sablon notu varsayilan dilde
+               kurar, burada adresin hesabinin diliyle yeniden kurulur; kopya ayni notu tasir. */
+            if (!empty($opts['note']['no']) && function_exists('vestra_invoice_ref_note_for')) $opts['note'] = vestra_invoice_ref_note_for((string)$to, $opts['note']['no']);
             if (strtolower($E('copy')) === 'true') {
               $cpTo = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
               $cpOk = vestra_send_mail($cpTo, $subject, $body, 'support@vestrasales.com', $fromName, null, '', $opts);
