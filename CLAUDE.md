@@ -13108,3 +13108,16 @@ Operatör: *"bu siparişi Vestradan yap USD olarak"* → *"Acerasoft tan"* (= ke
 - **Bekleyen:** operatörün O fatura için "onayla"sı (KURAL 36) → `admin_mode=invoice_gate payload=approve:VES-EC6D6B0D
   move_apply=true` ya da panel ▸ Invoices ▸ "Onayla & kes". Ödeme saati kayıtta 2 Kas'ta bitiyor (receipt_void'in
   kurduğu); onaydan sonra kontrol edilmeli.
+- **Aynı gün devamı:** operatör *"faturaya tam adresi yaz, gönderme"* + *"sweatpant yerine Lacoste sweatshirt, toplam 280
+  adet"* + *"bana bildirimleri İngilizce ya da Almanca yap"*.
+  - **Adres:** kayıtta sokak adresi YOKTU (Bill To: firma / ülke / ad). Müşteri 20 Eki'de teslimat bilgisini sohbete
+    yazmış, mesaj "iletişim bilgisi" diye ENGELLENMİŞ; içerik operatörün Gmail'indeki engelleme bildiriminde duruyordu.
+    `order_delivery` `enc:` zarfıyla yazıldı (adres girdiye/kayda yazılmadı), "Italy" ülke satırında zaten basıldığı
+    için adres ülkesiz. Faturanın gördüğü adres yazılanla AYNI. NOT: sohbette ad "Angelo", hesapta "Andrea" Giordano —
+    hesaptaki ad değiştirilmedi.
+  - **Satır birleştirme:** `vestra_order_replace_line()`'a **`merge`** eklendi (iş akışı `payload='ESKİ>YENİ|merge=1'`):
+    yeni SKU siparişte varsa eski satır düşer, adedi hedefe eklenir; birim ve renkler hedeften. XH9624 (100) → SH9608
+    (180+100=280 @€25), toplam €11.480 AYNI, yedek `orders.csv.bak-repline-20261026_184530`. Test 107/107.
+  - **Taslak yenilendi:** 2 satır / 440 ad. / **US$12.885,60**, onay kuyruğunda TEK istek. Müşteriye hiçbir şey gitmedi.
+  - **Operatör bildirimleri İngilizce:** fatura onay e-postası (`inc/invoice_gate.php`, konu "INVOICE APPROVAL") ve
+    send-outreach kopya öneki `[COPY]`. Cron özetleri zaten İngilizceydi.
