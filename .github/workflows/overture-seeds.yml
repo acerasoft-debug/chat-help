@@ -19,11 +19,11 @@ on:
         required: false
         default: ""
       kinds:
-        description: "Türler (boş = boutiques,clothing,accessories,shoes,bags)"
+        description: "Türler (boş = boutiques,clothing,designer,accessories,shoes,bags,hats,lingerie,sport)"
         required: false
         default: ""
       per_country:
-        description: "Ülke başına en çok aday (boş = 4000)"
+        description: "Ülke başına en çok aday (boş = 25000)"
         required: false
         default: ""
       min_confidence:
@@ -84,8 +84,8 @@ jobs:
       - name: Overture sorgusu + eleme
         env:
           IN_COUNTRIES: ${{ github.event.inputs.countries || 'AT,BE,BG,CH,CY,CZ,DK,EE,ES,FI,FR,GB,GR,HR,HU,IE,IT,LT,LU,LV,MT,NL,NO,PL,PT,RO,SE,SI,SK' }}
-          IN_KINDS:     ${{ github.event.inputs.kinds || 'boutiques,clothing,accessories,shoes,bags' }}
-          IN_LIMIT:     ${{ github.event.inputs.per_country || '4000' }}
+          IN_KINDS:     ${{ github.event.inputs.kinds || 'boutiques,clothing,designer,accessories,shoes,bags,hats,lingerie,sport' }}
+          IN_LIMIT:     ${{ github.event.inputs.per_country || '25000' }}
           IN_CONF:      ${{ github.event.inputs.min_confidence || '0.5' }}
         run: |
           case ",$IN_COUNTRIES," in *,DE,*) echo "DE (Almanya) operator istegiyle kapali -- listeden cikarildi"; IN_COUNTRIES=$(echo "$IN_COUNTRIES" | tr ',' '\n' | grep -vx DE | paste -sd,);; esac
