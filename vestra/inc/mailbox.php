@@ -695,11 +695,11 @@ function vestra_mailbox_letters_for(string $email, array $ix): array {
 
 /** Takip alıcıları (Avrupa önce, sonra en az mektup alan), her lead'e '_followup' => kampanya anahtarı eklenmiş.
  *  Dükkân başına (alan adı; serbest posta sağlayıcısında adres başına) EN ÇOK BİR alıcı. */
-function vestra_mailbox_followup_targets(int $limit, ?array $leads = null, ?int $now = null): array {
+function vestra_mailbox_followup_targets(int $limit, ?array $leads = null, ?int $now = null, ?int $minDays = null, ?array $paused = null): array {   // $minDays / $paused: yalnız ölçüm (diag-deals-followup)
   require_once __DIR__.'/finder.php';
   if (!function_exists('vestra_country_in_europe')) require_once __DIR__.'/orders.php';
   $now = $now ?? time(); $leads = $leads ?? vestra_leads(); $camps = vestra_finder_campaigns();
-  $cut = $now - VESTRA_MAILBOX_FOLLOWUP_MIN_DAYS * 86400;
+  $cut = $now - ($minDays ?? VESTRA_MAILBOX_FOLLOWUP_MIN_DAYS) * 86400;
   $ix = vestra_mailbox_letter_index($leads); $acc = vestra_mailbox_account_index();
   $cand = [];
   foreach ($leads as $i => $l) {
@@ -711,7 +711,7 @@ function vestra_mailbox_followup_targets(int $limit, ?array $leads = null, ?int 
     $e = vestra_email_clean((string)($l['email'] ?? ''));
     if (!filter_var($e, FILTER_VALIDATE_EMAIL) || vestra_email_is_junk($e) || vestra_mailbox_addr_stopped($e, $ix)) continue;
     if ((function_exists('vestra_lead_is_blocked') && vestra_lead_is_blocked($l)) || vestra_lead_looks_dead($l) || vestra_lead_off_target($l)) continue;
-    if (vestra_lead_send_paused($l)) continue;   // 14 Eki 2026: Almanya şimdilik durduruldu
+    if (vestra_lead_send_paused($l, $paused)) continue;   // 14 Eki 2026: Almanya şimdilik durduruldu
     if (vestra_lead_source_guessed($l)) continue;   // 15 Eki 2026: tahmin listelerine takip de yok
     if (!vestra_mailbox_brand_evidence_ok($l) || vestra_campaign_name_skipped($l) || vestra_mailbox_deals_excluded($l)) continue;   // 17 Eki 2026: marka kanıtı şart; ayıklanan adlar, ikinci el / gelinlik yok
     $lf = vestra_mailbox_letters_for($e, $ix);
