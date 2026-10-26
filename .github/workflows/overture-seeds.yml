@@ -110,8 +110,8 @@ jobs:
           import sys; print(f"tohum adayi: {len(out)}", file=sys.stderr)
           PY
           ssh vestra 'mkdir -p ~/vestra_tmp && chmod 700 ~/vestra_tmp && cat > ~/vestra_tmp/seeds.php' < scripts/server/vestra-finder-seeds.php
-          ssh vestra 'cd ~/public_html && php ~/vestra_tmp/seeds.php import -' < seeds.json
-          ssh vestra 'cd ~/public_html && php ~/vestra_tmp/seeds.php status; rm -f ~/vestra_tmp/seeds.php'
+          ssh vestra 'cd ~/public_html && php -d memory_limit=1536M -d display_errors=stderr ~/vestra_tmp/seeds.php import -' < seeds.json
+          ssh vestra 'cd ~/public_html && php -d memory_limit=1536M ~/vestra_tmp/seeds.php status; rm -f ~/vestra_tmp/seeds.php'
           rm -f seeds.json cands.json known.txt
 
       - name: Temizlik
