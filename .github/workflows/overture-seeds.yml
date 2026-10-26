@@ -1,0 +1,119 @@
+name: (Lead) Overture → butik bulucu tohumları (ücretsiz, gönderim YOK)
+
+# 26 Eki 2026 (operatör: "kendi imkânlarınla kesin çözüm bul, aramaya ve göndermeye"). OpenStreetMap havuzu tükendi
+# (10:20 turu: 342 adayın 300'ü zaten biliniyordu), Brave / Google anahtarı yok, lemlist deneme hesabı aramada 1 satır
+# veriyor. Kaynak: Overture Maps Places — Meta + Microsoft + OSM birleşik, ücretsiz, anahtarsız, lisansı (CDLA-Permissive-2.0)
+# saklamaya izin veriyor. Bu iş:
+#   1) sunucudan kayıtlı site / alan adlarını alır (günlüğe basılmaz),
+#   2) scripts/discover_overture.py (dağıtım dalından) ile Avrupa'daki giyim / butik / aksesuar / ayakkabı / çanta
+#      dükkânlarının sitelerini çeker; zincir (Wikidata markası), çok şubeli, dağıtıcı, kapalı, sitesiz, zaten kayıtlı elenir,
+#   3) kalan alan adlarını SSH borusuyla sunucuya verir: data/finder_seeds.json (vestra-finder-seeds.php import -).
+# Liste depoya, kütüğe ya da yapıta YAZILMAZ — yalnız sayılar basılır. Gönderim YOK: her bulucu turu (find-customers.yml)
+# buradan sıradaki alan adlarını alır ve olağan süzgeçten (premium marka, gerçek e-posta, MX, KURAL 1) geçirir.
+# Almanya (DE) operatörün isteğiyle kapalı; listede yok. Haftada bir yeni Overture sürümü çıkar — ayda bir koşu yeter.
+on:
+  workflow_dispatch:
+    inputs:
+      countries:
+        description: "Ülke ISO kodları (boş = Almanya hariç tüm Avrupa)"
+        required: false
+        default: ""
+      kinds:
+        description: "Türler (boş = boutiques,clothing,accessories,shoes,bags)"
+        required: false
+        default: ""
+      per_country:
+        description: "Ülke başına en çok aday (boş = 4000)"
+        required: false
+        default: ""
+      min_confidence:
+        description: "Overture güven eşiği 0-1 (boş = 0.5)"
+        required: false
+        default: ""
+  schedule:
+    - cron: '17 3 1 * *'   # ayın 1'i 03:17 UTC: yeni Overture sürümünden yeni dükkânlar
+
+concurrency:
+  group: overture-seeds
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  seeds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      SSH_KEY:  ${{ secrets.DEPLOY_SSH_KEY }}
+      SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+      SSH_USER: ${{ secrets.DEPLOY_USER }}
+      SSH_PORT: ${{ secrets.DEPLOY_PORT || 22 }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Overture betiği (dağıtım dalından)
+        uses: actions/checkout@v4
+        with:
+          ref: claude/wizardly-planck-7ylnmk
+          path: dist
+          sparse-checkout: |
+            scripts/discover_overture.py
+            scripts/discover_known.php
+          sparse-checkout-cone-mode: false
+
+      - name: Araçlar (DuckDB)
+        run: python3 -m pip install --quiet duckdb
+
+      - name: SSH
+        run: |
+          umask 077; mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/dk
+          { echo "Host vestra"; echo "  HostName ${SSH_HOST}"; echo "  User ${SSH_USER}"; echo "  Port ${SSH_PORT}"; echo "  IdentityFile ~/.ssh/dk"
+            echo "  StrictHostKeyChecking no"; echo "  UserKnownHostsFile /dev/null"; echo "  LogLevel ERROR"; echo "  ConnectTimeout 25"; } > ~/.ssh/config
+
+      - name: Kayıtlı alan adları (sunucudan, günlüğe basılmaz)
+        run: |
+          ok=0
+          for attempt in 1 2 3; do
+            if ssh vestra php < dist/scripts/discover_known.php > known.txt; then ok=1; break; fi
+            echo "(sunucu denemesi $attempt basarisiz)"; [ "$attempt" -lt 3 ] && sleep 20
+          done
+          [ "$ok" = 1 ] || { echo "kayitli liste alinamadi -- tohum yazilmiyor (ayni butige ikinci ilk mektup riski)"; exit 1; }
+          echo "kayitli site/alan adi satiri: $(wc -l < known.txt)"
+
+      - name: Overture sorgusu + eleme
+        env:
+          IN_COUNTRIES: ${{ github.event.inputs.countries || 'AT,BE,BG,CH,CY,CZ,DK,EE,ES,FI,FR,GB,GR,HR,HU,IE,IT,LT,LU,LV,MT,NL,NO,PL,PT,RO,SE,SI,SK' }}
+          IN_KINDS:     ${{ github.event.inputs.kinds || 'boutiques,clothing,accessories,shoes,bags' }}
+          IN_LIMIT:     ${{ github.event.inputs.per_country || '4000' }}
+          IN_CONF:      ${{ github.event.inputs.min_confidence || '0.5' }}
+        run: |
+          case ",$IN_COUNTRIES," in *,DE,*) echo "DE (Almanya) operator istegiyle kapali -- listeden cikarildi"; IN_COUNTRIES=$(echo "$IN_COUNTRIES" | tr ',' '\n' | grep -vx DE | paste -sd,);; esac
+          python3 dist/scripts/discover_overture.py --countries "$IN_COUNTRIES" --kinds "$IN_KINDS" \
+            --limit "$IN_LIMIT" --min-confidence "$IN_CONF" --known known.txt --out cands.json
+
+      - name: Tohumları sunucuya yaz (SSH borusu; liste basılmaz)
+        run: |
+          set -o pipefail
+          python3 - <<'PY' > seeds.json
+          import json, re
+          c = json.load(open('cands.json'))
+          rows = c if isinstance(c, list) else [r for v in c.values() for r in (v if isinstance(v, list) else [])]
+          out, seen = [], set()
+          for r in rows:
+              d = (r.get('site') or r.get('website') or '').lower()
+              d = re.sub(r'^[a-z]+://', '', d).split('/')[0].split(':')[0]
+              d = re.sub(r'^www\.', '', d)
+              if not d or d in seen or d.endswith('.de'): continue
+              seen.add(d); out.append({'d': d, 'c': r.get('country') or r.get('cc') or '', 'n': (r.get('name') or '')[:120]})
+          json.dump({'source': 'overture', 'seeds': out}, open('/dev/stdout', 'w'), ensure_ascii=False)
+          import sys; print(f"tohum adayi: {len(out)}", file=sys.stderr)
+          PY
+          ssh vestra 'mkdir -p ~/vestra_tmp && chmod 700 ~/vestra_tmp && cat > ~/vestra_tmp/seeds.php' < scripts/server/vestra-finder-seeds.php
+          ssh vestra 'cd ~/public_html && php ~/vestra_tmp/seeds.php import -' < seeds.json
+          ssh vestra 'cd ~/public_html && php ~/vestra_tmp/seeds.php status; rm -f ~/vestra_tmp/seeds.php'
+          rm -f seeds.json cands.json known.txt
+
+      - name: Temizlik
+        if: always()
+        run: rm -f ~/.ssh/dk seeds.json cands.json known.txt

@@ -168,6 +168,17 @@ jobs:
           done
           if [ "$ok" = "true" ]; then
             echo "known_ok=true" >> "$GITHUB_ENV"
+            # 26 Eki 2026 (operatör: "kendi imkânlarınla kesin çözüm bul"): OSM tükendi; Overture'dan gelen tohum alan adları
+            # (overture-seeds.yml → data/finder_seeds.json) her turda sıradaki SEEDS_PER_RUN tanesi incelenir. Elle verilen
+            # seed_domains varsa o kullanılır. Liste günlüğe basılmaz (yalnız sayı).
+            if [ -z "${{ github.event.inputs.seed_domains }}" ]; then
+              ssh vestra 'cat > ~/vestra_tmp/seeds.php' < scripts/server/vestra-finder-seeds.php \
+                && SD=$(ssh vestra "cd ~/public_html && php ~/vestra_tmp/seeds.php take ${SEEDS_PER_RUN:-250}" 2>seeds.err | grep '^SEEDS ' | tail -n 1 | cut -c7-) || SD=""
+              ssh vestra 'rm -f ~/vestra_tmp/seeds.php' || true
+              cat seeds.err 2>/dev/null || true; rm -f seeds.err
+              [ -n "$SD" ] && echo "SEED_DOMAINS_SRV=$SD" >> "$GITHUB_ENV"
+              echo "bu tur tohum alan adi: $(printf '%s' "$SD" | tr ',' '\n' | grep -c . || true)"
+            fi
             # Günlük bulma tavanı: yalnız ZAMANLI turlarda (elle başlatılan arama her zaman çalışır).
             FT=$(python3 -c 'import json;print(int(json.load(open("known.json")).get("found_today") or 0))')
             if { [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.auto }}" = "true" ]; } && [ "$FT" -ge 500 ]; then
@@ -204,7 +215,7 @@ jobs:
           LANGS: ${{ github.event.inputs.langs }}
           COUNTRIES: ${{ github.event.inputs.countries }}
           EXTRA_QUERIES: ${{ github.event.inputs.extra_queries }}
-          SEED_DOMAINS: ${{ github.event.inputs.seed_domains }}
+          SEED_DOMAINS: ${{ github.event.inputs.seed_domains || env.SEED_DOMAINS_SRV }}
           # 15 Eki 2026 (operatör: "Google Programmable Search ücretsiz yap"): secrets GOOGLE_CSE_KEY + GOOGLE_CSE_CX varsa
           # Google Custom Search JSON API (günde 100 sorgu ücretsiz); tur başına GOOGLE_PER_RUN sorgu, aşımda motor kendini kapatır.
           ENGINES: server,osm,google,bing,ddg
