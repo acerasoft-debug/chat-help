@@ -173,7 +173,7 @@ jobs:
             # seed_domains varsa o kullanılır. Liste günlüğe basılmaz (yalnız sayı).
             if [ -z "${{ github.event.inputs.seed_domains }}" ]; then
               ssh vestra 'cat > ~/vestra_tmp/seeds.php' < scripts/server/vestra-finder-seeds.php \
-                && SD=$(ssh vestra "cd ~/public_html && php ~/vestra_tmp/seeds.php take ${SEEDS_PER_RUN:-250}" 2>seeds.err | grep '^SEEDS ' | tail -n 1 | cut -c7-) || SD=""
+                && SD=$(ssh vestra "cd ~/public_html && php ~/vestra_tmp/seeds.php take ${SEEDS_PER_RUN:-600}" 2>seeds.err | grep '^SEEDS ' | tail -n 1 | cut -c7-) || SD=""
               ssh vestra 'rm -f ~/vestra_tmp/seeds.php' || true
               cat seeds.err 2>/dev/null || true; rm -f seeds.err
               [ -n "$SD" ] && echo "SEED_DOMAINS_SRV=$SD" >> "$GITHUB_ENV"
