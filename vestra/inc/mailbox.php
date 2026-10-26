@@ -624,6 +624,7 @@ function vestra_mailbox_deals_daily(?int $now = null): string {
 /** Dükkânın henüz almadığı ilk takip kampanyası; hepsini almışsa ''. */
 function vestra_mailbox_followup_next(array $had, ?array $camps = null): string {
   $order = VESTRA_MAILBOX_FOLLOWUP_ORDER;
+  if ($camps !== null && defined('VESTRA_SPOT_KEY') && isset($camps[VESTRA_SPOT_KEY])) array_unshift($order, VESTRA_SPOT_KEY);   // 26 Eki 2026: özel kampanya önce
   if ($camps !== null && function_exists('vestra_deals_is_wave_key')) foreach (array_keys($camps) as $k) if (vestra_deals_is_wave_key((string)$k)) $order[] = (string)$k;   // 24 Eki 2026: marka dalgaları
   foreach ($order as $k) if (!in_array($k, $had, true) && ($camps === null || isset($camps[$k]))) return $k;
   return '';

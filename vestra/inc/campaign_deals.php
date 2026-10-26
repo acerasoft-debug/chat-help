@@ -199,6 +199,64 @@ function vestra_deals_pick(int $n = 6, ?array $all = null, ?int $now = null): ar
   return $out;
 }
 
+/* FRED PERRY + LACOSTE KAMPANYASI (26 Eki 2026, operatör: "F.Perry Polo, Sweatshirt ve Lacoste Sweatshirt ve Hoodieler
+   için özel bir kampanya yap 600 kişiye gönder … sunucudan"). Takipte HER ŞEYDEN ÖNCE gelir (indirim mektubu ve marka
+   dalgalarından önce); yalnız VESTRA_SPOT_UNTIL'e kadar ve toplam VESTRA_SPOT_TARGET dükkâna gidene kadar kampanya
+   listesinde durur. Ürünler yalnız VESTRA_SPOT_IDS'teki canlı ilanlar (öne çıkanlar ızgarası + depo fotoğrafları);
+   indirimli olanlar −% rozetli, diğerleri "yeni". Fiyat yok (KURAL 19). Konu / başlık / giriş bu kampanyaya özel. */
+const VESTRA_SPOT_KEY = 'fplac';
+const VESTRA_SPOT_IDS = ['fp-m3600-polo', 'fp-m7535-sweat', 'lac-crew-sweatshirt', 'lac-fleece-hoodie', 'lac-zip-hoodie'];
+const VESTRA_SPOT_TARGET = 600;
+const VESTRA_SPOT_UNTIL = '2026-10-31';
+function vestra_spot_texts(string $lang): array {
+  $T = [
+    'en' => ['Fred Perry & Lacoste: polos, sweatshirts & hoodies for your store · VESTRA', 'Fred Perry & Lacoste — polos, sweatshirts & hoodies.',
+             'Two classics for the season: Fred Perry polos and sweatshirts, Lacoste sweatshirts and hoodies — new stock in original packaging, ready to ship from our EU warehouse.', ' Lacoste is marked down for trade right now — up to %d%% off the regular wholesale price.'],
+    'de' => ['Fred Perry & Lacoste: Polos, Sweatshirts & Hoodies für Ihren Laden · VESTRA', 'Fred Perry & Lacoste — Polos, Sweatshirts & Hoodies.',
+             'Zwei Klassiker für die Saison: Polos und Sweatshirts von Fred Perry, Sweatshirts und Hoodies von Lacoste — Neuware in Originalverpackung, sofort lieferbar aus unserem EU-Lager.', ' Lacoste gibt es gerade mit Händlerrabatt — bis zu %d%% unter dem regulären Großhandelspreis.'],
+    'fr' => ['Fred Perry & Lacoste : polos, sweat-shirts et hoodies pour votre boutique · VESTRA', 'Fred Perry & Lacoste — polos, sweat-shirts et hoodies.',
+             'Deux classiques pour la saison : polos et sweat-shirts Fred Perry, sweat-shirts et hoodies Lacoste — stock neuf en emballage d’origine, expédié depuis notre entrepôt européen.', ' Lacoste bénéficie en ce moment d’une remise pro — jusqu’à %d %% sous le prix de gros habituel.'],
+    'it' => ['Fred Perry & Lacoste: polo, felpe e hoodie per il tuo negozio · VESTRA', 'Fred Perry & Lacoste — polo, felpe e hoodie.',
+             'Due classici per la stagione: polo e felpe Fred Perry, felpe e hoodie Lacoste — merce nuova in confezione originale, pronta alla spedizione dal nostro magazzino UE.', ' Lacoste è ora in sconto trade — fino al %d%% in meno rispetto al normale prezzo all’ingrosso.'],
+    'es' => ['Fred Perry y Lacoste: polos, sudaderas y hoodies para tu tienda · VESTRA', 'Fred Perry y Lacoste — polos, sudaderas y hoodies.',
+             'Dos clásicos para la temporada: polos y sudaderas Fred Perry, sudaderas y hoodies Lacoste — stock nuevo en embalaje original, listo para enviar desde nuestro almacén en la UE.', ' Lacoste tiene ahora descuento profesional — hasta un %d%% menos que el precio mayorista habitual.'],
+    'nl' => ['Fred Perry & Lacoste: polo’s, sweatshirts & hoodies voor je winkel · VESTRA', 'Fred Perry & Lacoste — polo’s, sweatshirts & hoodies.',
+             'Twee klassiekers voor het seizoen: polo’s en sweatshirts van Fred Perry, sweatshirts en hoodies van Lacoste — nieuwe voorraad in originele verpakking, direct leverbaar uit ons EU-magazijn.', ' Lacoste is nu afgeprijsd voor de handel — tot %d%% onder de normale groothandelsprijs.'],
+    'pt' => ['Fred Perry & Lacoste: polos, sweatshirts e hoodies para a sua loja · VESTRA', 'Fred Perry & Lacoste — polos, sweatshirts e hoodies.',
+             'Dois clássicos para a estação: polos e sweatshirts Fred Perry, sweatshirts e hoodies Lacoste — stock novo na embalagem original, pronto a enviar do nosso armazém na UE.', ' A Lacoste está agora com desconto profissional — até %d%% abaixo do preço grossista habitual.'],
+  ];
+  return $T[$lang] ?? $T['en'];
+}
+/** Kampanyanın ürünleri (vestra_deals_pick biçiminde, sıra VESTRA_SPOT_IDS). */
+function vestra_spot_pick(?array $all = null, ?int $now = null): array {
+  $p = vestra_deals_pick(200, $all, $now); $by = [];
+  foreach ($p['items'] as $r) $by[$r['id']] = $r;
+  $items = []; foreach (VESTRA_SPOT_IDS as $id) if (isset($by[$id])) $items[] = $by[$id] + ['featured' => true];
+  $brands = []; foreach ($items as $r) if ((int)$r['pct'] > 0) $brands[$r['label']] = max($brands[$r['label']] ?? 0, (int)$r['pct']);
+  arsort($brands);
+  return ['items' => $items, 'brands' => $brands, 'raw' => array_intersect_key($p['raw'], $brands), 'max' => $brands ? (int)max($brands) : 0, 'count' => count($items)];
+}
+/** Bu kampanyayı şimdiye dek alan dükkân sayısı (takip kayıtları). */
+function vestra_spot_sent(?array $leads = null): int {
+  $n = 0;
+  foreach ($leads ?? vestra_leads() as $l) foreach ((array)($l['followups'] ?? []) as $f) if (is_array($f) && (string)($f['campaign'] ?? '') === VESTRA_SPOT_KEY) { $n++; break; }
+  return $n;
+}
+function vestra_spot_on(?int $now = null): bool { return !defined('VESTRA_SPOT_OFF') && date('Y-m-d', $now ?? time()) <= VESTRA_SPOT_UNTIL; }   // VESTRA_SPOT_OFF: eski testler
+/** Mektup: indirim mektubu tasarımı, bu kampanyanın konusu, başlığı ve girişiyle. */
+function vestra_campaign_spot(string $company = '', string $lang = 'en', ?array $pick = null): array {
+  $pick = $pick ?? vestra_spot_pick(); if (!$pick['items']) return ['', '', []];
+  [$s, $b, $o] = vestra_campaign_deals($company, $lang, $pick);
+  if ($s === '') return ['', '', []];
+  $lg = preg_match('/^[a-z]{2}$/', $lang) ? $lang : 'en'; $x = vestra_spot_texts($lg); $t = vestra_deals_texts($lg);
+  $intro = $x[2].($pick['max'] > 0 ? sprintf($x[3], (int)$pick['max']) : '');
+  $old = count($pick['brands']) === 1 ? sprintf($t['intro1'], implode(', ', array_keys($pick['brands'])), (int)$pick['max']) : sprintf($t['intro'], implode(', ', array_keys($pick['brands'])), (int)$pick['max']);
+  $hOld = htmlspecialchars($old, ENT_QUOTES, 'UTF-8'); $hNew = htmlspecialchars($intro, ENT_QUOTES, 'UTF-8');
+  $b = str_replace($old, $intro, $b); $o['html'] = str_replace($hOld, $hNew, (string)$o['html']);
+  $o['hero']['title'] = $x[1];
+  return [$x[0], $b, $o];
+}
+
 /* MARKA DALGALARI (24 Eki 2026, operatör: "bugün kalan gönderimi kullan 435 email gönder lacoste indirimi" + "email
    kampanyalarına her gün otomatik gitmeli"): indirim mektubunu ALMIŞ ve 5+ gün dinlenmiş dükkânlara sırayla TEK MARKA
    indirim mektubu (aynı tasarım). Sıra: öne çıkan marka (Lacoste) önce, sonra en yüksek indirim. Yalnız ≥ %20 indirimde

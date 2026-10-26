@@ -1,0 +1,38 @@
+<?php
+/* FRED PERRY + LACOSTE KAMPANYASI (26 Eki 2026, operatör: "F.Perry Polo, Sweatshirt ve Lacoste Sweatshirt ve Hoodieler
+ * için özel bir kampanya yap 600 kişiye gönder … sunucudan"). Ölçülen: yalnız beş ilan, sırayla; Lacoste −% rozeti,
+ * Fred Perry "yeni"; özel konu/başlık/giriş (7 dil), fiyat yok; takipte her şeyden önce; 600 dükkândan sonra ve
+ * VESTRA_SPOT_UNTIL'den sonra listeden düşer. Kum havuzu: VESTRA_DATA_DIR geçici dizin. */
+$ok = 0; $fail = 0;
+$t = function (string $n, bool $c) use (&$ok, &$fail) { if ($c) { $ok++; echo "  ok   $n\n"; } else { $fail++; echo "  HATA $n\n"; } };
+$root = dirname(__DIR__).'/vestra';
+$sand = sys_get_temp_dir().'/vestra-spot-'.bin2hex(random_bytes(4)); mkdir($sand.'/data', 0777, true);
+define('VESTRA_DATA_DIR', $sand.'/data'); define('VESTRA_FINDER_ON', true);
+require $root.'/inc/products.php'; require_once $root.'/inc/finder.php'; require_once $root.'/inc/mailbox.php'; require_once $root.'/inc/campaign_deals.php';
+$L = fn($id, $b, $n, $list, $pr) => ['id' => $id, 'brand' => $b, 'name' => $n, 'mode' => $list ? 'sale' : 'fixed', 'list' => $list, 'tiers' => [['min' => 3, 'price' => $pr]], 'images' => ['/uploads/'.$id.'.jpg'], 'status' => 'approved'];
+vestra_write_json('listings.json', [
+  $L('fp-m3600-polo', 'Fred Perry', 'M3600 Twin Tipped Polo', 0, 41), $L('fp-m7535-sweat', 'Fred Perry', 'M7535 Crew Sweatshirt', 0, 52),
+  $L('lac-crew-sweatshirt', 'Lacoste', 'SH9608 Crew Sweatshirt', 100, 68), $L('lac-fleece-hoodie', 'Lacoste', 'SH9623 Fleece Hoodie', 100, 70),
+  $L('lac-zip-hoodie', 'Lacoste', 'SH9626 Zip Hoodie', 100, 73), $L('d1', 'DSQUARED2', 'Logo T-Shirt', 50, 29),
+]);
+$p = vestra_spot_pick();
+$t('yalnız beş ilan, VESTRA_SPOT_IDS sırasıyla, hepsi öne çıkan', array_column($p['items'], 'id') === VESTRA_SPOT_IDS && count(array_filter($p['items'], fn($r) => !empty($r['featured']))) === 5);
+$t('rozet: Lacoste −%, Fred Perry yeni (0); marka satırında yalnız Lacoste', $p['items'][0]['pct'] === 0 && $p['items'][2]['pct'] === 32 && array_keys($p['brands']) === ['Lacoste'] && $p['max'] === 32);
+[$s, $b, $o] = vestra_campaign_spot('Boutique Une', 'en', $p);
+$t('konu ve başlık kampanyaya özel', $s === 'Fred Perry & Lacoste: polos, sweatshirts & hoodies for your store · VESTRA' && $o['hero']['title'] === 'Fred Perry & Lacoste — polos, sweatshirts & hoodies.');
+$t('giriş: iki marka + Lacoste indirimi; eski "we wrote to you" cümlesi yok', str_contains($b, 'Fred Perry polos and sweatshirts') && str_contains($b, 'up to 32% off') && !str_contains($b, 'We wrote to you recently')
+   && str_contains($o['html'], 'Fred Perry polos and sweatshirts'));
+$t('fiyat yok (KURAL 19), ürün bağlantıları, çıkış bağlantısı, DSQUARED2 yok', !preg_match('/€|EUR|41[.,]|52[.,]|68[.,]|70[.,]|73[.,]/', $b.$o['html']) && str_contains($b, 'product?id=lac-zip-hoodie') && str_contains($b, 'lead-unsubscribe') && !str_contains($b.$o['html'], 'DSQUARED2'));
+foreach (['de' => 'Hoodies für Ihren Laden', 'fr' => 'hoodies pour votre boutique', 'it' => 'per il tuo negozio', 'es' => 'para tu tienda', 'nl' => 'voor je winkel', 'pt' => 'para a sua loja'] as $lg => $needle) {
+  [$sx, $bx] = vestra_campaign_spot('', $lg, $p); $t("dil $lg: konu + giriş değişti", str_contains($sx, $needle) && str_contains($bx, vestra_spot_texts($lg)[2]));
+}
+$camps = vestra_finder_campaigns();
+$t('kampanya listesinde fplac', isset($camps[VESTRA_SPOT_KEY]));
+$t('takip: her şeyden önce (indirim mektubu almamışa da, almışa da)', vestra_mailbox_followup_next(['edit'], $camps) === 'fplac' && vestra_mailbox_followup_next(['edit', 'deals', 'lacoste'], $camps) === 'fplac'
+   && vestra_mailbox_followup_next(['edit', 'fplac'], $camps) === 'deals');
+$leads = []; for ($i = 0; $i < VESTRA_SPOT_TARGET; $i++) $leads[] = ['id' => 'S'.$i, 'followups' => [['at' => date('c'), 'campaign' => 'fplac']]];
+$t('sayaç: 600 dükkân', vestra_spot_sent($leads) === 600 && vestra_spot_sent([['followups' => [['campaign' => 'deals']]]]) === 0);
+vestra_write_json('leads.json', $leads);
+$t('600 dükkâna gidince listeden düşer', !isset(vestra_finder_campaigns()[VESTRA_SPOT_KEY]));
+$t('tarih: son günden sonra kapalı', vestra_spot_on(strtotime(VESTRA_SPOT_UNTIL.' 12:00')) && !vestra_spot_on(strtotime(VESTRA_SPOT_UNTIL.' 12:00') + 86400));
+echo "\n{$ok} ok, {$fail} hata\n"; exit($fail ? 1 : 0);

@@ -499,6 +499,11 @@ function vestra_finder_campaigns(): array {
     $out['deals'] = ['🏷️ İndirimli ürünler — eski müşterilere takip (−% rozetli seçki, fiyatsız)', 'Daha önce yazılmış dükkânlara: şu an indirimdeki premium ürünler (marka başına bir, −% rozetiyle), markaya göre indirim satırı, "indirimli ürünler" + "ücretsiz kayıt" düğmeleri. Dil: EN, DE, FR, IT, ES, NL, PT.',
       function (array $l) use ($tok) { [$s, $b, $o] = vestra_campaign_deals((string)($l['company'] ?? ''), vestra_finder_lead_lang($l)); return [$s, $tok($b, $l), $o, 'VESTRA']; }];
   }
+  /* 26 Eki 2026: Fred Perry + Lacoste kampanyası (vestra_campaign_spot) -- tarih ve 600 dükkân sınırına kadar. */
+  if (vestra_spot_on() && vestra_spot_sent() < VESTRA_SPOT_TARGET && ($sp = vestra_spot_pick())['items']) {
+    $out[VESTRA_SPOT_KEY] = ['🎯 Fred Perry polo & sweatshirt + Lacoste sweatshirt & hoodie — özel kampanya (en çok '.VESTRA_SPOT_TARGET.' dükkân)', 'Öne çıkan beş ilan, depo fotoğrafları, Lacoste −% rozeti, fiyatsız; "indirimli ürünler" + "ücretsiz kayıt". Dil: EN, DE, FR, IT, ES, NL, PT.',
+      function (array $l) use ($tok, $sp) { [$s, $b, $o] = vestra_campaign_spot((string)($l['company'] ?? ''), vestra_finder_lead_lang($l), $sp); return [$s, $tok($b, $l), $o, 'VESTRA']; }];
+  }
   /* 24 Eki 2026: marka dalgaları (vestra_deals_waves) -- indirim mektubunu almış dükkânlara sırayla tek marka. */
   foreach (vestra_deals_waves() as $wk => $w) {
     $wp = $w['pick'];
