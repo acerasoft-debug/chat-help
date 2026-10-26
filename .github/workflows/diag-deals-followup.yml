@@ -79,6 +79,7 @@ jobs:
             $ot = vestra_read_json('ops_tick.json'); echo "ops_tick: ".json_encode(array_intersect_key($ot, array_flip(['brevo_am','brevo_pm','brevo_night','brevo_sync_am','brevo_sync_pm','brevo_sync_full'])))."\n";
             $bb = 0; foreach ($leads as $l) if (str_starts_with((string)($l['bounce_reason'] ?? ''), 'brevo ')) $bb++; echo "Brevo esitlemesiyle isaretli geri donmus: {$bb}\n";
             if (function_exists('vestra_mailbox_followup_targets')) echo "takip hedefi (yeni kurallarla, 3000): ".count(vestra_mailbox_followup_targets(3000))."\n";
+            if (function_exists('vestra_mailbox_followup_targets')) { $m = []; foreach ([4, 3, 2] as $dd) $m[] = "{$dd} gun: ".count(vestra_mailbox_followup_targets(3000, null, null, $dd)); foreach ([5, 3] as $dd) $m[] = "Almanya dahil {$dd} gun: ".count(vestra_mailbox_followup_targets(3000, null, null, $dd, [])); echo "takip hedefi (olcum, gonderim yok): ".implode(' · ', $m)."\n"; }
             echo "Brevo kalan gunluk kota: ".var_export(vestra_mail_credits_left(), true)."\n";
             echo "son istekler:\n"; foreach (array_slice(vestra_mailbox_runs(), -8) as $r) echo "  ".($r['id'] ?? '')." ".($r['mode'] ?? '')." ".($r['status'] ?? '')." limit ".($r['limit'] ?? '')." gonderildi ".($r['sent'] ?? '-')." · ".mb_substr((string)($r['note'] ?? ''), 0, 60)."\n";
             PHPEOF
