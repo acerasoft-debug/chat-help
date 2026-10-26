@@ -238,7 +238,7 @@ function vestra_spot_pick(?array $all = null, ?int $now = null): array {
 }
 /** Bu kampanyayı şimdiye dek alan dükkân sayısı (takip kayıtları). */
 function vestra_spot_sent(?array $leads = null): int {
-  $n = 0;
+  $n = 0; if ($leads === null && !function_exists('vestra_leads')) require_once __DIR__.'/finder.php';
   foreach ($leads ?? vestra_leads() as $l) foreach ((array)($l['followups'] ?? []) as $f) if (is_array($f) && (string)($f['campaign'] ?? '') === VESTRA_SPOT_KEY) { $n++; break; }
   return $n;
 }
