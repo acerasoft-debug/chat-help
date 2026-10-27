@@ -13,7 +13,7 @@ require_once __DIR__.'/notify.php';
 /* 10 Eki 2026 (operatör: "tavan 50 kişiyi kaldır, tavan 500 kişi kendi sunucum ile"). GoDaddy cPanel barındırma
    aktarıcısının sınırı e-posta hesabı başına günde ~500'dür; tavan tam bu sınıra ayarlı — sipariş/fatura Brevo'dan
    gittiği için o paya dokunmaz, ama support@'tan elle yazılan mektuplar da aynı sınıra sayılır. */
-const VESTRA_MAILBOX_DEFAULT_CAP = 600;   // 25 Eki 2026 (operatör: "her gün 600 email"); önce 500
+const VESTRA_MAILBOX_DEFAULT_CAP = 2000;   // 27 Eki 2026 (operatör: "tavanı günde 2 bin kişiye çıkar, hem yenilere hem eskilere"); 25 Eki 600, önce 500
 
 function vestra_mailbox_file(string $name): string { return vestra_data_dir().'/'.$name; }
 
@@ -34,7 +34,9 @@ function vestra_mailbox_daily_cap(): int {
 /** GoDaddy cPanel aktarıcısı: hesap geneli SAATTE 500 (uapi maximum_emails_per_hour, diag-mail-limits ölçümü). Partiler
  *  mektuplar arası 8–11 sn bekler (saatte ≤ 450) ve aynı anda tek parti açıktır -- saat sınırı aşılmaz.
  *  25 Eki 2026 (operatör: "her gün 600 email + 150 Brevo"): günlük üst sınır 500 → 600. */
-const VESTRA_MAILBOX_MAX_CAP = 600;
+const VESTRA_MAILBOX_MAX_CAP = 2000;   /* 27 Eki 2026 (operatör: "günde 2 bin"). Saat sınırı (500) yine aşılmaz: tek parti açık,
+   mektuplar arası 8–11 sn = saatte ≤ 450. 2000 mektup ≈ 4,5–6 saat gönderim. Geri dönme freni (vestra_mailbox_bounce_stats)
+   oran yükselirse gönderimi kendiliğinden durdurur. */
 
 function vestra_mailbox_set_cap(int $cap): int {
   $cap = max(1, min(VESTRA_MAILBOX_MAX_CAP, $cap));
