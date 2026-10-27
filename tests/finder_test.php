@@ -1111,7 +1111,7 @@ $t('varsayılan durdurma listesi: Almanya', VESTRA_SEND_PAUSED_DEFAULT === ['Ger
 $mbs = (string)file_get_contents($root.'/inc/mailbox.php');
 $t('her mektuptan hemen önce son kontrol (hariç tutulan / durdurulan ülke) — kurulmuş parti de durur', str_contains($mbs, "if (!vestra_mailbox_still_sendable((string)\$it['leadId'], (string)\$it['email'])) {"));
 echo "\n== 8j. otomatik: günde 500'e kadar bul + kesintisiz gönder ==\n";
-$t('turlar 3 saatte bir (8 tur), find-customers.yml ile aynı', count(VESTRA_FINDER_SLOTS) === 8 && VESTRA_FINDER_SLOTS[0] === [1, 20] && VESTRA_FINDER_SLOTS[7] === [22, 20] && VESTRA_FINDER_DAILY_TARGET === 500);
+$t('turlar 3 saatte bir (8 tur), find-customers.yml ile aynı', count(VESTRA_FINDER_SLOTS) === 8 && VESTRA_FINDER_SLOTS[0] === [1, 20] && VESTRA_FINDER_SLOTS[7] === [22, 20] && VESTRA_FINDER_DAILY_TARGET === 2000);
 $fl = [];
 for ($k = 0; $k < 3; $k++) $fl[] = ['source' => 'web-search', 'owner_uid' => '', 'added_at' => date('c')];
 $fl[] = ['source' => 'web-search', 'owner_uid' => 'sellX', 'added_at' => date('c')]; $fl[] = ['source' => 'OSM', 'owner_uid' => '', 'added_at' => date('c')];
