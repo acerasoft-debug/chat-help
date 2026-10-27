@@ -76,7 +76,7 @@ try {
         exit(0);
     }
     if ($mode === 'take') {
-        $n = max(1, min(1000, (int)$arg1 ?: 200));
+        $n = max(1, min(3000, (int)$arg1 ?: 200));   // 27 Eki 2026: tur başına en çok 3000 (günde 2000 yeni dükkân hedefi)
         $db = sd_load(); $out = []; $now = date('c');
         foreach ($db['items'] as $d => $it) {
             if (count($out) >= $n) break;
