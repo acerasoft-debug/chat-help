@@ -12,9 +12,10 @@
  *
  *   php vestra-finder-seeds.php import <zarf dosyası>   zarfı aç, yeni alan adlarını ekle (sayı basar, alan adı basmaz)
  *   php vestra-finder-seeds.php import -               aynısı, düz JSON stdin'den (overture-seeds.yml, SSH borusu)
- *   php vestra-finder-seeds.php take <n>               sıradaki n alan adını "SEEDS a.it,b.fr" satırında verir, alındı damgalar
+ *   php vestra-finder-seeds.php take <n>               sıradaki n alan adını "SEEDS a.it~clothing_store,b.fr" satırında verir
+ *                                                     (~ sonrası Overture kategorisi, varsa), alındı damgalar
  *   php vestra-finder-seeds.php status                 toplam / bekleyen / alınan, ülke dağılımı
- * Zarf gövdesi: {"seeds":[{"d":"alanadi.it","c":"Italy","n":"Firma"}, …]}
+ * Zarf gövdesi: {"seeds":[{"d":"alanadi.it","c":"Italy","n":"Firma","k":"clothing_store"}, …]}  (k isteğe bağlı)
  */
 [$self, $mode, $arg1] = array_pad($argv, 3, '');
 $root = getenv('VESTRA_ROOT') ?: (getenv('HOME').'/public_html');
@@ -65,8 +66,9 @@ try {
             $d = sd_norm((string)($s['d'] ?? '')); $c = trim((string)($s['c'] ?? ''));
             if ($d === '') { $bad++; continue; }
             if (in_array(strtolower($c), SEED_PAUSED, true) || str_ends_with($d, '.de')) { $paused++; continue; }
-            if (isset($db['items'][$d])) { $dup++; continue; }
-            $db['items'][$d] = ['c' => mb_substr($c, 0, 60), 'n' => mb_substr(trim((string)($s['n'] ?? '')), 0, 120), 'src' => (string)($b['source'] ?? 'lemlist'), 'added_at' => $now, 'taken_at' => null];
+            $k = preg_replace('/[^a-z_]/', '', strtolower((string)($s['k'] ?? '')));   // Overture kategorisi (27 Eki 2026: işimiz dışı ayrımı)
+            if (isset($db['items'][$d])) { if ($k !== '' && empty($db['items'][$d]['k'])) $db['items'][$d]['k'] = $k; $dup++; continue; }
+            $db['items'][$d] = ['c' => mb_substr($c, 0, 60), 'n' => mb_substr(trim((string)($s['n'] ?? '')), 0, 120), 'k' => $k, 'src' => (string)($b['source'] ?? 'lemlist'), 'added_at' => $now, 'taken_at' => null];
             $new++;
         }
         $db['imported_at'] = $now; sd_save($db);
@@ -79,7 +81,7 @@ try {
         foreach ($db['items'] as $d => $it) {
             if (count($out) >= $n) break;
             if (!empty($it['taken_at'])) continue;
-            $db['items'][$d]['taken_at'] = $now; $out[] = $d;
+            $db['items'][$d]['taken_at'] = $now; $out[] = $d.(!empty($it['k']) ? '~'.$it['k'] : '');   // alan~kategori (bulucu ayırır)
         }
         if ($out) sd_save($db);
         $left = count(array_filter($db['items'], fn($i) => empty($i['taken_at'])));

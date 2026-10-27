@@ -105,7 +105,7 @@ jobs:
               d = re.sub(r'^[a-z]+://', '', d).split('/')[0].split(':')[0]
               d = re.sub(r'^www\.', '', d)
               if not d or d in seen or d.endswith('.de'): continue
-              seen.add(d); out.append({'d': d, 'c': r.get('country') or r.get('cc') or '', 'n': (r.get('name') or '')[:120]})
+              seen.add(d); out.append({'d': d, 'c': r.get('country') or r.get('cc') or '', 'n': (r.get('name') or '')[:120], 'k': r.get('category') or ''})
           json.dump({'source': 'overture', 'seeds': out}, open('/dev/stdout', 'w'), ensure_ascii=False)
           import sys; print(f"tohum adayi: {len(out)}", file=sys.stderr)
           PY

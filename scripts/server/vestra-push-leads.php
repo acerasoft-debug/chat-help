@@ -39,8 +39,13 @@ function vws_domain(string $u): string {
 /* Kütük herkese açık iş akışına düşer (find-customers.yml | tee): adres MASKELİ basılır (17 Eki 2026). */
 $vwsMask = static function (string $e): string { $p = strpos($e, '@'); return $p === false ? '***' : substr($e, 0, 1).'***'.substr($e, $p); };
 $leads = vestra_leads(); $newRows = [];
+/* 27 Eki 2026 (operatör: "kendi işimizin dışındaki butikleri ayrı yere kaydet"): segment 'other' (takı / saat / hediye /
+   konsept) data/leads_other.json'a gider — VESTRA kampanya listesine (leads.json) girmez, kimseye mektup gitmez. */
+$otherFile = vestra_data_dir().'/leads_other.json';
+$others = json_decode((string)@file_get_contents($otherFile), true); if (!is_array($others)) $others = [];
+$newOther = 0;
 $byMail = []; $byDom = [];
-foreach ($leads as $l) {
+foreach (array_merge($leads, $others) as $l) {
   $e = strtolower(trim((string)($l['email'] ?? '')));   if ($e !== '') $byMail[$e] = true;
   $d = vws_domain(trim((string)($l['website'] ?? ''))); if ($d !== '') $byDom[$d] = true;
 }
@@ -65,6 +70,14 @@ foreach ($in as $r) {
     $blocked++; echo "  x KURAL 1 / park: {$company} <".$vwsMask($email).">\n"; continue;
   }
 
+  if ((string)($r['segment'] ?? 'core') === 'other') {
+    $others[] = ['id' => 'LO'.strtoupper(bin2hex(random_bytes(4))), 'added_at' => date('c'), 'company' => $company, 'email' => $email,
+      'country' => trim((string)($r['country'] ?? '')), 'website' => $website, 'phone' => trim((string)($r['phone'] ?? '')),
+      'source' => 'web-search', 'segment' => 'other', 'title' => mb_substr((string)($r['title'] ?? ''), 0, 160)];
+    $byMail[$email] = true; if ($d !== '') $byDom[$d] = true; $newOther++;
+    echo "  o (isimiz disi, ayri liste) {$company} <".$vwsMask($email)."> | ".((string)($r['country'] ?? '') ?: '-')."\n";
+    continue;
+  }
   $pb = array_values(array_filter(array_map('strval', (array)($r['premium_brands'] ?? []))));
   $notes = 'web-search '.date('Y-m-d');
   if (!empty($r['query']))  $notes .= ' · sorgu: '.mb_substr((string)$r['query'], 0, 80);
@@ -98,6 +111,11 @@ if ($added > 0) {
   } else vestra_save_leads($leads);
 }
 
+if ($newOther > 0) {
+  $tmp = $otherFile.'.tmp-'.getmypid();
+  file_put_contents($tmp, json_encode($others, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX); @chmod($tmp, 0600); rename($tmp, $otherFile);
+}
+
 if ($sfile !== '' && is_readable($sfile)) {
   $st = json_decode((string)file_get_contents($sfile), true);
   if (is_array($st) && isset($st['domains']) && is_array($st['domains'])) {
@@ -107,4 +125,4 @@ if ($sfile !== '' && is_readable($sfile)) {
     echo "UYARI: durum dosyasi gecersiz -- kaydedilmedi\n";
   }
 }
-echo "\nEKLENDI: {$added} | zaten vardi: {$dup} | gecersiz: {$bad} | junk: {$junk} | kapali alan adi: {$dead} | KURAL 1/park: {$blocked} | toplam lead: ".count($leads).($owner !== '' ? " | sahip: {$owner}" : '')."\n";
+echo "\nEKLENDI: {$added} | ISIMIZ DISI (ayri liste, gonderim yok): {$newOther} (toplam ".count($others).") | zaten vardi: {$dup} | gecersiz: {$bad} | junk: {$junk} | kapali alan adi: {$dead} | KURAL 1/park: {$blocked} | toplam lead: ".count($leads).($owner !== '' ? " | sahip: {$owner}" : '')."\n";

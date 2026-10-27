@@ -48,7 +48,7 @@ const CFG = {
   queriesPerRun: num('QUERIES_PER_RUN', 40),
   maxSites:      num('MAX_SITES', 400),
   budgetSec:     num('TIME_BUDGET_SEC', 2400),
-  concurrency:   Math.min(num('CONCURRENCY', 6), 12),
+  concurrency:   Math.min(num('CONCURRENCY', 6), 16),   // 27 Eki 2026: 12 → 16 (günde 2000 hedefi)
   langs:         list('LANGS').map(s => s.toLowerCase()),
   countries:     list('COUNTRIES').map(s => s.toUpperCase()),
   engines:       (list('ENGINES').length ? list('ENGINES') : ['server', 'osm', 'brave', 'bing', 'ddg']).map(s => s.toLowerCase()),
@@ -766,6 +766,9 @@ function classify(domain, home, pagesText, hrefsText, opts = {}) {
   const ownBrand = OWN_BRAND_RE.test(ident) || OWN_BRAND_RE.test(bodyN);
 
   let reason = '';
+  /* 27 Eki 2026 (operatör: "kendi işimizin dışındaki butikleri ayrı yere kaydet"): 'core' = giyim / ayakkabı / iç giyim /
+     aksesuar / spor dükkânı (VESTRA'nın alıcısı); 'other' = yalnız takı / saat / hediye / konsept kimliği — ayrı listeye. */
+  let segment = 'core';
   const identNoCloth = clothI === 0;
   for (const bn of BLOCK_NAMES) if (new RegExp('(?<![a-z0-9])' + esc(normText(bn)) + '(?![a-z0-9])').test(ident)) { reason = 'excl:chain'; break; }
   if (!reason && TERMS.vintageRe.some(re => re.test(ident))) reason = 'excl:vintage';
@@ -797,16 +800,17 @@ function classify(domain, home, pagesText, hrefsText, opts = {}) {
        elemesinden geçmiş Overture tohumu (opts.allowNoBrands) sitesinde tanınan marka adı geçmese de kabul edilir — yeter ki
        sitesi dükkân kimliği taşısın (giyim / ayakkabı / iç giyim / aksesuar / spor / takı / hediye-konsept). Kendi markası
        (own-brand), tek markalı bayi (monobrand), toptancı (wholesale), zincir, medya ve hedef dışı yine elenir. */
-    else if (!multi && tot === 0 && opts.allowNoBrands && (identShop || count(TERMS.extraRe, ident) > 0)) reason = '';
+    else if (!multi && tot === 0 && opts.allowNoBrands && (identShop || count(TERMS.extraRe, ident) > 0)) { reason = ''; if (!identShop) segment = 'other'; }
     else if (!multi) reason = tot === 0 ? 'excl:no-brands' : 'excl:monobrand';
   }
   const kind = (sportI > 0 && sportI + sportN >= clothI + clothN && sportI + sportN >= shoeI + shoeN) ? 'sport'
     : (shoeI + shoeN > clothI + clothN && shoeI + shoeN >= underI + underN) ? 'shoes'
     : (underI + underN > clothI + clothN) ? 'underwear' : (accI + accN > clothI + clothN) ? 'accessories' : 'fashion';
-  return { reason, title, brands: [...brands.c], otherBrands: [...brands.s, ...brands.u, ...brands.m, ...brands.p], kind, shoeBrands: ns, underBrands: nu,
+  return { reason, segment, title, brands: [...brands.c], otherBrands: [...brands.s, ...brands.u, ...brands.m, ...brands.p], kind, shoeBrands: ns, underBrands: nu,
     signals: { shoeI, clothI, underI, accI, sportI, shoeN, clothN, underN, accN, sportN, whI, whB, multiNav, ownBrand, tot } };
 }
 
+const OTHER_SEED_CATS = new Set(['jewelry_store', 'watch_store']);   // 27 Eki 2026: işimiz dışı (ayrı liste)
 const mxCache = new Map();
 async function mailDomainOk(dom) {
   if (ENV.SKIP_MX === '1') return true;                               // yalnızca yerel test (ağsız ortam)
@@ -879,6 +883,8 @@ async function analyzeSite(domain, ctx, hint = {}) {
   res.country = detectCountry(domain, pagesText, htmlLang) || hint.countryHint || '';
   res.phone = hint.phone || (pagesText.match(/(?:\+|00)\d{1,3}[\s\d().\-/]{6,16}\d/) || [''])[0].replace(/\s+/g, ' ').trim();
   if (cls.reason) { res.status = 'excl'; res.reason = cls.reason; return res; }
+  /* İşimiz dışı: Overture'da takı / saat dükkânı ya da sitesi yalnız takı-hediye-konsept kimliği taşıyan tohum. */
+  res.segment = (OTHER_SEED_CATS.has(String(hint.seedCat || '')) || cls.segment === 'other') ? 'other' : 'core';
   if (hint.name) {
     const m = osmSiteMatch(hint.name, domain, [res.title || '', companyName(home.text, domain)].join(' '));
     if (m) { res.status = 'excl'; res.reason = m; return res; }
@@ -1537,7 +1543,8 @@ async function main() {
     if (autoCities && !CFG.dryRun && lastGridIdx >= 0) state.gridCursor = (lastGridIdx + 1) % EURO_GRID.length;
     if (state.gridEmpty && Object.keys(state.gridEmpty).length > 6000) state.gridEmpty = Object.fromEntries(Object.entries(state.gridEmpty).slice(-5000));
   }
-  for (const d of CFG.seedDomains) { let h = d.replace(/^https?:\/\//i, '').split('/')[0]; if (h) consider('https://' + h + '/', '(seed)'); }
+  /* Tohum biçimi "alanadi~overture_kategorisi" (27 Eki 2026): kategori işimiz dışı ayrımı için ipucu olarak taşınır. */
+  for (const d of CFG.seedDomains) { const [dom, cat] = d.split('~'); let h = dom.replace(/^https?:\/\//i, '').split('/')[0]; if (h) consider('https://' + h + '/', '(seed)', cat ? { seedCat: cat } : {}); }
 
   /* ---- 2) ön eleme ---- */
   const todo = []; const excl = {}; const bump = (k) => { excl[k] = (excl[k] || 0) + 1; };
@@ -1580,7 +1587,7 @@ async function main() {
       if (known.emails.has(r.email)) { r.status = 'excl'; r.reason = 'excl:dup'; }
       else if (leads.some(l => l.email === r.email)) { r.status = 'excl'; r.reason = 'excl:dup'; }
       else { known.emails.add(r.email); leads.push({ company: r.company, email: r.email, country: r.country || '', website: 'https://' + r.domain, phone: r.phone || '',
-        premium_brands: r.brands, alt_emails: r.altEmails || [], query: r.query, title: r.title || '', source: 'web-search' }); }
+        premium_brands: r.brands, alt_emails: r.altEmails || [], query: r.query, title: r.title || '', source: 'web-search', segment: r.segment || 'core' }); }
     }
     bump(r.status === 'ok' ? 'added' : r.reason || r.status);
     if (!CFG.dryRun) state.domains[key] = { s: r.status === 'ok' ? 'added' : (r.reason || r.status), t: today };
@@ -1714,7 +1721,12 @@ function selftest() {
     const whs = '<html><head><title>Moda Grosso — ingrosso abbigliamento e accessori</title></head><body>Distributore per negozi</body></html>';
     t('tohum: toptancı yine elenir', classify('modagrosso.it', whs, stripTags(whs), '', { allowNoBrands: true }).reason === 'excl:wholesale');
     const own = '<html><head><title>Maison Elle — boutique</title></head><body>Our own label, designed in-house. Dresses and accessories.</body></html>';
-    t('tohum: kendi markası yine elenir', classify('maisonelle.fr', own, stripTags(own), '', { allowNoBrands: true }).reason === 'excl:own-brand'); }
+    t('tohum: kendi markası yine elenir', classify('maisonelle.fr', own, stripTags(own), '', { allowNoBrands: true }).reason === 'excl:own-brand');
+    t('tohum: aksesuar dükkânı = core (VESTRA alıcısı)', classify('atelier-lina.at', acc, stripTags(acc), '', { allowNoBrands: true }).segment === 'core');
+    const jew = '<html><head><title>Gioielleria Bianchi — gioielli e orologi</title></head><body>Contatti: info@gioielleriabianchi.it</body></html>';
+    const cj = classify('gioielleriabianchi.it', jew, stripTags(jew), '', { allowNoBrands: true });
+    t('tohum: yalnız takı/saat kimliği = other (ayrı liste)', cj.reason === '' && cj.segment === 'other');
+    t('tohum biçimi alan~kategori; takı/saat kategorisi işimiz dışı', OTHER_SEED_CATS.has('jewelry_store') && OTHER_SEED_CATS.has('watch_store') && !OTHER_SEED_CATS.has('clothing_store')); }
   const distHtml = `<title>Moda Distribuzione Srl – distributore abbigliamento</title><nav><a>Marchi</a></nav><p>Liu Jo Pinko Patrizia Pepe Furla</p>`;
   t('classify: distribütör hâlâ elenir', classify('modadistribuzione.it', distHtml, stripTags(distHtml), '').reason === 'excl:wholesale');
   { const rtlHtml = `<title>RTL.de – News, Stars, TV-Programm</title><nav><a>Mode</a><a>Stars</a><a>Marken</a></nav><p>Gucci Prada Versace Armani bei der Fashion Week</p>`;

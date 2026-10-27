@@ -173,7 +173,7 @@ jobs:
             # seed_domains varsa o kullanılır. Liste günlüğe basılmaz (yalnız sayı).
             if [ -z "${{ github.event.inputs.seed_domains }}" ]; then
               ssh vestra 'cat > ~/vestra_tmp/seeds.php' < scripts/server/vestra-finder-seeds.php \
-                && SD=$(ssh vestra "cd ~/public_html && php -d memory_limit=1536M ~/vestra_tmp/seeds.php take ${SEEDS_PER_RUN:-600}" 2>seeds.err | grep '^SEEDS ' | tail -n 1 | cut -c7-) || SD=""
+                && SD=$(ssh vestra "cd ~/public_html && php -d memory_limit=1536M ~/vestra_tmp/seeds.php take ${SEEDS_PER_RUN:-1200}" 2>seeds.err | grep '^SEEDS ' | tail -n 1 | cut -c7-) || SD=""
               ssh vestra 'rm -f ~/vestra_tmp/seeds.php' || true
               cat seeds.err 2>/dev/null || true; rm -f seeds.err
               [ -n "$SD" ] && echo "SEED_DOMAINS_SRV=$SD" >> "$GITHUB_ENV"
@@ -181,8 +181,8 @@ jobs:
             fi
             # Günlük bulma tavanı: yalnız ZAMANLI turlarda (elle başlatılan arama her zaman çalışır).
             FT=$(python3 -c 'import json;print(int(json.load(open("known.json")).get("found_today") or 0))')
-            if { [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.auto }}" = "true" ]; } && [ "$FT" -ge 500 ]; then
-              echo "Bugün zaten $FT yeni butik bulundu (tavan 500) — bu tur aramayı atlıyor."
+            if { [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.auto }}" = "true" ]; } && [ "$FT" -ge 2000 ]; then
+              echo "Bugün zaten $FT yeni butik bulundu (tavan 2000) — bu tur aramayı atlıyor."
               echo "daily_full=true" >> "$GITHUB_ENV"
             fi
           else
@@ -202,16 +202,18 @@ jobs:
           # kullanılmaz (panelde anahtar dursa bile vekile web sorgusu gitmez). Web adayı tavanı 1500, inceleme 12 paralel.
           BRAVE_ALLOWED: 'false'
           QUERIES_PER_RUN: ${{ github.event.inputs.queries_per_run || (github.event_name == 'push' && '14') || '40' }}
-          MAX_SITES: ${{ github.event_name == 'push' && '60' || '1500' }}
+          MAX_SITES: ${{ github.event_name == 'push' && '60' || '2000' }}
           TOWN_QUERIES: ${{ github.event_name == 'push' && '4' || '120' }}   # 13 Eki: kasaba adıyla Bing (sunucudan), ücretsiz
           CITIES: ${{ github.event.inputs.cities }}
           PLACES_PER_RUN: ${{ github.event_name == 'push' && '2' || '6' }}
           # Şehir verilmemişse OSM, OSM_TARGET yeni adaya ya da bütçenin %35'ine kadar havuzdan şehir alır.
           # 11 Eki 2026 (operatör: "çok az butik bulunuyor"): 10 Eki akşam turu 40 şehirde 673 adayı 12 dk'da topladı, 655 siteyi
           # 9 dk'da inceledi ve 55 dk'lık bütçenin 21 dk'sını kullandı. Şehir ve aday hedefi 3 katına çıkarıldı; bütçeye sığıyor.
-          MAX_CITIES: ${{ github.event_name == 'push' && '2' || '120' }}
-          OSM_TARGET: ${{ github.event_name == 'push' && '60' || '2200' }}
-          CONCURRENCY: 12
+          # 27 Eki 2026 (operatör: "günde 2000 yeni dükkân"): OSM tükendi (turda ~75 yeni aday) — süre Overture tohumlarına.
+          MAX_CITIES: ${{ github.event_name == 'push' && '2' || '20' }}
+          OSM_TARGET: ${{ github.event_name == 'push' && '60' || '300' }}
+          GRID_CELLS: ${{ github.event_name == 'push' && '0' || '30' }}
+          CONCURRENCY: 16
           LANGS: ${{ github.event.inputs.langs }}
           COUNTRIES: ${{ github.event.inputs.countries }}
           EXTRA_QUERIES: ${{ github.event.inputs.extra_queries }}
