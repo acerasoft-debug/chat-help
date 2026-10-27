@@ -181,8 +181,8 @@ jobs:
             fi
             # Günlük bulma tavanı: yalnız ZAMANLI turlarda (elle başlatılan arama her zaman çalışır).
             FT=$(python3 -c 'import json;print(int(json.load(open("known.json")).get("found_today") or 0))')
-            if { [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.auto }}" = "true" ]; } && [ "$FT" -ge 500 ]; then
-              echo "Bugün zaten $FT yeni butik bulundu (tavan 500) — bu tur aramayı atlıyor."
+            if { [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.auto }}" = "true" ]; } && [ "$FT" -ge 1500 ]; then
+              echo "Bugün zaten $FT yeni butik bulundu (tavan 1500, 27 Eki 2026) — bu tur aramayı atlıyor."
               echo "daily_full=true" >> "$GITHUB_ENV"
             fi
           else
