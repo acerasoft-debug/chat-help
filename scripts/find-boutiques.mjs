@@ -82,6 +82,8 @@ const CFG = {
   outDir:        ENV.OUT_DIR || 'out',
   dryRun:        /^(1|true|yes)$/i.test(ENV.DRY_RUN ?? ''),
   minBrands:     num('MIN_BRANDS', 2),
+  /* 27 Eki 2026: Overture tohumu (harita kaydı bağımsız moda / aksesuar dükkânı) marka adı olmadan da kabul (classify opts). */
+  seedNoBrands:  String(ENV.SEED_NO_BRANDS ?? 'true').toLowerCase() !== 'false',
 };
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 const T0 = Date.now();
@@ -342,6 +344,12 @@ const TERMS = {
     'running', 'runningshop', 'tennis', 'padel', 'surf', 'surfshop', 'surf shop', 'boardshop', 'board shop', 'skateshop', 'skate shop',
     'sailing', 'yachting', 'yacht', 'marine', 'nautica', 'nautique', 'voile', 'segeln', 'segelsport', 'vela', 'wassersport',
     'water sports', 'watersport', 'equestrian'],
+  /* 27 Eki 2026 (operatör: "aksesuar ya da başka ürün satan şirketleri de al"): yalnız Overture tohumunda (marka kanıtı
+     aranmayan yol) dükkân kimliği sayılan diğer ürünler — takı / saat / hediye / konsept / lifestyle. */
+  extra: ['jewelry', 'jewellery', 'jewellers', 'schmuck', 'juwelier', 'gioielli', 'gioielleria', 'bijoux', 'bijouterie', 'joyeria', 'joyas',
+    'sieraden', 'juwelier', 'joalharia', 'bizuteria', 'smycken', 'smykker', 'korut', 'watches', 'uhren', 'orologi', 'montres', 'relojes',
+    'horloges', 'gifts', 'gift shop', 'geschenke', 'regali', 'cadeaux', 'regalos', 'cadeaus', 'concept store', 'conceptstore', 'lifestyle',
+    'design store', 'homeware', 'interior & fashion', 'wohnen & mode'],
   vintage: ['vintage', 'second hand', 'secondhand', 'second-hand', 'friperie', 'fripes', 'thrift', 'consignment', 'pre-owned', 'preowned',
     'pre-loved', 'usato', 'seconda mano', 'depot-vente', 'depot vente', 'segunda mano', 'tweedehands', 'secondhand-mode', 'gebrauchte', 'retro'],
   wholesale: ['wholesale', 'wholesaler', 'grosshandel', 'grossist', 'grossiste', 'grossista', 'ingrosso', "all'ingrosso", 'mayorista',
@@ -735,7 +743,7 @@ const FIXED_PATHS = ['/pages/contact', '/pages/kontakt', '/pages/impressum', '/p
   '/policies/privacy-policy', '/impressum', '/impressum/', '/kontakt', '/kontakt/', '/contact', '/contact/', '/contatti', '/contatti/',
   '/contacto', '/contact-us', '/mentions-legales', '/note-legali', '/aviso-legal', '/legal', '/privacy-policy', '/datenschutz', '/about', '/about-us'];
 
-function classify(domain, home, pagesText, hrefsText) {
+function classify(domain, home, pagesText, hrefsText, opts = {}) {
   const pick = (re) => { const m = home.match(re); return m ? stripTags(m[1]) : ''; };
   const title = pick(/<title[^>]*>([\s\S]*?)<\/title>/i);
   const metaD = pick(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)/i) || pick(/<meta[^>]+content=["']([^"']*)["'][^>]+name=["']description["']/i);
@@ -784,6 +792,12 @@ function classify(domain, home, pagesText, hrefsText) {
     const identShop = (clothI + shoeI + underI + accI + sportI) > 0;   // 16 Eki: spor dükkânı da (marka kanıtı yine şart)
     const multi = identShop && (tot >= 2 || (multiNav && tot >= 1) || multiWord);
     if (ownBrand && tot < 2) reason = 'excl:own-brand';
+    /* 27 Eki 2026 (operatör: "müşteri bulmayı genişlet, aksesuar ya da başka ürün satan şirketleri de al … distribütör olmayacak"):
+       harita kaydında zaten bağımsız giyim / aksesuar / ayakkabı / çanta / takı dükkânı olan ve zincir / çok şube / dağıtıcı
+       elemesinden geçmiş Overture tohumu (opts.allowNoBrands) sitesinde tanınan marka adı geçmese de kabul edilir — yeter ki
+       sitesi dükkân kimliği taşısın (giyim / ayakkabı / iç giyim / aksesuar / spor / takı / hediye-konsept). Kendi markası
+       (own-brand), tek markalı bayi (monobrand), toptancı (wholesale), zincir, medya ve hedef dışı yine elenir. */
+    else if (!multi && tot === 0 && opts.allowNoBrands && (identShop || count(TERMS.extraRe, ident) > 0)) reason = '';
     else if (!multi) reason = tot === 0 ? 'excl:no-brands' : 'excl:monobrand';
   }
   const kind = (sportI > 0 && sportI + sportN >= clothI + clothN && sportI + sportN >= shoeI + shoeN) ? 'sport'
@@ -857,7 +871,7 @@ async function analyzeSite(domain, ctx, hint = {}) {
   }
   res.pages = pages.length;
   const pagesText = pages.map(p => stripTags(p.html)).join('\n');
-  const cls = classify(domain, home.text, pagesText, hrefsText);
+  const cls = classify(domain, home.text, pagesText, hrefsText, { allowNoBrands: CFG.seedNoBrands && hint.q === '(seed)' });
   res.title = cls.title; res.brands = cls.brands; res.signals = cls.signals;
   res.company = companyName(home.text, domain);
   /* Google Places işletme adı, sayfa başlığından türetilen addan daha güvenilir. */
@@ -1692,6 +1706,15 @@ function selftest() {
   t('classify: kendi markasını satan butik elenir', classify('atelier-lina.de', ownHtml, stripTags(ownHtml), '').reason === 'excl:own-brand');
   const travelHtml = `<title>Toskana Reiseführer – Urlaub</title><nav><a>Hotels</a><a>Strände</a></nav><p>Florenz, Siena, Lucca</p>`;
   t('classify: turizm sitesi hâlâ elenir (no-brands)', classify('toskanatour.de', travelHtml, stripTags(travelHtml), '').reason === 'excl:no-brands');
+  { /* 27 Eki 2026: Overture tohumu marka adı olmadan kabul — ama yalnız dükkân kimliğiyle; toptancı / kendi markası yine elenir. */
+    const acc = '<html><head><title>Atelier Lina — Accessoires, Taschen & Schmuck</title></head><body><nav><a href="/taschen">Taschen</a></nav><p>Kontakt: info@atelier-lina.at</p></body></html>';
+    t('tohum: markasız aksesuar dükkânı kabul (allowNoBrands)', classify('atelier-lina.at', acc, stripTags(acc), '', { allowNoBrands: true }).reason === '');
+    t('tohum olmayan aynı dükkân: no-brands (eski kural)', classify('atelier-lina.at', acc, stripTags(acc), '').reason === 'excl:no-brands');
+    t('tohum: turizm sitesi yine elenir (dükkân kimliği yok)', classify('toskanatour.de', travelHtml, stripTags(travelHtml), '', { allowNoBrands: true }).reason === 'excl:no-brands');
+    const whs = '<html><head><title>Moda Grosso — ingrosso abbigliamento e accessori</title></head><body>Distributore per negozi</body></html>';
+    t('tohum: toptancı yine elenir', classify('modagrosso.it', whs, stripTags(whs), '', { allowNoBrands: true }).reason === 'excl:wholesale');
+    const own = '<html><head><title>Maison Elle — boutique</title></head><body>Our own label, designed in-house. Dresses and accessories.</body></html>';
+    t('tohum: kendi markası yine elenir', classify('maisonelle.fr', own, stripTags(own), '', { allowNoBrands: true }).reason === 'excl:own-brand'); }
   const distHtml = `<title>Moda Distribuzione Srl – distributore abbigliamento</title><nav><a>Marchi</a></nav><p>Liu Jo Pinko Patrizia Pepe Furla</p>`;
   t('classify: distribütör hâlâ elenir', classify('modadistribuzione.it', distHtml, stripTags(distHtml), '').reason === 'excl:wholesale');
   { const rtlHtml = `<title>RTL.de – News, Stars, TV-Programm</title><nav><a>Mode</a><a>Stars</a><a>Marken</a></nav><p>Gucci Prada Versace Armani bei der Fashion Week</p>`;
