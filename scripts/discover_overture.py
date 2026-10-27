@@ -56,11 +56,14 @@ KINDS = {
     # kosusunun alt dal sayimi (Overture 2026-10-21.0): designer_clothing IT 1036, GB 2***, FR 428 ... --
     # "hedef disi dal" diye eleniyordu; tasarimci moda tam hedefimiz. Ic camasiri 14 Eki'de operatorce
     # serbest birakilmisti. Spor / outlet: sitede premium marka kapisi (bulucu) yine gecerli, yani yalniz o
-    # markalari satan dukkan musteri olur. Mucevher / saat BILEREK disarida (giyim almiyorlar; testler onu
-    # hedef disi ornegi olarak kullaniyor). Taksonomide olmayan bir ad sorguda 0 doner.
+    # markalari satan dukkan musteri olur. Mucevher / saat 27 Eki'de operatorun istegiyle
+    # eklendi ("jewelry"). Taksonomide olmayan bir ad sorguda 0 doner.
     "designer":    ["designer_clothing", "formal_wear_store", "denim_wear_store", "t_shirt_store", "fur_clothing"],
     "lingerie":    ["lingerie_store"],
     "sport":       ["sports_wear", "sporting_goods", "outlet_store"],
+    # 27 Eki 2026 (operator: "aksesuar ya da baska urun satan sirketleri de al ... distributor olmayacak"): taki ve saat
+    # dukkani da aksesuar saticisi. Zincir / cok sube / dagitici elemesi aynen.
+    "jewelry":     ["jewelry_store", "watch_store"],
 }
 # Hiyerarsinin altinda olup HEDEF OLMAYAN dallar (tibbi / tamir).
 EXCLUDE_CATS = {"orthopedic_shoe_store", "shoe_repair"}

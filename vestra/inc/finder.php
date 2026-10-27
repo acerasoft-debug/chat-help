@@ -207,7 +207,7 @@ function vestra_finder_dispatch(string $id, string $owner, array $p): array {
    "otomatik arama yap, günde 500'e kadar butik bulsun ve göndersin"): 3 saatte bir, günde 8 tur; gün içinde (UTC)
    VESTRA_FINDER_DAILY_TARGET yeni butiğe ulaşılınca kalan zamanlı turlar atlanır (elle başlatılan arama her zaman koşar). */
 const VESTRA_FINDER_SLOTS = [[1, 20], [4, 20], [7, 20], [10, 20], [13, 20], [16, 20], [19, 20], [22, 20]];
-const VESTRA_FINDER_DAILY_TARGET = 1500;   // 27 Eki 2026: gönderim tavanı 2000'e çıkınca (Overture tohumları) günlük yeni butik hedefi 500 → 1500
+const VESTRA_FINDER_DAILY_TARGET = 500;   // 27 Eki 2026 (operatör: "aksesuar ya da başka ürün satan şirketleri de al, günde 500 tane")
 
 /** Bugün (UTC) web aramasıyla eklenen admin leadleri — scripts/server/vestra-known.php found_today ile aynı sayım. */
 function vestra_finder_found_today(?array $leads = null): int {

@@ -53,7 +53,7 @@ function vestra_mailbox_set_cap(int $cap): int {
    manual= arama yalnız listeye ekler; gönderimi panelden siz başlatırsınız.
    Alıcı havuzu varsayılan 'web': web aramasıyla bulunmuş, sitesinde adres yayınlayan, e-posta sunucusu
    doğrulanmış butikler — eski listeden (OSM/içe aktarma) gönderim 9 Eki'de ölü alan adlarına çarptı. */
-const VESTRA_MAILBOX_AUTO_DEFAULTS = ['auto_send' => true, 'auto_campaign' => 'edit', 'auto_limit' => 500, 'auto_pool' => 'web'];   // 10 Eki: "bir seferde 500 kişi"
+const VESTRA_MAILBOX_AUTO_DEFAULTS = ['auto_send' => true, 'auto_campaign' => 'edit', 'auto_limit' => 400, 'auto_pool' => 'web'];   // 27 Eki 2026: parti 400   // 10 Eki: "bir seferde 500 kişi"
 
 function vestra_mailbox_auto(): array {
   $c = vestra_mailbox_cfg(); $d = VESTRA_MAILBOX_AUTO_DEFAULTS;
@@ -141,7 +141,7 @@ function vestra_mailbox_seller_server_today(): int {
    3) Aynı dükkânın iki adresine aynı partide yazılmaz; partide aynı alan adına arka arkaya gönderilmez.
    4) Her mektupta şirketin posta adresi (CAN-SPAM / AB) — kampanya metninde yoksa eklenir. */
 const VESTRA_MAILBOX_WARMUP = [1 => 50, 2 => 75, 3 => 100, 4 => 150, 5 => 200, 6 => 250, 7 => 300, 8 => 350, 9 => 400, 10 => 450];
-const VESTRA_MAILBOX_BOUNCE_MAX = 0.08;
+const VESTRA_MAILBOX_BOUNCE_MAX = 0.05;   // 27 Eki 2026 (operatör: "spama düşmemesi için önlem al", tavan 2000): %8 → %5
 /* 11 Eki 2026: pencere 14 → 3 gün. Geri dönen adresler listeden zaten düşüyor; 14 günlük pencerede eski bir partinin
    (8 Eki, eski OSM listesi) geri dönmeleri freni iki hafta kilitliyordu — gönderim olmadan oran hiç düşmezdi. */
 const VESTRA_MAILBOX_BOUNCE_DAYS = 3;
@@ -184,7 +184,34 @@ function vestra_mailbox_warmup_set(bool $on): void {
 /** Bugün geçerli tavan: panel tavanı, ısınma açıksa ısınma sınırıyla. */
 function vestra_mailbox_cap_today(?array $leads = null): int {
   $w = vestra_mailbox_warmup($leads);
-  return $w['on'] ? min(vestra_mailbox_daily_cap(), $w['limit']) : vestra_mailbox_daily_cap();
+  $cap = $w['on'] ? min(vestra_mailbox_daily_cap(), $w['limit']) : vestra_mailbox_daily_cap();
+  return min($cap, vestra_mailbox_ramp());
+}
+
+/* SPAM ÖNLEMLERİ (27 Eki 2026, operatör: "tavanı günde 2 bin kişiye çıkar … spama düşmemesi için önlemler al").
+   Gmail / Outlook bir alan adının hacmindeki ANİ sıçramayı spam işareti sayar: 600'den 2000'e tek günde değil, her gün
+   VESTRA_MAILBOX_RAMP_STEP artarak çıkılır (27 Eki 800 · 28 Eki 1100 · 29 Eki 1400 · 30 Eki 1700 · 31 Eki 2000).
+   Gece (Avrupa 01:00–07:00) yeni parti BAŞLAMAZ: soğuk mektup sabah kutuya düşsün, gece toplu gönderim görünmesin.
+   Tek parti en çok VESTRA_MAILBOX_BATCH_MAX. Geri dönme freni %5. Var olanlar: DKIM (vestra._domainkey) + SPF + DMARC
+   p=reject, tek tıkla çıkış (List-Unsubscribe-Post), düz metin parçası, posta adresi, alıcı alan adlarının karıştırılması
+   (vestra_mailbox_interleave), 8–11 sn ara, ölü alan adı / MX kontrolü, çıkanlar ve geri dönenler listeden düşer. */
+const VESTRA_MAILBOX_BATCH_MAX = 400;
+const VESTRA_MAILBOX_RAMP_FROM = '2026-10-27';
+const VESTRA_MAILBOX_RAMP_START = 800;
+const VESTRA_MAILBOX_RAMP_STEP = 300;
+const VESTRA_MAILBOX_QUIET = [1, 7];   // Avrupa saati: [başlangıç, bitiş) — bu aralıkta yeni parti başlamaz
+/** Bugünkü kademeli üst sınır (testlerde VESTRA_MAILBOX_RAMP_OFF ile kapalı). */
+function vestra_mailbox_ramp(?int $now = null): int {
+  if (defined('VESTRA_MAILBOX_RAMP_OFF')) return PHP_INT_MAX;
+  $now = $now ?? time(); $from = strtotime(VESTRA_MAILBOX_RAMP_FROM.' 00:00:00 UTC');
+  if ($now < $from) return PHP_INT_MAX;
+  return VESTRA_MAILBOX_RAMP_START + VESTRA_MAILBOX_RAMP_STEP * intdiv($now - $from, 86400);
+}
+/** Gece sessiz saatleri mi (Avrupa)? Testlerde VESTRA_MAILBOX_QUIET_OFF ile kapalı. */
+function vestra_mailbox_quiet(?int $now = null): bool {
+  if (defined('VESTRA_MAILBOX_QUIET_OFF')) return false;
+  $h = (int)(new DateTimeImmutable('@'.($now ?? time())))->setTimezone(new DateTimeZone('Europe/Berlin'))->format('G');
+  return $h >= VESTRA_MAILBOX_QUIET[0] && $h < VESTRA_MAILBOX_QUIET[1];
 }
 
 /** Son VESTRA_MAILBOX_BOUNCE_DAYS gün: ['sent','bounced','rate','stop']. Gönderilmeden atlanan ölü alan adları sayılmaz. */
@@ -241,6 +268,7 @@ function vestra_mailbox_auto_catchup(?int $now = null): string {
   $a = vestra_mailbox_auto();
   if (!$a['auto_send']) return '';
   $now = $now ?? time(); $last = 0;
+  if (vestra_mailbox_quiet($now)) return '';   // 27 Eki 2026: gece istek açılmaz, bulunanlar sabah 07:00'den sonra
   foreach (vestra_mailbox_runs() as $r) {
     if (vestra_mailbox_is_open($r)) return '';
     $last = max($last, (int)strtotime((string)($r['requested_at'] ?? '')));
@@ -295,7 +323,7 @@ function vestra_mailbox_request(string $mode, int $limit, string $campaign, stri
     $left = vestra_mailbox_left_today();
     if ($left <= 0) return [false, 'Bugünkü tavan ('.vestra_mailbox_cap_today().(vestra_mailbox_warmup()['on'] && vestra_mailbox_cap_today() < vestra_mailbox_daily_cap() ? ', ısınma' : '').') doldu — kalanlar yarın.'];
     if (($bs = vestra_mailbox_bounce_stats())['stop']) return [false, sprintf('Gönderim durduruldu: son '.VESTRA_MAILBOX_BOUNCE_DAYS.' günde gönderilenlerin %%%d\'i geri döndü (%d/%d). Spam klasörüne düşmemek için önce listeyi temizleyin.', (int)round($bs['rate'] * 100), $bs['bounced'], $bs['sent'])];
-    $limit = max(1, min($limit, $left));
+    $limit = max(1, min($limit, $left, VESTRA_MAILBOX_BATCH_MAX));   // 27 Eki 2026: tek parti en çok 400
   } else $limit = 1;
   $id = 'MB'.date('ymdHis').substr(bin2hex(random_bytes(2)), 0, 4);
   /* Belirli müşteriler (ör. bir aramada bulunanlar — "📮 Bunlara şimdi gönder"): yalnız onlar seçilir. */
@@ -309,10 +337,11 @@ function vestra_mailbox_request(string $mode, int $limit, string $campaign, stri
 }
 
 /** Kuyruk (GitHub): en eski bekleyen isteği alır ve "running" yapar. Yoksa null. */
-function vestra_mailbox_take(): ?array {
-  $runs = vestra_mailbox_runs();
+function vestra_mailbox_take(?int $now = null): ?array {
+  $runs = vestra_mailbox_runs(); $quiet = vestra_mailbox_quiet($now);
   foreach ($runs as $i => $r) {
     if (($r['status'] ?? '') !== 'requested') continue;
+    if ($quiet && ($r['mode'] ?? '') !== 'test') continue;   // 27 Eki 2026: gece parti başlamaz (istek bekler; 2 saatte bayatlarsa sabah yeniden açılır)
     if (!vestra_mailbox_is_open($r)) { $runs[$i]['status'] = 'stale'; continue; }
     $runs[$i]['status'] = 'running'; $runs[$i]['started_at'] = date('c');
     vestra_mailbox_runs_save($runs);

@@ -25,7 +25,7 @@ $sand = sys_get_temp_dir().'/vestra_finder_'.bin2hex(random_bytes(4));
 define('VESTRA_DATA_DIR', $sand.'/data');
 define('VESTRA_FINDER_ON', true);
 define('VESTRA_SEND_PAUSED_OVERRIDE', []);   // eski bölümlerin Alman örnek dükkânları; durdurma kuralı 8m'de ayrıca sınanır   // web araması 8 Eki'de kapatıldı; kapı mantığı yine de sınanır
-define('VESTRA_DEALS_WAVES_OFF', true); define('VESTRA_SPOT_OFF', true);   // 24 Eki 2026 marka dalgalari ayri sinanir (tests/lacoste_wave_test.php)
+define('VESTRA_DEALS_WAVES_OFF', true); define('VESTRA_SPOT_OFF', true); define('VESTRA_MAILBOX_RAMP_OFF', true); define('VESTRA_MAILBOX_QUIET_OFF', true);   // 27 Eki: kademeli tavan + gece sessizliği tests/antispam_test.php'de   // 24 Eki 2026 marka dalgalari ayri sinanir (tests/lacoste_wave_test.php)
 require $root.'/inc/products.php';
 require_once $root.'/inc/finder.php';
 
@@ -531,7 +531,7 @@ echo "\n== 8c. gönderim modu (otomatik / manuel) + alıcı havuzu — kendi sun
 require_once $root.'/inc/mailbox.php';
 @unlink(VESTRA_DATA_DIR.'/mailbox.json'); @unlink(VESTRA_DATA_DIR.'/mailbox_runs.json');
 $am = vestra_mailbox_auto();
-$t('varsayılan: otomatik açık, VESTRA Edit, 500, yeni bulunanlar', $am === ['auto_send' => true, 'auto_campaign' => 'edit', 'auto_limit' => 500, 'auto_pool' => 'web']);
+$t('varsayılan: otomatik açık, VESTRA Edit, 400 (27 Eki: parti 400), yeni bulunanlar', $am === ['auto_send' => true, 'auto_campaign' => 'edit', 'auto_limit' => 400, 'auto_pool' => 'web']);
 vestra_write_json('leads.json', [
   ['id' => 'W1', 'company' => 'Boutique Una', 'email' => 'info@una.example', 'country' => 'Italy', 'source' => 'web-search', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'a'],
   ['id' => 'O1', 'company' => 'Mode Alt', 'email' => 'info@alt.example', 'country' => 'Germany', 'source' => 'OSM', 'owner_uid' => '', 'status' => 'new', 'last_contacted_at' => '', 'unsub_token' => 'b', 'premium_brands' => ['Lacoste']]]);
@@ -846,7 +846,7 @@ $cfgW = vestra_mailbox_cfg(); $cfgW['warmup'] = false; file_put_contents(VESTRA_
 $t('23:40 Avrupa: gece turu açılmaz', vestra_mailbox_nightly($nowEarly) === '' && vestra_mailbox_runs() === []);
 $nm = vestra_mailbox_nightly($nowLate);
 $rN = vestra_mailbox_runs();
-$t('23:50 Avrupa: takip isteği açılır, kip followup, sınır bugünkü kalan', $nm !== '' && count($rN) === 1 && $rN[0]['mode'] === 'followup' && $rN[0]['status'] === 'requested' && (int)$rN[0]['limit'] === vestra_mailbox_left_today());
+$t('23:50 Avrupa: takip isteği açılır, kip followup, sınır bugünkü kalan', $nm !== '' && count($rN) === 1 && $rN[0]['mode'] === 'followup' && $rN[0]['status'] === 'requested' && (int)$rN[0]['limit'] === min(vestra_mailbox_left_today(), VESTRA_MAILBOX_BATCH_MAX));   // 27 Eki: parti en çok 400
 $t('aynı gece ikinci kez açılmaz (followup_day = sunucu günü)', vestra_mailbox_nightly($nowLate + 600) === '' && count(vestra_mailbox_runs()) === 1 && (vestra_mailbox_cfg()['followup_day'] ?? '') === date('Y-m-d', $nowLate));
 $capF = []; $fmF = function ($to, $s, $b, $h, $p) use (&$capF) { $capF[] = $to; return true; };
 $reqF = vestra_mailbox_take();
@@ -1111,7 +1111,7 @@ $t('varsayılan durdurma listesi: Almanya', VESTRA_SEND_PAUSED_DEFAULT === ['Ger
 $mbs = (string)file_get_contents($root.'/inc/mailbox.php');
 $t('her mektuptan hemen önce son kontrol (hariç tutulan / durdurulan ülke) — kurulmuş parti de durur', str_contains($mbs, "if (!vestra_mailbox_still_sendable((string)\$it['leadId'], (string)\$it['email'])) {"));
 echo "\n== 8j. otomatik: günde 500'e kadar bul + kesintisiz gönder ==\n";
-$t('turlar 3 saatte bir (8 tur), find-customers.yml ile aynı', count(VESTRA_FINDER_SLOTS) === 8 && VESTRA_FINDER_SLOTS[0] === [1, 20] && VESTRA_FINDER_SLOTS[7] === [22, 20] && VESTRA_FINDER_DAILY_TARGET === 1500);
+$t('turlar 3 saatte bir (8 tur), find-customers.yml ile aynı', count(VESTRA_FINDER_SLOTS) === 8 && VESTRA_FINDER_SLOTS[0] === [1, 20] && VESTRA_FINDER_SLOTS[7] === [22, 20] && VESTRA_FINDER_DAILY_TARGET === 500);
 $fl = [];
 for ($k = 0; $k < 3; $k++) $fl[] = ['source' => 'web-search', 'owner_uid' => '', 'added_at' => date('c')];
 $fl[] = ['source' => 'web-search', 'owner_uid' => 'sellX', 'added_at' => date('c')]; $fl[] = ['source' => 'OSM', 'owner_uid' => '', 'added_at' => date('c')];

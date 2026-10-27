@@ -69,7 +69,7 @@ $fr = [
     $R('Le Gal et Cano', ['https://www.kipling.com/fr'], 'Vannes', ['cat' => 'handbag_store']),
     // hiyerarsiden SIZAN bir alt dal (sorgu fashion_accessories_store'un butun
     // alt dallarini getiriyor) -- kabul listesinde yok -> aday OLMAZ, sebebiyle elenir
-    $R('Bijouterie Or Fin', ['https://bijouterieorfin.fr'], 'Lille', ['cat' => 'jewelry_store']),
+    $R('Bijouterie Or Fin', ['https://bijouterieorfin.fr'], 'Lille', ['cat' => 'costume_store']),
     $R('Chapellerie Mercier', ['https://chapelleriemercier.fr'], 'Lille', ['cat' => 'hat_store']),
 ];
 $it = [
@@ -133,8 +133,8 @@ $t('2 kapi 2 sehir (KURAL 38: bagimsiz) -> TEK aday, branches=2',
 $t('ayni sehirde 3 kapi -> elenmez, TEK aday', isset($cand['Centre Ville Chaussures']) && $cand['Centre Ville Chaussures']['branches'] === 3);
 $t('sunucuda kayitli -> ZATEN KAYITLI', $has('Deja Connu', 'ZATEN KAYITLI'));
 $t('ortopedi dali -> hedef disi', $has('Ortho Pied', 'hedef disi'));
-$t('KABUL LISTESINDE OLMAYAN alt dal (jewelry_store) -> "hedef disi dal (jewelry_store)", aday DEGIL',
-   $has('Bijouterie Or Fin', 'hedef disi dal (jewelry_store)') && !isset($cand['Bijouterie Or Fin']));
+$t('KABUL LISTESINDE OLMAYAN alt dal (costume_store) -> "hedef disi dal (costume_store)", aday DEGIL',
+   $has('Bijouterie Or Fin', 'hedef disi dal (costume_store)') && !isset($cand['Bijouterie Or Fin']));
 $t('hedef alt dallar GECER (hat_store, handbag_store) -- ters yon',
    isset($cand['Chapellerie Mercier'], $cand['Le Gal et Cano']));
 $t('dusuk guven -> elenir', $has('Peu Sur', 'dusuk guven'));
@@ -205,7 +205,7 @@ def row(i, name, prim, hier, web, cc):
             f" [{{'locality': 'Paris', 'country': '{cc}', 'postcode': '75001'}}], 0.9, 'open')")
 S, A = "'shopping','fashion_and_apparel_store'", "'fashion_accessories_store'"
 rows = [row(1, "Chaussures Alpha", "shoe_store", f"[{S},'shoe_store']", "https://alpha-chaussures.fr", "FR"),
-        row(2, "Bijoux Beta", "jewelry_store", f"[{S},{A},'jewelry_store']", "https://bijouxbeta.fr", "FR"),
+        row(2, "Bijoux Beta", "costume_store", f"[{S},{A},'costume_store']", "https://bijouxbeta.fr", "FR"),
         row(3, "Vetements Gamma", "clothing_store", f"[{S},'clothing_store']", "https://gamma.fr", "FR"),
         row(4, "Chapeaux Delta", "hat_store", f"[{S},{A},'hat_store']", "https://chapeauxdelta.fr", "fr"),
         row(5, "Schuhhaus Epsilon", "shoe_store", f"[{S},'shoe_store']", "https://epsilon.de", "DE"),
@@ -226,9 +226,9 @@ PY;
     if ($mrc !== 0) echo $me;
     $t('SQL tek sorguda 4 yer getirdi (hedef disi dal, kucuk harfli ulke dahil; giyim + DE yok)', str_contains($mo, 'tek sorgu (ulke basina dar kutu): 4 yer'));
     $t('ulke basina kategori dagilimi GERCEK kosuda basiliyor',
-       (bool)preg_match("/FR: Overture'da 4 yer \| .*jewelry_store 1/", $mo) && str_contains($mo, 'hat_store 1') && str_contains($mo, 'orthopedic_shoe_store 1'));
+       (bool)preg_match("/FR: Overture'da 4 yer \| .*costume_store 1/", $mo) && str_contains($mo, 'hat_store 1') && str_contains($mo, 'orthopedic_shoe_store 1'));
     $t('adaylar yalniz hedef dallar: ayakkabi + sapka (kucuk harfli "fr" kaybolmadi)', $mcn === ['Chapeaux Delta', 'Chaussures Alpha']);
-    $t('hiyerarsiden SIZAN mucevher dali elendi, SEBEBIYLE', ($mdw['Bijoux Beta'] ?? '') === 'hedef disi dal (jewelry_store)');
+    $t('hiyerarsiden SIZAN kostum dali elendi, SEBEBIYLE', ($mdw['Bijoux Beta'] ?? '') === 'hedef disi dal (costume_store)');
     $t('ortopedi elendi, sebebiyle', ($mdw['Podologie Zeta'] ?? '') === 'hedef disi dal (orthopedic_shoe_store)');
     $t('hedef olmayan dal ve baska ulke sorguya HIC girmedi', !isset($mdw['Vetements Gamma']) && !isset($mdw['Schuhhaus Epsilon'])
        && !in_array('Vetements Gamma', $mcn, true) && !in_array('Schuhhaus Epsilon', $mcn, true));
@@ -366,8 +366,8 @@ $rc_[] = array_merge($mk('Sapatos Porto', 'shoe_store', 'sapatosporto.pt'), ['cc
 $rs[] = ['i' => 53, 'why' => '', 'email' => 'VAR', 'kind' => 'kendi alan adi'];
 file_put_contents("$sand/rc.json", json_encode($rc_));
 file_put_contents("$sand/rd.json", json_encode([['name' => 'X', 'cc' => 'FR', 'why' => 'ZINCIR (Overture marka eslesmesi: X)'], ['name' => 'Y', 'cc' => 'DE', 'why' => 'SITESIZ (yok)'],
-    ['name' => 'J1', 'cc' => 'FR', 'category' => 'jewelry_store', 'why' => 'hedef disi dal (jewelry_store)'],
-    ['name' => 'J2', 'cc' => 'FR', 'category' => 'jewelry_store', 'why' => 'hedef disi dal (jewelry_store)'],
+    ['name' => 'J1', 'cc' => 'FR', 'category' => 'costume_store', 'why' => 'hedef disi dal (costume_store)'],
+    ['name' => 'J2', 'cc' => 'FR', 'category' => 'costume_store', 'why' => 'hedef disi dal (costume_store)'],
     ['name' => 'O1', 'cc' => 'FR', 'category' => 'orthopedic_shoe_store', 'why' => 'hedef disi dal (orthopedic_shoe_store)']]));
 file_put_contents("$sand/rr_0.json", json_encode(array_slice($rs, 0, 30)));
 file_put_contents("$sand/rr_1.json", json_encode(array_slice($rs, 30)));
@@ -410,7 +410,7 @@ $t('izin isteyen / arastirilmamis ulkenin partisinin USTUNE uyari; FR partisinde
    && !str_contains($sec('FR'), 'UYARI:'));
 $t('uyari partiyi SAKLAMAZ (karar operatorun): IT linki yine basiliyor', str_contains($sec('IT'), 'parti 1: https://scarperoma.it'));
 $t('hedef disi dallar ALT KATEGORI basina sayiliyor (tek sayiya gomulmez)',
-   str_contains($o, 'hedef disi dallar (aday yapilmadi): jewelry_store 2, orthopedic_shoe_store 1'));
+   str_contains($o, 'hedef disi dallar (aday yapilmadi): costume_store 2, orthopedic_shoe_store 1'));
 
 echo "\n== 7. is akisi guvenligi (discover-shops.yml) ==\n";
 $wf = (string)file_get_contents($root.'/.github/workflows/discover-shops.yml');
