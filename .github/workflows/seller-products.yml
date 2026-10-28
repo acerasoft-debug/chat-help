@@ -633,6 +633,62 @@ jobs:
             rm -f /tmp/vestra_rvoid.php
             exit $RC
 
+      # İPTAL EDİLMİŞ SİPARİŞİ YENİ SON TARİHLE GERİ AÇ (28 Eki 2026, AlexaShop / O5AD1B: ödeme gelmediği için
+      # otomatik iptal, alıcıya "devam etmek ister misiniz" yazıldı, operatör: "2 ek ödeme süresi başlat").
+      # issue_ref=<sipariş/teklif ref>, payload='days=<iş günü>' ya da 'deadline=YYYY-MM-DD' [+ '|<neden>'].
+      # Durum cancelled -> pending; saat son tarih istenen günden ÖNCE bitmeyecek şekilde geriye kurulur ve
+      # "uyarı gitti" sayılır (cron ikinci "5 iş günü" mektubu yollamaz; süre geçerse yine OTOMATİK İPTAL).
+      # İptal olmayan / parası gelmiş / faturasız siparişte DURUR. Alıcıya mektup GİTMEZ. Kuru koşu varsayılan.
+      - name: İptal edilmiş siparişi geri aç (order_reinstate) — varsayılan KURU KOŞU
+        if: ${{ github.event.inputs.admin_mode == 'order_reinstate' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          RI_REF:   ${{ github.event.inputs.issue_ref }}
+          RI_SPEC:  ${{ github.event.inputs.payload }}
+          RI_APPLY: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: RI_REF,RI_SPEC,RI_APPLY
+          script: |
+            set -e
+            cat > /tmp/vestra_reinst.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/invoice.php";
+            require_once $doc."/inc/escrow.php";
+            if (!function_exists('vestra_order_reinstate')) { fwrite(STDERR, "*** DEPLOY INMEMIS -- vestra_order_reinstate() yok ***\n"); exit(1); }
+            $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('RI_REF'));
+            $dl = null; $reason = '';
+            foreach (array_map('trim', explode('|', (string)getenv('RI_SPEC'))) as $p) {
+              if (preg_match('/^deadline=(\d{4}-\d{2}-\d{2})$/', $p, $m)) $dl = strtotime($m[1].' 23:59:59 UTC');
+              elseif (preg_match('/^days=(\d{1,2})$/', $p, $m) && (int)$m[1] > 0) $dl = strtotime(gmdate('Y-m-d', vestra_business_days_after(time(), (int)$m[1])).' 23:59:59 UTC');
+              elseif ($p !== '') $reason = $p;
+            }
+            if ($ref === '' || $dl === null) { fwrite(STDERR, "issue_ref ve payload=days=<N> ya da deadline=YYYY-MM-DD gerekli\n"); exit(1); }
+            $apply = strtolower(trim((string)getenv('RI_APPLY'))) === 'true';
+            $st = (array)(vestra_read_json('order_statuses.json')[$ref] ?? []);
+            echo ($apply ? "=== UYGULAMA" : "=== KURU KOSU")." -- {$ref} ===\n";
+            echo "durum            : ".($st['status'] ?? 'pending')."\n";
+            echo "istenen son tarih: ".gmdate('D Y-m-d H:i', $dl)." UTC\n";
+            $r = vestra_order_reinstate($ref, $dl, $reason, 'operator', $apply);
+            if (!$r['ok']) { fwrite(STDERR, "DURDU: {$r['error']}\n"); exit(1); }
+            echo "son tarih        : ".gmdate('D Y-m-d H:i', (int)$r['deadline'])." UTC (gecerse OTOMATIK IPTAL)\n";
+            if (!$apply) { echo "KURU KOSU -- hicbir sey yazilmadi; move_apply=true ile uygulanir. Aliciya mektup GITMEZ.\n"; exit(0); }
+            $g = vestra_order_payment_grace((array)(vestra_read_json('order_statuses.json')[$ref] ?? []), time(), $ref);
+            echo "YAZILDI (geri okundu) | durum: pending | saat: {$g['phase']} | son ".gmdate('Y-m-d H:i', (int)$g['deadline'])." UTC | aliciya mektup GITMEDI\n";
+            PHPEOF
+            php -d display_errors=stderr -d error_reporting=-1 /tmp/vestra_reinst.php; RC=$?
+            rm -f /tmp/vestra_reinst.php
+            exit $RC
+
       # ELLE AÇILAN HESABA "ŞİFRENİ SEÇ" MEKTUBU (17 Eyl 2026).
       #
       # `create_buyer` hesabı açıyor ama şifre RASTGELE ve hiçbir yere

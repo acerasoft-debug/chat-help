@@ -13159,3 +13159,13 @@ yapılabilir, original mix ürünler"*. Son talimat fiyatı belirledi (lot fiyat
   Serdar"). Operatör: "benim adımı yazma". `vestra-photo-letter.php` artık `name_from: "order:<ref>"` alıyor (hitap o
   siparişin hesabından); konusu `[COPY]` ile başlayıp `{name}` taşıyan paket `name_from` yoksa DURUR. İki yön de
   canlı kuru koşuda ölçüldü. Kopyalarda operatörün adı ASLA geçmez.
+
+## İptal edilmiş siparişi geri açma (28 Eki 2026) — `vestra_order_reinstate`
+- AlexaShop / O5AD1B (80× SH9623, INV-2026-1036) ödeme gelmediği için 28 Eki'de OTOMATİK İPTAL oldu; operatörün metniyle
+  `order_note` (`cancelled_ok=1`) "devam etmek ister misiniz, Alman EUR hesabı gönderelim" gitti; operatör: "2 ek ödeme süresi başlat".
+- `vestra_order_reinstate($ref,$deadlineTs,$reason,$by,$apply)` (inc/orders.php): cancelled → pending, saat `receipt_void` ile aynı
+  geriye kurma (son tarih istenen günden önce bitmez), `payment_reminder_sent_at` = şimdi (cron ikinci mektup yollamaz; süre geçerse
+  yine otomatik iptal). İptal olmayan / parası gelmiş (teklif faturasının `invoice_paid_at` işareti dahil) / faturasız siparişte ve
+  geçmiş tarihte DURUR; geri okunur. Alıcıya mektup GİTMEZ.
+- İş akışı: `seller-products.yml admin_mode=order_reinstate issue_ref=<ref> payload='days=<iş günü>|<neden>'` ya da
+  `deadline=YYYY-MM-DD` (kuru koşu varsayılan, `move_apply=true` uygular). Test: `tests/order_reinstate_test.php` (16).

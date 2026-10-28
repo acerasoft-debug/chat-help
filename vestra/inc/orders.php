@@ -2904,6 +2904,56 @@ function vestra_order_payment_grace(array $statusEntry, ?int $now = null, string
 }
 
 /**
+ * Reinstate an order that was CANCELLED for non-payment, with a new payment deadline
+ * (operator, 28 Oct 2026, AlexaShop / O5AD1B: auto-cancelled, buyer asked "would you still
+ * like to proceed?", then "ek ödeme süresi başlat").
+ *
+ * The clock is set BACKWARDS the same way vestra_receipt_void() does it: the latest start
+ * whose VESTRA_ORDER_PAYMENT_GRACE_DAYS deadline is not before $deadlineTs, plus
+ * payment_reminder_sent_at = now, so the morning cron does not send a second "5 business
+ * days" letter; if nothing arrives by the deadline the cron auto-cancels again. No e-mail.
+ *
+ * Refuses: no ref, not 'cancelled', already paid, no issued invoice (the cron never runs a
+ * clock without one), deadline in the past. Read-back after writing.
+ *
+ * @return array{ok:bool,error:string,deadline:?int,was:string}
+ */
+function vestra_order_reinstate(string $ref, int $deadlineTs, string $reason, string $by = 'operator', bool $apply = true, ?int $now = null): array {
+    $now = $now ?? time();
+    $out = ['ok' => false, 'error' => '', 'deadline' => null, 'was' => ''];
+    if ($ref === '') { $out['error'] = 'ref bos'; return $out; }
+    $all = vestra_read_json('order_statuses.json');
+    $e = (array)($all[$ref] ?? []);
+    $status = (string)($e['status'] ?? 'pending');
+    $out['was'] = $status;
+    if ($status !== 'cancelled') { $out['error'] = "siparis durumu '{$status}' -- yalniz IPTAL edilmis siparis geri acilir"; return $out; }
+    if (vestra_order_payment_settled($ref, $e)['settled']) { $out['error'] = 'siparisin parasi GELMIS gorunuyor -- saat kurulmaz'; return $out; }
+    if (function_exists('vestra_invoices_for_ref') && !vestra_invoices_for_ref($ref)) { $out['error'] = 'kesilmis fatura yok -- odeme saati faturasiz islemez'; return $out; }
+    if ($deadlineTs <= $now) { $out['error'] = 'son tarih gecmiste'; return $out; }
+    if (!function_exists('vestra_business_days_after')) require_once __DIR__.'/escrow.php';
+    $n = defined('VESTRA_ORDER_PAYMENT_GRACE_DAYS') ? (int)VESTRA_ORDER_PAYMENT_GRACE_DAYS : 5;
+    $start = $deadlineTs - 14 * 86400;
+    while (vestra_business_days_after($start, $n) < $deadlineTs) $start += 3600;
+    $out['deadline'] = vestra_business_days_after($start, $n);
+    if (!$apply) { $out['ok'] = true; return $out; }
+    $e['status'] = 'pending';
+    $e['updated_at'] = date('c', $now);
+    $e['payment_grace_start'] = date('c', $start);
+    $e['payment_reminder_sent_at'] = date('c', $now);
+    $e['history'][] = vestra_order_history_entry('pending', $by, 'Reinstated after cancellation; payment deadline '
+        .gmdate('Y-m-d H:i', $out['deadline']).' UTC'.(trim($reason) !== '' ? ' ('.mb_substr(trim($reason), 0, 200).')' : ''));
+    $all[$ref] = $e;
+    vestra_write_json('order_statuses.json', $all);
+    $back = (array)(vestra_read_json('order_statuses.json')[$ref] ?? []);
+    $g = vestra_order_payment_grace($back, $now, $ref);
+    if (($back['status'] ?? '') !== 'pending' || $g['phase'] !== 'running' || (int)$g['deadline'] < $deadlineTs) {
+        $out['error'] = 'geri okuma tutmadi'; return $out;
+    }
+    $out['ok'] = true;
+    return $out;
+}
+
+/**
  * A buyer's issued-but-unpaid invoices, for the warning band on every buyer tab
  * (operator, 8 Oct 2026: "faturasini odemeyen alicilarin hesabina uyari koy").
  *
