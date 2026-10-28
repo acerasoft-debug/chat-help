@@ -13173,3 +13173,9 @@ yapılabilir, original mix ürünler"*. Son talimat fiyatı belirledi (lot fiyat
   verilebilir. DİKKAT: platformun EUR hesapları 22 Eki'de silindi (`platform_eur_clear`, Alman Banking Circle kapalı); kayıtta
   EUR rayı YOK. Vermeden önce operatörden hesap bilgisi (zarfla, `platform_bank`) alınmalı; fatura USD (INV-2026-1036), EUR
   ödeme için `invoice_reissue` EUR gerekir ve EUR rayı yokken kesim `vestra_invoice_payment_gap` ile DURUR.
+
+**KURAL 19 (devamı) — AlexaShop ↔ GARAGE LE PARIS (jcq-gros-grain-black) Marca Online'a, Fransızca "stokta yok" (28 Eki 2026).**
+Operatör: *"Marca Online dan yaz buna stokta değil de, fransızca"*. `thread_seller` `ilan:` seçimi 3 konuşma buldu ve DURDU
+(Jds.streetshop'ta eski satıcı yazmış) — yalnız `0a0e5a8f32cfeea1` taşındı → `51fcdb92ca7b4bd7` (Marca Online), yedek alındı,
+1/1 geri okundu. `msg_reply` (kuru koşu → send=true) Marca Online adına: "…cet article n’est plus en stock pour le moment…".
+İlanın `seller_uid`'ine ve stok/yayın durumuna DOKUNULMADI (ilan hâlâ GARAGE LE PARIS'te ve vitrinde).
