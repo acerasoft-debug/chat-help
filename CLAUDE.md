@@ -13148,3 +13148,14 @@ yapılabilir, original mix ürünler"*. Son talimat fiyatı belirledi (lot fiyat
   Philipp Plein, Dsquared2), 900×1600, EXIF/konum SİLİNDİ. İnternet fotoğrafı EKLENMEDİ: lot "fotoğraftaki gibi" satılıyor.
 - `add-products.yml` artık `offers: true`'yu taşıyor (önceden satır kurucusu sessizce düşürüyordu).
 - Canlı: katalog 963 → 964, satıcı hesabında geri okundu (status approved); misafire kilit paneli.
+
+## Il Mercatista ödeme güncellemesi + fotoğraflı mektupta operatör kopyası (28 Eki 2026)
+- VES-EC6D6B0D: satıcının (Garage Le Paris) iadesi bankaca "virement à risque" diye reddedildi; satıcı €11.480'i
+  27 Eki'de VESTRA'ya (Acerasoft LLC, Revolut) gönderdi. Müşteriye `send-photo-letter.yml` ile (charming-franklin
+  ref'i, `letters/pl-20261028-m*.enc`) önce İtalyanca, operatör "İngilizce" deyince İngilizce mektup gitti: Revolut
+  bildirimi + reddedilen iadenin 3 ekran görüntüsü, "bildirimleri Garage Le Paris gönderdi", "para VESTRA'ya geçer
+  geçmez ödeme alındı işaretlenir". Para henüz geçmedi (PingPong RFI açık) — siparişe ÖDENDİ YAZILMADI.
+- **Kopya hatası:** `[COPY]` paketi operatörün adresine gidince `{name}` operatörün KENDİ hesabından çözüldü ("Dear
+  Serdar"). Operatör: "benim adımı yazma". `vestra-photo-letter.php` artık `name_from: "order:<ref>"` alıyor (hitap o
+  siparişin hesabından); konusu `[COPY]` ile başlayıp `{name}` taşıyan paket `name_from` yoksa DURUR. İki yön de
+  canlı kuru koşuda ölçüldü. Kopyalarda operatörün adı ASLA geçmez.
