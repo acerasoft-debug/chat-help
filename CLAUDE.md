@@ -13169,3 +13169,7 @@ yapılabilir, original mix ürünler"*. Son talimat fiyatı belirledi (lot fiyat
   geçmiş tarihte DURUR; geri okunur. Alıcıya mektup GİTMEZ.
 - İş akışı: `seller-products.yml admin_mode=order_reinstate issue_ref=<ref> payload='days=<iş günü>|<neden>'` ya da
   `deadline=YYYY-MM-DD` (kuru koşu varsayılan, `move_apply=true` uygular). Test: `tests/order_reinstate_test.php` (16).
+- Operatör (28 Eki): *"istenilirse EUR Avrupa banka hesabı verilebilir"* — alıcı EUR ile ödemek isterse Avrupa EUR hesabı
+  verilebilir. DİKKAT: platformun EUR hesapları 22 Eki'de silindi (`platform_eur_clear`, Alman Banking Circle kapalı); kayıtta
+  EUR rayı YOK. Vermeden önce operatörden hesap bilgisi (zarfla, `platform_bank`) alınmalı; fatura USD (INV-2026-1036), EUR
+  ödeme için `invoice_reissue` EUR gerekir ve EUR rayı yokken kesim `vestra_invoice_payment_gap` ile DURUR.
