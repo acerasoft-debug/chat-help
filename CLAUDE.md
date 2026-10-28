@@ -13136,3 +13136,15 @@ Operatör: *"bu siparişi Vestradan yap USD olarak"* → *"Acerasoft tan"* (= ke
   referans = FATURA NUMARASI; taslakta (numara yok) sipariş ref kalır. Önceden kesilmiş PDF'ler eski referansı taşır.
   Sitedeki "faturada yazan referansı kullanın" cümleleri değişmedi (artık fatura numarasını gösteriyorlar).
 - Test `tests/invoice_ref_note_test.php` (26); order_letters_test'in iki referans iddiası yeni kurala çevrildi.
+
+**28 Eki 2026 — Francisco J. N. Macanas (satıcı 7d68b8778cd3884c): orijinal designer mix LOT, 4.400 €, teklife açık.**
+Operatör: *"…vestraya onun adından koyacaksın"* → *"normal marka fiyatlarından %20-30 indirim, gerçek fotolar + internetten
+daha iyi fotolar"* → 20 fotoğraf + *"düzgün sıralamayla Francisco Javier Nicolas Macanas adına 4400 eur'dan satışa sun, offer da
+yapılabilir, original mix ürünler"*. Son talimat fiyatı belirledi (lot fiyatı; yüzde indirimi uygulanmadı).
+- İlan `fjnm-designer-mix-lot-1`: brand **Designer Mix**, cat **Designer Lots** (ikisi de yeni), unit `lot`, MOQ 1, `fixed`
+  1+ → €4.400, **`offers: true`** (fiyatlı + "Make an offer"), `ships_from: ES`, `seller` görünen ad = hesap adı. 5 dil
+  (en/es/de/fr/it). İçerik açıklamada marka marka; adet BİLEREK yazılmadı (Givenchy Reverse ön/arka aynı parça mı belirsiz).
+- Fotoğraflar `vestra/uploads/fjnm-mix/01…20` (kapak Fendi manken; sonra Fendi detay/etiket, Givenchy, Balenciaga,
+  Philipp Plein, Dsquared2), 900×1600, EXIF/konum SİLİNDİ. İnternet fotoğrafı EKLENMEDİ: lot "fotoğraftaki gibi" satılıyor.
+- `add-products.yml` artık `offers: true`'yu taşıyor (önceden satır kurucusu sessizce düşürüyordu).
+- Canlı: katalog 963 → 964, satıcı hesabında geri okundu (status approved); misafire kilit paneli.
