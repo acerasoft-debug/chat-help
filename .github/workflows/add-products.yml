@@ -242,6 +242,10 @@ jobs:
               if (!empty($r['desc'])  && is_string($r['desc']))  $row['desc']  = trim($r['desc']);
               if (!empty($r['colors']) && is_array($r['colors'])) $row['colors'] = array_values(array_filter($r['colors'],'is_string'));
               if (!empty($r['pinned'])) $row['pinned'] = true;
+              /* Fiyatli ilan PAZARLIGA da acik (vestra_offers_accepted: mode='offer' ya da 'offers').
+                 28 Eki 2026, Francisco'nun designer lot'u: "4400 eur dan satisa sun, offer da yapilabilir".
+                 Yalniz gercek true; bu satir olmadan bayrak sessizce duserdi. */
+              if (($r['offers'] ?? null) === true) $row['offers'] = true;
               if (isset($r['size_step']) && is_numeric($r['size_step']) && (int)$r['size_step'] > 1) $row['size_step'] = (int)$r['size_step'];
               if (isset($r['min_colors']) && is_numeric($r['min_colors']) && (int)$r['min_colors'] >= 1) $row['min_colors'] = (int)$r['min_colors'];
               /* GERCEK STOK (inc/stock.php: vestra_stock_real). Tedarikci listesi

@@ -1,0 +1,58 @@
+[
+ {
+  "id": "fjnm-designer-mix-lot-1",
+  "brand": "Designer Mix",
+  "name": "Original Lot — Givenchy, Fendi, Philipp Plein, Dsquared2, Balenciaga",
+  "cat": "Designer Lots",
+  "sku": "FJNM-MIX-001",
+  "list": 4400,
+  "moq": 1,
+  "unit": "lot",
+  "mode": "fixed",
+  "tiers": [
+   {
+    "min": 1,
+    "price": 4400
+   }
+  ],
+  "offers": true,
+  "images": [
+   "/uploads/fjnm-mix/01-fendi-ff-embroidered-tshirt-black.jpg",
+   "/uploads/fjnm-mix/02-fendi-tshirt-embroidery.jpg",
+   "/uploads/fjnm-mix/03-fendi-tshirt-embroidery-detail.jpg",
+   "/uploads/fjnm-mix/04-fendi-tshirt-neck-label.jpg",
+   "/uploads/fjnm-mix/05-fendi-tshirt-care-label-fy1144.jpg",
+   "/uploads/fjnm-mix/06-fendi-tshirt-tag-fy1144-am7n.jpg",
+   "/uploads/fjnm-mix/07-givenchy-college-logo-hoodie-black.jpg",
+   "/uploads/fjnm-mix/08-givenchy-reverse-hoodie-front.jpg",
+   "/uploads/fjnm-mix/09-givenchy-reverse-hoodie-back.jpg",
+   "/uploads/fjnm-mix/10-givenchy-hoodie-bmj06u30af.jpg",
+   "/uploads/fjnm-mix/11-balenciaga-symbolic-hoodie-white.jpg",
+   "/uploads/fjnm-mix/12-philipp-plein-leopard-biker-jacket.jpg",
+   "/uploads/fjnm-mix/13-philipp-plein-leopard-jacket-detail.jpg",
+   "/uploads/fjnm-mix/14-philipp-plein-graffiti-bomber-white.jpg",
+   "/uploads/fjnm-mix/15-philipp-plein-skull-crystal-tshirt.jpg",
+   "/uploads/fjnm-mix/16-philipp-plein-platinum-cut-crystal-tshirt.jpg",
+   "/uploads/fjnm-mix/17-philipp-plein-scarface-tshirt.jpg",
+   "/uploads/fjnm-mix/18-philipp-plein-hexagon-tshirt-grey.jpg",
+   "/uploads/fjnm-mix/19-dsquared2-jeans-blue.jpg",
+   "/uploads/fjnm-mix/20-dsquared2-jeans-black.jpg"
+  ],
+  "desc": "Original designer mix lot, sold as one lot exactly as photographed. Most pieces are new with original tags. Fendi: FF-logo embroidered T-shirt, black (FY1144 AM7N), size S, made in Italy. Givenchy: college-logo hoodie; Reverse logo hoodie; signature-print hoodie BMJ06U30AF, size S. Balenciaga: Symbolic logo hoodie, white. Philipp Plein: leopard-print biker jacket with chain trim; graffiti-print bomber, white; Platinum Cut crystal T-shirts (S20C MTK4333, size L); Scarface T-shirt, size S; grey hexagon-logo T-shirt. Dsquared2: distressed dark-blue jeans; black/grey jeans. The lot price covers every item and offers are welcome. Ships from Spain. Sizes not visible on the labels are available on request.",
+  "desc_i18n": {
+   "es": "Lote mixto de diseñador original, se vende como un solo lote tal como aparece en las fotos. La mayoría de las prendas son nuevas con etiquetas originales. Contenido: Fendi (camiseta con logo FF bordado, negra, FY1144 AM7N, talla S, hecha en Italia); Givenchy (sudadera con capucha logo college, sudadera Reverse, sudadera BMJ06U30AF talla S); Balenciaga (sudadera Symbolic, blanca); Philipp Plein (chaqueta biker leopardo con cadenas, bomber estampado graffiti, camisetas Platinum Cut con cristales, camiseta Scarface talla S, camiseta logo hexágono gris); Dsquared2 (vaqueros azul desgastado, vaqueros negro/gris). El precio del lote incluye todas las prendas. Se aceptan ofertas. Envío desde España. Tallas no visibles en las etiquetas, bajo petición.",
+   "de": "Original Designer-Mix-Posten, wird als ein Posten genau wie fotografiert verkauft. Die meisten Teile sind neu mit Originaletiketten. Inhalt: Fendi (T-Shirt mit FF-Logo-Stickerei, schwarz, FY1144 AM7N, Gr. S, Made in Italy); Givenchy (College-Logo-Hoodie, Reverse-Hoodie, Hoodie BMJ06U30AF Gr. S); Balenciaga (Symbolic-Hoodie, weiß); Philipp Plein (Leoparden-Bikerjacke mit Ketten, Graffiti-Bomber, Platinum-Cut-T-Shirts mit Kristallen, Scarface-T-Shirt Gr. S, graues Hexagon-Logo-T-Shirt); Dsquared2 (Jeans dunkelblau used, Jeans schwarz/grau). Der Postenpreis umfasst alle Teile. Angebote willkommen. Versand aus Spanien. Größen, die auf den Etiketten nicht sichtbar sind, auf Anfrage.",
+   "fr": "Lot mixte de créateurs, original, vendu en un seul lot tel que photographié. La plupart des pièces sont neuves avec étiquettes d’origine. Contenu : Fendi (T-shirt logo FF brodé, noir, FY1144 AM7N, taille S, fabriqué en Italie) ; Givenchy (sweat à capuche logo college, sweat Reverse, sweat BMJ06U30AF taille S) ; Balenciaga (sweat Symbolic, blanc) ; Philipp Plein (veste biker léopard à chaînes, bomber imprimé graffiti, T-shirts Platinum Cut à cristaux, T-shirt Scarface taille S, T-shirt logo hexagone gris) ; Dsquared2 (jean bleu délavé, jean noir/gris). Le prix du lot couvre toutes les pièces. Offres bienvenues. Expédition depuis l’Espagne. Tailles non visibles sur les étiquettes sur demande.",
+   "it": "Lotto misto di stilisti originale, venduto come unico lotto esattamente come in foto. La maggior parte dei capi è nuova con etichette originali. Contenuto: Fendi (T-shirt con logo FF ricamato, nera, FY1144 AM7N, taglia S, made in Italy); Givenchy (felpa con cappuccio logo college, felpa Reverse, felpa BMJ06U30AF taglia S); Balenciaga (felpa Symbolic, bianca); Philipp Plein (giacca biker leopardata con catene, bomber stampa graffiti, T-shirt Platinum Cut con cristalli, T-shirt Scarface taglia S, T-shirt logo esagono grigia); Dsquared2 (jeans blu effetto vissuto, jeans nero/grigio). Il prezzo del lotto comprende tutti i capi. Offerte benvenute. Spedizione dalla Spagna. Taglie non visibili sulle etichette su richiesta."
+  },
+  "name_i18n": {
+   "es": "Lote original — Givenchy, Fendi, Philipp Plein, Dsquared2, Balenciaga",
+   "de": "Original-Posten — Givenchy, Fendi, Philipp Plein, Dsquared2, Balenciaga",
+   "fr": "Lot original — Givenchy, Fendi, Philipp Plein, Dsquared2, Balenciaga",
+   "it": "Lotto originale — Givenchy, Fendi, Philipp Plein, Dsquared2, Balenciaga"
+  },
+  "ships_from": "ES",
+  "seller_uid": "7d68b8778cd3884c",
+  "seller": "Francisco Javier Nicolas Macanas"
+ }
+]
