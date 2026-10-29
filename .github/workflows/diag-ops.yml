@@ -20,3 +20,6 @@ jobs:
             php -r 'require "inc/products.php"; require_once "inc/finder.php"; $t=vestra_finder_gh_token(); echo "gh_token: ".($t===""?"YOK":"var (".strlen($t)." karakter)")." · repo ".vestra_finder_repo()."\n"; echo "ops_tick.json: ".json_encode(vestra_read_json("ops_tick.json"))."\n"; echo "finder_runs via: ".json_encode(array_slice(array_map(fn($r)=>[$r["requested_at"]??"",$r["via"]??"",$r["status"]??""], vestra_finder_runs()),0,4))."\n";'
             echo "== cron satiri =="; crontab -l 2>/dev/null | grep -i "cron_mailbox" | sed 's/[A-Za-z0-9_]\{30,\}/***/g'
             for L in ~/vestra_sweep.log ~/public_html/data/vestra_sweep.log; do [ -f "$L" ] && { echo "== $L (ops/finder/hata, son 25) =="; grep -a "\[ops\|\[finder\|Fatal\|Warning" "$L" | tail -25; }; done
+            # 29 Eki 2026: gönderim hataları (adresler kütükte zaten maskeli: vestra_mailbox_mask) ve bellek / ölümcül hatalar
+            for L in ~/vestra_sweep.log ~/public_html/data/vestra_sweep.log; do [ -f "$L" ] && { echo "== $L (mailbox: istek/bitti/hata, son 40) =="; grep -a "\[mailbox\|^  x \[\|Fatal\|memory\|Allowed memory" "$L" | sed -E 's/[A-Za-z0-9._%+-]{2,}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/***@***/g' | tail -40; }; done
+            php -r 'echo "php cli memory_limit: ".ini_get("memory_limit")."\n";'
