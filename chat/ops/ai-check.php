@@ -13,7 +13,7 @@ require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 echo "ChatHelp — ai-check  (".date('c').")\n\n";
 echo "=== 1) Anahtarlar / zincir ===\n";
-foreach (['CLAUDE_KEY','CLAUDE_MODEL','DEEPSEEK_KEY','CH_DEEPSEEK_CN_FALLBACK','DEEPSEEK_EU_KEY','DEEPSEEK_EU_URL','TWILIO_AUTH_TOKEN','TWILIO_VOICE','BREVO_KEY','MAIL_FROM'] as $k) echo "  $k: ".(defined($k) ? (constant($k) ? 'VAR ('.strlen((string)constant($k)).' Zeichen)' : 'leer') : 'yok')."\n";
+foreach (['CLAUDE_KEY','CLAUDE_MODEL','DEEPSEEK_KEY','CH_DEEPSEEK_CN_FALLBACK','CH_AI_PRIMARY','DEEPSEEK_EU_KEY','DEEPSEEK_EU_URL','TWILIO_AUTH_TOKEN','TWILIO_VOICE','BREVO_KEY','MAIL_FROM'] as $k) echo "  $k: ".(defined($k) ? (constant($k) ? 'VAR ('.strlen((string)constant($k)).' Zeichen)' : 'leer') : 'yok')."\n";
 echo "  Modeller: ".implode(' → ', th_ai_models())."\n";
 foreach ([__DIR__.'/.ai_model.json', sys_get_temp_dir().'/ch_ai_model.json'] as $f) echo "  Önbellek $f: ".(is_file($f) ? file_get_contents($f) : 'yok')." (dizin yazılabilir: ".(is_writable(dirname($f))?'evet':'HAYIR').")\n";
 

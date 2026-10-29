@@ -445,9 +445,13 @@ function th_ai_eco(?bool $on=null): bool { if($on!==null) $GLOBALS['__th_ai_eco'
  * Achtung Datenschutz: dann laufen auch Telefon/WhatsApp/Buchungen über DeepSeek (China), solange Claude nicht antwortet.
  */
 function th_ai_cn_fallback_ok(): bool {
-    if(!defined('DEEPSEEK_KEY') || !DEEPSEEK_KEY || !defined('CH_DEEPSEEK_CN_FALLBACK')) return false;
+    if(!defined('DEEPSEEK_KEY') || !DEEPSEEK_KEY) return false;
+    if(th_ai_primary()==='deepseek') return true;   // DeepSeek zuerst = ausdrückliche Freigabe
+    if(!defined('CH_DEEPSEEK_CN_FALLBACK')) return false;
     $v=CH_DEEPSEEK_CN_FALLBACK; return $v===true || $v===1 || $v==='1' || $v==='true' || $v==='on';
 }
+/** Reihenfolge der Plattform-Anbieter: CH_AI_PRIMARY='deepseek' (db.php oder keybox) → DeepSeek zuerst (günstiger), Claude als Ersatz; sonst Claude zuerst. */
+function th_ai_primary(): string { return (defined('CH_AI_PRIMARY') && strtolower(trim((string)CH_AI_PRIMARY))==='deepseek' && defined('DEEPSEEK_KEY') && DEEPSEEK_KEY) ? 'deepseek' : 'claude'; }
 function th_ai_cn_route(): array {
     $c=defined('BL_BYOK_PROVIDERS') ? BL_BYOK_PROVIDERS['deepseek'] : ['url'=>'https://api.deepseek.com/anthropic/v1/messages','model'=>'deepseek-chat','extra'=>[]];
     return ['provider'=>'deepseek','url'=>$c['url'],'key'=>(string)DEEPSEEK_KEY,'models'=>array_values(array_unique([(string)$c['model'],'deepseek-chat'])),'byok'=>false,'extra'=>(array)$c['extra']];
@@ -550,6 +554,15 @@ function th_ai_route(array $route, string $system, array $msgs, ?array $tools, ?
         $blocks=array_map(fn($b)=>is_array($b) && ($b['type'] ?? '')==='tool_use' ? ['input'=>(object)(is_array($b['input'] ?? null) ? $b['input'] : [])]+$b : $b,(array)$resp['content']);
         $msgs[]=['role'=>'assistant','content'=>$blocks]; $msgs[]=['role'=>'user','content'=>$results];
     }
+    /* Runden aufgebraucht, aber Werkzeuge haben etwas erledigt (Bestellung, Buchung …) und es gibt noch keinen Text: eine letzte Runde ohne weitere
+       Werkzeugaufrufe (tool_choice none), damit der Kunde eine Bestätigung bekommt statt „technisches Problem“. */
+    if($tools && $st['ran'] && trim($text)==='' && $model){
+        $pl=['model'=>$model,'max_tokens'=>$maxTokens,'system'=>$sysOut,'messages'=>$msgs,'tools'=>$tools,'tool_choice'=>['type'=>'none']]+(array)($route['extra'] ?? []);
+        [$code,$r,$cerr]=th_ai_http((string)$route['url'],$hdr,$pl,$timeout);
+        if($code===200 && is_array($r)){ if(is_array($r['usage'] ?? null) && function_exists('bl_usage_norm')) foreach(bl_usage_norm($r['usage']) as $k=>$v) $st['usage'][$k]+=$v;
+            foreach((array)($r['content'] ?? []) as $blk) if(is_array($blk) && ($blk['type'] ?? 'text')==='text') $text.=(string)($blk['text'] ?? ''); }
+        else $st['errors'][]=$route['provider'].'/'.$model.': Abschlussrunde '.($code ?: 'curl').' '.mb_substr((string)($r['error']['message'] ?? $cerr),0,100);
+    }
     return trim($text)!=='' ? $text : null;
 }
 /**
@@ -598,24 +611,25 @@ function th_ai_run(string $system, array $msgs, ?array $tools, ?callable $exec, 
         }
         $info['byok_fallback']=true;
     }
-    /* 2) Plattform-Claude */
-    if(defined('CLAUDE_KEY') && CLAUDE_KEY){
+    /* 2) + 3) Plattform-Anbieter – Reihenfolge nach CH_AI_PRIMARY: DeepSeek zuerst (günstiger; api.deepseek.com, Anthropic-kompatibel, Werkzeuge wie bei Claude)
+          oder Claude zuerst mit DeepSeek nur als freigegebenem Ersatz (th_ai_cn_fallback_ok). Ein Weg, auf dem Werkzeuge schon etwas ausgeführt haben, gibt sofort zurück. */
+    $claude=function() use(&$info,$system,$msgs,$tools,$exec,$maxTokens,$timeout,$maxRounds,$done){
+        if(!defined('CLAUDE_KEY') || !CLAUDE_KEY) return false;
         $cacheF = is_writable(__DIR__) ? __DIR__.'/.ai_model.json' : sys_get_temp_dir().'/ch_ai_model.json';
         $models=th_ai_models(); $cached=@json_decode((string)@file_get_contents($cacheF),true);
         if(!empty($cached['model']) && (time()-(int)($cached['t'] ?? 0))<21600 && in_array($cached['model'],$models,true)) $models=array_values(array_unique(array_merge([$cached['model']],$models)));
         $rt=['provider'=>'claude','url'=>'https://api.anthropic.com/v1/messages','key'=>(string)CLAUDE_KEY,'models'=>$models,'byok'=>false,'extra'=>[]];
         $st=[]; $txt=th_ai_route($rt,$system,$msgs,$tools,$exec,$maxTokens,$timeout,$maxRounds,$st);
-        if($txt!==null || $st['ran']){ if($st['model'] && ($cached['model'] ?? null)!==$st['model']) @file_put_contents($cacheF,json_encode(['model'=>$st['model'],'t'=>time()])); return $done($txt,$st,$rt); }
-        $info['errors']=array_merge($info['errors'],$st['errors']);
-        if($tools && !th_ai_cn_fallback_ok()){ $GLOBALS['__th_ai_info']=$info; return null; }   // Werkzeug-Gespräche nie ohne Werkzeuge fortsetzen
-    }
-    /* 3) Plattform-DeepSeek über api.deepseek.com (China, Anthropic-kompatibel, Werkzeuge wie bei Claude): nur mit ausdrücklicher Freigabe (th_ai_cn_fallback_ok) –
-          sonst kein Ersatz außerhalb der EU. Werkzeuge haben bis hierher nie etwas ausgeführt (sonst wäre oben zurückgegeben worden). */
-    if(th_ai_cn_fallback_ok()){
+        if($txt!==null || $st['ran']){ if($st['model'] && ($cached['model'] ?? null)!==$st['model']) @file_put_contents($cacheF,json_encode(['model'=>$st['model'],'t'=>time()])); return [$done($txt,$st,$rt)]; }
+        $info['errors']=array_merge($info['errors'],$st['errors']); return false;
+    };
+    $deepseek=function() use(&$info,$system,$msgs,$tools,$exec,$maxTokens,$timeout,$maxRounds,$done){
+        if(!th_ai_cn_fallback_ok()) return false;
         $rt=th_ai_cn_route(); $st=[]; $txt=th_ai_route($rt,$system,$msgs,$tools,$exec,$maxTokens,$timeout,$maxRounds,$st);
-        if($txt!==null || $st['ran']) return $done($txt,$st,$rt);
-        $info['errors']=array_merge($info['errors'],$st['errors']);
-    }
+        if($txt!==null || $st['ran']) return [$done($txt,$st,$rt)];
+        $info['errors']=array_merge($info['errors'],$st['errors']); return false;
+    };
+    foreach(th_ai_primary()==='deepseek' ? [$deepseek,$claude] : [$claude,$deepseek] as $try){ $r=$try(); if(is_array($r)) return $r[0]; }
     $GLOBALS['__th_ai_info']=$info; error_log('CH th_ai: '.json_encode($info['errors']));
     return null;
 }

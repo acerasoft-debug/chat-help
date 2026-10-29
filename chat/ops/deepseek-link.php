@@ -5,12 +5,14 @@
  * Der Schlüssel verlässt den Server nie; ausgegeben werden nur Länge, Präfix und ein Hash-Kürzel.
  *   (ohne args)          suchen + prüfen, nichts schreiben
  *   {"apply":"1"}        speichern + Freigabe an, danach th_ai()-Probe (Claude → DeepSeek)
+ *   {"primary":"deepseek"|"claude"}  Reihenfolge der Plattform-Anbieter setzen (CH_AI_PRIMARY; deepseek = günstiger zuerst, Claude als Ersatz) + Probe
  *   {"off":"1"}          Freigabe aus (Schlüssel bleibt gespeichert) · {"remove":"1"} Schlüssel + Freigabe entfernen
  */
 header('Content-Type: text/plain; charset=UTF-8');
 @set_time_limit(120);
 if(PHP_SAPI!=='cli'){ http_response_code(404); exit; }
 $CHAT=__DIR__; $KEYS=$CHAT.'/tts-keys.php'; $apply=($_GET['apply'] ?? '')==='1'; $off=($_GET['off'] ?? '')==='1'; $remove=($_GET['remove'] ?? '')==='1';
+$primary=in_array($_GET['primary'] ?? '',['deepseek','claude'],true) ? (string)$_GET['primary'] : '';
 echo "ChatHelp — deepseek-link (".gmdate('c').")\n";
 $load=function() use($KEYS){ if(!is_file($KEYS)) return []; $a=@include $KEYS; return is_array($a) ? $a : []; };
 $save=function(array $k) use($KEYS,$CHAT){ ksort($k); $m=@fileperms($CHAT.'/db.php'); $mode=$m ? ($m & 0777) : 0600; $tmp=$KEYS.'.tmp'.bin2hex(random_bytes(3));
@@ -20,8 +22,19 @@ $tag=fn(string $k)=>substr($k,0,3).'…('.strlen($k).' Zeichen, #'.substr(hash('
 $stored=$load();
 echo "tts-keys.php jetzt: ".(implode(', ',array_keys($stored)) ?: '(leer)')."\n";
 if($off || $remove){
-    if($remove) unset($stored['DEEPSEEK_KEY']); unset($stored['CH_DEEPSEEK_CN_FALLBACK']);
+    if($remove) unset($stored['DEEPSEEK_KEY']); unset($stored['CH_DEEPSEEK_CN_FALLBACK'],$stored['CH_AI_PRIMARY']);
     echo ($save($stored) ? 'gespeichert' : 'FEHLER beim Schreiben').": ".(implode(', ',array_keys($stored)) ?: '(leer)')."\n"; echo "FERTIG\n"; exit;
+}
+if($primary!==''){
+    if($primary==='deepseek' && empty($stored['DEEPSEEK_KEY'])){ echo "Erst den Schlüssel speichern ({\"apply\":\"1\"}).\nFERTIG\n"; exit(1); }
+    if($primary==='deepseek') $stored['CH_AI_PRIMARY']='deepseek'; else unset($stored['CH_AI_PRIMARY']);
+    echo ($save($stored) ? 'gespeichert' : 'FEHLER beim Schreiben').": ".implode(', ',array_keys($stored))."\n";
+    require_once $CHAT.'/tokens-lib.php'; require_once $CHAT.'/plans.php';
+    echo "Reihenfolge jetzt: ".(th_ai_primary()==='deepseek' ? 'DeepSeek → Claude' : 'Claude → DeepSeek'.(th_ai_cn_fallback_ok() ? '' : ' (DeepSeek-Ersatz AUS)'))."\n";
+    $t=microtime(true); $r=th_ai('Antworte nur mit dem Wort OK.',[['role'=>'user','content'=>'Hallo']],20,40); $i=th_ai_info();
+    echo "th_ai(): ".var_export($r,true)." (".sprintf('%.2f',microtime(true)-$t)."s) · Anbieter ".($i['provider'] ?? '–')." · Modell ".($i['model'] ?? '–')."\n";
+    if($i['errors'] ?? []) echo "  Kette: ".implode(' | ',array_map(fn($e)=>mb_substr($e,0,70),$i['errors']))."\n";
+    echo "FERTIG\n"; exit;
 }
 /* 1) Kandidaten der Recht-App */
 $files=array_unique(array_filter(array_merge(
