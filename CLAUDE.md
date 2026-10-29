@@ -13179,3 +13179,12 @@ Operatör: *"Marca Online dan yaz buna stokta değil de, fransızca"*. `thread_s
 (Jds.streetshop'ta eski satıcı yazmış) — yalnız `0a0e5a8f32cfeea1` taşındı → `51fcdb92ca7b4bd7` (Marca Online), yedek alındı,
 1/1 geri okundu. `msg_reply` (kuru koşu → send=true) Marca Online adına: "…cet article n’est plus en stock pour le moment…".
 İlanın `seller_uid`'ine ve stok/yayın durumuna DOKUNULMADI (ilan hâlâ GARAGE LE PARIS'te ve vitrinde).
+
+## Katalog kart efekti kaldırıldı (29 Eki 2026)
+- Operatör: *"catalogtaki ürünlerin kartı açılıp kapanmasını yani animasyonu ya da efekti kaldırabilirsin"*. `shop.php`'den
+  14 Eki "katalog hareket sahnesi"nin KART kısmı çıktı: marka-kartı perdesi (`.scurt` + `#bcardtpl` şablonu), kartın dalga
+  hâlinde yükselmesi (`.in/.open/.done`), fotoğrafın bulanıktan netleşmesi, yazının satır satır açılması, filtre değişince
+  dalganın yeniden oynaması ve masaüstü 3B eğim + ışık yansıması (`.tilt/.sglare`). Kartlar ilk çizimden son hâlinde.
+- KALDI: başlık kelime animasyonu, marka şeridi girişi, kaydırma ilerleme çizgisi (`.scprog`), kartın normal hover'ı
+  (gölge/çerçeve, marka alt çizgisi) ve dokunmatikte ikinci fotoğrafa geçiş (`sreveal`). Yerel çizimde 24 kart opacity 1,
+  transform none, filter none, konsol hatası 0 (masaüstü + mobil).
