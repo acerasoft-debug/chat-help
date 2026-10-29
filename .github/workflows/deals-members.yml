@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "dry | send | status | stop"
+        description: "dry | send | brevo (Brevo API'den) | status | stop"
         required: true
         default: "dry"
       limit:
@@ -43,9 +43,12 @@ jobs:
               send)   if alive; then echo "zaten calisiyor"; tail -n 5 "$L"; exit 0; fi
                       nohup php cli_deals_members.php send "${N:-500}" "$X" > "$L" 2>&1 < /dev/null & echo $! > "$P"
                       sleep 25; echo "arka planda basladi"; head -n 12 "$L"; echo ...; tail -n 3 "$L" ;;
+              brevo)  if alive; then echo "zaten calisiyor"; tail -n 5 "$L"; exit 0; fi   # 29 Eki 2026: aynı seçim, Brevo API'den
+                      nohup php -d memory_limit=1024M cli_deals_members.php brevo "${N:-500}" "$X" > "$L" 2>&1 < /dev/null & echo $! > "$P"
+                      sleep 40; echo "arka planda basladi (Brevo)"; head -n 14 "$L"; echo ...; tail -n 3 "$L" ;;
               status) alive && echo "DURUM: suruyor" || echo "DURUM: bitti/calismiyor"
                       head -n 12 "$L" 2>/dev/null; echo ...; tail -n 8 "$L" 2>/dev/null
                       echo "gonderilen: $(grep -c '^  ok' "$L" 2>/dev/null) · hata: $(grep -c '^  HATA' "$L" 2>/dev/null)" ;;
               stop)   if alive; then kill "$(cat "$P")" && echo "DURDURULDU"; else echo "calismiyor"; fi; tail -n 3 "$L" 2>/dev/null ;;
-              *) echo "mode: dry|send|status|stop"; exit 1 ;;
+              *) echo "mode: dry|send|brevo|status|stop"; exit 1 ;;
             esac
