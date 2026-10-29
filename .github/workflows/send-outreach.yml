@@ -1668,6 +1668,6 @@ jobs:
             # Cikis kodu ONCE yakalanir: `php; rm` sirali halinde rm'nin sifiri
             # PHP fatal'ini ortuyordu -- uye kipinin ilk kosusu tam boyle "yesil"
             # bitti. inspect-products ayni tuzagi zaten boyle cozmustu.
-            php /tmp/vestra_send_outreach.php; RC=$?
+            php -d memory_limit=1024M /tmp/vestra_send_outreach.php; RC=$?   # 29 Eki 2026: 15k lead ile 128 MB yetmedi (255)
             rm -f /tmp/vestra_send_outreach.php
             exit $RC
