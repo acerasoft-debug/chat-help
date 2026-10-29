@@ -15,6 +15,9 @@
  */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 @set_time_limit(0);
+/* 29 Eki 2026: CLI bellek sınırı 128 MB; lead listesi ~15 000 kayda çıkınca takip (indirim) partisi hedef seçerken çöktü
+   (09:00, 11:10, 13:20 partileri "running" kaldı, 0 mektup). */
+@ini_set('memory_limit', '1024M');
 require_once __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/leads.php';
 require_once __DIR__.'/inc/notify.php';
