@@ -83,4 +83,4 @@ jobs:
             echo "Brevo kalan gunluk kota: ".var_export(vestra_mail_credits_left(), true)."\n";
             echo "son istekler:\n"; foreach (array_slice(vestra_mailbox_runs(), -8) as $r) echo "  ".($r['id'] ?? '')." ".($r['mode'] ?? '')." ".($r['status'] ?? '')." limit ".($r['limit'] ?? '')." gonderildi ".($r['sent'] ?? '-')." · ".mb_substr((string)($r['note'] ?? ''), 0, 60)."\n";
             PHPEOF
-            php ~/vestra_tmp/df.php; rc=$?; rm -f ~/vestra_tmp/df.php; exit $rc
+            php -d memory_limit=1024M ~/vestra_tmp/df.php; rc=$?; rm -f ~/vestra_tmp/df.php; exit $rc
