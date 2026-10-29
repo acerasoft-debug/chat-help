@@ -9,13 +9,16 @@
  * (exclude: firma/ad/e-posta parçası, virgülle) ve operatörün kendi adresi değil, bu kampanyayı daha önce almamış (KEY).
  * Her gönderimden ÖNCE sunucunun günlük kalan hakkına bakar (vestra_mailbox_left_today; bu mektuplar member_outbox.json ile
  * o sayaca girer) -- süren indirim partisiyle birlikte 500'ü aşmaz. Kütüğe adres MASKELİ.
- * Kullanım: php cli_deals_members.php dry|send <limit> <exclude>
+ * Kullanım: php cli_deals_members.php dry|send|brevo <limit> <exclude>
+ * brevo (29 Eki 2026, operatör: "41 kişiyi şimdi Brevo'dan gönder" — sunucunun posta servisi o gün reddediyordu): aynı seçim ve
+ * mektup, Brevo API'den (vestra_send_mail); Brevo'nun günlük kalanından BREVO_RESERVE işlem postası (sipariş/fatura) için kalır.
  */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 chdir(__DIR__);
 require __DIR__.'/inc/products.php'; require_once __DIR__.'/inc/auth.php'; require_once __DIR__.'/inc/notify.php';
 require_once __DIR__.'/inc/mailbox.php'; require_once __DIR__.'/inc/campaign_deals.php'; require_once __DIR__.'/inc/finder.php';
 const KEY = 'deals-members-20261022';
+const BREVO_RESERVE = 5;
 $mode = $argv[1] ?? 'dry'; $limit = max(1, (int)($argv[2] ?? 500));
 $excl = array_values(array_filter(array_map(fn($x) => mb_strtolower(trim($x)), explode(',', (string)($argv[3] ?? '')))));
 $mask = fn(string $e) => preg_replace('/^(.).*(@.*)$/', '$1***$2', $e);
@@ -44,21 +47,26 @@ foreach ($skip as $w => $n) echo "  elendi: {$w} = {$n}\n";
 $byLang = []; foreach ($sel as $a) { $lg = vestra_finder_lead_lang(['country' => (string)($a['country'] ?? ''), 'company' => (string)($a['company'] ?? '')]); $byLang[$lg] = ($byLang[$lg] ?? 0) + 1; }
 echo "  dil: ".json_encode($byLang)."\n";
 echo "  sunucu bugun kalan hak: ".vestra_mailbox_left_today()."\n";
-if ($mode !== 'send') { echo "KURU KOSU -- hicbir sey gonderilmedi\n"; exit(0); }
+if ($mode !== 'send' && $mode !== 'brevo') { echo "KURU KOSU -- hicbir sey gonderilmedi\n"; exit(0); }
+$viaBrevo = $mode === 'brevo';
+$credits = $viaBrevo ? vestra_mail_credits_left() : null;
+if ($viaBrevo) echo "  yol: Brevo · kalan gunluk kredi: ".($credits === null ? 'bilinmiyor' : $credits)." · islem postasina ayrilan: ".BREVO_RESERVE."\n";
 $sent = 0; $fail = 0;
 foreach ($sel as $a) {
   if ($sent >= $limit) break;
-  if (vestra_mailbox_left_today() <= 0) { echo "DUR: sunucunun bugunku hakki doldu\n"; break; }
+  if ($viaBrevo && $credits !== null && $credits - $sent - $fail <= BREVO_RESERVE) { echo "DUR: Brevo'nun bugunku kredisi doldu (".BREVO_RESERVE." islem postasina ayrildi) -- kalanlar yarin\n"; break; }
+  if (!$viaBrevo && vestra_mailbox_left_today() <= 0) { echo "DUR: sunucunun bugunku hakki doldu\n"; break; }
   $e = strtolower(trim((string)$a['email']));
   $lg = vestra_finder_lead_lang(['country' => (string)($a['country'] ?? ''), 'company' => (string)($a['company'] ?? '')]);
   [$subj, $body, $opts] = vestra_campaign_deals(trim((string)($a['company'] ?? '')), $lg, $pick, true);
   if ($subj === '') { echo "DUR: indirimli urun yok\n"; break; }
   $it = ['email' => $e, 'subject' => $subj, 'text' => vestra_mail_text_part($body, (array)$opts), 'html' => vestra_html_email($body, '', (array)$opts)];
-  [$ok, $mid, $why] = vestra_mailbox_send_local($it, 'VESTRA');
-  $log[] = ['key' => KEY, 'email' => $e, 'lang' => $lg, 'status' => $ok ? 'sent' : 'failed', 'at' => date('c'), 'note' => $why];
+  if ($viaBrevo) { $ok = (bool)vestra_send_mail($e, $subj, $body, 'support@vestrasales.com', 'VESTRA', null, '', (array)$opts); $why = $ok ? '' : (string)($GLOBALS['vestra_api_last_error'] ?? 'Brevo kabul etmedi'); }
+  else [$ok, $mid, $why] = vestra_mailbox_send_local($it, 'VESTRA');
+  $log[] = ['key' => KEY, 'email' => $e, 'lang' => $lg, 'status' => $ok ? 'sent' : 'failed', 'at' => date('c'), 'note' => $why, 'via' => $viaBrevo ? 'brevo' : 'server'];
   file_put_contents($of, json_encode(array_values($log), JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), LOCK_EX); @chmod($of, 0600);
   echo ($ok ? '  ok   ' : '  HATA ').$mask($e)." [{$lg}]".($ok ? '' : " ({$why})")."\n";
   $ok ? $sent++ : $fail++;
-  sleep(random_int(8, 11));
+  sleep($viaBrevo ? 2 : random_int(8, 11));
 }
 echo "BITTI: gonderildi {$sent} · hata {$fail} · sunucu bugun kalan: ".vestra_mailbox_left_today()."\n";

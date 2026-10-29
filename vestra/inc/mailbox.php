@@ -118,7 +118,7 @@ function vestra_mailbox_member_server_today(): int {
   $d = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
   $today = date('Y-m-d'); $n = 0;
   foreach ((array)$d as $it)
-    if (is_array($it) && ($it['status'] ?? '') === 'sent' && str_starts_with((string)($it['at'] ?? ''), $today)) $n++;
+    if (is_array($it) && ($it['status'] ?? '') === 'sent' && ($it['via'] ?? 'server') !== 'brevo' && str_starts_with((string)($it['at'] ?? ''), $today)) $n++;   // 29 Eki: Brevo'dan gidenler sunucu sayacına girmez
   return $n;
 }
 
