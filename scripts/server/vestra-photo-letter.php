@@ -15,7 +15,8 @@
  *
  * Paket gövdesi (JSON): to, from_name, reply_to, subject, kicker, title, subtitle, greeting, intro[], chips[],
  * sections[{title, swatch, sub, photos[{name, b64, caption}]}], tap_hint, closing[], sign[], button{label,url}, footer.
- * to='order:<ref>' adresi sipariş kaydından çözer; attachments[{name *.pdf, b64}] PDF ekler (21 Eki 2026).
+ * to='order:<ref>' adresi sipariş kaydından çözer; name_from='order:<ref>' hitaptaki {name}'i o siparişin hesabından çözer
+ * (operatöre [COPY] kopyası için ŞART — 28 Eki 2026); attachments[{name *.pdf, b64}] PDF ekler (21 Eki 2026).
  * Katalog mektubu için (19 Eki 2026, "tüm renklerini ve lotunu gönder") bölümde isteğe bağlı: colors[{name, css}]
  * (renk çipleri), facts[[etiket, değer]] (lot / MOQ satırları), sizes[[beden, adet]] (karton dökümü), cols (2|3),
  * link{label,url}, price + price_unit (başlığın yanında fiyat); üst düzeyde summary[[ad, kod, fiyat]] + summary_title
@@ -279,9 +280,22 @@ if (preg_match('/^order:([A-Za-z0-9_-]+)$/', $to, $om)) {
 if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "alici adresi gecersiz\n"); exit(1); }
 /* Hitaptaki {name}: alicinin ADI sunucudaki hesabindan (ilk kelime) -- ad pakete de girmez. Hesap ya da ad yoksa
    "Bonjour," gibi adsiz hitap kalir. */
+/* OPERATOR KOPYASI (28 Eki 2026, Il Mercatista / VES-EC6D6B0D: "[COPY]" mektubu operatorun adresine gitti, hitap
+   operatorun KENDI hesabindan "Dear Serdar" cozuldu -- operator: "benim adimi yazma"). name_from=order:<ref> hitaptaki
+   adi o siparisin alicisinin hesabindan cozer (kopya musteriye gidenin birebir aynisi olur); konusu [COPY] ile
+   baslayan bir paket name_from tasimiyorsa DURUR -- alicinin hesabindan ad cozulmez. */
+$nameAddr = $to;
+if (preg_match('/^order:([A-Za-z0-9_-]+)$/', trim((string)($s['name_from'] ?? '')), $nm2)) {
+    $nameAddr = '';
+    foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $nm2[1]) { $nameAddr = trim((string)($r['email'] ?? '')); break; }
+    if ($nameAddr === '') { fwrite(STDERR, "name_from siparisi bulunamadi: {$nm2[1]}\n"); exit(1); }
+    echo "hitap adi siparisten: {$nm2[1]}\n";
+} elseif (str_starts_with(ltrim((string)($s['subject'] ?? '')), '[COPY]') && str_contains((string)($s['greeting'] ?? ''), '{name}')) {
+    fwrite(STDERR, "[COPY] paketinde {name} var ama name_from=order:<ref> yok -- hitap operatorun adiyla cozulurdu\n"); exit(1);
+}
 if (str_contains((string)($s['greeting'] ?? ''), '{name}')) {
     require_once $root.'/inc/auth.php';
-    $acc = auth_find($to); $nm = trim((string)($acc['name'] ?? ''));
+    $acc = auth_find($nameAddr); $nm = trim((string)($acc['name'] ?? ''));
     $first = $nm !== '' && preg_match('/^\p{L}[\p{L}\'-]{1,}$/u', explode(' ', $nm)[0]) ? explode(' ', $nm)[0] : '';
     $s['greeting'] = $first !== '' ? str_replace('{name}', mb_convert_case(mb_strtolower($first), MB_CASE_TITLE), $s['greeting']) : str_replace(' {name}', '', $s['greeting']);
     echo "hitap: ".($first !== '' ? 'hesaptaki ad' : 'adsiz')."\n";
