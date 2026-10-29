@@ -23,3 +23,13 @@ jobs:
             # 29 Eki 2026: gönderim hataları (adresler kütükte zaten maskeli: vestra_mailbox_mask) ve bellek / ölümcül hatalar
             for L in ~/vestra_sweep.log ~/public_html/data/vestra_sweep.log; do [ -f "$L" ] && { echo "== $L (mailbox: istek/bitti/hata, son 40) =="; grep -a "\[mailbox\|^  x \[\|Fatal\|memory\|Allowed memory" "$L" | sed -E 's/[A-Za-z0-9._%+-]{2,}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/***@***/g' | tail -40; }; done
             php -r 'echo "php cli memory_limit: ".ini_get("memory_limit")."\n";'
+            # 29 Eki 2026: posta servisi neden reddediyor? cPanel teslim takibi (EmailTrack) — son kayıtlar, yalnız sonuç/sebep sayımı
+            command -v uapi >/dev/null 2>&1 && uapi --output=json EmailTrack search api.sort.column=sendunixtime api.sort.reverse=1 api.chunk.size=400 api.chunk.start=1 success=1 defer=1 failure=1 inprogress=1 2>/dev/null | php -d memory_limit=512M -r '
+              $d = json_decode(stream_get_contents(STDIN), true);
+              if (!($d["result"]["status"] ?? 0)) { echo "EmailTrack: erisim yok ".implode(" ", (array)($d["result"]["errors"] ?? []))."\n"; exit; }
+              $rows = (array)($d["result"]["data"] ?? []); $by = []; $why = []; $hr = [];
+              foreach ($rows as $r) { $t = (string)($r["type"] ?? "?"); $by[$t] = ($by[$t] ?? 0) + 1;
+                $h = date("m-d H", (int)($r["sendunixtime"] ?? 0)); $hr[$h][$t] = ($hr[$h][$t] ?? 0) + 1;
+                if ($t !== "success") { $m = preg_replace("/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/", "***@***", (string)($r["message"] ?? "")); $m = mb_substr(preg_replace("/\d{3,}/", "N", $m), 0, 160); $why[$m] = ($why[$m] ?? 0) + 1; } }
+              echo "EmailTrack son ".count($rows)." kayit: ".json_encode($by)."\n"; krsort($hr); foreach (array_slice($hr, 0, 14, true) as $h => $c) echo "  $h ".json_encode($c)."\n";
+              arsort($why); foreach (array_slice($why, 0, 12, true) as $m => $n) echo "  $n x $m\n";'
