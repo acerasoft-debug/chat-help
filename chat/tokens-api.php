@@ -143,6 +143,37 @@ if(($r==='auth/request' || $r==='auth/verify') && $m==='POST'){
     $aid=(int)$acc['id']; $trial=th_trial_credit($aid,CH_TRIAL_TOKENS); $key=th_issue_key($aid,'studio');
     th_json(200,['ok'=>true,'key'=>$key,'email'=>$acc['email'],'trial_credited'=>$trial,'balance'=>th_balance($aid)]);
 }
+/* ---- Anmeldung mit Google (ruhend, bis GOOGLE_OAUTH_CLIENT_ID + GOOGLE_OAUTH_CLIENT_SECRET gesetzt sind): GET auth/google → Google → GET auth/google/callback
+        prüft state (signiertes Cookie) und das id_token bei Google, Konto zur bestätigten E-Mail (wie der Code-Login), Schlüssel ins Studio über #gkey=… ---- */
+if(($r==='auth/google' || $r==='auth/google/callback') && $m==='GET'){
+    $cid=defined('GOOGLE_OAUTH_CLIENT_ID') ? trim((string)GOOGLE_OAUTH_CLIENT_ID) : ''; $csec=defined('GOOGLE_OAUTH_CLIENT_SECRET') ? trim((string)GOOGLE_OAUTH_CLIENT_SECRET) : '';
+    if($cid==='' || $csec==='') th_json(404,['error'=>'google_login_off','message'=>'Anmeldung mit Google ist nicht eingerichtet.']);
+    if(isset($_GET['probe'])) th_json(200,['ok'=>true]);
+    $site=defined('ONB_SITE') ? ONB_SITE : 'https://chat-help.com'; $redir=$site.'/chat/tokens-api.php/v1/auth/google/callback'; $studio=$site.'/chat/studio.php';
+    $go=function(string $url): void { th_nocache(); header('Location: '.$url,true,302); exit; };
+    $ip=$_SERVER['HTTP_CF_CONNECTING_IP'] ?? ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($_SERVER['REMOTE_ADDR'] ?? '0')); $ip=trim(explode(',',$ip)[0]);
+    if(!th_rate('glogin:'.$ip,30,3600)) th_json(429,['error'=>'rate_limited','message'=>'Zu viele Versuche – bitte später erneut.']);
+    $sig=fn(string $s)=>substr(hash_hmac('sha256',$s,$csec),0,24);
+    if($r==='auth/google'){
+        $state=bin2hex(random_bytes(16)).'.'.time();
+        setcookie('ch_gstate',$state.'.'.$sig($state),['expires'=>time()+600,'path'=>'/chat/','secure'=>true,'httponly'=>true,'samesite'=>'Lax']);
+        $hl=substr(preg_replace('/[^a-z]/','',strtolower((string)($_GET['lang'] ?? 'de'))),0,2) ?: 'de';
+        $go('https://accounts.google.com/o/oauth2/v2/auth?'.http_build_query(['client_id'=>$cid,'redirect_uri'=>$redir,'response_type'=>'code','scope'=>'openid email','state'=>$state,'prompt'=>'select_account','hl'=>$hl]));
+    }
+    setcookie('ch_gstate','',['expires'=>1,'path'=>'/chat/','secure'=>true,'httponly'=>true,'samesite'=>'Lax']);
+    if(isset($_GET['error'])) $go($studio.'#glogin=cancel');
+    $parts=explode('.',(string)($_COOKIE['ch_gstate'] ?? '')); $csig=(string)array_pop($parts); $cstate=implode('.',$parts); $st=(string)($_GET['state'] ?? ''); $code=(string)($_GET['code'] ?? '');
+    if($cstate==='' || $code==='' || !hash_equals($sig($cstate),$csig) || !hash_equals($cstate,$st) || (int)(explode('.',$cstate)[1] ?? 0) < time()-600) $go($studio.'#glogin=state');
+    $post=function(string $url, array $data): array { $ch=curl_init($url); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>http_build_query($data),CURLOPT_TIMEOUT=>12,CURLOPT_CONNECTTIMEOUT=>6]);
+        $b=(string)curl_exec($ch); $c=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch); return [$c,json_decode($b,true) ?: []]; };
+    [$c,$tok]=$post('https://oauth2.googleapis.com/token',['client_id'=>$cid,'client_secret'=>$csec,'code'=>$code,'grant_type'=>'authorization_code','redirect_uri'=>$redir]);
+    $idt=(string)($tok['id_token'] ?? ''); if($c!==200 || $idt==='') $go($studio.'#glogin=token');
+    $ch=curl_init('https://oauth2.googleapis.com/tokeninfo?id_token='.rawurlencode($idt)); curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>12,CURLOPT_CONNECTTIMEOUT=>6]); $info=json_decode((string)curl_exec($ch),true) ?: []; curl_close($ch);
+    $email=strtolower(trim((string)($info['email'] ?? '')));
+    if(($info['aud'] ?? '')!==$cid || !in_array($info['iss'] ?? '',['https://accounts.google.com','accounts.google.com'],true) || ($info['email_verified'] ?? '')!=='true' || !filter_var($email,FILTER_VALIDATE_EMAIL)) $go($studio.'#glogin=verify');
+    $acc=th_account($email); $aid=(int)$acc['id']; th_trial_credit($aid,CH_TRIAL_TOKENS); $key=th_issue_key($aid,'google');
+    $go($studio.'#gkey='.$key);
+}
 
 $hdr = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
 $acc = th_auth(preg_replace('/^Bearer\s+/i','',trim($hdr)));

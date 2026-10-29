@@ -163,10 +163,12 @@ body.pf-lock{overflow:hidden}
   </div>
   <div class="card lbox">
     <div id="welcome" class="banner hidden" data-i18n="st.zahlung_erfolgreich_melde_di">🎉 Zahlung erfolgreich! Melde dich mit der E-Mail aus dem Checkout an – dein Agent ist bereits freigeschaltet.</div>
+    <div id="startHint" class="banner hidden"></div>
     <h2 data-i18n="st.anmelden_oder_registrieren">Anmelden oder registrieren</h2><p class="lsub" data-i18n="st.ein_konto_fuer_studio">Ein Konto für Studio und App. Wir senden dir einen 6-stelligen Code – kein Passwort nötig.</p>
     <div id="stepEmail"><label for="lEmail" data-i18n="st.mail">E-Mail</label><input type="email" id="lEmail" placeholder="du@firma.de" autocomplete="email" inputmode="email"><button class="btn cta" id="lSend" data-i18n-t="st.code_senden">Code senden <span class="ar" aria-hidden="true">→</span></button></div>
     <div id="stepCode" class="hidden"><label for="lCode" data-i18n-t="st.code_aus_der_mail">Code aus der E-Mail <span class="mute" id="lTo"></span></label><div class="otp" id="lOtp"><input type="text" id="lCode" inputmode="numeric" pattern="[0-9 ]*" maxlength="12" autocomplete="one-time-code" aria-label="6-stelliger Code" data-i18n-attr="aria-label:st.stelliger_code"><div class="otp-slots" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div></div><div class="row" style="justify-content:flex-end;margin-top:4px"><button type="button" class="btn ghost s" id="lPaste" data-i18n="st.code_einfuegen">📋 Code einfügen</button></div><button class="btn cta" id="lVerify" style="margin-top:6px" data-i18n-t="st.anmelden">Anmelden <span class="ar" aria-hidden="true">→</span></button><div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn ghost s" id="lBack" data-i18n="st.andere_mail">andere E-Mail</button><button class="btn ghost s" id="lResend" data-i18n="st.code_erneut_senden">Code erneut senden</button></div></div>
     <div id="lMsg" aria-live="polite"></div>
+    <div id="lGoogleWrap" class="hidden" style="margin-top:14px"><div class="mute small" style="text-align:center;margin-bottom:8px" data-i18n="st.oder">oder</div><button type="button" class="btn" id="lGoogle" style="width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:10px"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6C12.3 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-2.8-.4-4H24v8.1h12.9c-.3 2.2-1.7 5.4-4.9 7.6l7.5 5.8c4.5-4.1 7-10.2 7-17.5z"/><path fill="#FBBC05" d="M10.4 28.8A14.5 14.5 0 0 1 9.5 24c0-1.7.3-3.3.8-4.8l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2 1.4-4.8 2.4-8.4 2.4-6.3 0-11.7-4.1-13.6-9.9l-7.8 6C6.5 42.6 14.6 48 24 48z"/></svg><span data-i18n="st.mit_google_anmelden">Mit Google anmelden</span></button></div>
     <details style="margin-top:18px"><summary class="mute small" style="cursor:pointer;min-height:32px" data-i18n="st.mit_api_key_anmelden">Mit API-Key anmelden (ch_live_…)</summary><label for="lKey">API-Key</label><input type="text" id="lKey" placeholder="ch_live_…"><button class="btn" id="lKeyGo" style="width:100%;margin-top:10px;min-height:44px" data-i18n="st.weiter">Weiter</button></details>
     <p class="lfine" data-i18n-html="st.mit_der_anmeldung_akzeptiers">Mit der Anmeldung akzeptierst du die <a href="/agb.html">AGB</a> und <a href="/datenschutz.html">Datenschutzhinweise</a>. Spam-Ordner prüfen, falls der Code nicht ankommt. · <a href="/impressum.html">Impressum</a></p>
   </div>
@@ -462,7 +464,14 @@ const CHIPS={default:[_t('sj.chip.def1'),_t('sj.chip.def2'),_t('sj.chip.def3')],
  'agent-amazon':[_t('sj.chip.az1'),_t('sj.chip.az2'),_t('sj.chip.az3')]};
 
 /* ===== Login ===== */
-(function(){const q=new URLSearchParams(location.search);if(q.get('welcome')){$('#welcome').classList.remove('hidden');}})();
+(function(){const q=new URLSearchParams(location.search);if(q.get('welcome')){$('#welcome').classList.remove('hidden');}
+  /* Von der Website: ?start=<plan> → erst einrichten und testen, bezahlt wird am Ende (Hinweis vor der Anmeldung, danach Schnellstart) */
+  const st=q.get('start');if(st&&/^[a-z0-9-]{3,40}$/.test(st))api('/sectors').then(s=>{const p=(s.plans||[]).find(x=>x.id===st);if(p){$('#startHint').textContent=_t('st.start_hint',{p:p.name});$('#startHint').classList.remove('hidden');}}).catch(()=>{});})();
+/* Anmeldung mit Google (tokens-api auth/google, nur wenn eingerichtet): der Schlüssel kommt im Fragment zurück (#gkey), Fehler als #glogin */
+(function(){try{const h=new URLSearchParams(location.hash.slice(1));const k=h.get('gkey');
+  if(k&&/^ch_(live|test)_[a-f0-9]{48}$/.test(k)){KEY=k;localStorage.setItem('ch_api_key',KEY);history.replaceState(null,'',location.pathname+location.search);}
+  else if(h.get('glogin')){history.replaceState(null,'',location.pathname+location.search);setTimeout(()=>msg($('#lMsg'),_t('sj.login.gfail'),'err'),0);}}catch(e){}})();
+function googleProbe(){api('/auth/google?probe=1').then(j=>{if(!(j&&j.ok))return;$('#lGoogleWrap').classList.remove('hidden');$('#lGoogle').onclick=()=>{location.href=API+'/auth/google?lang='+encodeURIComponent(I18N.lang);};}).catch(()=>{});}
 let lEmail='';
 $('#lSend').onclick=async()=>{lEmail=$('#lEmail').value.trim();if(!/.+@.+\..+/.test(lEmail)){msg($('#lMsg'),_t('sj.login.bad'),'err');return;}$('#lSend').disabled=true;msg($('#lMsg'),_t('sj.login.sending'));
   try{const j=await api('/auth/request',{method:'POST',body:JSON.stringify({email:lEmail,lang:I18N.lang})});$('#stepEmail').classList.add('hidden');$('#stepCode').classList.remove('hidden');$('#lTo').textContent='→ '+lEmail;msg($('#lMsg'),j.sent?_t('sj.login.sent'):_t('sj.login.failsend'),j.sent?'ok':'err');$('#lCode').focus();}
@@ -494,13 +503,15 @@ async function boot(){if(LINK_LOGIN&&!boot._link){boot._link=1;if(!KEY||(localSt
   if(I18N.autoFromProfile(prof&&prof.profile&&prof.profile.langs))return;
   show('app');$('#who').textContent=ME.email;renderHome();renderAgents();renderPhone();renderTokens();applyNav();renderRec();
   refreshBell();
-  const q=new URLSearchParams(location.search);const w=q.get('welcome');if(w&&PANELS.einrichtung){go('einrichtung');}else if(w&&PLANS.find(p=>p.id===w)){go('agents');openAgent(w);}else{const h=(location.hash||'').slice(1);if(h&&(STATIC_TABS[h]||PANELS[h]))go(h);}
+  const q=new URLSearchParams(location.search);const w=q.get('welcome'),st=q.get('start')&&PLANS.find(p=>p.id===q.get('start'))?q.get('start'):'';
+  if(st&&PANELS.einrichtung){window.ONB_PLAN=st;go('einrichtung');}   // von der Website: Schnellstart für diesen Agenten (bezahlt wird am Ende)
+  else if(w&&PANELS.einrichtung){go('einrichtung');}else if(w&&PLANS.find(p=>p.id===w)){go('agents');openAgent(w);}else{const h=(location.hash||'').slice(1);if(h&&(STATIC_TABS[h]||PANELS[h]))go(h);}
   if(sessionStorage.getItem('ch_trial')){$('#trialBanner').classList.remove('hidden');sessionStorage.removeItem('ch_trial');}
-  /* Erste Anmeldung bzw. noch kein Profil: Profil-Assistent (nicht direkt nach einer Zahlung – dort zuerst die Einrichtung) */
-  if(prof&&!prof.exists&&!w)setTimeout(()=>{if(!PW.open)openWiz(false);},200);
+  /* Erste Anmeldung bzw. noch kein Profil: Profil-Assistent (nicht direkt nach einer Zahlung oder beim Schnellstart – dort zuerst die Einrichtung) */
+  if(prof&&!prof.exists&&!w&&!st)setTimeout(()=>{if(!PW.open)openWiz(false);},200);
   /* Einrichtung zuerst: offene Einrichtung – oder noch kein Agent eingerichtet – öffnet beim Start die Einrichtung (Testen bleibt freiwillig) */
-  else if(!w&&!(location.hash||'').slice(1)&&PANELS.einrichtung&&prof&&prof.exists)api('/onboarding/state').then(j=>{if(j&&j.onboarding&&j.onboarding.status==='open'&&!PW.open)go('einrichtung');}).catch(e=>{if(e&&e.data&&e.data.error==='no_plan'&&!((ME&&ME.configs)||[]).length&&!PW.open)go('einrichtung');});}
-function show(v){$('#vLogin').classList.toggle('hidden',v!=='login');$('#vApp').classList.toggle('hidden',v!=='app');$('#nav2').classList.toggle('hidden',v!=='app');$('#acct').classList.toggle('hidden',v!=='app');}
+  else if(!w&&!st&&!(location.hash||'').slice(1)&&PANELS.einrichtung&&prof&&prof.exists)api('/onboarding/state').then(j=>{if(j&&j.onboarding&&j.onboarding.status==='open'&&!PW.open)go('einrichtung');}).catch(e=>{if(e&&e.data&&e.data.error==='no_plan'&&!((ME&&ME.configs)||[]).length&&!PW.open)go('einrichtung');});}
+function show(v){$('#vLogin').classList.toggle('hidden',v!=='login');$('#vApp').classList.toggle('hidden',v!=='app');$('#nav2').classList.toggle('hidden',v!=='app');$('#acct').classList.toggle('hidden',v!=='app');if(v==='login'&&!show._g){show._g=1;googleProbe();}}
 const STATIC_TABS={home:'pHome',agents:'pAgents',whatsapp:'pWhatsapp',phone:'pPhone',website:'pWebsite',termine:'pTermine',bestellungen:'pBestellungen',tokens:'pTokens'};
 const PANELS=<?= json_encode((object)array_map(fn($x)=>$x['v'],$CH_PANELS)) ?>;window.STUDIO_PANELS=window.STUDIO_PANELS||{};
 function go(v){if(v==='dash'||(v==='admin'&&!(ME&&ME.admin)))v='home';if(!STATIC_TABS[v]&&!PANELS[v])v='home';document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));

@@ -9,9 +9,10 @@
  *
  * Tabelle onboarding_events: je Konto/Einrichtung Schritt + Ereignis (view, done, skip, help, abandon) → qs_funnel() für die Abbruch-Analyse.
  * Erinnerungen: qs_reminders_lazy() (Heartbeat) mailt offene Einrichtungen nach 1 Stunde und nach 1 Tag (je einmal).
- * REST (über onb_api): POST onboarding/import {id,url} · POST onboarding/draft {id,draft} · POST onboarding/sector {sector,company,address,phone,hours}
- *   · GET onboarding/qs?id= · POST onboarding/qs {id,step} · POST onboarding/greeting {id,text} · POST onboarding/speak {id,text,t}
- *   · POST onboarding/event {id,step,ev}
+ * REST (qs_api, CH_MODULE_LIBS['quickstart'] – vor onboarding, da onb_api fremde onboarding/*-Routen mit 404 beantwortet):
+ *   POST onboarding/import {id,url} · POST onboarding/draft {id,draft} · POST onboarding/sector {sector,company,address,phone,hours}
+ *   · GET onboarding/qs?id= · POST onboarding/qs {id,step} · POST onboarding/greeting {id,text,voice_id?} · POST onboarding/speak {id,text,t}
+ *   · POST onboarding/event {id,step,ev} · POST onboarding/number {id,area,cc} · GET onboarding/funnel (Betreiber)
  * Google Maps: mit GOOGLE_PLACES_KEY (Places API, Text Search) kommen Öffnungszeiten, Telefon und Website direkt von Google; ohne Schlüssel nur Name/Adresse
  * aus dem Link und der Seite. Instagram: Name + Bio + Link in der Bio (wenn Instagram die Seite ausliefert).
  */
@@ -144,9 +145,10 @@ function qs_clean(array $d, array $P): array {
     $h=null; if(is_array($d['hours'] ?? null)){ $raw=[]; for($w=0;$w<=6;$w++){ $rows=$d['hours'][(string)$w] ?? ($d['hours'][$w] ?? []); $raw[(string)$w]=is_array($rows) ? array_slice(array_values(array_filter($rows,'is_array')),0,3) : []; }
         $err=null; $p=function_exists('appt_hours_parse') ? appt_hours_parse($raw,$err) : null; if($err===null && is_array($p) && array_filter($p)) $h=$p; }
     $o['hours']=$h;
-    $money=fn($v)=>is_numeric($v) && (float)$v>0 ? (int)round((float)$v*100) : 0;
-    if(in_array('order',$P['mods'],true)){ $o['menu']=[]; foreach(array_slice((array)($d['menu'] ?? []),0,40) as $r){ if(!is_array($r)) continue; $n=$s($r['name'] ?? '',120); if($n==='') continue; $o['menu'][]=['category'=>$s($r['category'] ?? '',60),'name'=>$n,'price_cents'=>$money($r['price'] ?? 0),'description'=>$s($r['description'] ?? '',300)]; } }
-    else { $o['services']=[]; foreach(array_slice((array)($d['services'] ?? []),0,40) as $r){ if(!is_array($r)) continue; $n=$s($r['name'] ?? '',120); if($n==='') continue; $dur=(int)($r['duration_min'] ?? 0); $o['services'][]=['name'=>$n,'duration_min'=>$dur>=5 && $dur<=600 ? $dur : 30,'price_cents'=>$money($r['price'] ?? 0)]; } }
+    /* Preis in Euro (KI, Formular) oder schon in Cent (Entwurf, der vom Studio unverändert zurückkommt) */
+    $money=fn($r)=>isset($r['price_cents']) && is_numeric($r['price_cents']) ? max(0,(int)$r['price_cents']) : (is_numeric($r['price'] ?? null) && (float)$r['price']>0 ? (int)round((float)$r['price']*100) : 0);
+    if(in_array('order',$P['mods'],true)){ $o['menu']=[]; foreach(array_slice((array)($d['menu'] ?? []),0,40) as $r){ if(!is_array($r)) continue; $n=$s($r['name'] ?? '',120); if($n==='') continue; $o['menu'][]=['category'=>$s($r['category'] ?? '',60),'name'=>$n,'price_cents'=>$money($r),'description'=>$s($r['description'] ?? '',300)]; } }
+    else { $o['services']=[]; foreach(array_slice((array)($d['services'] ?? []),0,40) as $r){ if(!is_array($r)) continue; $n=$s($r['name'] ?? '',120); if($n==='') continue; $dur=(int)($r['duration_min'] ?? 0); $o['services'][]=['name'=>$n,'duration_min'=>$dur>=5 && $dur<=600 ? $dur : 30,'price_cents'=>$money($r)]; } }
     $o['faq']=[]; foreach(array_slice((array)($d['faq'] ?? []),0,12) as $r){ if(!is_array($r)) continue; $q=$s($r['q'] ?? ($r['question'] ?? ''),300); $a=$s($r['a'] ?? ($r['answer'] ?? ''),1200); if($q!=='' && $a!=='') $o['faq'][]=['question'=>$q,'answer'=>$a]; }
     return $o;
 }
@@ -183,9 +185,10 @@ function qs_sectors(): array {
     $o=[]; foreach((function_exists('profile_sectors') ? profile_sectors() : []) as $id=>$s){ $plan=$s['plans'][0] ?? ''; $pl=$plan!=='' ? ch_plan($plan) : null; if(!$pl || !onb_trial_ok($pl)) continue; $o[]=['id'=>$id,'label'=>$s['label'],'icon'=>$s['icon'],'plan'=>$plan]; }
     return $o;
 }
-function qs_sector_start(int $aid, string $sector, array $in): array {
+/** $id > 0: Branche für eine bestehende Einrichtung (Agent schon gewählt) – sonst Einrichtung für den Agenten der Branche anlegen/finden. */
+function qs_sector_start(int $aid, string $sector, array $in, int $id=0): array {
     $S=null; foreach(qs_sectors() as $s) if($s['id']===$sector) $S=$s; if(!$S) return [400,['error'=>'sector','message'=>'Bitte eine Branche wählen.']];
-    [$c,$onb]=onb_resolve($aid,0,$S['plan']); if($c!==200) return [$c,$onb];
+    [$c,$onb]=$id>0 ? onb_resolve($aid,$id,'') : onb_resolve($aid,0,$S['plan']); if($c!==200) return [$c,$onb];
     [$P]=onb_ctx($aid,$onb); $steps=array_column(onb_catalog($P),'id');
     $d=['company'=>(string)($in['company'] ?? ''),'address'=>(string)($in['address'] ?? ''),'phone'=>(string)($in['phone'] ?? '')];
     $hp=(string)($in['hours'] ?? ''); $d['hours']=QS_HOURS_PRESETS[$hp] ?? null;
@@ -249,7 +252,7 @@ function qs_reminders_lazy(): int {
     return $n;
 }
 function qs_send_reminder(int $aid, array $onb, string $stage): bool {
-    $to=onb_email($aid); if($to==='' || str_ends_with($to,'.invalid')) return false;
+    $to=onb_email($aid); if($to==='') return false;   // Testkonten (*.invalid) sortiert th_mail selbst aus
     $P=onb_profile($onb['plan']);
     $url=ONB_START_URL; $h=fn($x)=>htmlspecialchars((string)$x,ENT_QUOTES,'UTF-8');
     $subj=$stage==='h1' ? 'Dein '.$P['base_name'].' ist fast fertig – noch 2 Minuten' : 'Weitermachen, wo du aufgehört hast: '.$P['base_name'];
@@ -258,4 +261,89 @@ function qs_send_reminder(int $aid, array $onb, string $stage): bool {
         .'<p><a href="'.$h($url).'" style="display:inline-block;background:#111;color:#fff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:600">Einrichtung fortsetzen →</a></p>'
         .'<p style="color:#666;font-size:13px">Fragen? Einfach auf diese E-Mail antworten – wir helfen gern.</p></div>';
     return function_exists('onb_mail_send') ? onb_mail_send($to,$subj,$html,strip_tags(str_replace(['<br>','</p>'],"\n",$html))) : th_mail($to,$subj,$html);
+}
+
+/* ======================================================================= Studio-REST */
+/** Schnellstart-Zustand je Einrichtung: Schritt, Stimme, Begrüßung, Nummer, Anrufe seit der Nummer, letzte Gespräche (für „live“). */
+function qs_state(int $aid, array $onb): array {
+    $m=(array)($onb['meta']['qs'] ?? []); $base=$onb['base']; $cfg=th_agent_cfg($aid,$base); $lang=ch_lang_norm((string)($cfg['lang'] ?? 'de')) ?: 'de';
+    $voice=function_exists('vc_agent_get') ? vc_agent_get($aid,$base) : ['voice_id'=>'','gender'=>'f'];
+    $num=(string)($cfg['phone_number'] ?? ''); $numAt=null;
+    if($num!==''){ $r=th_db()->prepare("SELECT created_at FROM phone_numbers WHERE account_id=? AND base=? AND status='active' ORDER BY id DESC LIMIT 1"); $r->execute([$aid,$base]); $numAt=$r->fetchColumn() ?: null; }
+    $calls=0; if($num!==''){ $c=th_db()->prepare("SELECT COUNT(*) FROM phone_calls WHERE account_id=? AND started_at >= ?"); $c->execute([$aid,$numAt ?: (string)($onb['created_at'] ?? '2000-01-01')]); $calls=(int)$c->fetchColumn(); }
+    $recent=[]; if(function_exists('dash_feed')){ try{ foreach(dash_feed($aid,7) as $it){ if(!in_array($it['kind'],['call','whatsapp','web','order','appt','ride','hotel','callback'],true)) continue; unset($it['hay']); $recent[]=$it; if(count($recent)>=5) break; } }catch(Throwable $e){} }
+    $active=th_plan_active($aid,$base); $P=onb_profile($onb['plan']); $email=onb_email($aid);
+    return ['step'=>(string)($m['step'] ?? 'link'),'started'=>isset($m['step']),'status'=>(string)$onb['status'],'sector'=>(string)($m['sector'] ?? ''),'draft_at'=>$m['draft_at'] ?? null,
+        'company'=>(string)($onb['answers']['company'] ?? ($cfg['company'] ?? '')),'phone'=>in_array('phone',(array)($P['channels'] ?? []),true),
+        'lang'=>$lang,'voice_id'=>(string)($voice['voice_id'] ?? ''),'gender'=>(string)($voice['gender'] ?? 'f'),'voices'=>qs_voices($lang),'greeting'=>(string)($cfg['phone_greeting'] ?? ''),
+        'greetings'=>qs_greetings((string)($onb['answers']['company'] ?? ($cfg['company'] ?? '')),'',$lang),'active'=>$active,'trial'=>onb_is_trial($onb),
+        'number'=>$num!=='' ? ['e164'=>$num,'display'=>onb_num_display($num),'codes'=>onb_forward_codes($num)] : null,'number_pending'=>(array)($onb['meta']['num_pending'] ?? []),
+        'numbers_ready'=>function_exists('num_ready') ? num_ready() : false,'country'=>onb_country($aid),'calls'=>$calls,'live'=>$calls>0,'recent'=>$recent,
+        /* Kasse mit der Konto-E-Mail vorbelegt: so landet das Paket sicher auf diesem Konto (und die Einrichtung bleibt erhalten) */
+        'checkout'=>onb_is_trial($onb) ? '/chat/tokens-checkout.php?plan='.rawurlencode($onb['plan']).($email!=='' ? '&email='.rawurlencode($email) : '') : null,'widget_key'=>(string)($cfg['widget_key'] ?? '')];
+}
+function qs_set(array &$onb, array $kv): void { $onb['meta']['qs']=array_merge((array)($onb['meta']['qs'] ?? []),$kv); onb_save($onb,['meta']); }
+function qs_api(string $route, string $method, int $aid, array $body, array $account): ?array {
+    $mine=['onboarding/import'=>'POST','onboarding/draft'=>'POST','onboarding/sector'=>'POST','onboarding/qs'=>'*','onboarding/greeting'=>'POST','onboarding/speak'=>'POST','onboarding/event'=>'POST','onboarding/number'=>'POST','onboarding/funnel'=>'GET'];
+    if(!isset($mine[$route])) return null;
+    if($mine[$route]!=='*' && $mine[$route]!==$method) return [405,['error'=>'method_not_allowed']];
+    if($aid<=0) return [403,['error'=>'demo_readonly','message'=>'In der Demo gibt es keine Einrichtung.']];
+    $in=$body+$_GET; $sc=fn($v)=>is_scalar($v) ? trim((string)$v) : '';
+    try{
+        onb_bootstrap(); qs_bootstrap();
+        if($route==='onboarding/funnel'){ if(!function_exists('bl_is_admin') || !bl_is_admin($aid)) return [403,['error'=>'forbidden']]; $d=(int)($in['days'] ?? 30); return [200,['days'=>$d,'funnel'=>qs_funnel(in_array($d,[7,30,90],true) ? $d : 30)]]; }
+        if($route==='onboarding/sector'){
+            if(!th_rate('qs:sector:'.$aid,20,3600)) return [429,['error'=>'rate_limited','message'=>'Bitte kurz warten.']];
+            [$c,$r]=qs_sector_start($aid,preg_replace('/[^a-z0-9_-]/','',strtolower($sc($in['sector'] ?? ''))),['company'=>$sc($in['company'] ?? ''),'address'=>$sc($in['address'] ?? ''),'phone'=>$sc($in['phone'] ?? ''),'hours'=>$sc($in['hours'] ?? '')],(int)($in['id'] ?? 0));
+            if($c===200){ $onb=onb_get($aid,(int)$r['onboarding']['id']); if($onb){ qs_set($onb,['step'=>'voice']); qs_event($aid,$onb['id'],'sector','done'); $r['qs']=qs_state($aid,$onb); } }
+            return [$c,$r];
+        }
+        $id=(int)($in['id'] ?? 0); $onb=$id>0 ? onb_get($aid,$id) : null;
+        if(!$onb && $route==='onboarding/qs' && $method==='GET'){ [$c,$o]=onb_resolve($aid,0,preg_replace('/[^a-z0-9-]/','',strtolower($sc($in['plan'] ?? '')))); if($c!==200) return [$c,$o+['sectors'=>qs_sectors()]]; $onb=$o; }
+        if(!$onb) return [404,['error'=>'not_found','message'=>'Diese Einrichtung gibt es nicht.']];
+        switch($route){
+            case 'onboarding/qs':
+                if($method==='GET') return [200,['onboarding'=>onb_public($onb),'qs'=>qs_state($aid,$onb),'sectors'=>qs_sectors()]];
+                $step=$sc($in['step'] ?? ''); if(!in_array($step,QS_STEPS,true)) return [400,['error'=>'step','message'=>'Unbekannter Schritt.']];
+                qs_set($onb,['step'=>$step]); return [200,['ok'=>true,'qs'=>qs_state($aid,$onb)]];
+            case 'onboarding/event':
+                $ok=qs_event($aid,$onb['id'],$sc($in['step'] ?? ''),$sc($in['ev'] ?? '')); return [$ok ? 200 : 400,['ok'=>$ok]];
+            case 'onboarding/import':
+                if(!th_rate('qs:import:'.$aid,12,3600)) return [429,['error'=>'rate_limited','message'=>'Zu viele Importe – bitte kurz warten.']];
+                $src=qs_source($sc($in['url'] ?? '')); if(empty($src['ok'])) return [422,['error'=>'import_failed','message'=>(string)$src['message']]];
+                [$P]=onb_ctx($aid,$onb); $d=qs_extract($src,$P,ch_lang_norm((string)($in['lang'] ?? '')) ?: 'de');
+                qs_set($onb,['step'=>'draft','source'=>['kind'=>$src['kind'],'url'=>$src['url']]]); qs_event($aid,$onb['id'],'link','done');
+                return [200,['ok'=>true,'kind'=>$src['kind'],'url'=>$src['url'],'thin'=>!empty($src['thin']),'draft'=>$d,'qs'=>qs_state($aid,$onb)]];
+            case 'onboarding/draft':
+                $draft=is_array($in['draft'] ?? null) ? $in['draft'] : []; if(!$draft) return [400,['error'=>'draft_required']];
+                $r=qs_apply($aid,$onb,$draft); $onb=onb_get($aid,$onb['id']) ?? $onb; qs_set($onb,['step'=>'voice']); qs_event($aid,$onb['id'],'draft','done');
+                return [200,['ok'=>$r['ok'],'saved'=>$r['saved'],'errors'=>$r['errors'],'qs'=>qs_state($aid,$onb)]];
+            case 'onboarding/greeting':
+                $text=mb_substr($sc($in['text'] ?? ''),0,400); $vid=preg_replace('/[^a-z0-9_-]/','',$sc($in['voice_id'] ?? ''));
+                $steps=array_column(onb_catalog(onb_ctx($aid,$onb)[0]),'id');
+                if($vid!=='' && function_exists('vc_agent_set')){ $r=vc_agent_set($aid,$onb['base'],$vid); if(isset($r['error'])) return [422,$r];
+                    if(in_array('phone_persona',$steps,true)){ onb_answer($aid,$onb,'phone_persona',(string)($r['gender'] ?? 'f')); $onb=onb_get($aid,$onb['id']) ?? $onb; } }
+                if($text!==''){ $cur=th_agent_cfg($aid,$onb['base']); if(empty($cur['id'])) th_agent_cfg_save($aid,$onb['base'],[],th_plan_active($aid,$onb['base']));
+                    th_db()->prepare("UPDATE agent_configs SET phone_greeting=?, updated_at=NOW() WHERE account_id=? AND plan=?")->execute([$text,$aid,$onb['base']]);
+                    if(in_array('phone_greeting',$steps,true)){ onb_answer($aid,$onb,'phone_greeting',$text); $onb=onb_get($aid,$onb['id']) ?? $onb; } }
+                $onb=onb_get($aid,$onb['id']) ?? $onb; qs_set($onb,['step'=>'try']); qs_event($aid,$onb['id'],'voice','done');
+                return [200,['ok'=>true,'qs'=>qs_state($aid,$onb)]];
+            case 'onboarding/speak':
+                $text=mb_substr($sc($in['text'] ?? ''),0,1200); $sig=$sc($in['t'] ?? '');
+                if($sig===''){ /* Vorschau der Begrüßung: signierter Text der eigenen Begrüßung ist immer erlaubt */ $sig=qs_speak_sig($aid,$text); if(mb_strlen($text)>400) return [400,['error'=>'text']]; }
+                $mp3=qs_speak($aid,$onb,$text,$sig); if($mp3===null) return [501,['error'=>'tts_unavailable','message'=>'Gerade keine Server-Stimme – der Browser liest vor.']];
+                if(PHP_SAPI==='cli') return [200,['audio'=>true,'bytes'=>strlen($mp3)]];
+                if(function_exists('th_nocache')) th_nocache(); http_response_code(200); header('Content-Type: audio/mpeg'); header('Content-Length: '.strlen($mp3)); echo $mp3; exit;
+            case 'onboarding/number':
+                $area=preg_replace('/\D/','',$sc($in['area'] ?? '')); $cc=strtoupper(preg_replace('/[^a-zA-Z]/','',$sc($in['cc'] ?? ''))) ?: onb_country($aid);
+                if(!function_exists('num_buy') && is_file(__DIR__.'/number-lib.php')) require_once __DIR__.'/number-lib.php';
+                if(!isset(NUM_CC[$cc])) return [422,['error'=>'country','message'=>'In diesem Land vergeben wir noch keine Nummern.']];
+                $active=th_plan_active($aid,$onb['base']);
+                if($active && function_exists('num_ready') && num_ready()){ $r=num_buy($aid,$onb['base'],'',$area,$cc); if(isset($r['error'])) return [422,$r]; unset($onb['meta']['num_pending']); $onb['meta']['number']=$r['number']; onb_save($onb,['meta']); }
+                else { $onb['meta']['num_pending']=['area'=>$area,'cc'=>$cc,'at'=>gmdate('c')]; onb_save($onb,['meta']); }
+                $onb=onb_get($aid,$onb['id']) ?? $onb; qs_set($onb,['step'=>'number']); qs_event($aid,$onb['id'],'number','done');
+                return [200,['ok'=>true,'qs'=>qs_state($aid,$onb)]];
+        }
+    }catch(Throwable $e){ error_log('CH qs_api '.$route.': '.$e->getMessage().' @'.$e->getLine()); return [500,['error'=>'server_error','message'=>'Interner Fehler – bitte erneut versuchen.']]; }
+    return [404,['error'=>'not_found']];
 }

@@ -439,6 +439,33 @@ try {
     ok(is_array($adm) && isset($adm['revenue']['mrr_cents'],$adm['accounts']['total'],$adm['keys']['ai']),'Betreiber-Übersicht rechnet (MRR, Konten, Schlüssel)','Konten='.($adm['accounts']['total'] ?? '?').' zahlend='.($adm['accounts']['paying'] ?? '?').' KI-Schlüssel='.(!empty($adm['keys']['ai']) ? 'ja' : 'nein'));
 } catch(Throwable $e){ ok(false,'Übersicht/Betreiber: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
 
+/* ---------- Phase 8: Schnellstart (quickstart-lib): Zustand, Branche, Stimme + Begrüßung, Ereignisse, Trichter, Website-Einstieg ---------- */
+try {
+    sec('Phase 8: Schnellstart – 5-Minuten-Einrichtung (Link/Branche → Stimme → Testgespräch → Paket → Nummer → live)');
+    $r=$api('GET','onboarding/qs?plan=agent-termine'); $q=$r['json']['qs'] ?? []; $oid=(int)($r['json']['onboarding']['id'] ?? 0);
+    ok($r['code']===200 && $oid>0 && ($q['step'] ?? '')==='link' && empty($q['started']) && isset($q['voices'],$q['greetings'],$q['phone'],$q['numbers_ready']) && count($r['json']['sectors'] ?? [])>=10,'GET /v1/onboarding/qs: Einrichtung angelegt, Schritt „link“, Stimmen/Begrüßungen/Branchen','HTTP '.$r['code'].' Stimmen='.count($q['voices'] ?? []).' Branchen='.count($r['json']['sectors'] ?? []).' Nummern bereit='.(!empty($q['numbers_ready']) ? 'ja' : 'nein'));
+    ok(count($q['greetings'] ?? [])>=2 && count($q['voices'] ?? [])<=3 && (count($q['voices'] ?? [])===0 || count(array_filter($q['voices'],fn($v)=>$v['gender']==='m'))===1),'Schnellstart: ≤ 3 Stimmen (2 Frauen, 1 Mann), ≥ 2 Begrüßungsvorschläge',json_encode(array_column($q['voices'] ?? [],'label'),JSON_UNESCAPED_UNICODE));
+    $r=$api('POST','onboarding/event',['id'=>$oid,'step'=>'link','ev'=>'view']); ok($r['code']===200 && !empty($r['json']['ok']),'POST /v1/onboarding/event: Schritt gesehen');
+    $r=$api('POST','onboarding/event',['id'=>$oid,'step'=>'xyz','ev'=>'view']); ok($r['code']===400,'POST /v1/onboarding/event: unbekannter Schritt abgewiesen (400)');
+    $r=$api('POST','onboarding/import',['id'=>$oid,'url'=>'kein link']); ok($r['code']===422 && !empty($r['json']['message']),'POST /v1/onboarding/import: ungültiger Link → 422 mit Hinweis');
+    $r=$api('POST','onboarding/sector',['id'=>$oid,'sector'=>'gibtesnicht']); ok($r['code']===400,'POST /v1/onboarding/sector: unbekannte Branche → 400');
+    $sec=($api('GET','onboarding/qs?id='.$oid)['json']['sectors'] ?? [])[0] ?? null;
+    if($sec){ $r=$api('POST','onboarding/sector',['id'=>$oid,'sector'=>$sec['id'],'company'=>'Selftest Betrieb','address'=>'Hauptstraße 1, 50667 Köln','phone'=>'0221 1234567','hours'=>'mo-fr']);
+        ok($r['code']===200 && ($r['json']['qs']['step'] ?? '')==='voice' && ($r['json']['qs']['company'] ?? '')==='Selftest Betrieb' && in_array('hours',$r['json']['saved'] ?? [],true),'POST /v1/onboarding/sector: Branche + 3 Fragen übernommen → Schritt „voice“','gespeichert: '.implode(',',$r['json']['saved'] ?? [])); }
+    $r=$api('POST','onboarding/greeting',['id'=>$oid,'text'=>'Guten Tag, hier ist Selftest Betrieb – wie kann ich helfen?']);
+    ok($r['code']===200 && ($r['json']['qs']['greeting'] ?? '')==='Guten Tag, hier ist Selftest Betrieb – wie kann ich helfen?' && ($r['json']['qs']['step'] ?? '')==='try','POST /v1/onboarding/greeting: Begrüßung gespeichert → Schritt „try“');
+    $r=$api('POST','onboarding/speak',['id'=>$oid,'text'=>'Guten Tag, hier ist Selftest Betrieb.']); ok($r['code']===200 || $r['code']===501,'POST /v1/onboarding/speak: Server-Stimme (Audio) oder ehrlicher Hinweis 501','HTTP '.$r['code']);
+    $r=$api('POST','onboarding/qs',['id'=>$oid,'step'=>'plan']); ok($r['code']===200 && ($r['json']['qs']['step'] ?? '')==='plan' && !empty($r['json']['qs']['checkout']) && str_contains((string)$r['json']['qs']['checkout'],'email='),'POST /v1/onboarding/qs: Schritt gesetzt, Kasse mit Konto-E-Mail');
+    $r=$api('POST','onboarding/number',['id'=>$oid,'area'=>'221','cc'=>'DE']); $qn=$r['json']['qs'] ?? [];
+    ok($r['code']===200 && (!empty($qn['number']) || ($qn['number_pending']['area'] ?? '')==='221'),'POST /v1/onboarding/number: Nummer vergeben oder vorgemerkt (ohne Paket/Nummernkonto)',!empty($qn['number']) ? 'Nummer '.$qn['number']['display'] : 'vorgemerkt '.json_encode($qn['number_pending']));
+    $r=$api('GET','onboarding/state?id='.$oid); ok($r['code']===200 && ($r['json']['onboarding']['qs_step'] ?? '')==='number','GET /v1/onboarding/state: qs_step für das Studio (Wiederaufnahme)');
+    $r=$api('GET','onboarding/funnel'); ok($r['code']===403,'GET /v1/onboarding/funnel: nur Betreiber (403 für Kunden)');
+    $fn=function_exists('qs_funnel') ? qs_funnel(7) : null; ok(is_array($fn) && count($fn)===8 && ($fn['link']['view'] ?? 0)>=1,'Trichter rechnet (8 Schritte, Ereignis gezählt)',json_encode($fn['link'] ?? null));
+    $r=http('GET',"$BASE/chat/studio-panels/einrichtung.js?_=".rnd(3),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'onboarding/qs') && str_contains($r['body'],'qsLive'),'Studio-Panel Einrichtung mit Schnellstart ausgeliefert');
+    $r=http('GET',"$BASE/?_=".rnd(3),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],"searchParams.set('start',plan)"),'Website: Monats-Agenten starten im Studio (erst einrichten, bezahlt wird am Ende)');
+    $r=http('GET',"$BASE/chat/tokens-api.php/v1/auth/google?probe=1",null,[],'json'); ok(in_array($r['code'],[200,404],true),'Anmeldung mit Google: '.($r['code']===200 ? 'eingerichtet' : 'ruhend (keine Google-Zugangsdaten) – E-Mail-Code bleibt'),'HTTP '.$r['code']);
+} catch(Throwable $e){ ok(false,'Schnellstart: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
+
 /* ---------- Phase 6: beste Stimme je Sprache (Anbieter-Routing, Stimmen-Scout, Telefon-Audio) ---------- */
 try {
     sec('Phase 6: Stimme je Sprache, Telefon-Audio');

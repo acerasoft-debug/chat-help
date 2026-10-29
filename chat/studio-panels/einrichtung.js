@@ -1,11 +1,13 @@
 /* ChatHelp Studio — Panel „Einrichtung“ (onboarding-lib): eine Frage pro Bildschirm, Fortschrittsring, Zurück/Weiter/Überspringen,
    Speichern je Antwort (POST /v1/onboarding/answer), Enter = weiter, Auswahl-Chips, Zeitbereiche, wiederholbare Zeilen, Website-Import über das
    Training (train/import-url → train/job → train/apply), Abschluss „Alles bereit“ mit Checkliste und Schnellaktionen.
-   Nutzt die Studio-Globals api, esc, go, openAgent, KEY. */
+   Modus „qs“ = Schnellstart (quickstart-lib, Standard für neue Einrichtungen): Link → KI-Entwurf bestätigen (oder Branche + 3 Fragen) → Stimme + Begrüßung
+   → im Browser mit dem Agenten sprechen → Paket → Nummer + Umleitungscodes → Testanruf → „Dein Agent ist live“ (letzte Vorgänge). Hilfe-Knopf, Ereignisse je Schritt.
+   Nutzt die Studio-Globals api, API, esc, go, openAgent, KEY, PLANS, ME, optLabel, countryName. */
 (function () {
   'use strict';
   var PANEL = 'panel-einrichtung';
-  var S = null, MODE = 'load', CUR = null, SHOWALL = false, DRAFT = {}, BUSY = false, DIR = 'anim', APPLIED = null, IMPORT = null, firstLoad = true, bound = false;
+  var S = null, MODE = 'load', CUR = null, SHOWALL = false, DRAFT = {}, BUSY = false, DIR = 'anim', APPLIED = null, IMPORT = null, firstLoad = true, bound = false, QS = null;
   var g = function (id) { return document.getElementById(id); };
   var h = function (v) { return esc(v == null ? '' : String(v)); };
   /* Texte vom Server (Fragen, Optionen, Checkliste) kommen auf Deutsch: _tx übersetzt sie über das Quelltext-Wörterbuch (src.* / srx.*) */
@@ -21,7 +23,15 @@
     app: '<rect x="7" y="2.8" width="10" height="18.4" rx="2.4"/><path d="M11 18h2"/>',
     chat: '<path d="M5 18.5V7a2.5 2.5 0 0 1 2.5-2.5h9A2.5 2.5 0 0 1 19 7v6.5a2.5 2.5 0 0 1-2.5 2.5H9z"/><path d="M9 9.5h6M9 12.5h4"/>',
     mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="2.2"/><path d="M4 7l8 6 8-6"/>',
-    edit: '<path d="M4.5 19.5l1-4L16 5a2 2 0 0 1 3 3L8.5 18.5z"/>'
+    edit: '<path d="M4.5 19.5l1-4L16 5a2 2 0 0 1 3 3L8.5 18.5z"/>',
+    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+    maps: '<path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>',
+    instagram: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="3.8"/><circle cx="17.2" cy="6.8" r=".8"/>',
+    play: '<path d="M8 5.5v13l10-6.5z"/>',
+    mic: '<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/>',
+    send: '<path d="M4 12l16-7-5 7 5 7z"/>',
+    sound: '<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
+    bolt: '<path d="M13 3L5 13.5h6L10 21l9-11h-6z"/>'
   };
   var key = function () { try { return KEY; } catch (e) { return ''; } };
   var visible = function () { var el = g(PANEL); return !!el && !el.closest('.hidden'); };
@@ -31,7 +41,7 @@
     var qs = q && q.id ? '?id=' + encodeURIComponent(q.id) : (q && q.plan ? '?plan=' + encodeURIComponent(q.plan) : '');
     return api('/onboarding/state' + qs).then(function (j) {
       var changed = !S || !S.onboarding || S.onboarding.id !== j.onboarding.id;
-      S = j; if (changed) { DRAFT = {}; CUR = null; APPLIED = null; SHOWALL = false; MODE = j.onboarding.status === 'done' ? 'done' : 'intro'; }
+      S = j; if (changed) { DRAFT = {}; CUR = null; APPLIED = null; SHOWALL = false; QS = null; MODE = pickMode(); }
       render();
     }).catch(function (e) {
       S = null; MODE = 'empty';
@@ -51,6 +61,8 @@
       + '<div class="row" style="justify-content:center;margin-top:16px"><button class="btn ghost" type="button" onclick="go(\'agents\')">' + _t('sj.agents.view') + '</button></div></div>';
     g('onbCard').querySelectorAll('[data-plan]').forEach(function (b) { b.onclick = function () { b.disabled = true; load({ plan: b.dataset.plan }); }; });
   }
+  /** Schnellstart, wenn er begonnen wurde oder noch nichts beantwortet ist; sonst die ausführliche Einrichtung dort, wo sie steht. */
+  function pickMode() { var o = S.onboarding; if (o.qs_step) return 'qs'; if (o.status === 'done') return 'done'; if (o.private) return 'intro'; return steps().some(function (s) { return s.answered; }) ? 'intro' : 'qs'; }
   function steps() { return (S && S.steps) || []; }
   function stepById(id) { var s = steps(); for (var i = 0; i < s.length; i++) if (s[i].id === id) return s[i]; return null; }
   function val(st) { return Object.prototype.hasOwnProperty.call(DRAFT, st.id) ? DRAFT[st.id] : st.value; }
@@ -77,6 +89,8 @@
   }
   function render() {
     renderSwitch(); var kb = g('onbKbd'); if (kb) kb.classList.toggle('hidden', MODE !== 'step');
+    if (MODE !== 'qs') qsStopPoll();
+    if (MODE === 'qs') return renderQs();
     if (MODE === 'intro') return renderIntro();
     if (MODE === 'done') return renderDone();
     if (MODE === 'finishing') return renderFinishing();
@@ -91,9 +105,10 @@
       + '<p>' + h(_t('onbj.intro',{name:o.base_name,n:q.length})) + '</p>'
       + '<ul class="ilist">' + groups.slice(0, 5).map(function (gr, i) { return '<li><i>' + (i + 1) + '</i><span><b style="color:var(--ink)">' + X(gr) + '</b> · ' + h(introItems(q, gr)) + '</span></li>'; }).join('') + '</ul>'
       + (known ? '<div class="note">✓ ' + h(known === 1 ? _t('onbj.known1') : _t('onbj.knownN',{n:known})) + '</div>' : '')
-      + '</div><div class="onb-foot"><button class="skip" type="button" id="onbAll">' + (SHOWALL ? _t('onbj.onlyOpen') : _t('onbj.showAll')) + '</button><span class="sp"></span><button class="btn p" type="button" id="onbGo">' + (progress().done ? _t('onbj.cont') : _t('onbj.go')) + ' →</button></div>';
+      + '</div><div class="onb-foot"><button class="skip" type="button" id="onbAll">' + (SHOWALL ? _t('onbj.onlyOpen') : _t('onbj.showAll')) + '</button>' + (o.status !== 'done' ? '<button class="skip" type="button" id="onbQs">⚡ ' + _t('onbq.name') + '</button>' : '') + '<span class="sp"></span><button class="btn p" type="button" id="onbGo">' + (progress().done ? _t('onbj.cont') : _t('onbj.go')) + ' →</button></div>';
     g('onbGo').onclick = function () { var qq = queue(); var first = qq.filter(function (s) { return !s.answered; })[0] || qq[0]; if (!first) return finish(); CUR = first.id; MODE = 'step'; DIR = 'anim'; render(); };
     g('onbAll').onclick = function () { SHOWALL = !SHOWALL; render(); };
+    var qb = g('onbQs'); if (qb) qb.onclick = function () { MODE = 'qs'; QS = null; render(); };
     if (!(window.matchMedia && matchMedia('(pointer:coarse)').matches)) setTimeout(function () { var b = g('onbGo'); if (b && visible()) b.focus({ preventScroll: true }); }, 30);
   }
   function introItems(q, gr) {
@@ -188,18 +203,41 @@
       r.querySelectorAll('.hiv').forEach(function (iv) { var t = iv.querySelectorAll('input[type=time]'); var a = t[0].value, b = t[1].value; if (b === '23:59' && t[1].dataset.end24 === '1') b = '24:00'; if (a && b) rows.push([a, b]); });
       o[d] = rows; }); return o;
   }
-  function rowsInput(st, v) {
-    var list = v.length ? v : (st.min ? [{}] : []);
-    return '<div class="rows" id="onbRows">' + list.map(function (r) { return rowHtml(st, r); }).join('') + '</div><button type="button" class="addrow" id="onbAdd">＋ ' + (st.add ? X(st.add) : _t('onbj.add')) + '</button>'
-      + (st.presets && st.presets.length ? '<div class="presets"><span class="lbl" style="margin-top:4px">' + _t('onbj.quick') + '</span><div class="chipset">' + st.presets.map(function (p, i) { return '<button type="button" class="c" data-pre="' + i + '">＋ ' + h(presetLabel(st, p)) + '</button>'; }).join('') + '</div></div>' : '');
+  function rowsInput(st, v, id) {
+    id = id || 'onbRows'; var list = v.length ? v : (st.min ? [{}] : []);
+    return '<div class="rows" id="' + id + '">' + list.map(function (r) { return rowHtml(st, r); }).join('') + '</div><button type="button" class="addrow" id="' + id + 'Add">＋ ' + (st.add ? X(st.add) : _t('onbj.add')) + '</button>'
+      + (st.presets && st.presets.length ? '<div class="presets"><span class="lbl" style="margin-top:4px">' + _t('onbj.quick') + '</span><div class="chipset">' + st.presets.map(function (p, i) { return '<button type="button" class="c" data-pre="' + i + '" data-for="' + id + '">＋ ' + h(presetLabel(st, p)) + '</button>'; }).join('') + '</div></div>' : '');
   }
   function presetLabel(st, p) { var parts = [_tx(p.name)]; if (p.duration_min) parts.push(_t('onbj.minP',{n:p.duration_min})); if (p.capacity) parts.push(_t('onbj.pers',{n:p.capacity})); if (p.price_cents != null) parts.push(p.price_cents ? I18N.eur(p.price_cents / 100) : _t('onbj.onReq')); return parts.join(' · '); }
   function rowHtml(st, r) {
     return '<div class="rw"><div class="g">' + st.cols.map(function (c) { var w = Math.min(5, c.w || 1); return '<div class="f w' + w + '"><label>' + X(c.l) + '</label>' + fieldInput(c, r[c.k] != null ? r[c.k] : '', '') + '</div>'; }).join('') + '</div><button type="button" class="del" aria-label="' + h(_t('onbj.rmRow')) + '">×</button></div>';
   }
-  function rowsCollect(st) {
-    var out = []; document.querySelectorAll('#onbRows .rw').forEach(function (rw) { var o = {}, any = false; rw.querySelectorAll('[data-k]').forEach(function (x) { o[x.dataset.k] = x.value; if (x.value.trim() !== '') any = true; }); if (any) out.push(o); });
+  function rowsCollect(st, id) {
+    var out = []; document.querySelectorAll('#' + (id || 'onbRows') + ' .rw').forEach(function (rw) { var o = {}, any = false; rw.querySelectorAll('[data-k]').forEach(function (x) { o[x.dataset.k] = x.value; if (x.value.trim() !== '') any = true; }); if (any) out.push(o); });
     return out;
+  }
+  function bindRows(st, id, body) {
+    id = id || 'onbRows'; var rows = g(id);
+    var bindDel = function () { rows.querySelectorAll('.del').forEach(function (b) { b.onclick = function () { b.closest('.rw').remove(); }; }); };
+    bindDel();
+    g(id + 'Add').onclick = function () { rows.insertAdjacentHTML('beforeend', rowHtml(st, {})); bindDel(); var f = rows.lastElementChild.querySelector('input,textarea'); if (f) f.focus(); };
+    body.querySelectorAll('[data-pre][data-for="' + id + '"]').forEach(function (b) { b.onclick = function () { var p0 = st.presets[+b.dataset.pre], p = {}; Object.keys(p0).forEach(function (k) { p[k] = typeof p0[k] === 'string' ? _tx(p0[k]) : p0[k]; });   /* Vorschlag in der Oberflächensprache eintragen */
+      var empty = Array.prototype.filter.call(rows.querySelectorAll('.rw'), function (rw) { return !Array.prototype.some.call(rw.querySelectorAll('[data-k]'), function (x) { return x.value.trim() !== ''; }); })[0];
+      if (empty) empty.outerHTML = rowHtml(st, p); else rows.insertAdjacentHTML('beforeend', rowHtml(st, p)); bindDel(); b.disabled = true; b.style.opacity = '.45'; }; });
+  }
+  function bindHours(body) {
+    var host = g('onbHours');
+    var rebind = function () {
+      host.querySelectorAll('.hrow').forEach(function (r) { var d = +r.dataset.d;
+        r.querySelector('.hday').onclick = function () { var cur = hoursCollect()[d] || []; r.outerHTML = hourRow(d, cur.length ? [] : [['09:00', '18:00']]); rebind(); };
+        var ad = r.querySelector('.hadd'); if (ad) ad.onclick = function () { var cur = hoursCollect()[d] || []; cur.push(['15:00', '19:00']); r.outerHTML = hourRow(d, cur); rebind(); };
+        r.querySelectorAll('[data-rm]').forEach(function (x) { x.onclick = function () { var cur = hoursCollect()[d] || []; cur.splice(+x.dataset.rm, 1); r.outerHTML = hourRow(d, cur); rebind(); }; });
+        r.querySelectorAll('input[type=time]').forEach(function (t) { t.addEventListener('change', function () { t.dataset.end24 = '0'; }); });
+      });
+    };
+    rebind();
+    body.querySelectorAll('[data-preset]').forEach(function (b) { b.onclick = function () { var p = hoursInput.P[+b.dataset.preset][1]; host.innerHTML = WD_ORDER.map(function (d) { return hourRow(d, p[d] || []); }).join(''); rebind(); }; });
+    var cp = body.querySelector('[data-copy]'); if (cp) cp.onclick = function () { var cur = hoursCollect(); var mo = cur[1] || []; host.innerHTML = WD_ORDER.map(function (d) { return hourRow(d, d >= 1 && d <= 5 ? mo.map(function (x) { return x.slice(); }) : (cur[d] || [])); }).join(''); rebind(); };
   }
   function langsInput(v) {
     var L = (S && S.langs) || [], al = v.allowed && v.allowed.length ? v.allowed : L.map(function (x) { return x.v; });
@@ -217,29 +255,8 @@
       if (fa && fi) { var add = function () { var t = fi.value.trim(); if (!t) return; var c = document.createElement('button'); c.type = 'button'; c.className = 'c on own'; c.dataset.v = t; c.setAttribute('role', 'checkbox'); c.setAttribute('aria-checked', 'true'); c.textContent = '✓ ' + t; c.onclick = function () { c.remove(); }; g('onbChips').appendChild(c); fi.value = ''; fi.focus(); };
         fa.onclick = add; fi.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); if (fi.value.trim()) add(); else save(st, collect(st)); } }); }
     }
-    if (st.type === 'hours') {
-      var host = g('onbHours');
-      var rebind = function () {
-        host.querySelectorAll('.hrow').forEach(function (r) { var d = +r.dataset.d;
-          r.querySelector('.hday').onclick = function () { var cur = hoursCollect()[d] || []; r.outerHTML = hourRow(d, cur.length ? [] : [['09:00', '18:00']]); rebind(); };
-          var ad = r.querySelector('.hadd'); if (ad) ad.onclick = function () { var cur = hoursCollect()[d] || []; cur.push(['15:00', '19:00']); r.outerHTML = hourRow(d, cur); rebind(); };
-          r.querySelectorAll('[data-rm]').forEach(function (x) { x.onclick = function () { var cur = hoursCollect()[d] || []; cur.splice(+x.dataset.rm, 1); r.outerHTML = hourRow(d, cur); rebind(); }; });
-          r.querySelectorAll('input[type=time]').forEach(function (t) { t.addEventListener('change', function () { t.dataset.end24 = '0'; }); });
-        });
-      };
-      rebind();
-      body.querySelectorAll('[data-preset]').forEach(function (b) { b.onclick = function () { var p = hoursInput.P[+b.dataset.preset][1]; host.innerHTML = WD_ORDER.map(function (d) { return hourRow(d, p[d] || []); }).join(''); rebind(); }; });
-      var cp = body.querySelector('[data-copy]'); if (cp) cp.onclick = function () { var cur = hoursCollect(); var mo = cur[1] || []; host.innerHTML = WD_ORDER.map(function (d) { return hourRow(d, d >= 1 && d <= 5 ? mo.map(function (x) { return x.slice(); }) : (cur[d] || [])); }).join(''); rebind(); };
-    }
-    if (st.type === 'rows') {
-      var rows = g('onbRows');
-      var bindDel = function () { rows.querySelectorAll('.del').forEach(function (b) { b.onclick = function () { b.closest('.rw').remove(); }; }); };
-      bindDel();
-      g('onbAdd').onclick = function () { rows.insertAdjacentHTML('beforeend', rowHtml(st, {})); bindDel(); var f = rows.lastElementChild.querySelector('input,textarea'); if (f) f.focus(); };
-      body.querySelectorAll('[data-pre]').forEach(function (b) { b.onclick = function () { var p0 = st.presets[+b.dataset.pre], p = {}; Object.keys(p0).forEach(function (k) { p[k] = typeof p0[k] === 'string' ? _tx(p0[k]) : p0[k]; });   /* Vorschlag in der Oberflächensprache eintragen */
-        var empty = Array.prototype.filter.call(rows.querySelectorAll('.rw'), function (rw) { return !Array.prototype.some.call(rw.querySelectorAll('[data-k]'), function (x) { return x.value.trim() !== ''; }); })[0];
-        if (empty) empty.outerHTML = rowHtml(st, p); else rows.insertAdjacentHTML('beforeend', rowHtml(st, p)); bindDel(); b.disabled = true; b.style.opacity = '.45'; }; });
-    }
+    if (st.type === 'hours') bindHours(body);
+    if (st.type === 'rows') bindRows(st, 'onbRows', body);
     if (st.type === 'langs') {
       var def = g('onbLangDef'), al = g('onbLangAl');
       def.querySelectorAll('.c').forEach(function (b) { b.onclick = function () { def.querySelectorAll('.c').forEach(function (x) { toggleChip(x, x === b); }); var m = al.querySelector('[data-v="' + b.dataset.v + '"]'); if (m) toggleChip(m, true); }; });
@@ -343,6 +360,307 @@
     function fallback() { var ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) {} ta.remove(); }
   }
 
+  /* ---------------------------------------------------------------- Schnellstart (quickstart-lib, Modus „qs“) */
+  var QS_ORDER = ['link', 'draft', 'sector', 'voice', 'try', 'plan', 'number', 'live'], QS_SHOW = ['link', 'draft', 'voice', 'try', 'plan', 'number', 'live'];
+  var NUM_CC = ['DE', 'AT', 'CH', 'NL', 'BE', 'FR', 'ES', 'IT', 'GB', 'SE', 'NO', 'FI', 'DK', 'PL', 'US', 'CA'];
+  var LANGTAG = { de: 'de-DE', en: 'en-GB', fr: 'fr-FR', es: 'es-ES', tr: 'tr-TR', az: 'az-AZ', ru: 'ru-RU', it: 'it-IT', nl: 'nl-NL', sv: 'sv-SE', no: 'nb-NO', fi: 'fi-FI', ja: 'ja-JP' };
+  var AU = { a: null, url: null, gen: 0, btn: null }, POLL = null;
+  function qsLoad() { return api('/onboarding/qs?id=' + S.onboarding.id).then(function (j) { if (!QS) QS = { step: '', chat: [], seen: {}, draft: null, speak: true }; QS.d = j.qs; QS.sectors = j.sectors || []; return j; }); }
+  /** Schritte, die es für diese Einrichtung nicht gibt: Branche nur ohne Link, Stimme/Nummer nur mit Telefon, Paket nur in der Testphase */
+  function qsSkip(s) { var d = QS.d; return s === 'sector' || (s === 'voice' && !d.phone) || (s === 'plan' && d.active) || (s === 'number' && !d.phone); }
+  function qsNext(st) { for (var k = QS_ORDER.indexOf(st) + 1; k < QS_ORDER.length; k++) if (!qsSkip(QS_ORDER[k])) return QS_ORDER[k]; return 'live'; }
+  function qsPrev(st) { if (st === 'sector') return 'link'; for (var k = QS_ORDER.indexOf(st) - 1; k >= 0; k--) if (!qsSkip(QS_ORDER[k]) && (QS_ORDER[k] !== 'draft' || QS.draft)) return QS_ORDER[k]; return 'link'; }
+  function qsEv(step, ev) { try { api('/onboarding/event', { method: 'POST', body: JSON.stringify({ id: S.onboarding.id, step: step, ev: ev }) }).catch(function () {}); } catch (e) { /* egal */ } }
+  function qsSetStep(step) { api('/onboarding/qs', { method: 'POST', body: JSON.stringify({ id: S.onboarding.id, step: step }) }).then(function (j) { if (j.qs) QS.d = j.qs; }).catch(function () {}); }
+  /** Schritt wechseln (back/skip werden gezählt; „done“ zählt der Server bei Import/Entwurf/Branche/Stimme/Nummer, das Studio bei Test und Paket) */
+  function qsGo(step, opts) {
+    opts = opts || {}; qsStopAudio(); if (QS.step && QS.step !== step && (opts.back || opts.skip)) qsEv(QS.step, opts.back ? 'back' : 'skip');
+    if (step === 'live' && S.onboarding.status !== 'done') return qsFinish();
+    QS.step = step; if (opts.server !== false) qsSetStep(step); DIR = opts.back ? 'back' : 'anim'; renderQs();
+  }
+  /** Zum Schluss alles übernehmen (onboarding/finish: Module, Wissensbasis, Anleitung per Mail) und „live“ zeigen */
+  function qsFinish() {
+    var back = QS.step; MODE = 'finishing'; render();
+    api('/onboarding/finish', { method: 'POST', body: JSON.stringify({ id: S.onboarding.id }) }).then(function (j) { S = j; APPLIED = j.applied || []; MODE = 'qs'; try { if (typeof refreshMe === 'function') refreshMe(); } catch (e) { /* egal */ }
+      return qsLoad().then(function () { QS.step = 'live'; qsSetStep('live'); DIR = 'anim'; renderQs(); }); })
+      .catch(function (e) { MODE = 'qs'; QS.step = back || 'try'; renderQs(); err(e.message || _t('onbj.finFail')); qsEv(back || 'live', 'error'); });
+  }
+  /** Stand nachladen (Panel wieder sichtbar, Rückkehr von der Kasse): Paket aktiv → weiter zur Nummer; Nummer/live neu zeichnen */
+  function qsRefresh() { qsLoad().then(function () { if (QS.step === 'plan' && QS.d.active) { qsGo(qsNext('plan')); return; } if (QS.step === 'live' || QS.step === 'number') renderQs(); }).catch(function () {}); }
+  function qsStopPoll() { if (POLL) { clearInterval(POLL); POLL = null; } }
+  /** Paket-Schritt: auf die Zahlung warten · live-Schritt: auf den ersten Anruf warten */
+  function qsStartPoll() {
+    qsStopPoll(); POLL = setInterval(function () {
+      if (!visible() || MODE !== 'qs' || !QS || (QS.step !== 'live' && QS.step !== 'plan')) { qsStopPoll(); return; }
+      api('/onboarding/qs?id=' + S.onboarding.id).then(function (j) { var was = QS.d.live; QS.d = j.qs; if (QS.step === 'plan' && j.qs.active) qsGo(qsNext('plan')); else if (QS.step === 'live' && !was && j.qs.live) renderQs(); }).catch(function () {});
+    }, 6000);
+  }
+  function renderQs() {
+    if (!QS || !QS.d) { g('onbCard').innerHTML = '<div class="onb-empty mute">' + _t('onb.einrichtung_wird_geladen') + '</div>'; qsLoad().then(function () { qsResume(); renderQs(); }).catch(function () { MODE = S.onboarding.status === 'done' ? 'done' : 'intro'; render(); }); return; }
+    var st = QS.step; if (!QS.seen[st]) { QS.seen[st] = 1; qsEv(st, 'view'); }
+    if (st !== 'live' && st !== 'plan') qsStopPoll();
+    ({ link: qsLink, draft: qsDraft, sector: qsSector, voice: qsVoice, try: qsTry, plan: qsPlan, number: qsNumber, live: qsLive })[st]();
+  }
+  /** Beim Öffnen: gespeicherten Schritt aufnehmen, Übersprungenes und Erledigtes auslassen */
+  function qsResume() {
+    var d = QS.d, st = d.started ? d.step : 'link';
+    if (S.onboarding.status === 'done') st = 'live';
+    if (st === 'draft' && !QS.draft) st = d.draft_at ? 'voice' : 'link';
+    if (st === 'sector' && d.sector) st = 'voice';
+    while (st !== 'live' && qsSkip(st)) st = qsNext(st);
+    QS.step = st;
+  }
+  function toggleChipPlain(b, on) { b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
+  /* ---- Rahmen: Ring, „Schritt i von n“, Hilfe (Assistent, E-Mail, ausführliche Einrichtung) ---- */
+  function qsFrame(st, title, sub, body, foot) {
+    var vis = QS_SHOW.filter(function (s) { return !qsSkip(s); }), i = Math.max(0, vis.indexOf(st === 'sector' ? 'draft' : st)), n = vis.length, pct = Math.round(100 * i / (n - 1));
+    g('onbCard').innerHTML = '<div class="onb-head">' + ring(pct) + '<div class="onb-meta"><div class="k">⚡ ' + _t('onbq.name') + '</div><div class="n">' + h(_t('onbq.stepOf', { i: i + 1, n: n })) + ' · ' + h(S.onboarding.base_name) + '</div></div><button type="button" class="qs-help" id="qsHelp" aria-expanded="false">' + _t('onbq.help') + '</button></div>'
+      + '<div class="qs-helpbox hidden" id="qsHelpBox" role="dialog" aria-label="' + h(_t('onbq.help.t')) + '"><b>' + _t('onbq.help.t') + '</b>'
+      + '<button type="button" data-h="ai"><span>' + _t('onbq.help.ai') + '</span><small>' + _t('onbq.help.aiD') + '</small></button>'
+      + '<a href="mailto:support@chat-help.com?subject=' + encodeURIComponent('ChatHelp ' + _t('onbq.name') + ' – ' + S.onboarding.base_name) + '" data-h="mail"><span>' + _t('onbq.help.mail') + '</span><small>' + _t('onbq.help.mailD') + '</small></a>'
+      + '<button type="button" data-h="full"><span>' + _t('onbq.help.full') + '</span><small>' + _t('onbq.help.fullD') + '</small></button></div>'
+      + '<div class="onb-body ' + DIR + '" id="onbBody" data-step="qs-' + h(st) + '"><h2 class="q">' + title + '</h2>' + (sub ? '<p class="sub">' + sub + '</p>' : '') + '<div class="onb-in qs-in">' + body + '</div></div>'
+      + '<div class="onb-err" id="onbErr" role="alert"></div>' + (foot ? '<div class="onb-foot">' + foot + '</div>' : '');
+    var hb = g('qsHelp'), box = g('qsHelpBox');
+    hb.onclick = function () { var hidden = box.classList.toggle('hidden'); hb.setAttribute('aria-expanded', hidden ? 'false' : 'true'); if (!hidden) qsEv(st, 'help'); };
+    box.querySelectorAll('[data-h]').forEach(function (b) { b.addEventListener('click', function (e) { var k = b.dataset.h; if (k === 'ai') { e.preventDefault(); go('assistant'); } if (k === 'full') { e.preventDefault(); qsStopAudio(); qsStopPoll(); MODE = 'intro'; SHOWALL = true; render(); } }); });
+  }
+  function qsFoot(nextLabel, extra, noBack) { return (noBack ? '' : '<button class="btn" type="button" id="qsBack" aria-label="' + h(_t('onbj.back')) + '">←<span class="hide-s"> ' + _t('onbj.back') + '</span></button>') + '<span class="sp"></span>' + (extra || '') + (nextLabel ? '<button class="btn p" type="button" id="qsNext">' + nextLabel + ' →</button>' : ''); }
+  function qsBindBack(st) { var b = g('qsBack'); if (b) b.onclick = function () { qsGo(qsPrev(st), { back: true }); }; }
+  function qsBusy(on) { BUSY = on; var b = g('qsNext'); if (b) b.disabled = on; if (on) err(''); }
+  /* ---- Ton: Server-Stimme des Agenten (onboarding/speak) bzw. Hörprobe einer Stimme (voices/sample), sonst Browserstimme ---- */
+  function qsReq(path, body) {
+    return fetch(API + path + '?_=' + Date.now(), { method: 'POST', cache: 'no-store', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key() } })
+      .then(function (r) { var ct = r.headers.get('Content-Type') || ''; if (r.ok && ct.indexOf('audio') === 0) return r.blob(); return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(_te({ data: j }, j.error || ('HTTP ' + r.status))); e.data = j; e.status = r.status; throw e; } return j; }); });
+  }
+  function qsStopAudio() {
+    AU.gen++; try { if (AU.a) { AU.a.pause(); AU.a.removeAttribute('src'); AU.a.load(); } } catch (e) { /* egal */ }
+    if (AU.url) { try { URL.revokeObjectURL(AU.url); } catch (e) { /* egal */ } AU.url = null; }
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { /* egal */ }
+    if (AU.btn) { AU.btn.classList.remove('playing'); AU.btn = null; }
+  }
+  function qsSay(text, btn, sampleId) {
+    if (btn && AU.btn === btn) { qsStopAudio(); return; }
+    qsStopAudio(); var gen = AU.gen, clean = String(text || '').replace(/\[(WEITERLEITEN|ENDE)\]/g, '').replace(/\s*…\s*/g, ', ').trim().slice(0, 400); if (!clean && !sampleId) return;
+    if (btn) { AU.btn = btn; btn.classList.add('playing'); }
+    var done = function () { if (gen !== AU.gen) return; if (AU.btn) { AU.btn.classList.remove('playing'); AU.btn = null; } };
+    var say = function () { if (!window.speechSynthesis || !clean) { done(); return; } try { var u = new SpeechSynthesisUtterance(clean); u.lang = LANGTAG[QS.d.lang] || 'de-DE'; u.onend = u.onerror = function () { if (gen === AU.gen) done(); }; speechSynthesis.speak(u); } catch (e) { done(); } };
+    (sampleId ? qsReq('/voices/sample', { id: sampleId }) : qsReq('/onboarding/speak', { id: S.onboarding.id, text: clean })).then(function (b) {
+      if (gen !== AU.gen) return; if (!(b instanceof Blob)) throw new Error('audio');
+      if (!AU.a) { AU.a = new Audio(); AU.a.preload = 'auto'; } AU.url = URL.createObjectURL(b); AU.a.src = AU.url; AU.a.onended = AU.a.onerror = function () { if (gen === AU.gen) done(); };
+      var p = AU.a.play(); if (p && p.catch) p.catch(function () { if (gen === AU.gen) done(); });
+    }).catch(function () { if (gen === AU.gen) say(); });
+  }
+  /* ---- 1 · Link ---- */
+  function qsLink() {
+    var ws = steps().filter(function (s) { return s.type === 'url_import'; })[0], cur = QS.url || (ws ? String(val(ws) || '') : '');
+    qsFrame('link', _t('onbq.link.t'), _t('onbq.link.s'),
+      '<div class="imp"><input class="big" type="url" id="qsUrl" inputmode="url" autocomplete="url" value="' + h(cur) + '" placeholder="' + h(_t('onbq.link.ph')) + '"><button class="btn p" type="button" id="qsImp">' + _t('onbq.link.go') + '</button></div>'
+      + '<div class="impst" id="qsImpSt" aria-live="polite"></div>'
+      + '<div class="qs-src">' + ['web', 'maps', 'instagram'].map(function (k) { return '<span>' + SV(IC[k === 'web' ? 'globe' : k], 16) + ' ' + _t('onbq.src.' + k + '.n') + '</span>'; }).join('') + '</div>',
+      qsFoot(null, '<button class="skip" type="button" id="qsNone">' + _t('onbq.link.none') + ' →</button>', true));
+    var run = function () {
+      var u = g('qsUrl').value.trim(); if (!u) { err(_t('onbq.link.need')); return; } if (BUSY) return; qsBusy(true); QS.url = u; var b = g('qsImp'); b.disabled = true;
+      var el = g('qsImpSt'); el.className = 'impst on run'; el.innerHTML = '<b>' + _t('onbj.weRead') + '</b> ' + _t('onbq.link.wait') + '<div class="bar"><i></i></div>';
+      api('/onboarding/import', { method: 'POST', body: JSON.stringify({ id: S.onboarding.id, url: u, lang: I18N.lang }) }).then(function (j) { qsBusy(false); QS.draft = j.draft || {}; QS.kind = j.kind || 'web'; QS.thin = !!j.thin; QS.d = j.qs || QS.d; QS.step = 'draft'; DIR = 'anim'; renderQs(); })
+        .catch(function (e) { qsBusy(false); b.disabled = false; el.className = 'impst on err'; el.innerHTML = h(e.message || _t('onbq.link.fail')) + ' <button type="button" class="qs-alt" id="qsAlt">' + _t('onbq.link.alt') + '</button>'; g('qsAlt').onclick = function () { qsGo('sector', { skip: true }); }; qsEv('link', 'error'); });
+    };
+    g('qsImp').onclick = run; g('qsUrl').onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); run(); } };
+    g('qsNone').onclick = function () { qsGo('sector', { skip: true }); };
+    if (!(window.matchMedia && matchMedia('(pointer:coarse)').matches)) setTimeout(function () { var f = g('qsUrl'); if (f && visible()) f.focus({ preventScroll: true }); }, 40);
+  }
+  /* ---- 2a · Entwurf bestätigen (Felder, Öffnungszeiten, Leistungen/Karte, häufige Fragen – dieselben Eingaben wie die ausführliche Einrichtung) ---- */
+  function qsDraft() {
+    var d = QS.draft || {}, sst = stepById('services') || stepById('menu'), fst = stepById('faq'), hst = stepById('hours');
+    var F = [['company', 'text', 'organization'], ['address', 'text', 'street-address'], ['phone', 'tel', 'tel'], ['email', 'email', 'email'], ['website', 'url', 'url']];
+    qsFrame('draft', _t('onbq.draft.t'), _t('onbq.draft.s', { src: _t('onbq.src.' + (QS.kind || 'web')) }) + (QS.thin ? ' ' + _t('onbq.draft.thin') : ''),
+      '<div class="fields">' + F.map(function (f) { return '<div class="f"><label for="qsF_' + f[0] + '">' + _t('onbq.f.' + f[0]) + '</label><input type="' + f[1] + '" id="qsF_' + f[0] + '" data-q="' + f[0] + '" value="' + h(d[f[0]] || '') + '" autocomplete="' + f[2] + '"' + (f[1] === 'tel' ? ' inputmode="tel"' : '') + ' maxlength="300"></div>'; }).join('')
+      + '<div class="f full"><label for="qsF_about">' + _t('onbq.f.about') + '</label><textarea id="qsF_about" data-q="about" maxlength="600">' + h(d.about || '') + '</textarea></div></div>'
+      + (hst ? '<span class="lbl">' + _t('onbq.hours') + '</span>' + hoursInput({ same_day: false }, d.hours || {}) : '')
+      + (sst ? '<span class="lbl">' + X(sst.title) + '</span>' + rowsInput(sst, Array.isArray(d[sst.id]) ? d[sst.id] : [], 'qsRowsMain') : '')
+      + (fst ? '<span class="lbl">' + _t('onbq.faq') + '</span>' + rowsInput(fst, (Array.isArray(d.faq) ? d.faq : []).map(function (r) { return { question: r.question || r.q || '', answer: r.answer || r.a || '' }; }), 'qsRowsFaq') : ''),
+      qsFoot(_t('onbq.draft.ok')));
+    var body = g('onbBody'); if (hst) bindHours(body); if (sst) bindRows(sst, 'qsRowsMain', body); if (fst) bindRows(fst, 'qsRowsFaq', body);
+    qsBindBack('draft');
+    g('qsNext').onclick = function () {
+      if (BUSY) return; qsBusy(true);
+      var o = {}; body.querySelectorAll('[data-q]').forEach(function (x) { o[x.dataset.q] = x.value.trim(); });
+      if (hst) o.hours = hoursCollect(); if (sst) o[sst.id] = qsRows(sst, 'qsRowsMain'); if (fst) o.faq = qsRows(fst, 'qsRowsFaq').map(function (r) { return { q: r.question, a: r.answer }; });
+      api('/onboarding/draft', { method: 'POST', body: JSON.stringify({ id: S.onboarding.id, draft: o }) }).then(function (j) { QS.d = j.qs || QS.d; return api('/onboarding/state?id=' + S.onboarding.id).then(function (s) { S = s; }).catch(function () {}).then(function () { qsBusy(false); QS.step = qsNext('draft'); DIR = 'anim'; renderQs(); }); })
+        .catch(function (e) { qsBusy(false); err(e.message || _t('onbj.saveErr')); });
+    };
+  }
+  /** Zeilen für den Entwurf: Preis in Euro als Zahl, Dauer als Zahl */
+  function qsRows(st, id) {
+    return rowsCollect(st, id).map(function (r) { var o = {}; st.cols.forEach(function (c) { var v = r[c.k];
+      if (c.t === 'money') { var s = String(v || ''); if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.'); var n = parseFloat(s); o.price = isFinite(n) ? n : 0; }
+      else if (c.t === 'int') o[c.k] = parseInt(v, 10) || 0; else o[c.k] = v; }); return o; });
+  }
+  /* ---- 2b · Ohne Link: Branche + drei Fragen ---- */
+  function qsSector() {
+    var secs = QS.sectors || [], cur = QS.sector || QS.d.sector || '';
+    var lab = function (s) { return typeof optLabel === 'function' ? optLabel('sectors', s.id, s.label) : _tx(s.label); }, S0 = secs.filter(function (s) { return s.id === cur; })[0];
+    var pre = function (id) { var st = stepById(id); return st ? String(val(st) || '') : ''; };
+    qsFrame('sector', _t('onbq.sector.t'), _t('onbq.sector.s'),
+      '<div class="chipset qs-secs" role="radiogroup">' + secs.map(function (s) { return '<button type="button" role="radio" class="c' + (s.id === cur ? ' on' : '') + '" aria-checked="' + (s.id === cur) + '" data-sec="' + h(s.id) + '"><span aria-hidden="true">' + h(s.icon) + '</span> ' + h(lab(s)) + '</button>'; }).join('') + '</div>'
+      + '<div class="qs-secq' + (cur ? '' : ' hidden') + '" id="qsSecQ"><span class="lbl" id="qsSecL">' + h(_t('onbq.sector.q', { s: S0 ? lab(S0) : '' })) + '</span>'
+      + '<div class="fields"><div class="f"><label for="qsS_company">' + _t('onbq.f.company') + '</label><input type="text" id="qsS_company" value="' + h(pre('company')) + '" autocomplete="organization" maxlength="120"></div>'
+      + '<div class="f"><label for="qsS_phone">' + _t('onbq.f.phone') + '</label><input type="tel" id="qsS_phone" inputmode="tel" value="' + h(pre('phone_public')) + '" autocomplete="tel" maxlength="40"></div>'
+      + '<div class="f full"><label for="qsS_address">' + _t('onbq.f.address') + '</label><input type="text" id="qsS_address" value="' + h(pre('address')) + '" autocomplete="street-address" maxlength="200"></div></div>'
+      + '<span class="lbl">' + _t('onbq.sector.hours') + '</span><div class="chipset" id="qsHp" role="radiogroup">' + [['mo-fr', 'onbq.hp.mofr'], ['mo-sa', 'onbq.hp.mosa'], ['gastro', 'onbq.hp.gastro'], ['24-7', 'onbq.hp.247']].map(function (p) { return '<button type="button" role="radio" class="c' + (p[0] === 'mo-fr' ? ' on' : '') + '" aria-checked="' + (p[0] === 'mo-fr') + '" data-hp="' + p[0] + '">' + _t(p[1]) + '</button>'; }).join('') + '</div></div>',
+      qsFoot(_t('onbq.next')));
+    var body = g('onbBody');
+    body.querySelectorAll('[data-sec]').forEach(function (b) { b.onclick = function () { body.querySelectorAll('[data-sec]').forEach(function (x) { toggleChipPlain(x, x === b); }); QS.sector = b.dataset.sec; err(''); var s = secs.filter(function (x) { return x.id === QS.sector; })[0]; g('qsSecQ').classList.remove('hidden'); g('qsSecL').textContent = _t('onbq.sector.q', { s: s ? lab(s) : '' }); var f = g('qsS_company'); if (f && !f.value && !(window.matchMedia && matchMedia('(pointer:coarse)').matches)) f.focus(); }; });
+    body.querySelectorAll('[data-hp]').forEach(function (b) { b.onclick = function () { body.querySelectorAll('[data-hp]').forEach(function (x) { toggleChipPlain(x, x === b); }); }; });
+    qsBindBack('sector');
+    g('qsNext').onclick = function () {
+      if (!QS.sector) { err(_t('onbq.sector.need')); return; } if (BUSY) return; qsBusy(true); var hp = body.querySelector('[data-hp].on');
+      api('/onboarding/sector', { method: 'POST', body: JSON.stringify({ id: S.onboarding.id, sector: QS.sector, company: g('qsS_company').value.trim(), address: g('qsS_address').value.trim(), phone: g('qsS_phone').value.trim(), hours: hp ? hp.dataset.hp : '' }) })
+        .then(function (j) { QS.d = j.qs || QS.d; var oid = j.onboarding && j.onboarding.id; return api('/onboarding/state' + (oid ? '?id=' + oid : '')).then(function (s) { S = s; }).catch(function () {}).then(function () { qsBusy(false); QS.step = qsNext('sector'); DIR = 'anim'; renderQs(); }); })
+        .catch(function (e) { qsBusy(false); err(e.message || _t('onbj.saveErr')); });
+    };
+  }
+  /* ---- 3 · Stimme (drei je Sprache, Hörprobe) + Begrüßung (Vorschläge, Vorhören) ---- */
+  function qsVoice() {
+    var d = QS.d, V = d.voices || [], cur = d.voice_id || '', gr = d.greeting || '', G = d.greetings || [];
+    var gl = function (x) { return _t(x === 'm' ? 'onbq.voice.m' : 'onbq.voice.f'); }, dsc = function (e) { return (e.desc || []).map(function (t) { return I18N.has('vc.d.' + t) ? _t('vc.d.' + t) : t; }).join(' · '); };
+    qsFrame('voice', _t('onbq.voice.t'), _t('onbq.voice.s'),
+      (V.length ? '<div class="qs-voices" role="radiogroup">' + V.map(function (e) { var on = e.id === cur; return '<div class="qs-voice' + (on ? ' on' : '') + '" data-v="' + h(e.id) + '"><button type="button" class="pl" data-play="' + h(e.id) + '" aria-label="' + h(_t('onbq.voice.play') + ': ' + e.label) + '">' + SV(IC.play, 18) + '</button><button type="button" role="radio" aria-checked="' + on + '" class="pick" data-pick="' + h(e.id) + '"><b>' + h(e.label) + '</b><span>' + h(gl(e.gender)) + (dsc(e) ? ' · ' + h(dsc(e)) : '') + '</span><i>' + _t('onbq.voice.chosen') + '</i></button></div>'; }).join('') + '</div>'
+        : '<div class="note" style="margin-top:0">' + _t('onbq.voice.none') + '</div><div class="chipset" id="qsGen" role="radiogroup" style="margin-top:12px">' + ['f', 'm'].map(function (x) { return '<button type="button" role="radio" class="c' + (d.gender === x ? ' on' : '') + '" aria-checked="' + (d.gender === x) + '" data-g="' + x + '">' + gl(x) + '</button>'; }).join('') + '</div>')
+      + '<span class="lbl">' + _t('onbq.greet.t') + '</span><p class="mute small" style="margin:0 0 8px">' + _t('onbq.greet.s') + '</p>'
+      + '<div class="chipset" id="qsGrs">' + G.map(function (t, i) { return '<button type="button" class="c" data-gr="' + i + '">' + h(t.length > 52 ? t.slice(0, 50) + '…' : t) + '</button>'; }).join('') + '</div>'
+      + '<div class="qs-greet"><textarea id="qsGreet" maxlength="400" placeholder="' + h(G[0] || '') + '">' + h(gr) + '</textarea><button type="button" class="btn" id="qsHear">' + SV(IC.sound, 16) + ' ' + _t('onbq.greet.hear') + '</button></div>',
+      qsFoot(_t('onbq.next')));
+    var body = g('onbBody');
+    body.querySelectorAll('[data-play]').forEach(function (b) { b.onclick = function () { qsSay(G[0] || gr, b, b.dataset.play); }; });
+    body.querySelectorAll('[data-pick]').forEach(function (b) { b.onclick = function () { var id = b.dataset.pick; QS.d.voice_id = id; body.querySelectorAll('.qs-voice').forEach(function (x) { var on = x.dataset.v === id; x.classList.toggle('on', on); x.querySelector('.pick').setAttribute('aria-checked', on ? 'true' : 'false'); });
+      api('/onboarding/greeting', { method: 'POST', body: JSON.stringify({ id: S.onboarding.id, voice_id: id }) }).then(function (j) { if (j.qs) { QS.d = j.qs; QS.d.voice_id = id; } }).catch(function (e) { err(e.message); }); }; });
+    body.querySelectorAll('[data-g]').forEach(function (b) { b.onclick = function () { body.querySelectorAll('[data-g]').forEach(function (x) { toggleChipPlain(x, x === b); }); QS.d.gender = b.dataset.g; api('/onboarding/answer', { method: 'POST', body: JSON.stringify({ id: S.onboarding.id, step: 'phone_persona', value: b.dataset.g }) }).catch(function () {}); }; });
+    body.querySelectorAll('[data-gr]').forEach(function (b) { b.onclick = function () { g('qsGreet').value = G[+b.dataset.gr]; body.querySelectorAll('[data-gr]').forEach(function (x) { toggleChipPlain(x, x === b); }); }; });
+    g('qsHear').onclick = function () { var t = g('qsGreet').value.trim() || g('qsGreet').placeholder; if (t) qsSay(t, g('qsHear')); };
+    qsBindBack('voice');
+    g('qsNext').onclick = function () {
+      if (BUSY) return; qsBusy(true); var t = g('qsGreet').value.trim();
+      api('/onboarding/greeting', { method: 'POST', body: JSON.stringify({ id: S.onboarding.id, text: t, voice_id: QS.d.voice_id || '' }) }).then(function (j) { qsBusy(false); QS.d = j.qs || QS.d; QS.chat = []; QS.step = qsNext('voice'); DIR = 'anim'; renderQs(); })
+        .catch(function (e) { qsBusy(false); err(e.message || _t('onbj.saveErr')); });
+    };
+  }
+  /* ---- 4 · Im Browser mit dem eigenen Agenten sprechen (POST /agent, vor der Zahlung über das Testguthaben) ---- */
+  function qsTry() {
+    var d = QS.d, SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!QS.chat.length && d.phone && d.greeting) QS.chat.push({ role: 'assistant', content: d.greeting });
+    qsFrame('try', _t('onbq.try.t'), _t('onbq.try.s'),
+      '<div class="qs-chat"><div class="ms" id="qsMs" aria-live="polite">' + (QS.chat.length ? QS.chat.map(qsMsgHtml).join('') : '<div class="m sys">' + _t('onbq.try.empty') + '</div>') + '</div>'
+      + '<div class="chipset qs-chips" id="qsChips">' + [1, 2, 3, 4].map(function (i) { return '<button type="button" class="c" data-q="' + i + '">' + _t('onbq.try.q' + i) + '</button>'; }).join('') + '</div>'
+      + '<form class="in" id="qsForm"><input type="text" id="qsIn" autocomplete="off" maxlength="600" placeholder="' + h(_t('onbq.try.ph')) + '">' + (SR ? '<button type="button" class="ib" id="qsMic" aria-label="' + h(_t('onbq.try.mic')) + '">' + SV(IC.mic, 18) + '</button>' : '') + '<button type="submit" class="ib p" id="qsSend" aria-label="' + h(_t('onbq.try.send')) + '">' + SV(IC.send, 18) + '</button></form>'
+      + '<label class="qs-tgl"><input type="checkbox" id="qsSpk"' + (QS.speak && d.phone ? ' checked' : '') + '> ' + _t('onbq.try.speak') + '</label></div>',
+      qsFoot(_t('onbq.try.ok')));
+    var ms = g('qsMs'); ms.scrollTop = ms.scrollHeight;
+    var send = function (text) {
+      text = (text || g('qsIn').value).trim(); if (!text || QS.busy) return; g('qsIn').value = '';
+      if (!QS.chat.length) ms.innerHTML = ''; QS.chat.push({ role: 'user', content: text }); ms.insertAdjacentHTML('beforeend', qsMsgHtml(QS.chat[QS.chat.length - 1]) + '<div class="m a wait" id="qsWait">…</div>'); ms.scrollTop = ms.scrollHeight; QS.busy = true; g('qsSend').disabled = true;
+      api('/agent', { method: 'POST', body: JSON.stringify({ plan: S.onboarding.base, messages: QS.chat.slice(-16), lang: d.lang, channel: d.phone ? 'phone' : 'chat' }) }).then(function (j) {
+        var a = String(j.result || '').replace(/\[(WEITERLEITEN|ENDE)\]/g, '').trim(); QS.chat.push({ role: 'assistant', content: a }); var w = g('qsWait'); if (w) w.outerHTML = qsMsgHtml(QS.chat[QS.chat.length - 1]); ms.scrollTop = ms.scrollHeight;
+        try { if (typeof refreshMe === 'function') refreshMe(); } catch (e) { /* egal */ } var sp = g('qsSpk'); if (sp && sp.checked) qsSay(a, null);
+      }).catch(function (e) { var w = g('qsWait'); if (w) w.outerHTML = '<div class="m sys err">' + h(e.status === 402 ? _t('onbq.try.noCredit') : e.message) + (e.status === 402 && d.checkout ? ' <a href="' + h(d.checkout) + '" target="_blank" rel="noopener">' + _t('onbq.plan.go') + ' →</a>' : '') + '</div>'; qsEv('try', 'error'); })
+        .then(function () { QS.busy = false; var sb = g('qsSend'); if (sb) sb.disabled = false; var inp = g('qsIn'); if (inp && !(window.matchMedia && matchMedia('(pointer:coarse)').matches)) inp.focus(); });
+    };
+    g('qsForm').onsubmit = function (e) { e.preventDefault(); send(); };
+    g('qsChips').querySelectorAll('[data-q]').forEach(function (b) { b.onclick = function () { send(b.textContent); }; });
+    ms.addEventListener('click', function (e) { var b = e.target.closest('[data-say]'); if (b && QS.chat[+b.dataset.say]) qsSay(QS.chat[+b.dataset.say].content, b); });
+    var spk = g('qsSpk'); if (spk) spk.onchange = function () { QS.speak = spk.checked; if (!spk.checked) qsStopAudio(); };
+    var mic = g('qsMic'); if (mic) mic.onclick = function () { try { qsStopAudio(); var r = new SR(); r.lang = LANGTAG[d.lang] || 'de-DE'; r.interimResults = false; mic.classList.add('rec'); r.onresult = function (ev) { mic.classList.remove('rec'); send(ev.results[0][0].transcript); }; r.onerror = r.onend = function () { mic.classList.remove('rec'); }; r.start(); } catch (e) { mic.classList.remove('rec'); } };
+    qsBindBack('try');
+    g('qsNext').onclick = function () { qsEv('try', 'done'); qsGo(qsNext('try')); };
+  }
+  function qsMsgHtml(m) { var i = QS.chat.indexOf(m); return '<div class="m ' + (m.role === 'user' ? 'u' : 'a') + '">' + h(m.content) + (m.role === 'assistant' ? '<button type="button" class="say" data-say="' + i + '" aria-label="' + h(_t('onbq.greet.hear')) + '">' + SV(IC.sound, 14) + '</button>' : '') + '</div>'; }
+  /* ---- 5 · Paket (Testphase): ein Bildschirm, Kasse mit Konto-E-Mail, danach geht es automatisch weiter ---- */
+  function qsPlan() {
+    var d = QS.d, o = S.onboarding, P = null; try { P = (PLANS || []).filter(function (p) { return p.id === o.plan || p.id === o.base; })[0] || null; } catch (e) { /* kein PLANS */ }
+    var chTxt = ((P && P.channels) || []).map(function (c) { return I18N.has('onbq.ch.' + c) ? _t('onbq.ch.' + c) : c; }).join(' · ');
+    var tiers = P && P.tiers && P.tiers.length ? P.tiers : null, price = P && P.eur_month ? I18N.eur(P.eur_month, P.eur_month % 1 ? 2 : 0) : '';
+    var ck = function (pid) { var u = d.checkout || ('/chat/tokens-checkout.php?plan=' + encodeURIComponent(o.plan)); return pid ? u.replace(/plan=[^&]*/, 'plan=' + encodeURIComponent(pid)) : u; };
+    qsFrame('plan', _t('onbq.plan.t'), _t('onbq.plan.s'),
+      '<div class="qs-plan"><div class="ic">' + SV(IC.spark, 22) + '</div><div class="t"><b>' + h(o.plan_name || o.base_name) + '</b>' + (chTxt ? '<span>' + h(chTxt) + '</span>' : '') + '</div>' + (price && !tiers ? '<div class="pr"><b>' + h(price) + '</b><span>' + _t('onbq.plan.month') + '</span></div>' : '') + '</div>'
+      + (tiers ? '<span class="lbl">' + _t('onbq.plan.tiers') + '</span><div class="qs-tiers">' + tiers.map(function (t) { return '<a class="tier' + (t.key === 'm' ? ' best' : '') + '" href="' + h(ck(t.id)) + '" target="_blank" rel="noopener" data-ck="1"><b>' + h(_t('tier.' + t.key)) + '</b><span>' + h(I18N.eur(t.eur_month, 0)) + ' ' + _t('onbq.plan.month') + '</span><small>' + h(_t('tier.time', { h: I18N.num(t.time.hours, { maximumFractionDigits: 1 }), c: I18N.num(t.time.calls) })) + '</small></a>'; }).join('') + '</div>' : '')
+      + '<p class="mute small" style="margin:14px 0 0">' + _t('onbq.plan.after') + '</p>',
+      qsFoot(null, '<button class="skip" type="button" id="qsLater">' + _t('onbq.plan.later') + '</button>' + (tiers ? '' : '<a class="btn p" id="qsPay" href="' + h(ck()) + '" target="_blank" rel="noopener" data-ck="1">' + _t('onbq.plan.go') + ' →</a>')));
+    g('onbCard').querySelectorAll('[data-ck]').forEach(function (a) { a.addEventListener('click', function () { qsEv('plan', 'done'); qsStartPoll(); }); });
+    qsBindBack('plan');
+    g('qsLater').onclick = function () { qsGo(qsNext('plan'), { skip: true }); };
+  }
+  /* ---- 6 · Nummer: Land + Wunschvorwahl, danach Umleitungscodes als tel:-Links (vor der Zahlung vorgemerkt) ---- */
+  function qsNumber() {
+    var d = QS.d, pend = d.number_pending && d.number_pending.cc ? d.number_pending : null;
+    if (d.number) { qsFrame('number', _t('onbq.num.t'), _t('onbq.num.have'), qsNumberHtml(d), qsFoot(_t('onbq.next'))); qsBindBack('number'); g('qsNext').onclick = function () { qsGo('live'); }; return; }
+    var ps = stepById('phone_public'), ph = ps ? String(val(ps) || '') : '', area = (ph.replace(/[^\d+]/g, '').replace(/^\+\d{2}/, '0').match(/^0(\d{2,3})/) || [])[1] || '';   // Wunschvorwahl aus der Betriebsnummer (2–3 Ziffern genügen für die Suche)
+    var cn = function (cc) { try { return typeof countryName === 'function' ? countryName(cc) : cc; } catch (e) { return cc; } };
+    qsFrame('number', _t('onbq.num.t'), _t('onbq.num.s'),
+      (pend ? '<div class="note" style="margin:0 0 14px">' + (d.active ? _t('onbq.num.soon') : _t('onbq.num.pending')) + '</div>' : '')
+      + '<div class="fields"><div class="f"><label for="qsCc">' + _t('onbq.num.country') + '</label><select id="qsCc">' + NUM_CC.map(function (cc) { return '<option value="' + cc + '"' + (cc === (pend ? pend.cc : d.country) ? ' selected' : '') + '>' + h(cn(cc)) + '</option>'; }).join('') + '</select></div>'
+      + '<div class="f"><label for="qsArea">' + _t('onbq.num.area') + '</label><input type="text" id="qsArea" inputmode="numeric" maxlength="6" value="' + h(pend ? (pend.area || '') : area) + '" placeholder="' + h(_t('onbq.num.areaPh')) + '"></div></div>',
+      qsFoot(pend ? _t('onbq.next') : _t('onbq.num.go'), '<button class="skip" type="button" id="qsNoNum">' + _t('onbq.num.skip') + '</button>'));
+    qsBindBack('number');
+    g('qsNoNum').onclick = function () { qsGo('live', { skip: true }); };
+    g('qsNext').onclick = function () {
+      if (BUSY) return; qsBusy(true);
+      api('/onboarding/number', { method: 'POST', body: JSON.stringify({ id: S.onboarding.id, area: g('qsArea').value.trim(), cc: g('qsCc').value }) }).then(function (j) { qsBusy(false); QS.d = j.qs || QS.d; if (QS.d.number) { DIR = 'anim'; renderQs(); } else qsGo('live', { server: false }); })
+        .catch(function (e) { qsBusy(false); err(e.message || _t('onbj.saveErr')); });
+    };
+  }
+  function qsNumberHtml(d) {
+    var n = d.number;
+    return '<div class="qs-num"><b>' + h(n.display) + '</b><a href="tel:' + h(n.e164) + '" class="btn s">' + SV(IC.phone, 14) + ' ' + _t('onbq.num.call') + '</a></div>'
+      + (n.codes && n.codes.length ? '<p class="sub" style="margin-top:14px">' + _t('onbq.num.fwd') + '</p><div class="fwd">' + n.codes.map(function (x) { return '<a href="' + h(x.tel) + '"' + (x.key === 'off' ? ' class="off"' : '') + '><code>' + h(x.code) + '</code><span>' + X(x.label) + '</span></a>'; }).join('') + '</div>' : '');
+  }
+  /* ---- 7 · Live: Testanruf abwarten (Abfrage alle 6 s), „Dein Agent ist live“, letzte Vorgänge, Schnellaktionen ---- */
+  function qsLive() {
+    var d = QS.d, o = S.onboarding, L = S.links || {}, C = S.checklist || [], live = !!d.live, hasNum = !!d.number;
+    var title = live ? '✅ ' + _t('onbq.live.t') : (hasNum ? _t('onbq.live.test.t') : _t('onbq.live.ready.t'));
+    var sub = live ? _t('onbq.live.s') : (hasNum ? h(_t('onbq.live.test.s', { n: d.number.display })) : (d.phone && !d.active ? _t('onbq.live.ready.s') : _t('onbq.live.ready.s2')));
+    var acts = [];
+    if (L.widget_snippet) acts.push('<button type="button" class="act" data-a="copy">' + SV(IC.code) + '<span>' + _t('onbj.a.copy') + '</span></button>');
+    acts.push('<button type="button" class="act" data-a="test">' + SV(IC.chat) + '<span>' + _t('onbj.a.test') + '</span></button>');
+    if (d.phone) acts.push('<button type="button" class="act" data-a="phone">' + SV(IC.phone) + '<span>' + _t('onbj.a.phone') + '</span></button>');
+    if (C.some(function (c) { return c.key === 'whatsapp'; })) acts.push('<button type="button" class="act" data-a="whatsapp">' + SV(IC.wa) + '<span>' + _t('onbj.a.wa') + '</span></button>');
+    acts.push('<button type="button" class="act" data-a="dash">' + SV(IC.bolt) + '<span>' + _t('onbq.live.dash') + '</span></button>', '<a class="act" href="/chat/app.php" data-a="app">' + SV(IC.app) + '<span>' + _t('onbj.a.app') + '</span></a>');
+    if (o.trial && d.checkout) acts.unshift('<a class="act p" href="' + h(d.checkout) + '" target="_blank" rel="noopener" data-a="live">' + SV(IC.spark) + '<span>' + _t('onbj.a.live') + '</span></a>');
+    qsFrame('live', title, sub,
+      (hasNum && !live ? qsNumberHtml(d) + '<div class="impst on run" style="margin-top:14px"><b>' + _t('onbq.live.wait') + '</b><div class="bar"><i></i></div></div>' : '')
+      + (live && hasNum ? '<div class="qs-num"><b>' + h(d.number.display) + '</b><span class="pill2 ok">' + h(_t('onbq.live.calls', { n: I18N.num(d.calls) })) + '</span></div>' : '')
+      + '<div class="acts" style="padding:' + (hasNum ? 16 : 0) + 'px 0 0">' + acts.join('') + '</div>'
+      + '<span class="lbl">' + _t('onbq.live.recent') + '</span>' + (d.recent && d.recent.length ? '<ul class="qs-recent">' + d.recent.map(qsRecentHtml).join('') + '</ul>' : '<p class="mute small" style="margin:0">' + _t('onbq.live.none') + '</p>'),
+      '<button class="btn" type="button" id="onbEdit">' + SV(IC.edit, 16) + ' ' + _t('onbq.live.all') + '</button><span class="sp"></span><button class="btn" type="button" id="onbMail">' + SV(IC.mail, 16) + ' ' + _t('onbj.send') + '</button>');
+    g('onbCard').insertAdjacentHTML('beforeend', '<div id="onbMsg" style="padding:0 26px 18px"></div>');
+    g('onbCard').querySelectorAll('[data-a]').forEach(function (b) { b.addEventListener('click', function (e) { var a = b.dataset.a;
+      if (a === 'copy') { e.preventDefault(); copy(L.widget_snippet, b); }
+      if (a === 'phone') { e.preventDefault(); go('phone'); }
+      if (a === 'whatsapp') { e.preventDefault(); go('whatsapp'); }
+      if (a === 'dash') { e.preventDefault(); go('dash'); }
+      if (a === 'test') { e.preventDefault(); if (typeof openAgent === 'function') openAgent(L.test_plan || o.base); else location.href = L.studio_test; }
+    }); });
+    g('onbEdit').onclick = function () { qsStopPoll(); qsStopAudio(); SHOWALL = true; MODE = 'step'; CUR = (queue()[0] || {}).id; DIR = 'anim'; render(); };
+    g('onbMail').onclick = function () { var b = g('onbMail'); b.disabled = true; api('/onboarding/resend-guide', { method: 'POST', body: JSON.stringify({ id: o.id }) }).then(function (j) { g('onbMsg').innerHTML = '<div class="msg ok">' + h((j.message && _tx(j.message)) || _t('onbj.sent')) + '</div>'; }).catch(function (e) { g('onbMsg').innerHTML = '<div class="msg err">' + h(e.message) + '</div>'; }).then(function () { b.disabled = false; }); };
+    if (hasNum && !live) qsStartPoll(); else qsStopPoll();
+  }
+  /** Letzte Vorgänge (dash-lib, sprachneutral) – Titel mit den Wörterbuchschlüsseln der Übersicht */
+  function qsRecentHtml(it) {
+    var t = '', s = '', who = [it.name, it.phone_display].filter(Boolean).join(' · '), J = function (a) { return a.filter(Boolean).join(' · '); };
+    switch (it.kind) {
+      case 'call': t = _t(it.direction === 'out' ? 'dsj.ttl.callOut' : 'dsj.ttl.call'); s = who; break;
+      case 'whatsapp': t = _t('dsj.ttl.whatsapp'); s = it.text ? '„' + it.text + '“' : who; break;
+      case 'web': t = _t('dsj.kind.web'); s = it.text ? '„' + it.text + '“' : ''; break;
+      case 'order': t = _t('dsj.ttl.order', { c: it.code }); s = J([it.items, who]); break;
+      case 'appt': t = _t('dsj.ttl.appt', { c: it.code }); s = J([it.service, who]); break;
+      case 'ride': t = _t('dsj.ttl.ride', { c: it.code }); s = J([it.pickup, who]); break;
+      case 'hotel': t = _t('dsj.ttl.hotel', { c: it.code }); s = who; break;
+      case 'callback': t = _t('dsj.ttl.callback', { c: it.code }); s = J([it.topic, who]); break;
+      default: t = it.kind; s = who;
+    }
+    var when = ''; try { when = I18N.dt(new Date(it.at), { dateStyle: 'short', timeStyle: 'short' }); } catch (e) { /* egal */ }
+    return '<li><span class="k ' + h(it.kind) + '">' + SV(it.kind === 'call' ? IC.phone : (it.kind === 'whatsapp' ? IC.wa : IC.chat), 16) + '</span><span class="t"><b>' + h(t) + '</b>' + (s ? '<span>' + h(s) + '</span>' : '') + '</span><time>' + h(when) + '</time></li>';
+  }
+
   /* ---------------------------------------------------------------- Panel */
   function start() {
     if (!key()) return;
@@ -350,6 +668,7 @@
     var pick = window.ONB_PLAN || ''; window.ONB_PLAN = '';   // aus dem Profil-Assistenten: empfohlener Agent
     var q = pick ? { plan: pick } : (firstLoad && w ? { plan: w } : (S && S.onboarding ? { id: S.onboarding.id } : null)); firstLoad = false;
     if (S && MODE === 'step' && !pick) return;   // mitten in einer Frage nicht neu laden
+    if (S && MODE === 'qs' && QS && QS.d && !pick) { qsRefresh(); return; }   // Schnellstart: nur den Stand nachladen (z. B. zurück von der Kasse), Schritt und Gespräch behalten
     load(q);
   }
   window.STUDIO_PANELS = window.STUDIO_PANELS || {};

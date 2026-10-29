@@ -417,7 +417,8 @@ function onb_public(array $onb): array {
     $P=onb_profile($onb['plan']);
     return ['id'=>$onb['id'],'plan'=>$onb['plan'],'plan_name'=>$P['name'],'base'=>$onb['base'],'base_name'=>$P['base_name'],'kind'=>$P['kind'],'private'=>$P['private'],
         'status'=>$onb['status'],'created_at'=>th_dbiso($onb['created_at'] ?? null),'finished_at'=>th_dbiso($onb['finished_at'] ?? null),'guide_sent_at'=>th_dbiso($onb['guide_sent_at'] ?? null),'guide_count'=>$onb['guide_count'],
-        'trial'=>onb_is_trial($onb),'checkout'=>onb_is_trial($onb) ? '/chat/tokens-checkout.php?plan='.rawurlencode($onb['plan']) : null];   // Testphase: eingerichtet, Live-Schaltung mit dem Paket
+        'trial'=>onb_is_trial($onb),'checkout'=>onb_is_trial($onb) ? '/chat/tokens-checkout.php?plan='.rawurlencode($onb['plan']) : null,   // Testphase: eingerichtet, Live-Schaltung mit dem Paket
+        'qs_step'=>isset($onb['meta']['qs']['step']) ? (string)$onb['meta']['qs']['step'] : null];   // Schnellstart (quickstart-lib) begonnen → das Studio macht dort weiter
 }
 function onb_state(int $aid, array $onb): array {
     [$P,$steps,$pre,$vals]=onb_ctx($aid,$onb); $ans=$onb['answers']; $out=[];

@@ -165,6 +165,7 @@ chat/contacts-lib.php        chat/contacts-lib.php
 chat/studio-panels/kunden.html chat/studio-panels/kunden.html
 chat/studio-panels/kunden.js chat/studio-panels/kunden.js
 # Übersicht des Betriebs (Kennzahlen, Verlauf, alle Vorgänge, Website-Chats) + Betreiber-Bereich (Umsatz, Konten, Kosten, Systemzustand)
+chat/quickstart-lib.php      chat/quickstart-lib.php
 chat/dash-lib.php            chat/dash-lib.php
 chat/admin-lib.php           chat/admin-lib.php
 chat/studio-panels/dash.html chat/studio-panels/dash.html

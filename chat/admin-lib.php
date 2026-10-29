@@ -122,7 +122,7 @@ function adm_overview(int $days): array {
             'web_chats'=>adm_val("SELECT COUNT(*) FROM widget_chats WHERE ".$W('updated_at'))],
         'costs'=>['ai'=>$ai ? ['eur'=>$aiEur,'answers'=>(int)$ai['total']['answers'],'cent_per_answer'=>$ai['total']['cent_per_answer'],'cache_share'=>$ai['total']['cache_share'],'channels'=>$ai['channels']] : null,
             'ai_prev_eur'=>$aiP ? (float)$aiP['total']['eur'] : null,'tts_month'=>array_values($tts),'stt'=>$stt,'margin_hint'=>$mrr>0 ? round(1-($aiEur*30/$days*100)/$mrr,3) : null],
-        'series'=>array_values($series),'issues'=>$issues,'keys'=>adm_keys(),
+        'series'=>array_values($series),'issues'=>$issues,'keys'=>adm_keys(),'funnel'=>function_exists('qs_funnel') ? qs_funnel($days) : null,
         'system'=>['php'=>PHP_VERSION,'db'=>(string)(adm_one("SELECT VERSION() v")['v'] ?? ''),'time_utc'=>gmdate('Y-m-d H:i'),'version'=>is_file(__DIR__.'/pagever.php') ? substr(md5((string)@filemtime(__DIR__.'/studio.php')),0,8) : '']];
 }
 
