@@ -439,6 +439,19 @@ const CH_AI_ECO_PLANS = ['agent-support','ec-support','log-support','agent-websi
 function ch_ai_eco_plan(string $plan): bool { $b=function_exists('ch_plan') ? (string)((ch_plan($plan) ?? [])['base'] ?? $plan) : $plan; return in_array($b,CH_AI_ECO_PLANS,true); }
 /** Dieser KI-Aufruf darf DeepSeek (EU) nutzen – setzt widget-api für berechtigte Website-Chats; sonst false. */
 function th_ai_eco(?bool $on=null): bool { if($on!==null) $GLOBALS['__th_ai_eco']=$on; return !empty($GLOBALS['__th_ai_eco']); }
+/**
+ * Plattform-DeepSeek (api.deepseek.com, Anthropic-kompatibler Endpunkt, mit Werkzeugen) als Ersatz, wenn Claude ausfällt (Guthaben, Störung):
+ * nur mit ausdrücklicher Freigabe – CH_DEEPSEEK_CN_FALLBACK=true in db.php oder '1' über ops/keybox (tts-keys.php) – und DEEPSEEK_KEY.
+ * Achtung Datenschutz: dann laufen auch Telefon/WhatsApp/Buchungen über DeepSeek (China), solange Claude nicht antwortet.
+ */
+function th_ai_cn_fallback_ok(): bool {
+    if(!defined('DEEPSEEK_KEY') || !DEEPSEEK_KEY || !defined('CH_DEEPSEEK_CN_FALLBACK')) return false;
+    $v=CH_DEEPSEEK_CN_FALLBACK; return $v===true || $v===1 || $v==='1' || $v==='true' || $v==='on';
+}
+function th_ai_cn_route(): array {
+    $c=defined('BL_BYOK_PROVIDERS') ? BL_BYOK_PROVIDERS['deepseek'] : ['url'=>'https://api.deepseek.com/anthropic/v1/messages','model'=>'deepseek-chat','extra'=>[]];
+    return ['provider'=>'deepseek','url'=>$c['url'],'key'=>(string)DEEPSEEK_KEY,'models'=>array_values(array_unique([(string)$c['model'],'deepseek-chat'])),'byok'=>false,'extra'=>(array)$c['extra']];
+}
 function th_ai_eu_cfg(): ?array {
     $u=defined('DEEPSEEK_EU_URL') ? trim((string)DEEPSEEK_EU_URL) : ''; $k=defined('DEEPSEEK_EU_KEY') ? trim((string)DEEPSEEK_EU_KEY) : '';
     if($u==='' || $k==='' || !preg_match('#^https://#',$u)) return null;
@@ -594,19 +607,14 @@ function th_ai_run(string $system, array $msgs, ?array $tools, ?callable $exec, 
         $st=[]; $txt=th_ai_route($rt,$system,$msgs,$tools,$exec,$maxTokens,$timeout,$maxRounds,$st);
         if($txt!==null || $st['ran']){ if($st['model'] && ($cached['model'] ?? null)!==$st['model']) @file_put_contents($cacheF,json_encode(['model'=>$st['model'],'t'=>time()])); return $done($txt,$st,$rt); }
         $info['errors']=array_merge($info['errors'],$st['errors']);
-        if($tools){ $GLOBALS['__th_ai_info']=$info; return null; }   // wie bisher: Werkzeug-Gespräche nicht ohne Werkzeuge fortsetzen
+        if($tools && !th_ai_cn_fallback_ok()){ $GLOBALS['__th_ai_info']=$info; return null; }   // Werkzeug-Gespräche nie ohne Werkzeuge fortsetzen
     }
-    /* 3) Plattform-DeepSeek über api.deepseek.com (China): nur mit ausdrücklicher Freigabe in db.php (CH_DEEPSEEK_CN_FALLBACK) – sonst kein Ersatz außerhalb der EU */
-    if(defined('DEEPSEEK_KEY') && DEEPSEEK_KEY && defined('CH_DEEPSEEK_CN_FALLBACK') && CH_DEEPSEEK_CN_FALLBACK===true){
-        $plain=th_ai_msgs(array_values(array_filter($msgs,fn($m)=>is_string($m['content'] ?? null))));
-        if($plain && end($plain)['role']==='user'){
-            [$code,$r,$cerr]=th_ai_http('https://api.deepseek.com/chat/completions',['Authorization: Bearer '.DEEPSEEK_KEY,'content-type: application/json'],
-                ['model'=>'deepseek-chat','max_tokens'=>$maxTokens,'messages'=>array_merge([['role'=>'system','content'=>th_ai_sys_plain($system)]],$plain)],$timeout);
-            $txt=(string)($r['choices'][0]['message']['content'] ?? '');
-            if(trim($txt)!==''){ $u=(function_exists('bl_usage_norm') && is_array($r['usage'] ?? null)) ? bl_usage_norm($r['usage']) : ['in'=>0,'out'=>0,'cache_read'=>0,'cache_write'=>0];
-                return $done($txt,['model'=>'deepseek-chat','usage'=>$u],['provider'=>'deepseek','byok'=>false]); }
-            $info['errors'][]='deepseek-chat: '.mb_substr((string)($r['error']['message'] ?? ($cerr ?: 'yanıt yok')),0,120);
-        }
+    /* 3) Plattform-DeepSeek über api.deepseek.com (China, Anthropic-kompatibel, Werkzeuge wie bei Claude): nur mit ausdrücklicher Freigabe (th_ai_cn_fallback_ok) –
+          sonst kein Ersatz außerhalb der EU. Werkzeuge haben bis hierher nie etwas ausgeführt (sonst wäre oben zurückgegeben worden). */
+    if(th_ai_cn_fallback_ok()){
+        $rt=th_ai_cn_route(); $st=[]; $txt=th_ai_route($rt,$system,$msgs,$tools,$exec,$maxTokens,$timeout,$maxRounds,$st);
+        if($txt!==null || $st['ran']) return $done($txt,$st,$rt);
+        $info['errors']=array_merge($info['errors'],$st['errors']);
     }
     $GLOBALS['__th_ai_info']=$info; error_log('CH th_ai: '.json_encode($info['errors']));
     return null;
@@ -629,7 +637,7 @@ function th_ai(string $system, array $messages, int $maxTokens=1200, int $timeou
  */
 function th_ai_tools(string $system, array $messages, array $tools, callable $exec, int $maxTokens=900, int $timeout=60, int $maxRounds=5): ?string {
     $acc=(int)(th_ai_context()['acc'] ?? 0);
-    $anthropic=(defined('CLAUDE_KEY') && CLAUDE_KEY) || ($acc>0 && function_exists('bl_byok_routes') && bl_byok_routes($acc));
+    $anthropic=(defined('CLAUDE_KEY') && CLAUDE_KEY) || th_ai_cn_fallback_ok() || ($acc>0 && function_exists('bl_byok_routes') && bl_byok_routes($acc));
     if(!$anthropic || !$tools) return th_ai($system,$messages,$maxTokens,$timeout);
     $msgs=th_ai_msgs($messages,true);
     if(!$msgs || $msgs[0]['role']!=='user' || end($msgs)['role']!=='user') return null;

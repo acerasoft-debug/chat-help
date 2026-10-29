@@ -13,7 +13,7 @@ require_once __DIR__.'/tokens-lib.php';
 require_once __DIR__.'/plans.php';
 echo "ChatHelp — ai-check  (".date('c').")\n\n";
 echo "=== 1) Anahtarlar / zincir ===\n";
-foreach (['CLAUDE_KEY','CLAUDE_MODEL','DEEPSEEK_KEY','TWILIO_AUTH_TOKEN','TWILIO_VOICE','BREVO_KEY','MAIL_FROM'] as $k) echo "  $k: ".(defined($k) ? (constant($k) ? 'VAR ('.strlen((string)constant($k)).' Zeichen)' : 'leer') : 'yok')."\n";
+foreach (['CLAUDE_KEY','CLAUDE_MODEL','DEEPSEEK_KEY','CH_DEEPSEEK_CN_FALLBACK','DEEPSEEK_EU_KEY','DEEPSEEK_EU_URL','TWILIO_AUTH_TOKEN','TWILIO_VOICE','BREVO_KEY','MAIL_FROM'] as $k) echo "  $k: ".(defined($k) ? (constant($k) ? 'VAR ('.strlen((string)constant($k)).' Zeichen)' : 'leer') : 'yok')."\n";
 echo "  Modeller: ".implode(' → ', th_ai_models())."\n";
 foreach ([__DIR__.'/.ai_model.json', sys_get_temp_dir().'/ch_ai_model.json'] as $f) echo "  Önbellek $f: ".(is_file($f) ? file_get_contents($f) : 'yok')." (dizin yazılabilir: ".(is_writable(dirname($f))?'evet':'HAYIR').")\n";
 
@@ -28,6 +28,20 @@ if (defined('CLAUDE_KEY') && CLAUDE_KEY) {
         echo sprintf("  %-32s HTTP %s  %.2fs  %s\n", $m, $code ?: 'ERR', microtime(true)-$t, $code===200 ? 'OK: '.mb_substr((string)($j['content'][0]['text'] ?? ''),0,30) : (($j['error']['type'] ?? $err).' · '.mb_substr((string)($j['error']['message'] ?? $raw),0,140)));
     }
 } else echo "  CLAUDE_KEY yok\n";
+
+echo "\n=== 2b) DeepSeek platform yedeği (Anthropic uyumlu uç nokta, ham) ===\n";
+echo "  yedek etkin (th_ai_cn_fallback_ok): ".(function_exists('th_ai_cn_fallback_ok') && th_ai_cn_fallback_ok() ? 'EVET' : 'hayır')."\n";
+if (defined('DEEPSEEK_KEY') && DEEPSEEK_KEY && function_exists('th_ai_cn_route')) {
+    $rt=th_ai_cn_route();
+    foreach ($rt['models'] as $m) {
+        $ch=curl_init($rt['url']); $t=microtime(true);
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>40,
+            CURLOPT_POSTFIELDS=>json_encode(['model'=>$m,'max_tokens'=>8,'messages'=>[['role'=>'user','content'=>'Sag OK']]]+$rt['extra']),
+            CURLOPT_HTTPHEADER=>['x-api-key: '.$rt['key'],'anthropic-version: 2023-06-01','content-type: application/json']]);
+        $raw=(string)curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); $err=curl_error($ch); curl_close($ch); $j=json_decode($raw,true);
+        echo sprintf("  %-20s HTTP %s  %.2fs  %s\n", $m, $code ?: 'ERR', microtime(true)-$t, $code===200 ? 'OK: '.mb_substr((string)($j['content'][0]['text'] ?? ''),0,30) : (($j['error']['type'] ?? $err).' '.mb_substr((string)($j['error']['message'] ?? ''),0,120)));
+    }
+} else echo "  DEEPSEEK_KEY yok\n";
 
 echo "\n=== 3) th_ai() canlı ===\n";
 $t=microtime(true); $r=th_ai('Antworte nur mit dem Wort OK.',[['role'=>'user','content'=>'Hallo']],20,40);
