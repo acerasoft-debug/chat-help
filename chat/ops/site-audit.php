@@ -39,7 +39,7 @@ echo "  viewport: ".($m('/<meta[^>]+name=["\']viewport["\'][^>]+content=["\']([^
 preg_match_all('/<a[^>]+href=["\'](https?:\/\/[^"\']+)/i',$b,$ext); $hosts=array_count_values(array_map(fn($u)=>parse_url($u,PHP_URL_HOST),$ext[1])); arsort($hosts); echo "  externe Links: ".json_encode(array_slice($hosts,0,8))."\n";
 echo "  Anbieternamen im Quelltext: "; foreach(['Twilio','ElevenLabs','Deepgram','Anthropic','Claude','DeepSeek','OpenAI','Azure'] as $v) echo $v.'='.substr_count($b,$v).' '; echo "\n";
 echo "\n=== Interne Links der Startseite (Stichprobe, 404?) ===\n";
-preg_match_all('/href=["\'](\/[^"\'#?]+)/i',$b,$il); $seen=[]; $bad=0;
+preg_match_all('/<(?:a|link)\b[^>]*?href=["\'](\/[^"\'#?]+)/i',$b,$il); $seen=[]; $bad=0;
 foreach(array_slice(array_unique($il[1]),0,40) as $p){ $r=get($BASE.$p,true); if($r['code']>=400){ $bad++; echo "  ✗ $p → {$r['code']}\n"; } }
 echo "  geprüft: ".min(40,count(array_unique($il[1])))." · defekt: $bad\n";
 echo "\nBİTTİ (nur gelesen)\n";

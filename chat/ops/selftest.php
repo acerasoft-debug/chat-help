@@ -41,6 +41,8 @@ function http(string $method, string $url, $body=null, array $hdr=[], string $ki
     $hd=substr($raw,0,$hs); $b=substr($raw,$hs);
     return ['code'=>$code,'body'=>$b,'json'=>json_decode($b,true),'hdr'=>$hd,'t'=>$dt,'err'=>$err,'url'=>$eff,'cache'=>preg_match_all('/^cf-cache-status:\s*(\S+)/mi',$hd,$m)?end($m[1]):'-'];
 }
+/* Startseiten-Skript (site/site.js – seit der Auslagerung aus index.html): Inhalt für Textprüfungen, einmal geladen */
+function site_js(string $html): string { static $c=null; if($c!==null) return $c; global $BASE; if(!preg_match('/src="(\/site\.js\?v=[0-9a-f]+)"/',$html,$m)) return $c=''; $r=http('GET',$BASE.$m[1],null,[],'raw',true); return $c=(string)($r['body'] ?? ''); }
 function rnd(int $n=5): string { return bin2hex(random_bytes($n)); }
 
 /* ---------- Testkonten + Aufräumen ---------- */
@@ -331,7 +333,7 @@ try {
     sec('Neu: Impressum, Rückruf, Live-Demos, Studio-Assistent, Training');
     $r=http('GET',"$BASE/impressum.html?_=".rnd(4)); $nm=base64_decode('U2VyZGFy');
     ok($r['code']===200 && str_contains($r['body'],'Acerasoft LLC') && str_contains($r['body'],'Management') && stripos($r['body'],$nm)===false,'Impressum-Seite (Acerasoft LLC, Management, kein Personenname)',"HTTP {$r['code']}");
-    $r=http('GET',"$BASE/?_=".rnd(4)); ok($r['code']===200 && str_contains($r['body'],'href="/impressum.html"') && str_contains($r['body'],"key\":\"hausverwaltung\""),'Startseite: Impressum-Link + eigene Hausverwaltungs-Demo',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/?_=".rnd(4)); ok($r['code']===200 && str_contains($r['body'],'href="/impressum.html"') && str_contains(site_js($r['body']),"key\":\"hausverwaltung\""),'Startseite: Impressum-Link + eigene Hausverwaltungs-Demo',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/chat/callback.php?k=demo&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && stripos($r['body'],'Rückruf')!==false,'Rückruf-Seite (Demo)',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/chat/lead-api.php?k=demo&_=".rnd(4)); ok($r['code']===200 && is_array($r['json']),'Lead-API beschreibt Felder (Demo)',"HTTP {$r['code']}");
     $r=$api('GET','callbacks/settings'); ok($r['code']===200 && isset($r['json']['settings']),'Studio-API Rückruf-Einstellungen',"HTTP {$r['code']}");
@@ -359,7 +361,7 @@ try {
     sec('Phase 3: Premium-Stimmen, App, Länder/Währung, Rechtstexte');
     $r=http('GET',"$BASE/chat/voice/voice.js?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'function ok() { return false; }'),'Stimmen: nur Premium – Browser-Stimmen abgeschaltet (voice.js)','HTTP '.$r['code']);
     $r=http('GET',"$BASE/chat/vendor/voice/LICENSES.txt?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'espeak-ng') && str_contains($r['body'],'== Stimmen =='),'Stimmen-Lizenzen veröffentlicht',"HTTP {$r['code']}");
-    $r=http('GET',"$BASE/?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'/chat/voice/voice.js') && str_contains($r['body'],'href="/datenschutz.html"'),'Startseite: echte Stimmen eingebunden + Datenschutz-Link',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains(site_js($r['body']),'/chat/voice/voice.js') && str_contains($r['body'],'href="/datenschutz.html"'),'Startseite: echte Stimmen eingebunden + Datenschutz-Link',"HTTP {$r['code']}");
     $r=http('GET',"$BASE/chat/locale-api.php?cc=TR&_=".rnd(4),null,['CF-IPCountry: TR']); ok($r['code']===200 && ($r['json']['currency'] ?? '')==='TRY' && ($r['json']['lang'] ?? '')==='tr','Länder-Erkennung: Türkei → Türkisch + TRY',short($r['json'] ?? $r['body'],120));
     $r=http('GET',"$BASE/chat/locale-api.php?cc=RU&_=".rnd(4)); ok($r['code']===200 && ($r['json']['currency'] ?? '')==='EUR','Länder-Erkennung: Russland → keine Rubel (EUR)',short($r['json']['currency'] ?? '',20));
     $r=http('GET',"$BASE/chat/tokens-api.php/v1/pricing?cur=USD&lang=en&_=".rnd(4)); ok($r['code']===200 && isset($r['json']['display_currency']),'Preis-API mit Landeswährung (USD)',"HTTP {$r['code']}");
@@ -387,7 +389,7 @@ try {
         $r=http('GET',"$BASE/chat/site.php?demo=$d&lang=de&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'<h1') && ($needle==='' || str_contains($r['body'],$needle)),"Baukasten-Beispiel „{$d}“ (öffentliche Darstellung)","HTTP {$r['code']}");
     }
     $r=http('GET',"$BASE/chat/site.php?demo=gastro&lang=tr&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && preg_match('/lang="tr/',$r['body']),'Baukasten-Beispiel auf Türkisch',"HTTP {$r['code']}");
-    $r=http('GET',"$BASE/?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'id="website"') && str_contains($r['body'],'heroMedia'),'Startseite: Abschnitt „Website erstellen“ + Video je Sprache',"HTTP {$r['code']}");
+    $r=http('GET',"$BASE/?_=".rnd(4),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'id="website"') && str_contains(site_js($r['body']),'heroMedia'),'Startseite: Abschnitt „Website erstellen“ + Video je Sprache',"HTTP {$r['code']}");
     foreach(['tr','fr','az','es','it','en'] as $l){ $h=http('HEAD',"$BASE/media/hero-$l.mp4",null,[],'raw',true); $p=http('HEAD',"$BASE/media/hero-$l-poster.jpg",null,[],'raw',true); ok($h['code']===200 && $p['code']===200,"Hero-Video $l + Poster","mp4 {$h['code']} · poster {$p['code']}"); }
     foreach(['tr','fr','az','es'] as $l){ $r=http('GET',"$BASE/chat/app-i18n/$l.json?_=".rnd(4)); $n=is_array($r['json']) ? count($r['json']) : 0; ok($r['code']===200 && $n>500,"App-Übersetzung $l","$n Schlüssel"); }
     $r=http('GET',"$BASE/chat/app.php?lang=tr&_=".rnd(4),null,[],'json',true); ok($r['code']===200 && preg_match('/<html[^>]*lang="tr/',$r['body']),'Business-App auf Türkisch',"HTTP {$r['code']}");
@@ -462,7 +464,7 @@ try {
     $r=$api('GET','onboarding/funnel'); ok($r['code']===403,'GET /v1/onboarding/funnel: nur Betreiber (403 für Kunden)');
     $fn=function_exists('qs_funnel') ? qs_funnel(7) : null; ok(is_array($fn) && count($fn)===8 && ($fn['link']['view'] ?? 0)>=1,'Trichter rechnet (8 Schritte, Ereignis gezählt)',json_encode($fn['link'] ?? null));
     $r=http('GET',"$BASE/chat/studio-panels/einrichtung.js?_=".rnd(3),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],'onboarding/qs') && str_contains($r['body'],'qsLive'),'Studio-Panel Einrichtung mit Schnellstart ausgeliefert');
-    $r=http('GET',"$BASE/?_=".rnd(3),null,[],'json',true); ok($r['code']===200 && str_contains($r['body'],"searchParams.set('start',plan)"),'Website: Monats-Agenten starten im Studio (erst einrichten, bezahlt wird am Ende)');
+    $r=http('GET',"$BASE/?_=".rnd(3),null,[],'json',true); ok($r['code']===200 && str_contains(site_js($r['body']),"searchParams.set('start',plan)"),'Website: Monats-Agenten starten im Studio (erst einrichten, bezahlt wird am Ende)');
     $r=http('GET',"$BASE/chat/tokens-api.php/v1/auth/google?probe=1",null,[],'json'); ok(in_array($r['code'],[200,404],true),'Anmeldung mit Google: '.($r['code']===200 ? 'eingerichtet' : 'ruhend (keine Google-Zugangsdaten) – E-Mail-Code bleibt'),'HTTP '.$r['code']);
 } catch(Throwable $e){ ok(false,'Schnellstart: unerwarteter Fehler '.$e->getMessage(),basename($e->getFile()).':'.$e->getLine()); }
 
