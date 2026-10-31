@@ -965,8 +965,54 @@ function vestra_mailbox_dns_status(string $domain, ?callable $dig = null): strin
   return $cache[$d] = $res;
 }
 
-/** Tek mektubu sunucunun posta servisiyle (mail() → Exim → GoDaddy aktarıcısı) support@'tan gönderir.
- *  [ok, Message-ID, neden]. $mail: testte sahte mail(). */
+/* TOPLU GÖNDERİM YOLU (31 Eki 2026, operatör: "bu e-posta gönderme işine son noktayı koy, günde 2 bin e-posta gitsin").
+   GoDaddy'nin posta servisi 29 Eki 15:30'dan beri partileri 7–8 mektuptan sonra reddediyor (günde ~850; 2000 oradan çıkmaz,
+   ayrıca spam etiketi riski). Kampanya mektupları artık bir toplu gönderim servisinin SMTP aktarıcısından (Brevo SMTP, Amazon
+   SES, Mailgun … — STARTTLS + AUTH LOGIN) gider; mektup, başlıklar (DKIM imzası, List-Unsubscribe, Message-ID) ve içerik
+   BİREBİR aynı, yalnız teslim yolu değişir. Ayar data/bulk_smtp.json (chmod 600; set-bulk-smtp.yml GitHub secret'larından
+   yazar, depoya ve kütüğe hiç girmez): {host, port, user, pass, from?, tls?: starttls|ssl|none, disabled?, no_fallback?}.
+   Aktarıcı reddederse (bağlantı, kimlik, alıcı) aynı mektup sunucunun mail()'ine düşer (no_fallback=true ise düşmez).
+   Sipariş / fatura / mesaj postaları Brevo API'den gitmeye devam eder (inc/notify.php). */
+function vestra_mailbox_bulk_cfg(): ?array {
+  $f = vestra_data_dir().'/bulk_smtp.json';
+  $d = is_readable($f) ? json_decode((string)file_get_contents($f), true) : null;
+  if (!is_array($d) || !empty($d['disabled']) || trim((string)($d['host'] ?? '')) === '' || (string)($d['pass'] ?? '') === '') return null;
+  $tls = strtolower(trim((string)($d['tls'] ?? ''))); if (!in_array($tls, ['starttls', 'ssl', 'none'], true)) $tls = (int)($d['port'] ?? 587) === 465 ? 'ssl' : 'starttls';
+  $from = strtolower(trim((string)($d['from'] ?? ''))); if (!filter_var($from, FILTER_VALIDATE_EMAIL)) $from = '';
+  return ['host' => trim((string)$d['host']), 'port' => (int)($d['port'] ?? 587) ?: 587, 'user' => (string)($d['user'] ?? ''), 'pass' => (string)$d['pass'],
+          'from' => $from, 'tls' => $tls, 'no_fallback' => !empty($d['no_fallback']), 'label' => (string)($d['label'] ?? $d['host'])];
+}
+/** Hazır mektubu (başlıklar + boş satır + gövde, CRLF) SMTP aktarıcısına teslim eder. [ok, neden]. $dial: testte sahte bağlantı
+ *  (['read','write','tls','close'] kapanışları). Şifre kütüğe/çıktıya yazılmaz. */
+function vestra_mailbox_smtp_deliver(array $cfg, string $from, string $to, string $data, ?callable $dial = null): array {
+  if ($dial) $io = $dial($cfg['host'], (int)$cfg['port']);
+  else {
+    $fp = @stream_socket_client(($cfg['tls'] === 'ssl' ? 'ssl://' : 'tcp://').$cfg['host'].':'.(int)$cfg['port'], $errno, $errstr, 15);
+    if (!$fp) return [false, 'smtp baglanti kurulamadi ('.$errno.')'];
+    stream_set_timeout($fp, 25);
+    $io = ['read' => function () use ($fp): string { $d = ''; while (($l = fgets($fp, 515)) !== false) { $d .= $l; if (isset($l[3]) && $l[3] === ' ') break; } return $d; },
+           'write' => function (string $x) use ($fp): void { fwrite($fp, $x); },
+           'tls' => fn(): bool => (bool)@stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT),
+           'close' => function () use ($fp): void { @fclose($fp); }];
+  }
+  $read = $io['read']; $cmd = function (string $c) use ($io, $read): string { ($io['write'])($c."\r\n"); return $read(); };
+  $code = fn(string $r): int => (int)substr($r, 0, 3);
+  $fail = function (string $why) use ($io, $cmd): array { try { $cmd('QUIT'); } catch (\Throwable $e) {} ($io['close'])(); return [false, $why]; };
+  if ($code($read()) !== 220) return $fail('smtp karsilama yok');
+  if ($code($cmd('EHLO vestrasales.com')) !== 250) return $fail('EHLO reddedildi');
+  if ($cfg['tls'] === 'starttls') { if ($code($cmd('STARTTLS')) !== 220 || !($io['tls'])()) return $fail('STARTTLS basarisiz'); if ($code($cmd('EHLO vestrasales.com')) !== 250) return $fail('EHLO (TLS) reddedildi'); }
+  if ((string)$cfg['user'] !== '') { $cmd('AUTH LOGIN'); $cmd(base64_encode((string)$cfg['user'])); if ($code($cmd(base64_encode((string)$cfg['pass']))) !== 235) return $fail('smtp kimlik reddedildi (kullanici/sifre)'); }
+  if ($code($cmd('MAIL FROM:<'.$from.'>')) !== 250) return $fail('gonderen reddedildi (serviste dogrulanmamis adres?)');
+  $r = $cmd('RCPT TO:<'.$to.'>'); if (!in_array($code($r), [250, 251], true)) return $fail('alici reddedildi ('.$code($r).')');
+  if ($code($cmd('DATA')) !== 354) return $fail('DATA reddedildi');
+  $r = $cmd(preg_replace('/^\./m', '..', $data)."\r\n.");
+  $ok = $code($r) === 250; $cmd('QUIT'); ($io['close'])();
+  return [$ok, $ok ? '' : 'smtp kabul etmedi ('.trim(mb_substr(preg_replace('/\s+/', ' ', $r), 0, 80)).')'];
+}
+
+/** Tek mektubu support@'tan gönderir: toplu SMTP aktarıcısı varsa oradan (vestra_mailbox_bulk_cfg), yoksa / reddederse sunucunun
+ *  posta servisiyle (mail() → Exim → GoDaddy aktarıcısı). [ok, Message-ID, neden]. $mail: testte sahte mail();
+ *  $o['bulk']: testte ayar (false = kapalı) · $o['smtp']: testte sahte aktarıcı. */
 function vestra_mailbox_send_local(array $it, string $fromName, ?callable $mail = null, array $o = []): array {
   $mail = $mail ?? 'mail';
   $from = vestra_mail_house_address();
@@ -996,8 +1042,17 @@ function vestra_mailbox_send_local(array $it, string $fromName, ?callable $mail 
   $dkim = (isset($o['dkim_key']) || $dkimLive) ? vestra_dkim_sign($lines, $to, $subject, $body, $o['dkim_key'] ?? null) : '';
   if ($dkim !== '') array_unshift($lines, $dkim);
   $headers = implode("\r\n", $lines);
+  $bulk = array_key_exists('bulk', $o) ? $o['bulk'] : vestra_mailbox_bulk_cfg();
+  if (is_array($bulk)) {
+    /* To/Subject DKIM'in imzaladığı biçimde (vestra_dkim_sign: To = çıplak adres, Subject = kodlanmış); Return-Path = serviste doğrulanmış adres. */
+    $data = $headers."\r\nTo: {$to}\r\nSubject: {$subject}\r\n\r\n".$body;
+    [$ok, $why] = ($o['smtp'] ?? 'vestra_mailbox_smtp_deliver')($bulk, $bulk['from'] !== '' ? $bulk['from'] : $from, $to, $data);
+    if ($ok) return [true, $mid, ''];
+    $GLOBALS['vestra_bulk_last_error'] = $why;
+    if (!empty($bulk['no_fallback'])) return [false, $mid, 'toplu smtp: '.$why];
+  }
   $ok = (bool)$mail($to, $subject, $body, $headers, '-f '.$from);
-  return [$ok, $mid, $ok ? '' : 'posta servisi kabul etmedi'];
+  return [$ok, $mid, $ok ? '' : 'posta servisi kabul etmedi'.(isset($why) ? ' (toplu smtp de: '.$why.')' : '')];
 }
 
 /** Maskeli adres (kütük için). */
@@ -1055,7 +1110,7 @@ function vestra_mailbox_run(array $req, array $o = []): array {
     }
     /* 17 Eki 2026: mektuplar arası bekleme KONTROLLERDEN ÖNCE — eskiden kontrol, sonra 8–11 sn bekleme, sonra gönderimdi:
        o bekleme sırasında Brevo aynı dükkâna yazarsa görülmüyordu. Son gönderimden beri bir kez beklenir. */
-    if ($needPause) { $sleep(random_int(VESTRA_MAILBOX_PAUSE_MIN, VESTRA_MAILBOX_PAUSE_MAX)); $needPause = false; }
+    if ($needPause) { $sleep(vestra_mailbox_bulk_cfg() ? random_int(4, 6) : random_int(VESTRA_MAILBOX_PAUSE_MIN, VESTRA_MAILBOX_PAUSE_MAX)); $needPause = false; }   // toplu aktarıcı: 4–6 sn (2000 ≈ 3 saat)
     /* Takip mektubu: gönderimden HEMEN önce kayıt yeniden okunur — parti kurulduktan sonra (aynı gece) Brevo
        taraması ya da başka bir yol bu dükkâna yazdıysa ya da dükkân çıktıysa / geri döndüyse atlanır (14 Eki 2026). */
     /* Son kontrol (14 Eki 2026, RTL olayı): parti kurulduktan sonra hariç tutulan / durdurulan ülkedeki kayda gitmez. */

@@ -13188,3 +13188,13 @@ Operatör: *"Marca Online dan yaz buna stokta değil de, fransızca"*. `thread_s
 - KALDI: başlık kelime animasyonu, marka şeridi girişi, kaydırma ilerleme çizgisi (`.scprog`), kartın normal hover'ı
   (gölge/çerçeve, marka alt çizgisi) ve dokunmatikte ikinci fotoğrafa geçiş (`sreveal`). Yerel çizimde 24 kart opacity 1,
   transform none, filter none, konsol hatası 0 (masaüstü + mobil).
+
+## Toplu gönderim yolu — SMTP aktarıcısı (31 Eki 2026)
+Operatör: "bu e-posta gönderme işine son noktayı koy, günde 2 bin e-posta gitsin". GoDaddy'nin posta servisi 29 Eki 15:30'dan beri
+kampanya partilerini 7–8 mektuptan sonra reddediyor (günde ~850). Kampanya mektupları artık `data/bulk_smtp.json` (chmod 600)
+tanımlıysa oradaki SMTP aktarıcısından gider: `vestra_mailbox_bulk_cfg()` + `vestra_mailbox_smtp_deliver()` (inc/mailbox.php),
+`vestra_mailbox_send_local` önce aktarıcı, reddederse sunucunun `mail()`'i (`no_fallback` ile düşmez). Mektup, DKIM imzası,
+List-Unsubscribe, Message-ID birebir aynı; Return-Path = serviste doğrulanmış `from` (boşsa support@). Ayar yalnız chat-help
+`set-bulk-smtp.yml` ile GitHub secret'larından (BULK_SMTP_HOST/PORT/USER/PASS/FROM) yazılır; kimlik bilgisi depoya ve kütüğe
+girmez. Aktarıcı varken mektuplar arası 4–6 sn. Sipariş/fatura/mesaj postaları Brevo API'den (inc/notify.php) gitmeye devam eder.
+Test: tests/bulk_smtp_test.php (sahte aktarıcıyla konuşma sırası, nokta doldurma, yedek yol).
