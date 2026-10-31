@@ -1,0 +1,78 @@
+name: Sunucuda TOPLU gönderim (SMTP aktarıcısı) ayarı — Brevo SMTP / Amazon SES / Mailgun
+
+# 31 Eki 2026 (operatör: "bu e-posta gönderme işine son noktayı koy, günde 2 bin e-posta gitsin"). GoDaddy'nin posta servisi
+# partileri 7–8 mektuptan sonra reddediyor (29 Eki'den beri). Kampanya mektupları artık bir toplu gönderim servisinin SMTP
+# aktarıcısından gider (inc/mailbox.php vestra_mailbox_bulk_cfg / vestra_mailbox_smtp_deliver); mektup ve başlıklar aynı.
+#
+# GitHub secret'ları (Settings → Secrets and variables → Actions → New repository secret):
+#   BULK_SMTP_HOST  ör. smtp-relay.brevo.com · email-smtp.eu-central-1.amazonaws.com · smtp.eu.mailgun.org
+#   BULK_SMTP_PORT  587 (STARTTLS, varsayılan) ya da 465 (SSL)
+#   BULK_SMTP_USER  Brevo: hesap e-postası · SES: SMTP kullanıcı adı (IAM) · Mailgun: postmaster@…
+#   BULK_SMTP_PASS  Brevo: SMTP anahtarı (xsmtpsib-…) · SES: SMTP şifresi · Mailgun: SMTP şifresi
+#   BULK_SMTP_FROM  (isteğe bağlı) serviste doğrulanmış gönderen; boş = support@vestrasales.com
+# Hiçbiri kütüğe yazılmaz; yalnız sunucudaki data/bulk_smtp.json'a (chmod 600). Depoya hiç girmez.
+# mode: set = yaz + operatör kutusuna gerçek bir deneme mektubu gönder (aktarıcıdan) · test = yalnız deneme · remove = ayarı sil
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "set (yaz + deneme) | test (yalnız deneme) | remove (ayarı sil, sunucunun posta servisine dön)"
+        required: true
+        default: "set"
+
+permissions:
+  contents: read
+
+jobs:
+  bulk-smtp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Secret kontrolü
+        if: ${{ github.event.inputs.mode == 'set' }}
+        run: |
+          [ -n "${{ secrets.BULK_SMTP_HOST }}" ] && [ -n "${{ secrets.BULK_SMTP_PASS }}" ] || { echo "::error::BULK_SMTP_HOST / BULK_SMTP_PASS secret'ı yok (BULK_SMTP_USER, BULK_SMTP_PORT, BULK_SMTP_FROM isteğe bağlı)"; exit 1; }
+          echo "secret'lar tanımlı"
+      - name: Sunucu
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          MODE: ${{ github.event.inputs.mode }}
+          B_HOST: ${{ secrets.BULK_SMTP_HOST }}
+          B_PORT: ${{ secrets.BULK_SMTP_PORT }}
+          B_USER: ${{ secrets.BULK_SMTP_USER }}
+          B_PASS: ${{ secrets.BULK_SMTP_PASS }}
+          B_FROM: ${{ secrets.BULK_SMTP_FROM }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: MODE,B_HOST,B_PORT,B_USER,B_PASS,B_FROM
+          command_timeout: 3m
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_bulk_smtp.php <<'PHPEOF'
+            <?php
+            chdir(getenv('HOME').'/public_html');
+            require 'inc/products.php'; require_once 'inc/finder.php'; require_once 'inc/notify.php'; require_once 'inc/mailbox.php';
+            $mode = preg_replace('/[^a-z]/', '', strtolower((string)getenv('MODE')));
+            $f = vestra_data_dir().'/bulk_smtp.json';
+            if ($mode === 'remove') { @unlink($f); echo "toplu SMTP ayari silindi -- kampanyalar sunucunun posta servisinden gider\n"; exit(0); }
+            if ($mode === 'set') {
+              $host = trim((string)getenv('B_HOST')); $pass = (string)getenv('B_PASS');
+              if ($host === '' || $pass === '') { fwrite(STDERR, "host/sifre bos\n"); exit(1); }
+              $port = (int)preg_replace('/\D/', '', (string)getenv('B_PORT')) ?: 587;
+              $cfg = ['host' => $host, 'port' => $port, 'user' => trim((string)getenv('B_USER')), 'pass' => $pass, 'from' => strtolower(trim((string)getenv('B_FROM'))), 'set_at' => date('c')];
+              file_put_contents($f, json_encode($cfg, JSON_UNESCAPED_SLASHES), LOCK_EX); @chmod($f, 0600);
+              echo "yazildi: host {$host} · port {$port} · kullanici ".($cfg['user'] !== '' ? 'var' : 'yok')." · from ".($cfg['from'] ?: 'support@vestrasales.com (varsayilan)')."\n";
+            }
+            $c = vestra_mailbox_bulk_cfg();
+            if (!$c) { echo "toplu SMTP ayari YOK (dosya eksik / sifre bos / disabled)\n"; exit(1); }
+            echo "aktarici: {$c['host']}:{$c['port']} ({$c['tls']}) · yedek sunucu: ".($c['no_fallback'] ? 'hayir' : 'evet')."\n";
+            $to = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
+            $it = ['email' => $to, 'subject' => '[TOPLU SMTP DENEME] VESTRA kampanya yolu '.date('d.m H:i'), 'text' => "Bu mektup toplu SMTP aktaricisindan ({$c['host']}) gitti.", 'html' => '<p>Bu mektup <b>toplu SMTP aktarıcısından</b> ('.htmlspecialchars($c['host']).') gitti.</p>'];
+            $hdr = ''; $cfgNf = $c; $cfgNf['no_fallback'] = true;   // deneme: sunucuya DÜŞMEDEN, yalnız aktarıcı
+            [$ok, $mid, $why] = vestra_mailbox_send_local($it, 'VESTRA', null, ['bulk' => $cfgNf]);
+            echo $ok ? "DENEME GITTI (aktaricidan) -> operator kutusu · ".$mid."\n" : "DENEME GITMEDI: {$why}\n";
+            exit($ok ? 0 : 2);
+            PHPEOF
+            php -d memory_limit=512M /tmp/vestra_bulk_smtp.php; rc=$?; rm -f /tmp/vestra_bulk_smtp.php; exit $rc
