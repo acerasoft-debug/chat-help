@@ -43,6 +43,12 @@ const html = readFileSync(HTML, 'utf8'), re = /window\.I18N_V=\{[^}]*\};/;
 if (!re.test(html)) { console.log('✗ window.I18N_V nicht in site/index.html gefunden'); process.exit(1); }
 const next = html.replace(re, 'window.I18N_V=' + JSON.stringify(ver) + ';');
 if (next !== html) { writeFileSync(HTML, next); console.log('→ site/index.html: I18N_V aktualisiert'); }
+/* Skript der Startseite (site/site.js): Version = Inhalts-Hash → src="/site.js?v=<hash>" (Cloudflare-sicher wie die Sprachdateien) */
+try {
+  const JS = join(ROOT, 'site/site.js'), jv = createHash('sha1').update(readFileSync(JS)).digest('hex').slice(0, 10), cur = readFileSync(HTML, 'utf8'), re2 = /src="\/site\.js\?v=[0-9a-f]*"/;
+  if (!re2.test(cur)) { console.log('✗ src="/site.js?v=…" nicht in site/index.html'); bad++; }
+  else { const n2 = cur.replace(re2, `src="/site.js?v=${jv}"`); if (n2 !== cur) { writeFileSync(HTML, n2); console.log('→ site/index.html: site.js v=' + jv); } else console.log('✓ site.js v=' + jv); }
+} catch (e) { console.log('✗ site/site.js: ' + e.message); bad++; }
 /* Deploy-Manifest: jede Sprachdatei einmal */
 let man = readFileSync(MAN, 'utf8'); const add = [];
 for (const l of Object.keys(ver)) { const line = `site/i18n/${l}.json`; if (!man.split('\n').some(x => x.trim().startsWith(line + ' '))) add.push(`${line.padEnd(28)} i18n/${l}.json`); }

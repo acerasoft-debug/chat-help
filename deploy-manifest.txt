@@ -291,3 +291,19 @@ site/robots.txt               robots.txt
 site/sitemap.xml              sitemap.xml
 site/favicon.ico              favicon.ico
 site/site.webmanifest         site.webmanifest
+# Startseite: ausgelagertes Skript (?v=<hash> setzt tools/site-i18n.mjs) + WebP-Poster je Sprache
+site/site.js                  site.js
+site/media/hero-poster.webp   media/hero-poster.webp
+site/media/hero-de-poster.webp media/hero-de-poster.webp
+site/media/hero-fr-poster.webp media/hero-fr-poster.webp
+site/media/hero-tr-poster.webp media/hero-tr-poster.webp
+site/media/hero-az-poster.webp media/hero-az-poster.webp
+site/media/hero-es-poster.webp media/hero-es-poster.webp
+site/media/hero-it-poster.webp media/hero-it-poster.webp
+site/media/hero-en-poster.webp media/hero-en-poster.webp
+site/media/hero-ru-poster.webp media/hero-ru-poster.webp
+site/media/hero-nl-poster.webp media/hero-nl-poster.webp
+site/media/hero-sv-poster.webp media/hero-sv-poster.webp
+site/media/hero-no-poster.webp media/hero-no-poster.webp
+site/media/hero-fi-poster.webp media/hero-fi-poster.webp
+site/media/hero-ja-poster.webp media/hero-ja-poster.webp
