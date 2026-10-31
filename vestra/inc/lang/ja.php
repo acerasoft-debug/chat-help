@@ -1765,4 +1765,7 @@ return array (
   'Live photo' => '実物写真',
   'Original samples — real photos of the goods in stock, with their tags and labels' => 'オリジナルサンプル — 在庫品の実物写真（下げ札・ラベル付き）',
   '%d live photos of the original samples' => 'オリジナルサンプルの実物写真 %d 枚',
+  /* Odeme sayfasi sadelesti (29 Eki 2026): havale alicinin parasinin kime gittigini soylemez, kripto kisa. */
+  'Two ways to pay: <b>🏦 bank transfer</b> or <b>₿ crypto</b> (USDT, BTC, ETH…). Choose below.' => 'お支払い方法は2つ：<b>🏦 銀行振込</b>または<b>₿ 暗号資産</b>（USDT、BTC、ETH…）。下からお選びください。',
+  'Paid only to the VESTRA platform.' => 'お支払いはVESTRAプラットフォームのみに行われます。',
 );

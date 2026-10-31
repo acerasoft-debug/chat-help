@@ -366,13 +366,16 @@ if ($pid > 0) {
     $t('kasa: posta kodu ve sehir alanlari AYRI',      str_contains($b8, 'name="postcode"') && str_contains($b8, 'name="city"') && str_contains($b8, 'name="address"'));
     $t('kasa: kripto secenegi + -2% etiketi',          str_contains($b8, 'id="payCrypto"') && str_contains($b8, '· −2%'));
     $t('kasa: kripto indirim satiri + oran JS\'de',    str_contains($b8, 'id="cryptoDiscLine"') && str_contains($b8, 'CRYPTO_DISC_RATE = 0.02'));
-    $t('kasa: "VESTRA\'ya odersiniz, satici sevkten sonra" + cuzdansiz musteri notu', str_contains($b8, 'never the seller') && str_contains($b8, 'No crypto wallet?'));
+    /* 29 Eki 2026 (operator): kripto aciklamasi KISA -- "sadece platforma odeniyor"; uzun metin + cuzdan notu kalkti. */
+    $t('kasa: kripto KISA -- yalniz platforma odenir', str_contains($b8, 'Paid only to the VESTRA platform.') && !str_contains($b8, 'never the seller') && !str_contains($b8, 'No crypto wallet?'));
     $t('kasa: yaptirim kalibi JS\'de',                  str_contains($b8, 'CRYPTO_BLOCK_RE = new RegExp('));
     $t('sabit: VESTRA_CRYPTO_DISCOUNT_PCT = 2',         VESTRA_CRYPTO_DISCOUNT_PCT == 2.0);
     $t('kasa: haric markalar JS\'de (polvich, pili perez)', str_contains($b8, 'CRYPTO_DISC_EXCL = ["polvich","pili perez"]'));
     $t('kasa: Connect kapali -> ESCROW_MAP bos',         str_contains($b8, 'var ESCROW_MAP = {}') || str_contains($b8, 'var ESCROW_MAP = []'));
-    $t('kasa: Connect kapali -> escrow secenegi HIC CIZILMEZ, yalniz havale + kripto', !str_contains($b8, 'id="payEscrow"') && str_contains($b8, 'id="payBank"') && str_contains($b8, 'id="payCrypto"') && !str_contains($b8, 'secure card escrow') && str_contains($b8, 'paid to VESTRA'));
-    $t('kasa: havale secenegi "VESTRA denetler" cumlesi',  str_contains($b8, 'VESTRA oversees your order and the delivery'));
+    $t('kasa: Connect kapali -> escrow secenegi HIC CIZILMEZ, yalniz havale + kripto', !str_contains($b8, 'id="payEscrow"') && str_contains($b8, 'id="payBank"') && str_contains($b8, 'id="payCrypto"') && !str_contains($b8, 'secure card escrow') && str_contains($b8, '<b>₿ crypto</b> (USDT, BTC, ETH…). Choose below.'));
+    /* 29 Eki 2026 (operator): havale yalniz "Bank transfer" -- paranin VESTRA'ya mi saticiya mi gittigi yazilmaz. */
+    $t('kasa: havale secenegi parayi kimin aldigini SOYLEMEZ', str_contains($b8, '🏦 Bank transfer</b>') && !str_contains($b8, 'your payment goes to the seller')
+       && !str_contains($b8, 'seller’s bank details') && !str_contains($b8, 'VESTRA oversees your order'));
     $t('kasa (15 Eki): adimli kartlar + yapisik ozet + "baska adres" KUTUCUKLARI (sokak/posta kodu/sehir/ulke)', substr_count($b8, 'class="panelcard ckstep"') === 5 && str_contains($b8, 'class="cksum"') && str_contains($b8, 'name="ship_street"') && str_contains($b8, 'name="ship_postcode"') && str_contains($b8, 'name="ship_city"') && str_contains($b8, 'name="ship_country"') && !str_contains($b8, 'name="ship_address"'));
     $t('kasa: havale secenegi "24 saat icinde fatura" cumlesi', str_contains($b8, 'Within 24 hours of your purchase, your invoice with the payment details is emailed'));
     shell_exec('kill '.$pid.' 2>/dev/null');

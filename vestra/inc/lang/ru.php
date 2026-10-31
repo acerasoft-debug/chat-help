@@ -1765,4 +1765,7 @@ return array (
   'Live photo' => 'Живое фото',
   'Original samples — real photos of the goods in stock, with their tags and labels' => 'Оригинальные образцы — реальные фото товара на складе, с бирками и этикетками',
   '%d live photos of the original samples' => '%d живых фото оригинальных образцов',
+  /* Odeme sayfasi sadelesti (29 Eki 2026): havale alicinin parasinin kime gittigini soylemez, kripto kisa. */
+  'Two ways to pay: <b>🏦 bank transfer</b> or <b>₿ crypto</b> (USDT, BTC, ETH…). Choose below.' => 'Два способа оплаты: <b>🏦 банковский перевод</b> или <b>₿ криптовалюта</b> (USDT, BTC, ETH…). Выберите ниже.',
+  'Paid only to the VESTRA platform.' => 'Оплата поступает только на платформу VESTRA.',
 );

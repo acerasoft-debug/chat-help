@@ -13198,3 +13198,15 @@ List-Unsubscribe, Message-ID birebir aynı; Return-Path = serviste doğrulanmı�
 `set-bulk-smtp.yml` ile GitHub secret'larından (BULK_SMTP_HOST/PORT/USER/PASS/FROM) yazılır; kimlik bilgisi depoya ve kütüğe
 girmez. Aktarıcı varken mektuplar arası 4–6 sn. Sipariş/fatura/mesaj postaları Brevo API'den (inc/notify.php) gitmeye devam eder.
 Test: tests/bulk_smtp_test.php (sahte aktarıcıyla konuşma sırası, nokta doldurma, yedek yol).
+
+## Ödeme sayfası sadeleşti (29–31 Eki 2026) — `cart.php` 4. adım
+- Operatör: *"ödeme sayfasında kripto dursun banka havalesi de dursun ama ödemeniz banka havalesinde VESTRA'ya ya da satıcıya
+  gidiyor demesin, banka havalesi desin sadece; kriptoda açıklamayı kısalt, karışık yapma, sadece platforma ödeniyor de"*.
+- Giriş: "Two ways to pay: 🏦 bank transfer or ₿ crypto (USDT, BTC, ETH…). Choose below." (eski: "…paid to VESTRA").
+- Havale: başlık "Bank transfer" (eski "Bank transfer (invoice)"), tek cümle "Within 24 hours … invoice with the payment details …".
+  ÇIKTI: "seller's bank details" ve "Even though your payment goes to the seller, VESTRA oversees…". Paranın kime gittiği bu
+  sayfada YAZILMAZ — banka satırları faturada.
+- Kripto: tek cümle "Paid only to the VESTRA platform." ÇIKTI: "never the seller … released after dispatch" ve "No crypto wallet?"
+  notu. (order-confirm.php / oxapay-return.php'deki uzun kripto metinlerine DOKUNULMADI — istek ödeme sayfası içindi.)
+- 2 yeni dize 8 sözlükte. Test: `oxapay_test.php` kasa iddiaları yeni kurala çevrildi (161/161); `shop_motion_test.php`
+  29 Eki kart efekti kaldırılmasına göre yeniden yazıldı (geri gelmesini yakalar, 9/9).

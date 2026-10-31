@@ -241,7 +241,7 @@ if (stripe_available() && vestra_connect_enabled()) {   // Connect kapaliyken es
       <?php if (vestra_connect_enabled()): ?>
       <div class="hint" style="margin-top:6px"><?= t('Two ways to pay: <b>🛡️ secure card escrow</b> (we hold the funds and release them to the seller only after you confirm delivery) or <b>🏦 bank transfer</b> by invoice. Choose below.') ?></div>
       <?php elseif (oxapay_enabled()): ?>
-      <div class="hint" style="margin-top:6px"><?= t('Two ways to pay: <b>🏦 bank transfer</b> by invoice, or <b>₿ crypto</b> (USDT, BTC, ETH…) paid to VESTRA. Choose below.') ?></div>
+      <div class="hint" style="margin-top:6px"><?= t('Two ways to pay: <b>🏦 bank transfer</b> or <b>₿ crypto</b> (USDT, BTC, ETH…). Choose below.') ?></div>
       <?php endif; ?>
       <div class="paysel">
         <?php if (vestra_connect_enabled()): ?>
@@ -257,10 +257,11 @@ if (stripe_available() && vestra_connect_enabled()) {   // Connect kapaliyken es
         <label class="payopt">
           <input type="radio" name="pay" value="bank" id="payBank" checked>
           <span class="payopt-b">
-            <b>🏦 <?= t('Bank transfer (invoice)') ?></b>
-            <span class="hint"><?= t('We send a PDF invoice with the seller’s bank details. Goods ship after your transfer arrives.') ?>
-              <?= t('Within 24 hours of your purchase, your invoice with the payment details is emailed to you and added to your account.') ?>
-              <?= t('Even though your payment goes to the seller, VESTRA oversees your order and the delivery.') ?></span>
+            <?php /* SADE HAVALE (operator, 29 Eki 2026: "banka havalesinde odemeniz VESTRA'ya ya da saticiya gidiyor
+                     demesin, banka havalesi desin sadece"): parayi kimin aldigi burada yazilmaz -- banka satirlari
+                     faturada. */ ?>
+            <b>🏦 <?= t('Bank transfer') ?></b>
+            <span class="hint"><?= t('Within 24 hours of your purchase, your invoice with the payment details is emailed to you and added to your account.') ?></span>
           </span>
         </label>
         <?php /* KRIPTO (OxaPay, 14 Eki 2026): havaleye EK secenek -- havalenin zor oldugu
@@ -272,8 +273,8 @@ if (stripe_available() && vestra_connect_enabled()) {   // Connect kapaliyken es
           <input type="radio" name="pay" value="crypto" id="payCrypto">
           <span class="payopt-b">
             <b>₿ <?= t('Pay with crypto (USDT, BTC, ETH…)') ?> · −<?= rtrim(rtrim(number_format(VESTRA_CRYPTO_DISCOUNT_PCT, 2, '.', ''), '0'), '.') ?>%</b>
-            <span class="hint"><?= t('You pay VESTRA directly — never the seller. VESTRA confirms the payment and releases it to the seller only after your goods are dispatched, so your delivery is covered. Ideal where bank transfers are slow or hard.') ?></span>
-            <span class="hint"><?= t('No crypto wallet? Buy USDT or BTC on any exchange (Binance, Kraken, Coinbase, OKX…) and send the exact amount to the address shown on the payment page — or simply choose bank transfer.') ?></span>
+            <?php /* KISA (operator, 29 Eki 2026: "kriptoda aciklamayi kisalt, karisik yapma, sadece platforma odeniyor de"). */ ?>
+            <span class="hint"><?= t('Paid only to the VESTRA platform.') ?></span>
           </span>
         </label>
         <?php endif; ?>
