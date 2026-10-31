@@ -21,7 +21,7 @@ header('Content-Type: text/html; charset=UTF-8');
 ?><!DOCTYPE html><html lang="de" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Rezeption · <?= htmlspecialchars($name,ENT_QUOTES,'UTF-8') ?></title><meta name="robots" content="noindex"><meta name="theme-color" content="#0c0f1d">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <script>try{var th=localStorage.getItem('hb_theme');if(th==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
 <style>
 :root{--bg:#0b0e1b;--bgg:radial-gradient(1200px 600px at 85% -10%,rgba(227,194,122,.10),transparent 60%),radial-gradient(900px 500px at -10% 110%,rgba(139,132,255,.10),transparent 60%);--sur:#151a31;--sur2:#1c2240;--line:#283050;--ink:#f4f5fb;--ink2:#c9ccdc;--mute:#8e94b4;

@@ -79,7 +79,10 @@ if($planId !== ''){                                                    /* ---- A
   $params['line_items[0][price_data][tax_behavior]']='exclusive';
   $params['line_items[0][price_data][product_data][name]']='ChatHelp Tokens – '.number_format($n,0,',','.').' ('.strtoupper($pack).')';
   $params['metadata[type]']='tokens'; $params['metadata[tokens]']=$n; $params['metadata[pack]']=$pack;
-} else { http_response_code(400); header('Content-Type: text/plain; charset=UTF-8'); exit('Geçersiz istek. ?tokens=N (min 1000) · ?pack=10k|50k|200k · ?plan=<id>'); }
+} else {
+  /* Ohne Parameter (direkter Aufruf, Crawler) → Preisbereich der Startseite statt Fehlertext */
+  if($planId==='' && $pack==='' && $req===0 && ($_SERVER['REQUEST_METHOD'] ?? 'GET')==='GET'){ header('Cache-Control: no-store'); header('Location: '.SITE.'/#preise',true,302); exit; }
+  http_response_code(400); header('Content-Type: text/plain; charset=UTF-8'); exit('Geçersiz istek. ?tokens=N (min 1000) · ?pack=10k|50k|200k · ?plan=<id>'); }
 
 /* ---- Landeswährung: EUR-Parameter → Währung + umgerechneter, gerundeter Betrag; EUR-Gegenwert in die Metadaten ---- */
 $cur=ch_cur_norm((string)($_GET['cur'] ?? '')); if($cur==='' || !ch_cur_checkout($cur)) $cur='EUR';

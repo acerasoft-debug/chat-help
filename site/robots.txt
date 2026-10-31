@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /chat/studio.php
+Disallow: /chat/app.php
+Disallow: /chat/admin
+Disallow: /chat/uploads/
+Disallow: /chat/tokens-checkout.php
+Disallow: /chat/*-api.php
+Disallow: /chat/api.php
+Disallow: /chat/auth.php
+Disallow: /chat/callback.php
+Disallow: /wp-admin/
+Disallow: /wp-login.php
+
+Sitemap: https://chat-help.com/sitemap.xml

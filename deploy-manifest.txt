@@ -275,3 +275,19 @@ chat/studio-i18n-voice/sv.json chat/studio-i18n-voice/sv.json
 chat/studio-i18n-voice/no.json chat/studio-i18n-voice/no.json
 chat/studio-i18n-voice/fi.json chat/studio-i18n-voice/fi.json
 chat/studio-i18n-voice/ja.json chat/studio-i18n-voice/ja.json
+# Website: Schriften auf dem eigenen Server (keine Google-Fonts-Anfragen), robots/sitemap, Favicon, Web-Manifest
+site/fonts/fonts.css          fonts/fonts.css
+site/fonts/inter-latin.woff2  fonts/inter-latin.woff2
+site/fonts/inter-latin-ext.woff2 fonts/inter-latin-ext.woff2
+site/fonts/inter-cyrillic.woff2 fonts/inter-cyrillic.woff2
+site/fonts/inter-cyrillic-ext.woff2 fonts/inter-cyrillic-ext.woff2
+site/fonts/inter-greek.woff2  fonts/inter-greek.woff2
+site/fonts/inter-greek-ext.woff2 fonts/inter-greek-ext.woff2
+site/fonts/inter-vietnamese.woff2 fonts/inter-vietnamese.woff2
+site/fonts/fraunces-latin.woff2 fonts/fraunces-latin.woff2
+site/fonts/fraunces-latin-ext.woff2 fonts/fraunces-latin-ext.woff2
+site/fonts/fraunces-vietnamese.woff2 fonts/fraunces-vietnamese.woff2
+site/robots.txt               robots.txt
+site/sitemap.xml              sitemap.xml
+site/favicon.ico              favicon.ico
+site/site.webmanifest         site.webmanifest

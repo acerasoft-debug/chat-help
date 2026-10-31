@@ -18,7 +18,7 @@ $T = apl_t($L); $hx = fn($x) => htmlspecialchars((string)$x, ENT_QUOTES, 'UTF-8'
 header('Content-Type: text/html; charset=UTF-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0');
 header('Cloudflare-CDN-Cache-Control: no-store'); header('CDN-Cache-Control: no-store');
-header('X-Robots-Tag: noindex'); header('Referrer-Policy: same-origin'); header('X-Content-Type-Options: nosniff');
+header('X-Robots-Tag: noindex'); header('Referrer-Policy: same-origin'); header('X-Content-Type-Options: nosniff'); header('X-Frame-Options: SAMEORIGIN');
 $bv = substr(md5((string)@filemtime(__DIR__.'/app-bridge.js')), 0, 8);
 $hasSetup = is_file(__DIR__.'/studio-panels/einrichtung.js') && is_file(__DIR__.'/studio-panels/einrichtung.html');
 $appVer = substr(md5((string)@filemtime(__FILE__)), 0, 6);
@@ -39,8 +39,7 @@ $appVer = substr(md5((string)@filemtime(__FILE__)), 0, 6);
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ChatHelp"><meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <?= apl_head($L, $LSRC) ?>
 <script>window.CH_BRIDGE_SRC="/chat/app-bridge.js?v=<?= $bv ?>";(function(){try{var t=localStorage.getItem('ch_app_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <script src="/chat/app-bridge.js?v=<?= $bv ?>" defer></script>

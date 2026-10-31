@@ -36,6 +36,8 @@ if(isset($_GET['demo'])){
 
 $slug=is_string($_GET['s'] ?? null) ? strtolower(trim($_GET['s'])) : '';
 $S=$slug!=='' ? site_by_slug($slug) : (!$isMain ? site_by_domain($host) : null);
+/* Hauptdomain ohne Website-Kennung (direkter Aufruf, Crawler) → Baukasten-Bereich der Startseite statt 404 */
+if($isMain && $slug==='' && !isset($_GET['a']) && !isset($_GET['preview']) && ($_SERVER['REQUEST_METHOD'] ?? 'GET')==='GET'){ th_nocache(); header('Location: /#website',true,302); exit; }
 
 /* ---- Kontaktformular ---- */
 if(($_GET['a'] ?? '')==='lead'){

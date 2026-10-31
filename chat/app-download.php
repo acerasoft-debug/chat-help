@@ -45,8 +45,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 <link rel="apple-touch-icon" href="/chat/icons/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/chat/icons/icon-32.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ChatHelp">
 <meta property="og:title" content="ChatHelp Business App"><meta property="og:description" content="<?= $h($T('dl.ogdesc')) ?>"><meta property="og:image" content="https://chat-help.com/chat/icons/icon-512.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <script src="/chat/app-bridge.js?v=<?= $bv ?>" defer></script>
 <style>
 :root{--bg:#f6f7fb;--sur:#fff;--sur2:#f1f2f7;--line:#e4e6ee;--line2:#d7dae6;--ink:#0f1222;--ink2:#3b4055;--mute:#6b7083;--gold:#b8862b;--gold2:#8f6519;--goldl:#f6ecd3;--goldg:linear-gradient(135deg,#f3dfa6,#c9972f);--ok:#1a9e5a;--okl:#e4f5ea;--rose:#d9336b;--rosel:#fbe7ee;--blue:#2f6fde;

@@ -46,7 +46,7 @@ $tz=$s ? hotel_tz($s) : new DateTimeZone('Europe/Berlin');
 header('Content-Type: text/html; charset=UTF-8');
 ?><!DOCTYPE html><html lang="<?= $e(CH_LANGS[$L]['tag']) ?>"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?= $p ? $e($t('h.title',['hotel'=>$s['name'] ?: 'Hotel'])) : $e($t('h.nf')) ?></title><meta name="robots" content="noindex">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <style>
 :root{--ink:#0f1222;--ink2:#3b4055;--mute:#6b7083;--line:#e4e6ee;--gold:#b8862b;--goldl:#f6ecd3;--ok:#1a9e5a;--okl:#e4f5ea;--rose:#9f2448;--rosel:#fde7ee;--ind:#4f46e5;--indl:#eceafe;--bg:#f6f7fb}
 *{box-sizing:border-box}html{overflow-x:hidden}body{margin:0;background:var(--bg);font:15px/1.55 Inter,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}

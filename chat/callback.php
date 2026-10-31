@@ -34,7 +34,7 @@ $topic=is_scalar($_GET['topic'] ?? null) ? cb_line($_GET['topic'],300) : ''; $sr
 $asapNote=$instant ? $t('cb.asap60') : ($inWin ? $t('cb.asapq') : ($next ? $t('cb.earliest',['when'=>$L==='de' ? cb_when_label($next,$now) : ch_fmt_when($next,$now,$L)]) : $t('cb.asapq')));
 ?><!DOCTYPE html><html lang="<?= $e(CH_LANGS[$L]['tag']) ?>"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?= $fail ? $e($t('cb.eb')) : $e($t('cb.eb')).' · '.$e($company ?: $t('cb.h')) ?></title><meta name="robots" content="noindex">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <style>
 :root{--ink:#0f1222;--ink2:#3b4055;--mute:#6b7083;--line:#e4e6ee;--line2:#d6d9e4;--gold:#b8862b;--goldl:#f6ecd3;--ok:#1a9e5a;--okl:#e4f5ea;--rose:#9f2448;--rosel:#fde7ee;--indigo:#4f46e5;--indigol:#eceafe}
 *{box-sizing:border-box}[hidden]{display:none !important}html{overflow-x:hidden}html,body{margin:0;background:#f6f7fb;font:15px/1.55 Inter,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}

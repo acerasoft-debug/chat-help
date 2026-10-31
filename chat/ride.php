@@ -46,7 +46,7 @@ $plateLetter=$s ? (['Europe/Berlin'=>'D','Europe/Vienna'=>'A'][$s['tz']] ?? '') 
 $telZ=$s && $s['phone']!=='' ? preg_replace('/[^0-9+]/','',$s['phone']) : '';
 ?><!DOCTYPE html><html lang="<?= $e(CH_LANGS[$L]['tag']) ?>"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?= $p ? $e($t('r.title',['code'=>$p['code']])).' · '.$e($p['company'] ?: $t('r.taxi')) : $e($t('r.nf')) ?></title><meta name="robots" content="noindex"><meta name="theme-color" content="#f6f7fb">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <style>
 :root{--ink:#0f1222;--ink2:#3b4055;--mute:#6b7083;--line:#e4e6ee;--gold:#b8862b;--goldl:#f6ecd3;--ok:#1a9e5a;--okl:#e4f5ea;--rose:#9f2448;--rosel:#fde7ee;--taxi:#f5c518}
 *{box-sizing:border-box}html{overflow-x:hidden}body{margin:0;background:#f6f7fb;font:15px/1.55 Inter,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}

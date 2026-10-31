@@ -8,8 +8,7 @@
 <link rel="canonical" href="https://chat-help.com/datenschutz.html">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="/chat/icons/icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <style>
 :root{--bg:#fff;--bg2:#fbfaf7;--sur:#fff;--sur2:#f6f5f1;--line:rgba(15,18,34,.08);--line2:rgba(15,18,34,.14);--line3:rgba(15,18,34,.24);--ink:#0f1222;--ink2:#3b4055;--mute:#6b7083;
 --gold:#8a6318;--goldb:#b8862b;--gold2:#d4a84a;--goldl:#f6ecd3;--sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Fraunces',Georgia,serif;--r:14px;--r2:20px;
@@ -89,7 +88,7 @@ section[hidden]{display:none}
     <ul>
       <li><b>Server-Protokolle:</b> Beim Aufruf werden technisch IP-Adresse, Zeitpunkt, aufgerufene Seite, Browser-Kennung und Referrer verarbeitet, um die Seite auszuliefern und Angriffe abzuwehren (Art. 6 Abs. 1 lit. f DSGVO).</li>
       <li><b>Cloudflare:</b> Die Seite wird über das Netzwerk von Cloudflare ausgeliefert (Zwischenspeicher, Schutz vor Angriffen). Dabei verarbeitet Cloudflare IP-Adressen und Verbindungsdaten.</li>
-      <li><b>Schriftarten:</b> Die Seite lädt Schriften von Google Fonts. Dabei wird deine IP-Adresse an Google übermittelt.</li>
+      <li><b>Schriftarten:</b> Alle Schriften werden von unserem eigenen Server geladen; es werden keine Schriftarten von Google oder anderen Dritten eingebunden.</li>
       <li><b>Live-Demos:</b> Wenn du eine Demo nutzt, werden deine Eingaben zur Beantwortung an unseren KI-Dienstleister übermittelt. Gib in Demos bitte keine echten persönlichen Daten ein. Demo-Gespräche werden nicht dauerhaft gespeichert.</li>
       <li><b>Lokale Speicherung:</b> Wir speichern im Browser nur, was für die Funktion nötig ist, z. B. Sprache, Stimmen-Auswahl, Anmeldeschlüssel im Studio und ein technisches Cookie gegen veraltete Zwischenspeicher. Es gibt keine Werbe- oder Analyse-Cookies.</li>
       <li><b>Stimmen im Browser:</b> Die Vorlese-Stimmen von Assistent und Demos entstehen direkt in deinem Browser (Open-Source-Sprachmodelle, die einmalig von unserem eigenen Server geladen und im Browser-Zwischenspeicher abgelegt werden). Der vorgelesene Text verlässt dabei dein Gerät nicht. Den Zwischenspeicher kannst du über die Website-Daten deines Browsers löschen.</li>
@@ -122,21 +121,22 @@ section[hidden]{display:none}
       <tr><th>Dienst</th><th>Zweck</th></tr>
       <tr><td>Host Europe GmbH (GoDaddy-Gruppe)</td><td>Hosting der Website und Datenbank</td></tr>
       <tr><td>Cloudflare, Inc.</td><td>Auslieferung, Zwischenspeicher, Schutz vor Angriffen</td></tr>
-      <tr><td>Anthropic, PBC</td><td>KI-Modell Claude für die Antworten der Agenten</td></tr>
-      <tr><td>DeepSeek</td><td>Ersatz-KI-Modell, wenn Claude nicht erreichbar ist, oder wenn ein Kunde seinen eigenen DeepSeek-Schlüssel hinterlegt</td></tr>
+      <tr><td>DeepSeek (Hangzhou DeepSeek Artificial Intelligence Co., Ltd., China)</td><td>KI-Modell für die Antworten der Agenten (Standard-Modell), oder wenn ein Kunde seinen eigenen DeepSeek-Schlüssel hinterlegt</td></tr>
+      <tr><td>Anthropic, PBC (USA)</td><td>KI-Modell Claude als Ersatz, wenn das Standard-Modell nicht antwortet, oder wenn ein Kunde seinen eigenen Claude-Schlüssel hinterlegt</td></tr>
       <tr><td>Twilio Inc.</td><td>Telefonie, SMS, WhatsApp-Versand</td></tr>
       <tr><td>Meta Platforms (WhatsApp Business)</td><td>WhatsApp-Nachrichten, wenn ein Betrieb WhatsApp verbindet</td></tr>
       <tr><td>Stripe</td><td>Zahlungsabwicklung</td></tr>
       <tr><td>Sendinblue/Brevo bzw. Mailserver des Hosters</td><td>Versand von E-Mails (Anmeldecode, Bestätigungen)</td></tr>
       <tr><td>OpenAI, ElevenLabs, Google Cloud, Microsoft Azure</td><td>Sprachausgabe natürlicher Stimmen, nur falls aktiviert</td></tr>
-      <tr><td>Google (Firebase Cloud Messaging, Google Fonts)</td><td>Push-Benachrichtigungen in der App, Schriftarten</td></tr>
+      <tr><td>Deepgram, Inc.</td><td>Spracherkennung (gesprochene Sprache → Text) für Assistent und Telefon, nur falls aktiviert</td></tr>
+      <tr><td>Google (Firebase Cloud Messaging)</td><td>Push-Benachrichtigungen in der Android-App</td></tr>
       <tr><td>OpenStreetMap / Nominatim</td><td>Adressprüfung für Lieferungen und Fahrten</td></tr>
     </table>
   </div>
   <div class="card" id="drittland">
     <h2>Übermittlung in Drittländer</h2>
     <p>Einige Dienstleister sitzen außerhalb der EU, vor allem in den USA. Übermittlungen stützen wir auf Angemessenheitsbeschlüsse (z. B. EU-US Data Privacy Framework für zertifizierte Anbieter) oder auf Standardvertragsklauseln der EU-Kommission.</p>
-    <p><b>DeepSeek</b> verarbeitet Daten in der Volksrepublik China, für die kein Angemessenheitsbeschluss besteht. Wir nutzen DeepSeek nur als Ersatz bei Ausfall des Hauptmodells oder wenn ein Kunde dies durch seinen eigenen Schlüssel selbst wählt. Betriebe können die Ersatznutzung auf Anfrage ausschließen lassen.</p>
+    <p><b>DeepSeek</b> verarbeitet Daten in der Volksrepublik China, für die kein Angemessenheitsbeschluss besteht. Wir nutzen DeepSeek als Standard-Modell für die Antworten der Agenten; übermittelt werden nur die für die Antwort nötigen Gesprächsinhalte, keine Konto- oder Zahlungsdaten. Betriebe, die eine Verarbeitung in China ausschließen möchten, hinterlegen im Studio einen eigenen Schlüssel eines anderen Anbieters oder wenden sich an <a href="mailto:support@chat-help.com">support@chat-help.com</a>.</p>
   </div>
   <div class="card" id="speicher">
     <h2>Speicherdauer</h2>
